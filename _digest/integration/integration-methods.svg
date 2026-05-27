@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="http" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="sdk" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="docker" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <linearGradient id="im" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ec4899"/>
+      <stop offset="100%" style="stop-color:#db2777"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- background -->
+  <rect width="1100" height="720" rx="12" fill="url(#bg)"/>
+
+  <!-- title -->
+  <text x="550" y="42" text-anchor="middle" fill="#f1f5f9" font-size="22" font-weight="bold">DeerFlow 四种集成手段 — 全景对比</text>
+
+  <!-- ====== CENTER: DeerFlow Core ====== -->
+  <rect x="430" y="295" width="240" height="130" rx="14" fill="url(#core)" filter="url(#shadow)"/>
+  <text x="550" y="340" text-anchor="middle" fill="#0f172a" font-size="18" font-weight="bold">DeerFlow</text>
+  <text x="550" y="365" text-anchor="middle" fill="#0f172a" font-size="13">Gateway API :8001</text>
+  <text x="550" y="385" text-anchor="middle" fill="#0f172a" font-size="13">Agent Runtime</text>
+  <text x="550" y="405" text-anchor="middle" fill="#0f172a" font-size="13">Nginx :2026</text>
+
+  <!-- ====== TOP-LEFT: Method 1 - HTTP API ====== -->
+  <rect x="30" y="80" width="280" height="180" rx="10" fill="#1e3a5f" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="30" y="80" width="280" height="38" rx="10" fill="url(#http)"/>
+  <rect x="30" y="108" width="280" height="10" fill="url(#http)"/>
+  <text x="170" y="105" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">① HTTP REST API + SSE</text>
+
+  <text x="50" y="138" fill="#94a3b8" font-size="12">方式</text>
+  <text x="120" y="138" fill="#e2e8f0" font-size="12">HTTP 请求 + SSE 事件流</text>
+
+  <text x="50" y="158" fill="#94a3b8" font-size="12">端口</text>
+  <text x="120" y="158" fill="#e2e8f0" font-size="12">localhost:2026 (Nginx) / :8001</text>
+
+  <text x="50" y="178" fill="#94a3b8" font-size="12">格式</text>
+  <text x="120" y="178" fill="#e2e8f0" font-size="12">REST JSON + SSE event-stream</text>
+
+  <text x="50" y="198" fill="#94a3b8" font-size="12">语言</text>
+  <text x="120" y="198" fill="#10b981" font-size="12">任何语言</text>
+
+  <text x="50" y="218" fill="#94a3b8" font-size="12">场景</text>
+  <text x="120" y="218" fill="#e2e8f0" font-size="12">Web前端 / 外部系统 / 跨语言</text>
+
+  <text x="50" y="243" fill="#fbbf24" font-size="11" font-weight="bold">↳ 03-api-reference.md</text>
+
+  <!-- arrow: HTTP → Core -->
+  <line x1="170" y1="260" x2="170" y2="280" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="170" y1="280" x2="430" y2="360" stroke="#3b82f6" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+
+  <!-- ====== TOP-RIGHT: Method 2 - Python SDK ====== -->
+  <rect x="790" y="80" width="280" height="180" rx="10" fill="#064e3b" stroke="#10b981" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="790" y="80" width="280" height="38" rx="10" fill="url(#sdk)"/>
+  <rect x="790" y="108" width="280" height="10" fill="url(#sdk)"/>
+  <text x="930" y="105" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">② Python SDK 嵌入</text>
+
+  <text x="810" y="138" fill="#94a3b8" font-size="12">方式</text>
+  <text x="880" y="138" fill="#e2e8f0" font-size="12">import deerflow.client</text>
+
+  <text x="810" y="158" fill="#94a3b8" font-size="12">端口</text>
+  <text x="880" y="158" fill="#10b981" font-size="12">无需 HTTP 端口</text>
+
+  <text x="810" y="178" fill="#94a3b8" font-size="12">格式</text>
+  <text x="880" y="178" fill="#e2e8f0" font-size="12">Python 对象 (StreamEvent)</text>
+
+  <text x="810" y="198" fill="#94a3b8" font-size="12">语言</text>
+  <text x="880" y="198" fill="#f59e0b" font-size="12">仅 Python 3.12+</text>
+
+  <text x="810" y="218" fill="#94a3b8" font-size="12">场景</text>
+  <text x="880" y="218" fill="#e2e8f0" font-size="12">Python 应用嵌入 / 脚本 / 无服务</text>
+
+  <text x="810" y="243" fill="#fbbf24" font-size="11" font-weight="bold">↳ 04-python-sdk.md</text>
+
+  <!-- arrow: SDK → Core -->
+  <line x1="930" y1="260" x2="930" y2="280" stroke="#10b981" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="930" y1="280" x2="670" y2="360" stroke="#10b981" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+
+  <!-- ====== BOTTOM-LEFT: Method 3 - Docker ====== -->
+  <rect x="30" y="480" width="280" height="180" rx="10" fill="#2e1065" stroke="#8b5cf6" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="30" y="480" width="280" height="38" rx="10" fill="url(#docker)"/>
+  <rect x="30" y="508" width="280" height="10" fill="url(#docker)"/>
+  <text x="170" y="505" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">③ Docker 部署</text>
+
+  <text x="50" y="538" fill="#94a3b8" font-size="12">方式</text>
+  <text x="120" y="538" fill="#e2e8f0" font-size="12">docker compose up</text>
+
+  <text x="50" y="558" fill="#94a3b8" font-size="12">端口</text>
+  <text x="120" y="558" fill="#e2e8f0" font-size="12">localhost:2026</text>
+
+  <text x="50" y="578" fill="#94a3b8" font-size="12">格式</text>
+  <text x="120" y="578" fill="#e2e8f0" font-size="12">完整 4 服务栈 (Nginx+FE+GW+Provisioner)</text>
+
+  <text x="50" y="598" fill="#94a3b8" font-size="12">语言</text>
+  <text x="120" y="598" fill="#10b981" font-size="12">任何语言（HTTP 客户端）</text>
+
+  <text x="50" y="618" fill="#94a3b8" font-size="12">场景</text>
+  <text x="120" y="618" fill="#e2e8f0" font-size="12">生产部署 / 团队共享 / 沙箱隔离</text>
+
+  <text x="50" y="643" fill="#fbbf24" font-size="11" font-weight="bold">↳ 05-docker.md</text>
+
+  <!-- arrow: Docker → Core -->
+  <line x1="170" y1="480" x2="170" y2="450" stroke="#8b5cf6" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="170" y1="450" x2="430" y2="400" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+
+  <!-- ====== BOTTOM-RIGHT: Method 4 - IM Channels ====== -->
+  <rect x="790" y="480" width="280" height="180" rx="10" fill="#500724" stroke="#ec4899" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="790" y="480" width="280" height="38" rx="10" fill="url(#im)"/>
+  <rect x="790" y="508" width="280" height="10" fill="url(#im)"/>
+  <text x="930" y="505" text-anchor="middle" fill="#fff" font-size="15" font-weight="bold">④ IM 频道桥接</text>
+
+  <text x="810" y="538" fill="#94a3b8" font-size="12">方式</text>
+  <text x="880" y="538" fill="#e2e8f0" font-size="12">WebSocket / Polling</text>
+
+  <text x="810" y="558" fill="#94a3b8" font-size="12">端口</text>
+  <text x="880" y="558" fill="#e2e8f0" font-size="12">出站连接，无需公网 IP</text>
+
+  <text x="810" y="578" fill="#94a3b8" font-size="12">格式</text>
+  <text x="880" y="578" fill="#e2e8f0" font-size="12">飞书/Slack/Telegram/WeChat/DingTalk/Discord</text>
+
+  <text x="810" y="598" fill="#94a3b8" font-size="12">语言</text>
+  <text x="880" y="598" fill="#10b981" font-size="12">任何语言（IM SDK）</text>
+
+  <text x="810" y="618" fill="#94a3b8" font-size="12">场景</text>
+  <text x="880" y="618" fill="#e2e8f0" font-size="12">企业内部 IM / 客服机器人 / 移动端</text>
+
+  <text x="810" y="643" fill="#fbbf24" font-size="11" font-weight="bold">↳ 07-im-channels.md</text>
+
+  <!-- arrow: IM → Core -->
+  <line x1="930" y1="480" x2="930" y2="450" stroke="#ec4899" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="930" y1="450" x2="670" y2="400" stroke="#ec4899" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+
+  <!-- Legend at bottom -->
+  <text x="550" y="700" text-anchor="middle" fill="#64748b" font-size="11">
+    无论哪种方式，最终都调用相同的 Agent Runtime（make_lead_agent + Middleware Chain）
+  </text>
+</svg>
