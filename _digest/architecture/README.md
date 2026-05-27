@@ -24,7 +24,7 @@
 
 | 图 | 内容 |
 |---|------|
-| [agent-runtime-overview.svg](figures/agent-runtime-overview.svg) | Agent Runtime 全景：核心 6 模块 + 外围 4 接入 |
+| [agent-runtime-overview.svg](figures/agent-runtime-overview.svg) | 同心圆分层：Agent Loop (中心) → Services → Harness → Gateway → Access |
 | [harness-app-boundary.svg](figures/harness-app-boundary.svg) | Harness/App 两层边界 + CI 导入规则 |
 | [request-flow.svg](figures/request-flow.svg) | 请求数据流：14 步从 HTTP → SSE |
 | [middleware-chain.svg](figures/middleware-chain.svg) | 20 Middlewares 全景：5 个阶段 · 触发点 · 职责 |
