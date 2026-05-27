@@ -1,47 +1,173 @@
 # 系统全景
 
-## 整体架构图
+## 同心圆分层架构
+
+![Agent Runtime 同心圆分层](figures/agent-runtime-overview.svg)
+
+**中心是 Agent Loop（LangGraph 状态机），一层层往外扩。** 外层可以 import 内层，内层不能 import 外层。SDK 可跳过 Gateway 直接入 Harness。
+
+---
+
+## 逐层拆解
+
+### Center: Agent Loop（引擎核心）
+
+Agent Loop 是 LangGraph 构建的状态机。每轮 step 做一件事：**调 LLM → 看返回 → 有 tool_calls 就执行工具再 loop，没有就退出。**
+
+```mermaid
+stateDiagram-v2
+    [*] --> LLM_Call
+    LLM_Call: model.invoke(messages)
+    LLM_Call --> Decision: AIMessage 返回
+
+    Decision --> Text_Response: text only (无 tool_calls)
+    Decision --> Tool_Calls: tool_calls present
+
+    Tool_Calls --> Tool_Execute: Sandbox / MCP / Builtin
+    Tool_Execute --> LLM_Call: ToolMessage 回传 (继续 loop)
+
+    Text_Response --> After_Step: after_step hooks
+    After_Step --> [*]: SSE "end" → 退出
+```
+
+**退出条件只有一个：LLM 返回的 AIMessage 里没有 `tool_calls`，只有文本内容。**
+
+LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM step 结束后检查 `last_message.tool_calls`：
+- `tool_calls` 非空 → 路由到 `tools` 节点 → 执行工具 → ToolMessage 追加到 messages → 回到 `agent` 节点（循环）
+- `tool_calls` 为空 → 路由到 `END` → after_step middleware → SSE "end" → run 结束
+
+也就是说，Agent Loop 的循环次数完全由 LLM 决定：LLM 认为还需要调工具就继续，LLM 认为可以回答了就退出。没有固定次数上限，但有安全阀——LoopDetectionMiddleware 在连续重复 tool_call >=5 次时强制清除 tool_calls，迫使 LLM 产出文本退出。
+
+**每一步发生的事情：**
+
+| 阶段 | 触发点 | 谁在干活 |
+|------|--------|----------|
+| 调用 LLM 前 | `before_model` | DynamicContext, Summarization, ViewImage, DeferredTools 等 6 个 MW |
+| 调用 LLM | — | `model.invoke(messages)` → AIMessage (text 或 tool_calls) |
+| LLM 返回后 | `after_model` | DanglingToolCall, Guardrail, LoopDetection, Clarification 等 4 个 MW |
+| 工具执行 | `after_tool` | ToolAuth, ToolResultValidation 2 个 MW |
+| Step 结束 | `after_step` | Title, MemoryWrite 2 个 MW |
+
+**ThreadState** 是贯穿全程的状态对象：`messages` (对话历史)、`sandbox` (沙箱实例)、`artifacts` (产物)、`todos` (计划)、`viewed_images` (图片缓存)。
+
+**关键理解：** 这不是一个简单的 while 循环，是 LangGraph 的 StateGraph 节点 + 边。每轮 step，graph 自动从 checkpointer 恢复 ThreadState，经过 middleware 链 → LLM → 条件边（有 tool_calls 则走 tool 节点然后循环，纯文本则走 END）。详见 [03-request-flow.md](03-request-flow.md) 和 [04-middleware-chain.md](04-middleware-chain.md)。
+
+#### 挂入关系
+
+Agent Loop 直接调用 Ring 1 的服务（Sandbox.execute、tool invocation、memory read/write、skill 加载），这些调用发生在 middleware 链的不同阶段。Sandbox 在 SandboxMiddleware 中获取，Tools 在 make_lead_agent 时绑定到 model，Memory 在 after_step 阶段入队。
+
+---
+
+### Ring 1: Core Services（核心基础设施）
+
+Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python 函数调用。
 
 ```
-                      Port 2026
-                          │
-                    ┌─────┴─────┐
-                    │   Nginx    │  (alpine, 反向代理)
-                    └─────┬─────┘
-                          │
-            ┌─────────────┼─────────────┐
-            │             │             │
-      ┌─────┴─────┐ ┌────┴─────┐ ┌─────┴──────┐
-      │ Frontend  │ │ Gateway  │ │Provisioner │ (可选)
-      │ Next.js   │ │ FastAPI  │ │  K3s sandbox│
-      │ :3000     │ │ :8001    │ │   :8002    │
-      └───────────┘ └────┬─────┘ └────────────┘
-                         │
-              ┌──────────┼──────────┐
-              │          │          │
-         ┌────┴────┐ ┌──┴───┐ ┌───┴────┐
-         │LangGraph│ │Agent │ │Channels│
-         │ Runtime │ │      │ │  (IM)  │
-         └─────────┘ └──────┘ └────────┘
+Sandbox        Tools          Subagents
+  ↓              ↓               ↓
+  Agent Loop 直接 await 这些服务，没有中间层
+  ↑              ↑               ↑
+Memory         Skills         Checkpointer
 ```
 
-## 四个进程
+| 服务 | 作用 | 被谁调用 | 详见 |
+|------|------|----------|------|
+| **Sandbox** | 文件系统/命令执行（Local/Docker/K3s） | SandboxMiddleware（运行时） | `06-sandbox.md` |
+| **Tools** | 工具装配：config 定义 → MCP → builtins，按 name 去重 | `make_lead_agent()` 绑到 model | `09-skills-tools.md` |
+| **Subagents** | 委派子任务，max 3 并发，双线程池 | SubagentLimitMiddleware → Executor | `07-subagent.md` |
+| **Memory** | LLM 提取事实 → debounce → 写入 memory.json | MemoryMiddleware（after_step） | `08-memory.md` |
+| **Skills** | 匹配 SKILL.md → 注入 system prompt | SkillsPolicy（before_model） | `09-skills-tools.md` |
+| **Checkpointer** | LangGraph 状态持久化（每条 thread） | LangGraph graph 自动调用 | `10-persistence.md` |
+
+#### 挂入关系
+
+挂入 Agent Loop 的方式是 **直接函数调用**。例如 Sandbox：`SandboxMiddleware` 在运行时阶段获取 sandbox 实例并存入 `ThreadState.sandbox`，后续 tool 调用时 agent 直接 `await sandbox.execute(cmd)`。Tools 同理 — `get_available_tools()` 在 `make_lead_agent` 时装配好，绑到 model 上，LLM 产生的 tool_calls 自动路由到对应 tool。
+
+---
+
+### Ring 2: deerflow.harness（可发布 pip 包）
+
+装配 + 管理 Agent Loop 的框架层。不 `import app.*`，CI 强制检查。
+
+| 组件 | 作用 | 挂入核心的方式 |
+|------|------|---------------|
+| **RunManager** | `create_or_reject()` 创建 RunRecord，`cancel()` 取消，`set_status()` 更新 | 通过 `asyncio.Task(run_agent)` 启动 Agent Loop |
+| **make_lead_agent()** | 7 步工厂：解析 config → 创建 model → 装配 tools → 生成 system prompt → 构建 middleware → create_agent() → 返回 CompiledStateGraph | **直接创建** Agent Loop 的 StateGraph |
+| **StreamBridge** | Agent Loop 产出的 chunk → 转发到 SSE/Memory queue | 挂入 graph.astream() 的 for loop |
+| **Model Factory** | 通过 reflection 加载 ChatModel（8+ providers），应用 thinking 覆盖 | `create_chat_model()` → 传给 `make_lead_agent` |
+
+#### 挂入关系
+
+`make_lead_agent(config)` 是整个系统的装配点：
+1. 从 config.yaml 解析 model_name、tool_groups、subagent 开关等
+2. 调用 `create_chat_model()` 创建 LLM 实例
+3. 调用 `get_available_tools()` 装配 tool 列表（config + MCP + builtins + ACP agents）
+4. 调用 `apply_prompt_template()` 生成 system prompt（注入 skills、memory、日期、subagent 指令）
+5. 调用 `_build_middlewares()` 构建 20 个 middleware
+6. 调用 `create_agent(model, tools, middleware, state_schema, checkpointer)` 返回 CompiledStateGraph
+
+**`make_lead_agent` 是唯一对外暴露的 graph factory**，在 `langgraph.json` 中注册为 `"lead_agent"`。
+
+---
+
+### Ring 3: app.gateway（HTTP/IM 层，不发布）
+
+| 组件 | 作用 | 挂入 Ring 2 的方式 |
+|------|------|-------------------|
+| **FastAPI** | HTTP 服务 :8001，15 个 Routers | `POST /threads/{id}/runs/stream` → `RunManager.create_or_reject()` |
+| **Auth** | JWT/OAuth/CSRF/Internal Auth | FastAPI Deps() 注入 → thread_runs 路由获取 user_id |
+| **IM Channels** | 7 个平台的消息接收/发送 | 平台 webhook → message_bus → langgraph-sdk → Gateway API |
+
+#### 挂入关系
+
+Gateway 通过 **HTTP 路由 → RunManager** 挂入 Harness。请求到达后：
+
+```
+POST /api/threads/{id}/runs/stream
+  → thread_runs.py Router (FastAPI Deps 注入 config, auth, user)
+  → RunManager.create_or_reject(thread_id, assistant_id)
+  → asyncio.Task(run_agent) 在后台启动 Agent Loop
+  → 返回 SSE StreamingResponse (立即返回，不等待 run 结束)
+```
+
+`langgraph.json` 中的 `auth.path` 指向 Gateway 的 `langgraph_auth.py:auth`，这意味着 LangGraph 兼容的客户端（如 `@langchain/langgraph-sdk`）可直接用 Gateway 的用户体系认证。
+
+---
+
+### Ring 4: External Access（接入方式）
+
+| 接入方式 | 如何进入系统 | 走哪条路径 |
+|----------|------------|-----------|
+| **Browser/SSE** | `@langchain/langgraph-sdk` SSE 流式 | FE → Nginx → Gateway → Runtime |
+| **HTTP API** | REST + SSE，任何语言 | HTTP Client → Gateway → Runtime |
+| **Python SDK** | `from deerflow.client import DeerFlowClient` | **直接 import Harness，不走 HTTP** |
+| **IM ×7** | 飞书/Slack/Telegram 等 webhook | IM Platform → Gateway → Runtime |
+
+#### 关键：SDK 短路路径
+
+Python SDK (`DeerFlowClient`) 绕过 Ring 3，直接 import `deerflow.harness`：
+
+```
+Browser:     FE → Nginx → Gateway → RunManager → Agent Loop
+HTTP API:    Client → Gateway → RunManager → Agent Loop
+SDK:         DeerFlowClient.chat() ────→ Agent Loop (同进程，无网络)
+IM:          IM webhook → Gateway → RunManager → Agent Loop
+```
+
+SDK 的优势：零网络开销、无序列化、不需要启动 Gateway 进程。详见 [../integration/04-python-sdk.md](../integration/04-python-sdk.md)。
+
+---
+
+## 进程拓扑
 
 | 进程 | 端口 | 技术 | 角色 |
 |------|------|------|------|
 | **Nginx** | 2026 | nginx:alpine | 反向代理、统一入口、路由分发 |
 | **Frontend** | 3000 | Next.js 16 + React 19 | Web UI |
-| **Gateway** | 8001 | FastAPI + Uvicorn | REST API + Agent Runtime |
+| **Gateway** | 8001 | FastAPI + Uvicorn | REST API + Agent Runtime（嵌入 LangGraph） |
 | **Provisioner** | 8002 | Python | K3s 沙箱管理（可选） |
 
-## Gateway 是核心
-
-Gateway 承载了两个角色：
-
-1. **HTTP API** — 15 个路由模块提供 REST 接口
-2. **Agent Runtime** — 嵌入 LangGraph-compatible agent runtime（不依赖独立 LangGraph Server）
-
-Nginx 将 `/api/langgraph/*` 路由到 Gateway，然后 Gateway 用自己的 Runtime 处理，无需外部 LangGraph Server。
+Gateway 是核心进程 — 不依赖独立 LangGraph Server，Runtime 内嵌在 Gateway 进程里。
 
 ## langgraph.json — Agent 注册中心
 
@@ -59,61 +185,37 @@ Nginx 将 `/api/langgraph/*` 路由到 Gateway，然后 Gateway 用自己的 Run
 }
 ```
 
-三件事：
-- **graph 注册**：`lead_agent` 是唯一图，工厂函数 `make_lead_agent`
-- **auth**：LangGraph 兼容的认证层，复用 Gateway 用户体系
-- **checkpointer**：异步 checkpointer，支持 memory/sqlite/postgres
-
-## 组件关系
-
-```
-Frontend ──(LangGraph SDK)──► Gateway API ──► Lead Agent
-                                               │
-                          ┌─────────────────────┼─────────────────────┐
-                          │        │           │          │          │
-                     Sandbox   Subagents    Memory     Skills      Tools
-                          │        │           │          │          │
-                     Local/AIO  general-   memory.json  SKILL.md  MCP/builtins
-                                purpose
-                                /bash
-```
+三件事：**graph 注册**（唯一图 `lead_agent`）、**auth**（复用 Gateway 用户体系）、**checkpointer**（memory/sqlite/postgres）。
 
 ## 目录结构映射
 
 ```
 deer-flow/
-├── config.yaml              # 主配置
-├── extensions_config.json   # MCP + Skills 启停状态
-├── skills/{public,custom}/  # Skill 定义
-│
+├── config.yaml
+├── extensions_config.json
+├── skills/{public,custom}/
 ├── backend/
-│   ├── langgraph.json       # Agent 注册
-│   ├── packages/harness/deerflow/   # ← Harness 层
-│   │   ├── agents/          # Lead agent + middlewares + memory
-│   │   ├── runtime/         # RunManager + checkpointer + stream bridge
-│   │   ├── sandbox/         # 沙箱抽象 + local 实现
-│   │   ├── subagents/       # 子 Agent 系统
-│   │   ├── tools/           # 工具装配 + builtins
-│   │   ├── models/          # 模型工厂
-│   │   ├── mcp/             # MCP 集成
-│   │   ├── skills/          # Skill 加载
-│   │   ├── config/          # 配置系统 (29 个文件)
-│   │   ├── community/       # Tavily/Jina/Firecrawl/DDG/AioSandbox
-│   │   ├── persistence/     # ORM + 数据库引擎
-│   │   ├── guardrails/      # 工具鉴权
-│   │   ├── tracing/         # LangSmith + Langfuse
-│   │   ├── reflection/      # 动态加载
-│   │   └── client.py        # DeerFlowClient
-│   │
-│   └── app/                 # ← App 层
-│       ├── gateway/         # FastAPI + 15 routers + auth
-│       └── channels/        # 7 个 IM 平台集成
-│
-└── frontend/
-    └── src/
-        ├── app/             # Next.js App Router pages
-        ├── components/      # UI 组件（workspace/landing/ui）
-        └── core/            # 业务逻辑（threads/api/settings/memory...）
+│   ├── langgraph.json
+│   ├── packages/harness/deerflow/   ← Ring 1 + Ring 2
+│   │   ├── agents/       Lead agent + middlewares
+│   │   ├── runtime/      RunManager + checkpointer + stream bridge
+│   │   ├── sandbox/      沙箱抽象 + local 实现
+│   │   ├── subagents/    子 Agent 系统
+│   │   ├── tools/        工具装配 + builtins
+│   │   ├── models/       模型工厂
+│   │   ├── mcp/          MCP 集成
+│   │   ├── skills/       Skill 加载
+│   │   ├── config/       配置系统 (29 文件)
+│   │   ├── community/    Tavily/Jina/DDG/AioSandbox
+│   │   ├── persistence/  ORM + DB 引擎
+│   │   ├── guardrails/   工具鉴权
+│   │   ├── tracing/      LangSmith + Langfuse
+│   │   └── client.py     DeerFlowClient (SDK 入口)
+│   └── app/              ← Ring 3
+│       ├── gateway/      FastAPI + 15 routers + auth
+│       └── channels/     7 个 IM 平台
+└── frontend/             ← Ring 4 (Browser/SSE)
+    └── src/              Next.js + React 19 + Tailwind
 ```
 
 ## 技术栈
