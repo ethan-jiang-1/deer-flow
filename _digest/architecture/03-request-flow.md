@@ -2,6 +2,52 @@
 
 一次完整的对话请求如何流经系统。以 `POST /api/threads/{id}/runs/stream` 为例。
 
+![请求数据流](figures/request-flow.svg)
+
+## 时序图
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant G as Gateway
+    participant RM as RunManager
+    participant MLA as make_lead_agent
+    participant LG as LangGraph
+    participant MW as Middleware
+    participant LLM as LLM
+    participant Tool as Tool/Sandbox
+
+    C->>G: POST /threads/{id}/runs/stream
+    G->>RM: create_or_reject()
+    RM-->>G: RunRecord (pending)
+    G-->>C: SSE StreamingResponse (连接保持)
+
+    Note over RM: asyncio.Task(run_agent)
+
+    RM->>MLA: make_lead_agent(config)
+    MLA->>MLA: resolve model + tools + prompt
+    MLA->>MLA: build 20 middlewares
+    MLA-->>RM: CompiledStateGraph
+
+    RM->>LG: graph.astream(input, stream_mode)
+
+    loop until LLM produces text
+        LG->>MW: before_model hooks
+        MW->>LLM: model.invoke(messages)
+        LLM-->>MW: AIMessage (text or tool_calls)
+        MW->>MW: after_model hooks
+        alt AIMessage has tool_calls
+            MW->>Tool: execute tool
+            Tool-->>MW: ToolMessage
+            MW->>MW: after_tool hooks
+        end
+        LG-->>C: SSE events (values/messages-tuple/custom)
+    end
+
+    LG->>MW: after_step hooks
+    MW-->>C: SSE "end" event
+```
+
 ## 完整链路（13 步）
 
 ```

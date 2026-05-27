@@ -6,7 +6,7 @@
 
 ## 全景图
 
-![integration-methods](integration-methods.svg)
+![integration-methods](figures/integration-methods.svg)
 
 ---
 

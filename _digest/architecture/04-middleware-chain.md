@@ -2,6 +2,58 @@
 
 DeerFlow 使用 LangChain 的 `AgentMiddleware` 机制实现所有横切关注点。Middleware 在严格顺序下装配，每个有特定的触发点和职责。
 
+![Middleware 全景](figures/middleware-chain.svg)
+
+## 触发流程
+
+```mermaid
+graph TB
+    subgraph Phase1["Phase 1: 运行时 (8)"]
+        DC[DynamicContext]
+        SM[Summarization]
+        VM[ViewImage]
+        DT[DeferredTools]
+        SL[SubagentLimit]
+        SF[SafetyFinish]
+    end
+
+    subgraph Phase2["Phase 2: before_model (6)"]
+        B1[ViewImage]
+        B2[SkillsPolicy]
+        B3[MemoryRead]
+        B4[ArtifactInject]
+        B5[PromptCaching]
+        B6[DateContext]
+    end
+
+    LLM{{🤖 LLM Call}}
+
+    subgraph Phase3["Phase 3: after_model (4)"]
+        A1[DanglingToolCall]
+        A2[Guardrail]
+        A3[LoopDetection]
+        A4[Clarification]
+    end
+
+    subgraph Phase4["Phase 4: after_tool (2)"]
+        T1[ToolAuth]
+        T2[ToolResultValidation]
+    end
+
+    subgraph Phase5["Phase 5: after_step (2)"]
+        S1[Title]
+        S2[MemoryWrite]
+    end
+
+    Phase1 --> Phase2
+    Phase2 --> LLM
+    LLM --> Phase3
+    Phase3 -->|有 tool_calls| Phase4
+    Phase4 -->|结果回传| LLM
+    Phase3 -->|文本回复| Phase5
+    Phase5 --> DONE[结束]
+```
+
 ## 装配位置
 
 `_build_middlewares()` in `agents/lead_agent/agent.py`（约 266-353 行）：

@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 650" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ef4444"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="harnessGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="appGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="650" rx="12" fill="url(#bg)"/>
+
+  <text x="550" y="38" text-anchor="middle" fill="#f1f5f9" font-size="22" font-weight="bold">Harness / App 两层分层边界</text>
+
+  <!-- === APP LAYER (top half) === -->
+  <rect x="40" y="60" width="1020" height="250" rx="12" fill="#0a1628" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="40" y="60" width="1020" height="36" rx="12" fill="url(#appGrad)"/>
+  <rect x="40" y="86" width="1020" height="10" fill="url(#appGrad)"/>
+  <text x="550" y="84" text-anchor="middle" fill="#fff" font-size="16" font-weight="bold">app.* 层 — 不发布，消费 Harness</text>
+  <text x="980" y="84" text-anchor="end" fill="#bfdbfe" font-size="11">FastAPI / IM 集成 / HTTP 专有</text>
+
+  <!-- app modules -->
+  <rect x="65" y="110" width="300" height="85" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1"/>
+  <text x="215" y="138" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="bold">Gateway (app.gateway)</text>
+  <text x="215" y="158" text-anchor="middle" fill="#94a3b8" font-size="11">FastAPI app · 15 Routers</text>
+  <text x="215" y="175" text-anchor="middle" fill="#94a3b8" font-size="11">Auth (JWT/OAuth) · CSRF · Internal Auth</text>
+  <text x="215" y="192" text-anchor="middle" fill="#94a3b8" font-size="11">Deps (DI) · LangGraph Auth Compat</text>
+
+  <rect x="390" y="110" width="280" height="85" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1"/>
+  <text x="530" y="138" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="bold">IM Channels (app.channels)</text>
+  <text x="530" y="158" text-anchor="middle" fill="#94a3b8" font-size="11">feishu · slack · telegram · wechat</text>
+  <text x="530" y="175" text-anchor="middle" fill="#94a3b8" font-size="11">dingtalk · discord · wecom</text>
+  <text x="530" y="192" text-anchor="middle" fill="#94a3b8" font-size="11">message_bus · ChannelManager</text>
+
+  <rect x="695" y="110" width="340" height="85" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1"/>
+  <text x="865" y="138" text-anchor="middle" fill="#60a5fa" font-size="14" font-weight="bold">Gateway Infrastructure</text>
+  <text x="865" y="158" text-anchor="middle" fill="#94a3b8" font-size="11">lifespan (config·DB·channels bootstrap)</text>
+  <text x="865" y="175" text-anchor="middle" fill="#94a3b8" font-size="11">request middleware (auth·CSRF·internal_auth)</text>
+  <text x="865" y="192" text-anchor="middle" fill="#94a3b8" font-size="11">State deps (get_app_config, get_skill_storage)</text>
+
+  <!-- arrow: app imports harness -->
+  <line x1="550" y1="310" x2="550" y2="345" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- dependency arrow label -->
+  <rect x="505" y="315" width="90" height="22" rx="4" fill="#0f2744"/>
+  <text x="550" y="331" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="bold">允许导入</text>
+
+  <!-- boundary line -->
+  <line x1="40" y1="335" x2="1060" y2="335" stroke="#475569" stroke-width="2" stroke-dasharray="10,5"/>
+
+  <!-- === HARNESS LAYER (bottom half) === -->
+  <rect x="40" y="355" width="1020" height="245" rx="12" fill="#1a1200" stroke="#f59e0b" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="40" y="355" width="1020" height="36" rx="12" fill="url(#harnessGrad)"/>
+  <rect x="40" y="381" width="1020" height="10" fill="url(#harnessGrad)"/>
+  <text x="550" y="379" text-anchor="middle" fill="#0f172a" font-size="16" font-weight="bold">deerflow.* 层 — 可发布 pip 包 (deerflow-harness)</text>
+  <text x="980" y="379" text-anchor="end" fill="#78350f" font-size="11">不依赖 HTTP · 嵌入式 · CI 强制隔离</text>
+
+  <!-- harness modules row 1 -->
+  <rect x="65" y="405" width="225" height="80" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="177" y="430" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="bold">agents/</text>
+  <text x="177" y="450" text-anchor="middle" fill="#94a3b8" font-size="10">Lead Agent · 18 Middlewares</text>
+  <text x="177" y="466" text-anchor="middle" fill="#94a3b8" font-size="10">ThreadState · Memory Updater</text>
+  <text x="177" y="482" text-anchor="middle" fill="#94a3b8" font-size="10">System Prompt · Skills Policy</text>
+
+  <rect x="310" y="405" width="225" height="80" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="422" y="430" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="bold">runtime/</text>
+  <text x="422" y="450" text-anchor="middle" fill="#94a3b8" font-size="10">RunManager · Worker</text>
+  <text x="422" y="466" text-anchor="middle" fill="#94a3b8" font-size="10">Checkpointer (memory/sqlite/postgres)</text>
+  <text x="422" y="482" text-anchor="middle" fill="#94a3b8" font-size="10">StreamBridge · EventStore · Journal</text>
+
+  <rect x="555" y="405" width="225" height="80" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="667" y="430" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="bold">sandbox/</text>
+  <text x="667" y="450" text-anchor="middle" fill="#94a3b8" font-size="10">Sandbox(ABC) · Local Provider</text>
+  <text x="667" y="466" text-anchor="middle" fill="#94a3b8" font-size="10">AioSandbox · Path Mappings</text>
+  <text x="667" y="482" text-anchor="middle" fill="#94a3b8" font-size="10">Tools: bash/ls/read/write/grep/glob</text>
+
+  <rect x="800" y="405" width="235" height="80" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="917" y="430" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="bold">subagents/ + client.py</text>
+  <text x="917" y="450" text-anchor="middle" fill="#94a3b8" font-size="10">Executor · Registry · builtins</text>
+  <text x="917" y="466" text-anchor="middle" fill="#94a3b8" font-size="10">DeerFlowClient (嵌入式 Python SDK)</text>
+  <text x="917" y="482" text-anchor="middle" fill="#94a3b8" font-size="10">Gateway Conformance Tests</text>
+
+  <!-- harness modules row 2 -->
+  <rect x="65" y="500" width="180" height="45" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="155" y="525" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="bold">tools/</text>
+  <text x="155" y="540" text-anchor="middle" fill="#94a3b8" font-size="10">Assembly · builtins · community</text>
+
+  <rect x="260" y="500" width="180" height="45" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="350" y="525" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="bold">models/ + skills/</text>
+  <text x="350" y="540" text-anchor="middle" fill="#94a3b8" font-size="10">Factory · vLLM · SkillStorage</text>
+
+  <rect x="455" y="500" width="180" height="45" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="545" y="525" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="bold">mcp/ + community/</text>
+  <text x="545" y="540" text-anchor="middle" fill="#94a3b8" font-size="10">MCP Adapters · Tavily · Jina · DDG</text>
+
+  <rect x="650" y="500" width="180" height="45" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="740" y="525" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="bold">config/ + persistence/</text>
+  <text x="740" y="540" text-anchor="middle" fill="#94a3b8" font-size="10">29 Config files · ORM · Alembic</text>
+
+  <rect x="845" y="500" width="190" height="45" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="940" y="525" text-anchor="middle" fill="#fbbf24" font-size="12" font-weight="bold">guardrails/ + tracing/</text>
+  <text x="940" y="540" text-anchor="middle" fill="#94a3b8" font-size="10">Tool Auth · LangSmith · Langfuse</text>
+
+  <!-- CI enforcement box -->
+  <rect x="800" y="610" width="260" height="30" rx="6" fill="#450a0a" stroke="#ef4444" stroke-width="1.5"/>
+  <text x="930" y="630" text-anchor="middle" fill="#fca5a5" font-size="11">❌ CI 阻止: harness 不能 import app</text>
+  <line x1="930" y1="610" x2="930" y2="600" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+
+  <!-- forbidden arrow -->
+  <line x1="550" y1="610" x2="550" y2="580" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+  <rect x="505" y="585" width="90" height="22" rx="4" fill="#450a0a"/>
+  <text x="550" y="601" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">禁止导入</text>
+</svg>
