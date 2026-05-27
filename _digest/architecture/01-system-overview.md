@@ -60,28 +60,34 @@ Agent Loop 直接调用 Ring 1 的服务（Sandbox.execute、tool invocation、m
 
 ### Ring 1: Core Services（核心基础设施）
 
-Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python 函数调用。
+Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python async 函数调用。
 
-```
-Sandbox        Tools          Subagents
-  ↓              ↓               ↓
-  Agent Loop 直接 await 这些服务，没有中间层
-  ↑              ↑               ↑
-Memory         Skills         Checkpointer
-```
+![Core Services Hook Points](figures/core-services-hook-points.svg)
 
-| 服务 | 作用 | 被谁调用 | 详见 |
-|------|------|----------|------|
-| **Sandbox** | 文件系统/命令执行（Local/Docker/K3s） | SandboxMiddleware（运行时） | `06-sandbox.md` |
-| **Tools** | 工具装配：config 定义 → MCP → builtins，按 name 去重 | `make_lead_agent()` 绑到 model | `09-skills-tools.md` |
-| **Subagents** | 委派子任务，max 3 并发，双线程池 | SubagentLimitMiddleware → Executor | `07-subagent.md` |
-| **Memory** | LLM 提取事实 → debounce → 写入 memory.json | MemoryMiddleware（after_step） | `08-memory.md` |
-| **Skills** | 匹配 SKILL.md → 注入 system prompt | SkillsPolicy（before_model） | `09-skills-tools.md` |
-| **Checkpointer** | LangGraph 状态持久化（每条 thread） | LangGraph graph 自动调用 | `10-persistence.md` |
+**图上能看到的：**
+- 左列：Skills 和 Tools 在图构建时（编译期）装配。虚线 = 编译期绑定，不参与 loop 运行时。
+- 中列：Agent Loop 的 4 个 Hook 点（before_agent → LLM → after_model → Tool Execute → after_step）
+- 右列：Memory、Subagents、Sandbox 在 Loop 运行时挂入。实线 = 运行时 async hook。
+- Checkpointer 不在 loop 内部 — 它是 `agent.checkpointer = checkpointer` 直接属性赋值，LangGraph 在 astream 时透明使用。
+
+六个服务的具体挂入位置：
+
+| 服务 | Hook 点 | 触发机制 | async? | 详见 |
+|------|---------|----------|--------|------|
+| **Skills** | Graph Construction | `get_skills_prompt_section()` → system prompt 注入 | 否（编译期） | `09-skills-tools.md` |
+| **Tools** | Graph Construction + Tool Execute | `get_available_tools()` → `create_agent(tools=...)` 绑定 | 编译期同步，运行时 `awrap_tool_call` | `09-skills-tools.md` |
+| **Memory** | before_agent + after_agent | DynamicContextMiddleware 注入 + MemoryMiddleware 入队 | `abefore_agent` (async) | `08-memory.md` |
+| **Subagents** | after_model + Tool Execute | SubagentLimitMiddleware 截断 + `task_tool()` 异步协程 | `aafter_model` + async coroutine | `07-subagent.md` |
+| **Sandbox** | Tool Execute (lazy init) | `ensure_sandbox_initialized(runtime)` 包裹每个 sandbox tool | `ensure_sandbox_initialized_async` = `asyncio.to_thread` | `06-sandbox.md` |
+| **Checkpointer** | 非 middleware | `agent.checkpointer = checkpointer` 直接属性赋值 | LangGraph 内部使用 | `10-persistence.md` |
 
 #### 挂入关系
 
-挂入 Agent Loop 的方式是 **直接函数调用**。例如 Sandbox：`SandboxMiddleware` 在运行时阶段获取 sandbox 实例并存入 `ThreadState.sandbox`，后续 tool 调用时 agent 直接 `await sandbox.execute(cmd)`。Tools 同理 — `get_available_tools()` 在 `make_lead_agent` 时装配好，绑到 model 上，LLM 产生的 tool_calls 自动路由到对应 tool。
+六种服务的挂入分两类：
+
+**编译期**（Skills、Tools 的 first hook）— 在 `make_lead_agent()` 中完成，不参与 loop 运行时。Skills 在 system prompt 中注入 `<available_skills>`，Tools 通过 `create_agent(tools=[...])` 绑到 model。
+
+**运行时 async**（Sandbox、Subagents、Memory、Tools 的 second hook）— 通过 middleware 在 Loop 的特定 Hook 点触发，全部是 async。例如 Tool Execute 阶段：`ensure_sandbox_initialized(runtime)` → `await provider.acquire(thread_id)`，task_tool → `await asyncio.sleep(5)` 轮询子 agent 结果。
 
 ---
 
