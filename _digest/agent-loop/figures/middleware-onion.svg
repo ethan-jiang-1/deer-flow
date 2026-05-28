@@ -1,0 +1,134 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrowLeft" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#64748b"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="720" rx="12" fill="url(#bg)"/>
+  <text x="550" y="34" text-anchor="middle" fill="#f1f5f9" font-size="19" font-weight="bold">Middleware Onion：每圈 step 的实际执行路径</text>
+
+  <!-- ============================================================ -->
+  <!-- TOP HALF: MODEL NODE internals -->
+  <!-- ============================================================ -->
+
+  <!-- LangGraph graph node wrapper -->
+  <rect x="30" y="52" width="1040" height="310" rx="8" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="30" y="52" width="180" height="24" rx="8" fill="#3b82f6" opacity="0.15"/>
+  <rect x="30" y="64" width="180" height="12" fill="#3b82f6" opacity="0.15"/>
+  <text x="48" y="69" fill="#60a5fa" font-size="10" font-weight="bold">graph node "model"</text>
+
+  <!-- before_model chain -->
+  <text x="60" y="100" fill="#94a3b8" font-size="9">before_model（正向 1→18）：</text>
+  <rect x="240" y="86" width="55" height="22" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="267" y="102" text-anchor="middle" fill="#60a5fa" font-size="8">m1</text>
+  <text x="305" y="100" fill="#64748b" font-size="9">→</text>
+  <rect x="320" y="86" width="55" height="22" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="347" y="102" text-anchor="middle" fill="#60a5fa" font-size="8">m2</text>
+  <text x="385" y="100" fill="#64748b" font-size="9">→</text>
+  <rect x="400" y="86" width="55" height="22" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="427" y="102" text-anchor="middle" fill="#60a5fa" font-size="8">m3</text>
+  <text x="465" y="100" fill="#64748b" font-size="9">→</text>
+  <text x="484" y="100" fill="#64748b" font-size="9">...</text>
+  <text x="502" y="100" fill="#64748b" font-size="9">→</text>
+  <rect x="518" y="86" width="55" height="22" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="545" y="102" text-anchor="middle" fill="#60a5fa" font-size="8">m18</text>
+
+  <!-- wrap_model_call ONION -->
+  <text x="60" y="136" fill="#94a3b8" font-size="9">wrap_model_call 洋葱：</text>
+
+  <!-- Outer layer m1 -->
+  <rect x="60" y="148" width="920" height="155" rx="6" fill="#2a1a00" opacity="0.15" stroke="#f59e0b" stroke-width="1.2"/>
+  <text x="72" y="164" fill="#fbbf24" font-size="8" font-weight="bold">m1.wrap_model_call(</text>
+
+  <!-- m2 layer -->
+  <rect x="100" y="172" width="860" height="120" rx="5" fill="#f59e0b" opacity="0.06" stroke="#f59e0b" stroke-width="0.8"/>
+  <text x="112" y="187" fill="#fcd34d" font-size="7">m2.wrap_model_call(</text>
+
+  <!-- m3..m17 condensed -->
+  <rect x="140" y="195" width="800" height="65" rx="4" fill="#f59e0b" opacity="0.04" stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="4,2"/>
+  <text x="155" y="210" fill="#94a3b8" font-size="7">m3.wrap_model_call( ...每层可以修改 request/response，或决定要不要调 handler... )</text>
+
+  <!-- Innermost: m18 + LLM -->
+  <rect x="180" y="228" width="740" height="28" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="195" y="247" fill="#cbd5e1" font-size="7">m18.wrap_model_call(</text>
+  <rect x="380" y="220" width="100" height="40" rx="6" fill="#f59e0b" opacity="0.3" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="430" y="244" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">LLM.call()</text>
+  <text x="495" y="247" fill="#cbd5e1" font-size="7">)  ← 最内层，真正调用模型</text>
+
+  <!-- Return path annotations -->
+  <text x="520" y="280" fill="#fbbf24" font-size="8">)  ← 返回 response，每层可以做后处理  →</text>
+  <text x="900" y="280" fill="#fbbf24" font-size="8">) ← 反向遍历：m1→m2→...→m18 进入，m18→...→m1 返回</text>
+
+  <text x="920" y="164" fill="#fbbf24" font-size="8" font-weight="bold">)</text>
+  <text x="990" y="265" fill="#fbbf24" font-size="8" font-weight="bold">)</text>
+
+  <!-- after_model chain (reverse) -->
+  <text x="60" y="332" fill="#94a3b8" font-size="9">after_model（反向 18→1）：</text>
+  <rect x="240" y="318" width="55" height="22" rx="4" fill="#2a0010" stroke="#ef4444" stroke-width="0.8"/>
+  <text x="267" y="334" text-anchor="middle" fill="#fca5a5" font-size="8">m18</text>
+  <text x="305" y="332" fill="#64748b" font-size="9">←</text>
+  <text x="324" y="332" fill="#64748b" font-size="9">...</text>
+  <text x="342" y="332" fill="#64748b" font-size="9">←</text>
+  <rect x="358" y="318" width="55" height="22" rx="4" fill="#2a0010" stroke="#ef4444" stroke-width="0.8"/>
+  <text x="385" y="334" text-anchor="middle" fill="#fca5a5" font-size="8">m3</text>
+  <text x="423" y="332" fill="#64748b" font-size="9">←</text>
+  <rect x="440" y="318" width="55" height="22" rx="4" fill="#2a0010" stroke="#ef4444" stroke-width="0.8"/>
+  <text x="467" y="334" text-anchor="middle" fill="#fca5a5" font-size="8">m2</text>
+  <text x="505" y="332" fill="#64748b" font-size="9">←</text>
+  <rect x="522" y="318" width="55" height="22" rx="4" fill="#2a0010" stroke="#ef4444" stroke-width="0.8"/>
+  <text x="549" y="334" text-anchor="middle" fill="#fca5a5" font-size="8">m1</text>
+
+  <line x1="550" y1="365" x2="550" y2="388" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ============================================================ -->
+  <!-- BOTTOM HALF: TOOLS NODE internals -->
+  <!-- ============================================================ -->
+
+  <rect x="30" y="392" width="1040" height="240" rx="8" fill="none" stroke="#22c55e" stroke-width="1.5"/>
+  <rect x="30" y="392" width="180" height="24" rx="8" fill="#22c55e" opacity="0.12"/>
+  <rect x="30" y="404" width="180" height="12" fill="#22c55e" opacity="0.12"/>
+  <text x="48" y="409" fill="#4ade80" font-size="10" font-weight="bold">graph node "tools"（仅当有 tool_calls）</text>
+
+  <text x="60" y="440" fill="#94a3b8" font-size="9">wrap_tool_call 洋葱（每个 tool 独立执行，这里展示 tool_a 的路径）：</text>
+
+  <!-- Tool onion -->
+  <rect x="60" y="452" width="980" height="165" rx="6" fill="#0a1a0a" opacity="0.15" stroke="#22c55e" stroke-width="1.2"/>
+
+  <!-- Outer -->
+  <rect x="80" y="466" width="940" height="42" rx="4" fill="#22c55e" opacity="0.06" stroke="#22c55e" stroke-width="0.7"/>
+  <text x="95" y="482" fill="#4ade80" font-size="7" font-weight="bold">m1.wrap_tool_call(request, handler)  ← 沙箱路径转换、Guardrail 权限校验</text>
+  <text x="95" y="498" fill="#94a3b8" font-size="6">可以：修改 tool 输入（路径翻译）、跳过执行（权限拒绝返回 ToolMessage("denied")）、记录审计日志</text>
+
+  <!-- Inner layers -->
+  <rect x="120" y="514" width="880" height="38" rx="4" fill="#22c55e" opacity="0.04" stroke="#22c55e" stroke-width="0.5" stroke-dasharray="4,2"/>
+  <text x="135" y="530" fill="#94a3b8" font-size="7">m2.m3....m18 依次包装  ·  ToolErrorHandling 转换异常为 ToolMessage  ·  Clarification 拦截 ask_clarification → goto=END</text>
+
+  <!-- Tool execution center -->
+  <rect x="160" y="558" width="800" height="48" rx="4" fill="#1e293b" stroke="#22c55e" stroke-width="1"/>
+  <text x="175" y="576" fill="#4ade80" font-size="7">handler(request)</text>
+  <rect x="440" y="552" width="130" height="36" rx="6" fill="#22c55e" opacity="0.2" stroke="#22c55e" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="505" y="575" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="bold">tool_a.invoke(args)</text>
+  <text x="585" y="588" fill="#94a3b8" font-size="6">← 最内层：真正执行 tool</text>
+
+  <!-- ============================================================ -->
+  <!-- WHY ONION panel -->
+  <!-- ============================================================ -->
+  <rect x="40" y="650" width="1020" height="55" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="60" y="670" fill="#94a3b8" font-size="9" font-weight="bold">为什么 wrap 必须是洋葱嵌套，不是顺序调用？</text>
+  <text x="60" y="688" fill="#cbd5e1" font-size="8">因为每一层需要决定"要不要调 handler"和"拿到 response 后做什么"。顺序调用做不到这些——只有洋葱嵌套让每一层都能控制"里面"的执行。</text>
+  <text x="60" y="700" fill="#94a3b8" font-size="7">实际案例：Summarization 在 handler 调用前裁剪消息、SafetyFinishReason 在拿到 response 后清除 tool_calls、LoopDetection 下一圈注入警告而不破坏本圈消息配对</text>
+</svg>

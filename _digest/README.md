@@ -141,6 +141,7 @@ IT-ops 的 defense-in-depth.svg 和 it-governance-overview.svg 是重复 securit
 9. **新建 `channels/` section**：7 个 IM 平台的对接是一个有相当复杂度的子系统（消息总线、dispatch loop、per-platform stream 策略），目前 integration/07-im-channels.md 覆盖了一些但不够深
 10. **新建 `deployment/` section**：本地 dev / Docker dev / Docker prod / K8s 四种部署模式的技术分析
 11. **新建 `testing/` section**：测试策略、blocking_io 门控设计、harness boundary test 机制
+12. **✅ 新建 `agent-loop/` section**（2026-05-28）：agent loop 的技术内核——谁在循环、middleware 怎么嵌入 loop、从哪些点往外扩。这是之前 research dimensions 里缺失的 "core"
 
 ---
 
@@ -158,6 +159,7 @@ IT-ops 的 defense-in-depth.svg 和 it-governance-overview.svg 是重复 securit
 | **Frontend** | 前端架构、状态管理、Stream 管线 | **缺失**（仅 architecture/11 简略提及） |
 | **Channels** | IM 平台对接的内部设计 | **缺失** |
 | **Deployment** | 本地/Docker/K8s 部署模式 | **缺失** |
+| **Agent Loop** | agent loop 的技术内核：谁循环、middleware 怎么嵌入、怎么外扩 | **新建** 3 篇（2026-05-28） |
 | **Testing** | 测试策略、blocking_io 门控、e2e mock | **缺失** |
 
 ## 目标目录结构
@@ -172,6 +174,7 @@ _digest/
 ├── middleware/                    # Agent 中间件体系（质量最高）
 ├── model-layer/                   # LLM 抽象（需加深）
 ├── it-ops/                        # IT 治理（需加深展开篇）
+├── agent-loop/                    # Agent Loop 技术内核（新建）
 ├── frontend/                      # [待建] 前端架构
 ├── channels/                      # [待建] IM 通道系统
 ├── deployment/                    # [待建] 部署架构
