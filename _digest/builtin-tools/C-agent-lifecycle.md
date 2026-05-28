@@ -7,7 +7,7 @@
 ## setup_agent
 
 **源码**: `packages/harness/deerflow/tools/builtins/setup_agent_tool.py:16`
-**加载条件**: bootstrap 模式（`runtime.context['is_bootstrap'] = True`）
+**加载条件**: bootstrap 模式（`configurable` 中 `is_bootstrap: true`，`agent.py:461` 将 `setup_agent` 追加到 `get_available_tools()` 返回值之后）
 **Tool Name**: `setup_agent`
 
 ### 用途
@@ -68,7 +68,7 @@ except Exception as e:
 ## update_agent
 
 **源码**: `packages/harness/deerflow/tools/builtins/update_agent_tool.py:70`
-**加载条件**: custom agent 模式（`runtime.context['agent_name']` 已设置且非 bootstrap）
+**加载条件**: custom agent 模式（`configurable` 中 `agent_name` 已设置且非 bootstrap，`agent.py:479` 将 `update_agent` 追加到 `get_available_tools()` 返回值之后）
 **Tool Name**: `update_agent`
 
 ### 用途

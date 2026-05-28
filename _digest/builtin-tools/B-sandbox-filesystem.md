@@ -191,14 +191,14 @@ with get_file_operation_lock(sandbox, path):
 
 1. 读文件内容
 2. 校验 `old_str` 在文件中存在 → 不存在返回 `"Error: String to replace not found"`
-3. `replace_all=False`：`content.replace(old_str, new_str, 1)` — 要求 `old_str` 在文件中出现**恰好 1 次**
+3. `replace_all=False`：`content.replace(old_str, new_str, 1)` — 只替换**第一次**出现
 4. `replace_all=True`：`content.replace(old_str, new_str)` — 全部替换
 5. 写回文件（同一并发锁保护）
 6. 成功返回 `"OK"`
 
-### 设计动机
+### "恰好一次"的契约
 
-`replace_all=False` 的"恰好一次"语义是为了安全——如果 LLM 以为某个字符串只出现一次但实际有多处，报错能让它意识到并调整策略。
+Tool description 告诉 LLM 在 `replace_all=False` 时 `old_str` 必须恰好出现一次，但代码**不检查出现次数**，仅检查是否存在后替换首次出现。这个约束是 prompt 层的契约，不是代码级的 enforcement。如果 LLM 遵守契约，它能避免误替换多处出现的字符串；如果 LLM 不遵守，代码也只会替换第一次出现，不会报错。
 
 ---
 

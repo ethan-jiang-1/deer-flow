@@ -4,7 +4,7 @@
 
 ## 总览
 
-DeerFlow 共有 **17 个唯一 tool name**（17 个 function call），其中 11 个硬编码在 `tools/tools.py` 的 `BUILTIN_TOOLS` 及其条件分支中，7 个沙箱工具通过 `config.yaml` → `resolve_variable()` 动态加载（但默认配置标配），另有 1 个（`write_todos`）由 LangChain Middleware 注入。
+DeerFlow 共有 **17 个唯一 tool name**（17 个 function call），其中 7 个沙箱工具通过 `config.yaml` → `resolve_variable()` 动态加载（默认配置标配），7 个在 `get_available_tools()` 的条件分支中硬编码（`tools/tools.py`），2 个在 `make_lead_agent()` 中按角色追加（`agent.py`），另有 1 个（`write_todos`）由 LangChain Middleware 注入。
 
 分 6 个类别，每类一个详文：
 
@@ -24,25 +24,34 @@ DeerFlow 共有 **17 个唯一 tool name**（17 个 function call），其中 11
 `get_available_tools()` (`tools/tools.py:44`) 按以下优先级组装，**同一 name 去重，先注册生效**：
 
 ```
-优先级高 → 低
+优先级高 → 低（均在 get_available_tools() 内）
 
 1. Config-defined tools (config.yaml tools[] → resolve_variable)
    └── 沙箱 7 工具 + 社区 web_search/web_fetch/image_search
 
-2. MCP tools (extensions_config.json → 懒加载)
-   └── 外部 MCP server 动态发现
-
-3. Built-in tools (硬编码)
+2. Built-in tools (硬编码)
    ├── 始终: present_files, ask_clarification
    ├── skill_evolution.enabled → skill_manage
    ├── supports_vision → view_image
    ├── tool_search.enabled + 有 MCP 工具 → tool_search
-   ├── subagent_enabled → task
-   └── bootstrap/custom agent → setup_agent / update_agent
+   └── subagent_enabled → task
+
+3. MCP tools (extensions_config.json → 懒加载)
+   └── 外部 MCP server 动态发现
 
 4. ACP agent tools
    └── config.yaml acp_agents 有配置 → invoke_acp_agent
 ```
+
+`make_lead_agent()` (`agent.py:461-479`) 在 `get_available_tools()` 返回后追加：
+
+```
+5. Agent 创建/自更新 (agent.py)
+   ├── is_bootstrap → setup_agent
+   └── agent_name 已设置 → update_agent
+```
+
+`write_todos` 由 LangChain 的 `TodoListMiddleware` 注入（middleware 位置 10），不入 `get_available_tools()`。
 
 ---
 

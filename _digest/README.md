@@ -160,6 +160,7 @@ IT-ops 的 defense-in-depth.svg 和 it-governance-overview.svg 是重复 securit
 | **Channels** | IM 平台对接的内部设计 | **缺失** |
 | **Deployment** | 本地/Docker/K8s 部署模式 | **缺失** |
 | **Agent Loop** | agent loop 的技术内核：谁循环、middleware 怎么嵌入、怎么外扩 | **新建** 4 篇（2026-05-28） |
+| **Built-in Tools** | 17 个内置工具的完整参数、行为、校验链和安全边界 | 7 篇（2026-05-28） |
 | **Testing** | 测试策略、blocking_io 门控、e2e mock | **缺失** |
 
 ## 目标目录结构
@@ -174,6 +175,7 @@ _digest/
 ├── middleware/                    # Agent 中间件体系（质量最高）
 ├── model-layer/                   # LLM 抽象（需加深）
 ├── it-ops/                        # IT 治理（需加深展开篇）
+├── builtin-tools/                 # 内置工具全量清单
 ├── agent-loop/                    # Agent Loop 技术内核（新建）
 ├── frontend/                      # [待建] 前端架构
 ├── channels/                      # [待建] IM 通道系统
