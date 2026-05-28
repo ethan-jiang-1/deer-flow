@@ -2,6 +2,40 @@
 
 Tool 执行前有两层保护：Guardrail（可插拔授权）和 SandboxAudit（bash 命令模式匹配）。
 
+## 执行流水线
+
+每次 tool_call 从 LLM 产出到真正执行，经过 5 个阶段。Guardrail 和 SandboxAudit 是前两道闸门。
+
+![guardrail-pipeline](figures/guardrail-pipeline.svg)
+
+### 入口处思考
+
+作为使用者，你关注两个问题：**哪些 tool 能用**，和 **bash 命令里能写什么**。
+
+| 我想... | 去哪里改 |
+|---------|---------|
+| 限制 Agent 只能调用白名单 tool | `config.yaml` → `guardrails.provider.config.allowed_tools: [bash, read_file, ...]` |
+| 禁止某些 tool | `config.yaml` → `guardrails.provider.config.denied_tools: [write_file, ...]` |
+| 关闭 guardrail | `config.yaml` → `guardrails.enabled: false` |
+| guardrail 挂了怎么办（异常策略） | `config.yaml` → `guardrails.fail_closed: true`（默认 deny，更安全）/ `false`（放行，更可用） |
+| 换自定义 guardrail provider | `config.yaml` → `guardrails.provider.use: "my_package:MyProvider"` |
+| 调整高危命令规则 | 改代码（`sandbox_audit_middleware.py` 的 `_HIGH_RISK_PATTERNS`），没有配置文件 |
+| 关闭 sandbox audit | 去掉 middleware 链中的 SandboxAuditMiddleware（改代码） |
+
+### Middleware 链位置
+
+```
+Middleware 链（共 20 个，按 index 排序）
+  ...
+  第 5 位: xxx
+  第 6 位: GuardrailMiddleware     ← 拦截所有 tool_call，判断 allow/deny
+  第 7 位: SandboxAuditMiddleware  ← 只拦截 bash，regex 模式匹配
+  第 8 位: xxx
+  ...
+```
+
+**两层保护的区别：** Guardrail 是 tool 级别的授权（"能不能用 bash"），SandboxAudit 是参数级别的审计（"bash 里能不能写 rm -rf /"）。Guardrail 可插拔（实现 `GuardrailProvider` 协议即可），SandboxAudit 是内置的、不可配置的。
+
 ## Guardrail 系统
 
 `deerflow/guardrails/middleware.py` — 在 middleware 链第 6 位，包裹每个 `wrap_tool_call` / `awrap_tool_call`。

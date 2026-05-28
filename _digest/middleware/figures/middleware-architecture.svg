@@ -1,0 +1,239 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <marker id="arrowUp" markerWidth="10" markerHeight="7" refX="5" refY="0" orient="auto">
+      <polygon points="0 7, 10 0, 5 0, 5 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="900" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Agent Middleware 架构：6 种 Hook 点 × 19 个 Middleware</text>
+
+  <!-- ===== LEFT: Agent Loop Flow ===== -->
+  <text x="60" y="78" font-size="13" font-weight="700" fill="#333">Agent Loop 执行流</text>
+
+  <!-- START -->
+  <rect x="60" y="90" width="100" height="32" rx="16" fill="#1a1a2e" stroke="#333" stroke-width="1"/>
+  <text x="110" y="111" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">START</text>
+  <line x1="160" y1="106" x2="200" y2="106" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <!-- before_agent -->
+  <rect x="205" y="74" width="200" height="64" rx="8" fill="#e3f2fd" stroke="#42a5f5" stroke-width="1.5"/>
+  <text x="305" y="94" text-anchor="middle" fill="#1565c0" font-size="11" font-weight="700">before_agent</text>
+  <text x="305" y="112" text-anchor="middle" fill="#555" font-size="9">正向 0→N · Graph Node</text>
+  <text x="305" y="128" text-anchor="middle" fill="#888" font-size="8.5">5 个 middleware</text>
+  <line x1="405" y1="106" x2="445" y2="106" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <!-- before_model -->
+  <rect x="450" y="74" width="200" height="64" rx="8" fill="#e8f5e9" stroke="#66bb6a" stroke-width="1.5"/>
+  <text x="550" y="94" text-anchor="middle" fill="#2e7d32" font-size="11" font-weight="700">before_model</text>
+  <text x="550" y="112" text-anchor="middle" fill="#555" font-size="9">正向 0→N · Graph Node</text>
+  <text x="550" y="128" text-anchor="middle" fill="#888" font-size="8.5">3 个 middleware</text>
+  <line x1="650" y1="106" x2="680" y2="106" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <!-- wrap_model_call -->
+  <rect x="685" y="72" width="220" height="68" rx="8" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <rect x="685" y="72" width="220" height="20" rx="8" fill="#ff9800"/>
+  <rect x="685" y="78" width="220" height="14" fill="#ff9800"/>
+  <text x="795" y="93" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">wrap_model_call</text>
+  <text x="795" y="112" text-anchor="middle" fill="#555" font-size="9">正向 0→N · 内联洋葱</text>
+  <text x="795" y="128" text-anchor="middle" fill="#888" font-size="8.5">5 个 middleware</text>
+
+  <!-- MODEL node -->
+  <line x1="905" y1="106" x2="935" y2="106" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <rect x="940" y="82" width="130" height="48" rx="8" fill="#1a1a2e" stroke="#333" stroke-width="1.5"/>
+  <text x="1005" y="103" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">LLM Call</text>
+  <text x="1005" y="120" text-anchor="middle" fill="#aaa" font-size="9">model.invoke()</text>
+
+  <!-- Arrow down from MODEL -->
+  <line x1="1005" y1="130" x2="1005" y2="155" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- after_model -->
+  <rect x="830" y="160" width="180" height="64" rx="8" fill="#fce4ec" stroke="#e91e63" stroke-width="1.5"/>
+  <text x="920" y="180" text-anchor="middle" fill="#c62828" font-size="11" font-weight="700">after_model</text>
+  <text x="920" y="198" text-anchor="middle" fill="#555" font-size="9">反向 N→0 · Graph Node</text>
+  <text x="920" y="216" text-anchor="middle" fill="#888" font-size="8.5">6 个 middleware</text>
+
+  <!-- Conditional -->
+  <line x1="920" y1="224" x2="920" y2="250" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+  <rect x="855" y="254" width="130" height="32" rx="6" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+  <text x="920" y="275" text-anchor="middle" fill="#555" font-size="10" font-weight="600">tool_calls?</text>
+
+  <!-- TOOLS branch (right) -->
+  <line x1="985" y1="270" x2="1030" y2="270" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="1010" y="264" font-size="9" fill="#2e7d32">yes</text>
+
+  <!-- wrap_tool_call -->
+  <rect x="1035" y="236" width="140" height="68" rx="8" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <rect x="1035" y="236" width="140" height="20" rx="8" fill="#ff9800"/>
+  <rect x="1035" y="242" width="140" height="14" fill="#ff9800"/>
+  <text x="1105" y="257" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">wrap_tool_call</text>
+  <text x="1105" y="276" text-anchor="middle" fill="#555" font-size="9">内联洋葱</text>
+  <text x="1105" y="292" text-anchor="middle" fill="#888" font-size="8.5">5 个 middleware</text>
+
+  <!-- TOOLS node -->
+  <line x1="1105" y1="304" x2="1105" y2="330" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+  <rect x="1040" y="334" width="130" height="40" rx="8" fill="#1a1a2e" stroke="#333" stroke-width="1.5"/>
+  <text x="1105" y="355" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Tool Execute</text>
+  <text x="1105" y="370" text-anchor="middle" fill="#aaa" font-size="9">bash / read / write...</text>
+
+  <!-- Loop back arrow -->
+  <line x1="1040" y1="354" x2="60" y2="354" stroke="#2e7d32" stroke-width="1" stroke-dasharray="5,3"/>
+  <line x1="60" y1="354" x2="60" y2="106" stroke="#2e7d32" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrowRight)"/>
+  <text x="550" y="346" text-anchor="middle" font-size="9" fill="#2e7d32">loop back to before_model（循环直到无 tool_calls）</text>
+
+  <!-- NO tool_calls branch (left, down) -->
+  <line x1="855" y1="270" x2="830" y2="270" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+  <text x="838" y="264" font-size="9" fill="#c62828">no</text>
+  <line x1="830" y1="270" x2="830" y2="420" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- after_agent -->
+  <rect x="740" y="424" width="180" height="64" rx="8" fill="#f3e5f5" stroke="#ab47bc" stroke-width="1.5"/>
+  <text x="830" y="444" text-anchor="middle" fill="#7b1fa2" font-size="11" font-weight="700">after_agent</text>
+  <text x="830" y="462" text-anchor="middle" fill="#555" font-size="9">反向 N→0 · Graph Node</text>
+  <text x="830" y="480" text-anchor="middle" fill="#888" font-size="8.5">3 个 middleware</text>
+
+  <!-- END -->
+  <line x1="830" y1="488" x2="830" y2="520" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+  <rect x="780" y="524" width="100" height="32" rx="16" fill="#1a1a2e" stroke="#333" stroke-width="1"/>
+  <text x="830" y="545" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">END</text>
+
+  <!-- ===== RIGHT: Middleware Chain Panel ===== -->
+  <rect x="60" y="580" width="1080" height="300" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="600" y="604" text-anchor="middle" font-size="12" font-weight="700" fill="#333">Middleware 链全景（19 个按位置排列，每个标注其 Hook 点）</text>
+
+  <!-- Row 1: 0-4 -->
+  <rect x="78" y="618" width="200" height="52" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="178" y="636" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1565c0">0. ThreadData</text>
+  <text x="178" y="652" text-anchor="middle" font-size="8.5" fill="#555">before_agent</text>
+  <text x="178" y="666" text-anchor="middle" font-size="8" fill="#888">路径映射 · lazy_init</text>
+
+  <rect x="285" y="618" width="200" height="52" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="385" y="636" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1565c0">1. Uploads</text>
+  <text x="385" y="652" text-anchor="middle" font-size="8.5" fill="#555">before_agent</text>
+  <text x="385" y="666" text-anchor="middle" font-size="8" fill="#888">上传文件 · markitdown</text>
+
+  <rect x="492" y="618" width="200" height="52" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="592" y="636" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1565c0">2. Sandbox</text>
+  <text x="592" y="652" text-anchor="middle" font-size="8.5" fill="#555">before_agent · after_agent</text>
+  <text x="592" y="666" text-anchor="middle" font-size="8" fill="#888">acquire/release · lazy_init</text>
+
+  <rect x="699" y="618" width="200" height="52" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="0.5"/>
+  <text x="799" y="636" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">3. DanglingToolCall</text>
+  <text x="799" y="652" text-anchor="middle" font-size="8.5" fill="#555">wrap_model_call</text>
+  <text x="799" y="666" text-anchor="middle" font-size="8" fill="#888">修复消息序列</text>
+
+  <rect x="906" y="618" width="200" height="52" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="0.5"/>
+  <text x="1006" y="636" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">4. LLMErrorHandling</text>
+  <text x="1006" y="652" text-anchor="middle" font-size="8.5" fill="#555">wrap_model_call</text>
+  <text x="1006" y="666" text-anchor="middle" font-size="8" fill="#888">重试 · 熔断器</text>
+
+  <!-- Row 2: 5-9 -->
+  <rect x="78" y="678" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="178" y="696" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">5. Guardrail</text>
+  <text x="178" y="712" text-anchor="middle" font-size="8.5" fill="#555">wrap_tool_call</text>
+  <text x="178" y="726" text-anchor="middle" font-size="8" fill="#888">可插拔授权 · fail_closed</text>
+
+  <rect x="285" y="678" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="385" y="696" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">6. SandboxAudit</text>
+  <text x="385" y="712" text-anchor="middle" font-size="8.5" fill="#555">wrap_tool_call</text>
+  <text x="385" y="726" text-anchor="middle" font-size="8" fill="#888">bash regex · block/warn</text>
+
+  <rect x="492" y="678" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="592" y="696" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">7. ToolErrorHandling</text>
+  <text x="592" y="712" text-anchor="middle" font-size="8.5" fill="#555">wrap_tool_call</text>
+  <text x="592" y="726" text-anchor="middle" font-size="8" fill="#888">异常→error ToolMessage</text>
+
+  <rect x="699" y="678" width="200" height="52" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="799" y="696" text-anchor="middle" font-size="9.5" font-weight="700" fill="#1565c0">8. DynamicContext</text>
+  <text x="799" y="712" text-anchor="middle" font-size="8.5" fill="#555">before_agent</text>
+  <text x="799" y="726" text-anchor="middle" font-size="8" fill="#888">日期 · memory context</text>
+
+  <rect x="906" y="678" width="200" height="52" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="1006" y="696" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2e7d32">9. Summarization</text>
+  <text x="1006" y="712" text-anchor="middle" font-size="8.5" fill="#555">before_model</text>
+  <text x="1006" y="726" text-anchor="middle" font-size="8" fill="#888">压缩 · skill rescue</text>
+
+  <!-- Row 3: 10-14 -->
+  <rect x="78" y="738" width="200" height="52" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="178" y="756" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2e7d32">10. Todo</text>
+  <text x="178" y="772" text-anchor="middle" font-size="8.5" fill="#555">before_model · after_model · wrap_model_call</text>
+  <text x="178" y="786" text-anchor="middle" font-size="8" fill="#888">plan mode · 防提前退出</text>
+
+  <rect x="285" y="738" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="385" y="756" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">11. TokenUsage</text>
+  <text x="385" y="772" text-anchor="middle" font-size="8.5" fill="#555">after_model</text>
+  <text x="385" y="786" text-anchor="middle" font-size="8" fill="#888">token 统计 · todo diff</text>
+
+  <rect x="492" y="738" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="592" y="756" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">12. Title</text>
+  <text x="592" y="772" text-anchor="middle" font-size="8.5" fill="#555">after_model</text>
+  <text x="592" y="786" text-anchor="middle" font-size="8" fill="#888">自动标题 · LLM+fallback</text>
+
+  <rect x="699" y="738" width="200" height="52" rx="5" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="799" y="756" text-anchor="middle" font-size="9.5" font-weight="700" fill="#7b1fa2">13. Memory</text>
+  <text x="799" y="772" text-anchor="middle" font-size="8.5" fill="#555">after_agent</text>
+  <text x="799" y="786" text-anchor="middle" font-size="8" fill="#888">异步 memory update</text>
+
+  <rect x="906" y="738" width="200" height="52" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="1006" y="756" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2e7d32">14. ViewImage</text>
+  <text x="1006" y="772" text-anchor="middle" font-size="8.5" fill="#555">before_model</text>
+  <text x="1006" y="786" text-anchor="middle" font-size="8" fill="#888">vision model 自动注入</text>
+
+  <!-- Row 4: 15-19 -->
+  <rect x="78" y="798" width="200" height="52" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="0.5"/>
+  <text x="178" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">15. DeferredToolFilter</text>
+  <text x="178" y="832" text-anchor="middle" font-size="8.5" fill="#555">wrap_model_call · wrap_tool_call</text>
+  <text x="178" y="846" text-anchor="middle" font-size="8" fill="#888">MCP deferred tools</text>
+
+  <rect x="285" y="798" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="385" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">16. SubagentLimit</text>
+  <text x="385" y="832" text-anchor="middle" font-size="8.5" fill="#555">after_model</text>
+  <text x="385" y="846" text-anchor="middle" font-size="8" fill="#888">截断过多 task 调用</text>
+
+  <rect x="492" y="798" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="592" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">17. LoopDetection</text>
+  <text x="592" y="832" text-anchor="middle" font-size="8.5" fill="#555">before_agent · after_model · wrap_model_call · after_agent</text>
+  <text x="592" y="846" text-anchor="middle" font-size="8" fill="#888">hash+频率·延迟警告</text>
+
+  <rect x="699" y="798" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="799" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">18. SafetyFinishReason</text>
+  <text x="799" y="832" text-anchor="middle" font-size="8.5" fill="#555">after_model（最先执行）</text>
+  <text x="799" y="846" text-anchor="middle" font-size="8" fill="#888">检测 safety 终止</text>
+
+  <rect x="906" y="798" width="200" height="52" rx="5" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="1006" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">19. Clarification</text>
+  <text x="1006" y="832" text-anchor="middle" font-size="8.5" fill="#555">wrap_tool_call（永远最后）</text>
+  <text x="1006" y="846" text-anchor="middle" font-size="8" fill="#888">Command(goto=END)</text>
+
+  <!-- Legend -->
+  <rect x="78" y="862" width="18" height="14" rx="2" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="102" y="874" font-size="9" fill="#555">before_agent</text>
+  <rect x="195" y="862" width="18" height="14" rx="2" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="219" y="874" font-size="9" fill="#555">before_model</text>
+  <rect x="315" y="862" width="18" height="14" rx="2" fill="#fff3e0" stroke="#ffcc80" stroke-width="0.5"/>
+  <text x="339" y="874" font-size="9" fill="#555">wrap_model_call</text>
+  <rect x="460" y="862" width="18" height="14" rx="2" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="484" y="874" font-size="9" fill="#555">after_model / wrap_tool_call</text>
+  <rect x="650" y="862" width="18" height="14" rx="2" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="674" y="874" font-size="9" fill="#555">after_agent</text>
+  <rect x="770" y="862" width="18" height="14" rx="2" fill="#fff3e0" stroke="#ff9800" stroke-width="0.5" stroke-dasharray="2,1"/>
+  <text x="794" y="874" font-size="9" fill="#555">内联洋葱（非 Graph Node）</text>
+
+</svg>

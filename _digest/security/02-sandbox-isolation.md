@@ -2,6 +2,56 @@
 
 三种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。
 
+## 挂入方式
+
+Sandbox 如何挂入 Agent 执行流？核心是 **SandboxMiddleware** + **lazy init**。
+
+![sandbox-lifecycle](figures/sandbox-lifecycle.svg)
+
+### 入口处思考
+
+作为使用者，sandbox 对你来说是**完全透明的** — 你只需要在配置文件里选一个 provider，Agent 自动在首次 tool call 时创建 sandbox，后续同 thread 的 tool call 全部复用同一个 sandbox 实例。
+
+| 我想... | 去哪里改 |
+|---------|---------|
+| 用本地沙箱（默认，零隔离） | 无需配置 |
+| 换成 Docker 沙箱 | `config.yaml` → `sandbox.use: "deerflow.community.aio_sandbox:AioSandboxProvider"` |
+| 换成 K3s 生产沙箱 | `config.yaml` → `sandbox.use: "deerflow.sandbox.k3s:K3sSandboxProvider"` |
+| 允许 host 上执行 bash | `config.yaml` → `sandbox.allow_host_bash: true` |
+| 调整 Docker warm pool 大小 | `config.yaml` → `sandbox.config.replicas: 5` |
+| 看 sandbox 创建/复用日志 | 日志级别 DEBUG，搜索 `ensure_sandbox_initialized` |
+
+### 技术细节
+
+**SandboxMiddleware** 在 middleware 链第 1 位（`sandbox/middleware.py`），`lazy_init=True`：
+
+```
+Agent Loop 每轮 step 开始
+  → SandboxMiddleware.after_model(state, runtime)
+    → 遍历 messages 中的所有 ToolMessage
+      → 对每个调用 ensure_sandbox_initialized(agent_id, thread_id)
+```
+
+`ensure_sandbox_initialized()` (`tools.py:1094`) 的核心逻辑只有两步：
+
+1. **检查 state 缓存** — `runtime.state.get("sandbox")` 非 None？→ `provider.get(sandbox_id)` 直接复用，跳过 acquire
+2. **没有缓存** → `provider.acquire(agent_id, thread_id)` → 存 `runtime.state["sandbox"] = sandbox_id`
+
+**Provider 单例** — `get_sandbox_provider()` 返回全局唯一的 provider 实例，创建一次后缓存在模块级变量。三种 provider 的 acquire 差异：
+
+| Provider | acquire 做了什么 | 复用机制 |
+|----------|-----------------|---------|
+| **Local** | `new LocalSandbox(sandbox_id)` + mkdir workspace | LRU cache: thread_id → sandbox_id |
+| **Docker (AIO)** | 跨进程 file lock → warm pool 优先 → `docker create_container()` | warm pool + replicas soft cap |
+| **K3s** | HTTP POST → provisioner → `kubectl create Pod+Service` → 等 Ready | Pod 存活期间复用 |
+
+**Release** — `SandboxMiddleware.after_agent()` 在 agent 结束时调用 `provider.release(thread_id)`：
+- Local: no-op（不清理，文件保留在 host）
+- Docker: 容器放回 warm pool（idle 600s 后回收）
+- K3s: 删除 Pod + Service
+
+**关键设计决策：** sandbox 和 thread 是 1:1 绑定，不是 1:1 per tool call。这意味同一 thread 内的所有 tool call 共享同一个文件系统，Agent 可以在多轮 tool call 之间积累状态（写文件 → bash 操作 → 读结果）。
+
 ## 三维度对比
 
 | 维度 | Local | Docker (AIO) | K3s (Provisioner) |

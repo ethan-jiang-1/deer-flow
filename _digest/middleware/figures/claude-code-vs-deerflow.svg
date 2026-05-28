@@ -1,0 +1,236 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 920" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="920" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">同一种理念，两种实现：Claude Code Hooks vs DeerFlow Middleware</text>
+
+  <!-- Divider line -->
+  <line x1="600" y1="60" x2="600" y2="870" stroke="#ddd" stroke-width="1.5" stroke-dasharray="6,4"/>
+
+  <!-- ===== LEFT: Claude Code Hooks ===== -->
+  <text x="300" y="78" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a2e">Claude Code Hooks</text>
+  <text x="300" y="96" text-anchor="middle" font-size="10" fill="#888">外部进程 · JSON 声明式 · 并行执行 · 29 种事件</text>
+
+  <!-- Claude Code agent loop -->
+  <rect x="100" y="110" width="400" height="340" rx="10" fill="none" stroke="#ddd" stroke-width="1" stroke-dasharray="4,2"/>
+
+  <!-- Input box -->
+  <rect x="180" y="130" width="240" height="44" rx="8" fill="#1565c0"/>
+  <text x="300" y="150" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">User Input</text>
+  <text x="300" y="167" text-anchor="middle" fill="#bbdefb" font-size="9">prompt / slash command / MCP</text>
+
+  <line x1="300" y1="174" x2="300" y2="198" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- Model box -->
+  <rect x="180" y="202" width="240" height="44" rx="8" fill="#2e7d32"/>
+  <text x="300" y="222" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">Model Reasoning</text>
+  <text x="300" y="239" text-anchor="middle" fill="#c8e6c9" font-size="9">Claude API call</text>
+
+  <line x1="300" y1="246" x2="300" y2="270" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- Tool box -->
+  <rect x="140" y="274" width="320" height="52" rx="8" fill="#e65100"/>
+  <text x="300" y="296" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">Tool Call (Permission → Execute → Result)</text>
+  <text x="300" y="314" text-anchor="middle" fill="#ffe0b2" font-size="9">Bash / Edit / Write / Read / MCP tool ...</text>
+
+  <line x1="300" y1="326" x2="300" y2="350" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- Output box -->
+  <rect x="180" y="354" width="240" height="44" rx="8" fill="#7b1fa2"/>
+  <text x="300" y="374" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">Response / Continue</text>
+  <text x="300" y="391" text-anchor="middle" fill="#e1bee7" font-size="9">text output / loop back</text>
+
+  <!-- Claude Code hook events positioned around the loop -->
+  <!-- UserPromptSubmit - near Input -->
+  <rect x="40" y="118" width="125" height="26" rx="4" fill="#e3f2fd" stroke="#64b5f6" stroke-width="1"/>
+  <text x="102" y="135" text-anchor="middle" font-size="8" font-weight="600" fill="#0d47a1">UserPromptSubmit</text>
+  <line x1="165" y1="131" x2="178" y2="152" stroke="#64b5f6" stroke-width="0.5"/>
+
+  <!-- PreToolUse - left of Tool -->
+  <rect x="15" y="280" width="115" height="26" rx="4" fill="#ffcdd2" stroke="#e57373" stroke-width="1"/>
+  <text x="72" y="297" text-anchor="middle" font-size="8" font-weight="600" fill="#b71c1c">PreToolUse 🔒</text>
+  <line x1="130" y1="293" x2="138" y2="300" stroke="#e57373" stroke-width="0.5"/>
+
+  <!-- PermissionRequest -->
+  <rect x="15" y="310" width="115" height="26" rx="4" fill="#ffcdd2" stroke="#e57373" stroke-width="1"/>
+  <text x="72" y="327" text-anchor="middle" font-size="8" font-weight="600" fill="#b71c1c">PermissionReq 🔒</text>
+
+  <!-- PostToolUse - right of Tool -->
+  <rect x="470" y="280" width="115" height="26" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="1"/>
+  <text x="527" y="297" text-anchor="middle" font-size="8" font-weight="600" fill="#1b5e20">PostToolUse</text>
+  <line x1="462" y1="293" x2="470" y2="300" stroke="#81c784" stroke-width="0.5"/>
+
+  <!-- Stop - near Output -->
+  <rect x="440" y="354" width="80" height="26" rx="4" fill="#e1bee7" stroke="#ce93d8" stroke-width="1"/>
+  <text x="480" y="371" text-anchor="middle" font-size="8" font-weight="600" fill="#6a1b9a">Stop 🔒</text>
+
+  <!-- Notification -->
+  <rect x="440" y="384" width="80" height="26" rx="4" fill="#fff9c4" stroke="#ffd54f" stroke-width="1"/>
+  <text x="480" y="401" text-anchor="middle" font-size="8" font-weight="600" fill="#f57f17">Notification</text>
+
+  <!-- SessionStart / SessionEnd -->
+  <rect x="15" y="130" width="100" height="26" rx="4" fill="#e0e0e0" stroke="#bdbdbd" stroke-width="1"/>
+  <text x="65" y="147" text-anchor="middle" font-size="8" font-weight="600" fill="#555">SessionStart</text>
+
+  <rect x="15" y="380" width="100" height="26" rx="4" fill="#e0e0e0" stroke="#bdbdbd" stroke-width="1"/>
+  <text x="65" y="397" text-anchor="middle" font-size="8" font-weight="600" fill="#555">SessionEnd</text>
+
+  <!-- Subagent events -->
+  <rect x="465" y="195" width="125" height="26" rx="4" fill="#e1f5fe" stroke="#4fc3f7" stroke-width="1"/>
+  <text x="527" y="212" text-anchor="middle" font-size="8" font-weight="600" fill="#01579b">SubagentStart/Stop</text>
+
+  <!-- Claude Code key characteristics -->
+  <rect x="100" y="470" width="400" height="120" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="300" y="492" text-anchor="middle" font-size="11" font-weight="700" fill="#333">设计特征</text>
+
+  <rect x="115" y="504" width="180" height="36" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="205" y="518" text-anchor="middle" font-size="9" font-weight="600" fill="#1565c0">外部进程模型</text>
+  <text x="205" y="534" text-anchor="middle" font-size="8" fill="#555">shell/http/MCP/LLM 任意语言</text>
+
+  <rect x="305" y="504" width="180" height="36" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="395" y="518" text-anchor="middle" font-size="9" font-weight="600" fill="#1565c0">并行执行</text>
+  <text x="395" y="534" text-anchor="middle" font-size="8" fill="#555">无顺序保证 · 独立可组合</text>
+
+  <rect x="115" y="546" width="180" height="36" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="205" y="560" text-anchor="middle" font-size="9" font-weight="600" fill="#1565c0">声明式配置</text>
+  <text x="205" y="576" text-anchor="middle" font-size="8" fill="#555">settings.json · 用户可控</text>
+
+  <rect x="305" y="546" width="180" height="36" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="395" y="560" text-anchor="middle" font-size="9" font-weight="600" fill="#1565c0">权限决策链</text>
+  <text x="395" y="576" text-anchor="middle" font-size="8" fill="#555">allow/deny/ask/defer 优先级</text>
+
+  <!-- ===== RIGHT: DeerFlow Middleware ===== -->
+  <text x="900" y="78" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a2e">DeerFlow Middleware</text>
+  <text x="900" y="96" text-anchor="middle" font-size="10" fill="#888">Python 类 · 代码装配 · 顺序执行 · 6 种 Hook × 19 个中间件</text>
+
+  <!-- DeerFlow agent loop -->
+  <rect x="700" y="110" width="400" height="340" rx="10" fill="none" stroke="#ddd" stroke-width="1" stroke-dasharray="4,2"/>
+
+  <!-- before_agent -->
+  <rect x="730" y="130" width="130" height="26" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="1"/>
+  <text x="795" y="148" text-anchor="middle" font-size="8.5" font-weight="600" fill="#1565c0">before_agent (5)</text>
+  <line x1="860" y1="143" x2="900" y2="143" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowRight)"/>
+
+  <!-- before_model -->
+  <rect x="910" y="168" width="130" height="26" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="975" y="186" text-anchor="middle" font-size="8.5" font-weight="600" fill="#2e7d32">before_model (3)</text>
+  <line x1="1040" y1="181" x2="1060" y2="181" stroke="#2e7d32" stroke-width="1" marker-end="url(#arrowRight)"/>
+
+  <!-- wrap_model_call + Model -->
+  <rect x="1065" y="195" width="25" height="60" rx="4" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="1077" y="215" text-anchor="middle" font-size="7" fill="#e65100" transform="rotate(90,1077,215)">wrap</text>
+
+  <rect x="910" y="220" width="130" height="44" rx="8" fill="#1a1a2e"/>
+  <text x="975" y="240" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">LLM Call</text>
+  <text x="975" y="256" text-anchor="middle" fill="#aaa" font-size="8">model.invoke()</text>
+
+  <line x1="975" y1="264" x2="975" y2="280" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- after_model -->
+  <rect x="910" y="284" width="130" height="26" rx="4" fill="#fce4ec" stroke="#f48fb1" stroke-width="1"/>
+  <text x="975" y="302" text-anchor="middle" font-size="8.5" font-weight="600" fill="#c62828">after_model (6) ↺</text>
+  <text x="975" y="316" text-anchor="middle" font-size="7" fill="#888">反向 N→0</text>
+
+  <line x1="975" y1="310" x2="975" y2="330" stroke="#555" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <!-- wrap_tool_call + Tool -->
+  <rect x="820" y="334" width="310" height="52" rx="4" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="3,2"/>
+  <text x="975" y="352" text-anchor="middle" font-size="9" font-weight="600" fill="#e65100">wrap_tool_call (5) — 内联洋葱</text>
+  <text x="975" y="370" text-anchor="middle" font-size="8.5" fill="#555">Guardrail → Audit → ErrorHandling → ... → Clarification</text>
+  <text x="820" y="346" font-size="26" fill="#ff9800">⟳</text>
+
+  <line x1="905" y1="386" x2="905" y2="405" stroke="#555" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <!-- after_agent -->
+  <rect x="840" y="410" width="130" height="24" rx="4" fill="#f3e5f5" stroke="#ce93d8" stroke-width="1"/>
+  <text x="905" y="426" text-anchor="middle" font-size="8.5" font-weight="600" fill="#7b1fa2">after_agent (3) ↺</text>
+
+  <!-- DeerFlow key characteristics -->
+  <rect x="700" y="470" width="400" height="120" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="900" y="492" text-anchor="middle" font-size="11" font-weight="700" fill="#333">设计特征</text>
+
+  <rect x="715" y="504" width="180" height="36" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="805" y="518" text-anchor="middle" font-size="9" font-weight="600" fill="#2e7d32">进程内 Python 类</text>
+  <text x="805" y="534" text-anchor="middle" font-size="8" fill="#555">AgentMiddleware 子类 · 同进程</text>
+
+  <rect x="905" y="504" width="180" height="36" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="995" y="518" text-anchor="middle" font-size="9" font-weight="600" fill="#2e7d32">有序洋葱链</text>
+  <text x="995" y="534" text-anchor="middle" font-size="8" fill="#555">正向 setup · 反向 teardown</text>
+
+  <rect x="715" y="546" width="180" height="36" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="805" y="560" text-anchor="middle" font-size="9" font-weight="600" fill="#2e7d32">代码装配</text>
+  <text x="805" y="576" text-anchor="middle" font-size="8" fill="#555">_build_middlewares() 集中管理</text>
+
+  <rect x="905" y="546" width="180" height="36" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="995" y="560" text-anchor="middle" font-size="9" font-weight="600" fill="#2e7d32">@Next/@Prev 定位</text>
+  <text x="995" y="576" text-anchor="middle" font-size="8" fill="#555">显式 anchor · 冲突检测</text>
+
+  <!-- ===== BOTTOM: Philosophy Comparison ===== -->
+  <rect x="60" y="610" width="1080" height="120" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="600" y="632" text-anchor="middle" font-size="12" font-weight="700" fill="#1a1a2e">设计哲学对比</text>
+
+  <!-- Left philosophy -->
+  <rect x="80" y="648" width="500" height="70" rx="6" fill="#e3f2fd" stroke="#64b5f6" stroke-width="0.5"/>
+  <text x="330" y="668" text-anchor="middle" font-size="10.5" font-weight="700" fill="#0d47a1">Claude Code: "Deterministic Guardrails over Probabilistic Prompts"</text>
+  <text x="330" y="686" text-anchor="middle" font-size="9" fill="#555">如果你会因为规则被违反而感到愤怒 → 用 Hook。每个 hook 100% 保证执行。</text>
+  <text x="330" y="704" text-anchor="middle" font-size="9" fill="#555">面向最终用户。声明式 JSON。任意语言。外部进程。可组合、无状态。</text>
+
+  <!-- Right philosophy -->
+  <rect x="620" y="648" width="500" height="70" rx="6" fill="#e8f5e9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="870" y="668" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1b5e20">DeerFlow: "Ordered Onion Pipeline with Setup/Teardown Symmetry"</text>
+  <text x="870" y="686" text-anchor="middle" font-size="9" fill="#555">每个关注点隔离在自己的类里。正向 setup + 反向 teardown = 栈语义。</text>
+  <text x="870" y="704" text-anchor="middle" font-size="9" fill="#555">面向框架开发者。Python 类。代码装配。顺序执行。有状态、可 override。</text>
+
+  <!-- ===== BOTTOM: Concept Mapping ===== -->
+  <rect x="60" y="745" width="1080" height="90" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="600" y="768" text-anchor="middle" font-size="12" font-weight="700" fill="#1a1a2e">概念映射：相同理念，不同表达</text>
+
+  <rect x="80" y="780" width="220" height="42" rx="5" fill="#ffcdd2" stroke="#e57373" stroke-width="0.5"/>
+  <text x="190" y="796" text-anchor="middle" font-size="9.5" font-weight="600" fill="#b71c1c">PreToolUse / PermissionReq</text>
+  <text x="190" y="814" text-anchor="middle" font-size="8.5" fill="#555">≈ Guardrail + SandboxAudit</text>
+
+  <text x="310" y="804" text-anchor="middle" font-size="16" fill="#888">↔</text>
+
+  <rect x="330" y="780" width="200" height="42" rx="5" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="430" y="796" text-anchor="middle" font-size="9.5" font-weight="600" fill="#1b5e20">PostToolUse</text>
+  <text x="430" y="814" text-anchor="middle" font-size="8.5" fill="#555">≈ ToolErrorHandling + TokenUsage</text>
+
+  <text x="540" y="804" text-anchor="middle" font-size="16" fill="#888">↔</text>
+
+  <rect x="560" y="780" width="200" height="42" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="660" y="796" text-anchor="middle" font-size="9.5" font-weight="600" fill="#0d47a1">UserPromptSubmit</text>
+  <text x="660" y="814" text-anchor="middle" font-size="8.5" fill="#555">≈ DynamicContext + Uploads</text>
+
+  <text x="770" y="804" text-anchor="middle" font-size="16" fill="#888">↔</text>
+
+  <rect x="790" y="780" width="180" height="42" rx="5" fill="#e1bee7" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="880" y="796" text-anchor="middle" font-size="9.5" font-weight="600" fill="#6a1b9a">Stop</text>
+  <text x="880" y="814" text-anchor="middle" font-size="8.5" fill="#555">≈ after_agent + Clarification</text>
+
+  <text x="980" y="804" text-anchor="middle" font-size="16" fill="#888">↔</text>
+
+  <rect x="1000" y="780" width="120" height="42" rx="5" fill="#e0e0e0" stroke="#bdbdbd" stroke-width="0.5"/>
+  <text x="1060" y="796" text-anchor="middle" font-size="9.5" font-weight="600" fill="#555">SessionStart/End</text>
+  <text x="1060" y="814" text-anchor="middle" font-size="8.5" fill="#555">≈ before/after_agent</text>
+
+  <!-- Bottom summary -->
+  <rect x="60" y="850" width="1080" height="50" rx="6" fill="#1a1a2e"/>
+  <text x="600" y="872" text-anchor="middle" fill="#aaa" font-size="10.5">核心分歧不在"要不要在生命周期中挂 hook"，而在"谁来写 hook、用什么语言写、怎么排序"</text>
+  <text x="600" y="890" text-anchor="middle" fill="#aaa" font-size="10.5">Claude Code 面向终端用户（声明式、多语言、并行） · DeerFlow 面向框架开发者（Python 类、有序、洋葱链）</text>
+
+</svg>

@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 980" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <marker id="arrowDashed" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#888"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="980" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1100" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Sandbox 生命周期：从 Agent 调用到 Provider 执行</text>
+
+  <!-- ===== PHASE 0: Agent enters tool execution ===== -->
+  <rect x="60" y="64" width="240" height="48" rx="8" fill="#1a1a2e" stroke="#333" stroke-width="1.5"/>
+  <text x="180" y="84" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">Agent Loop — tool 调用</text>
+  <text x="180" y="100" text-anchor="middle" fill="#aaa" font-size="10">bash / read_file / write_file / ls ...</text>
+
+  <line x1="180" y1="112" x2="180" y2="134" stroke="#555" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== PHASE 1: SandboxMiddleware.after_model ===== -->
+  <rect x="60" y="138" width="600" height="85" rx="8" fill="#e8f5e9" stroke="#66bb6a" stroke-width="1.5"/>
+  <rect x="60" y="138" width="280" height="28" rx="8" fill="#2e7d32"/>
+  <rect x="60" y="152" width="280" height="14" fill="#2e7d32"/>
+  <text x="200" y="157" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">① SandboxMiddleware.after_model</text>
+  <text x="360" y="157" font-size="10" fill="#888">middleware 链第 1 位 · lazy_init=True · sandbox/middleware.py</text>
+
+  <rect x="80" y="178" width="560" height="35" rx="5" fill="#fff" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="360" y="195" text-anchor="middle" font-size="10.5" fill="#555">遍历 messages: 对每个 ToolMessage 执行 ensure_sandbox_initialized(agent_id, thread_id)</text>
+  <text x="360" y="210" text-anchor="middle" font-size="9.5" fill="#888">这是异步的 — middleware 并行执行（invoke 模式下），不阻塞其他 middleware</text>
+
+  <line x1="180" y1="223" x2="180" y2="250" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Lazy Init Boundary ===== -->
+  <rect x="40" y="254" width="1020" height="30" rx="4" fill="#fff3e0" stroke="#ff9800" stroke-width="1" stroke-dasharray="6,3"/>
+  <text x="550" y="274" text-anchor="middle" font-size="11" font-weight="700" fill="#e65100">⬆ lazy_init=True 边界 — 首次 tool call 前 sandbox 尚未创建 ⬆</text>
+
+  <line x1="180" y1="284" x2="180" y2="310" stroke="#ff9800" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== PHASE 2: ensure_sandbox_initialized ===== -->
+  <rect x="60" y="314" width="800" height="170" rx="8" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5"/>
+  <rect x="60" y="314" width="320" height="28" rx="8" fill="#e65100"/>
+  <rect x="60" y="328" width="320" height="14" fill="#e65100"/>
+  <text x="220" y="333" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">② ensure_sandbox_initialized(agent_id, thread_id)</text>
+  <text x="400" y="333" font-size="10" fill="#888">tools.py:1094 · sandbox/tools.py</text>
+
+  <!-- Step 2a: check state -->
+  <rect x="80" y="354" width="340" height="52" rx="5" fill="#fff" stroke="#ffcc80" stroke-width="0.5"/>
+  <text x="250" y="374" text-anchor="middle" font-size="10.5" font-weight="600" fill="#e65100">Step 1: 检查 runtime.state 缓存</text>
+  <text x="250" y="392" text-anchor="middle" font-size="10" fill="#555">self.runtime.state.get("sandbox")</text>
+  <text x="250" y="406" text-anchor="middle" font-size="9" fill="#888">非 None → provider.get(sandbox_id) 直接复用，跳过 acquire</text>
+
+  <rect x="440" y="354" width="70" height="52" rx="4" fill="#e8f5e9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="475" y="376" text-anchor="middle" font-size="9" fill="#2e7d32">有缓存</text>
+  <text x="475" y="392" text-anchor="middle" font-size="9" fill="#2e7d32">→ 复用</text>
+
+  <rect x="530" y="354" width="70" height="52" rx="4" fill="#ffcdd2" stroke="#e57373" stroke-width="0.5"/>
+  <text x="565" y="376" text-anchor="middle" font-size="9" fill="#c62828">无缓存</text>
+  <text x="565" y="392" text-anchor="middle" font-size="9" fill="#c62828">→ acquire</text>
+
+  <line x1="565" y1="406" x2="565" y2="424" stroke="#c62828" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <!-- Step 2b: acquire -->
+  <rect x="80" y="418" width="740" height="56" rx="5" fill="#ffcdd2" stroke="#e57373" stroke-width="0.5"/>
+  <text x="450" y="438" text-anchor="middle" font-size="10.5" font-weight="600" fill="#c62828">Step 2: provider.acquire(agent_id, thread_id) → sandbox_id</text>
+  <text x="450" y="456" text-anchor="middle" font-size="10" fill="#555">返回 sandbox_id → 写入 runtime.state["sandbox"] = sandbox_id → 以后所有 tool call 跳过 acquire</text>
+  <text x="450" y="472" text-anchor="middle" font-size="9" fill="#888">acquire 是同步方法 — sandbox 的创建/获取必须完成才能继续执行 tool</text>
+
+  <line x1="180" y1="484" x2="180" y2="510" stroke="#e65100" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== PHASE 3: Three Provider Paths ===== -->
+  <rect x="60" y="514" width="980" height="175" rx="8" fill="#f3e5f5" stroke="#ab47bc" stroke-width="1.5"/>
+  <rect x="60" y="514" width="280" height="28" rx="8" fill="#7b1fa2"/>
+  <rect x="60" y="528" width="280" height="14" fill="#7b1fa2"/>
+  <text x="200" y="533" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">③ provider.acquire() — 三路分发</text>
+  <text x="360" y="533" font-size="10" fill="#888">get_sandbox_provider() 返回全局单例</text>
+
+  <!-- Path A: Local -->
+  <rect x="80" y="554" width="300" height="122" rx="5" fill="#fff" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="230" y="574" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7b1fa2">LocalSandboxProvider</text>
+  <text x="230" y="590" text-anchor="middle" font-size="9" fill="#888">local/local_sandbox_provider.py:219</text>
+
+  <rect x="90" y="600" width="280" height="66" rx="3" fill="#f5f5f5" stroke="#eee" stroke-width="0.3"/>
+  <text x="230" y="616" text-anchor="middle" font-size="9.5" fill="#555">LRU cache lookup: thread_id → sandbox_id</text>
+  <text x="230" y="632" text-anchor="middle" font-size="9.5" fill="#555">hit → get() 返回已有的 LocalSandbox</text>
+  <text x="230" y="648" text-anchor="middle" font-size="9.5" fill="#555">miss → new LocalSandbox(sandbox_id)</text>
+  <text x="230" y="664" text-anchor="middle" font-size="9.5" fill="#888">→ ensure_directories (mkdir workspace/ + user-data/)</text>
+
+  <!-- Path B: Docker -->
+  <rect x="400" y="554" width="300" height="122" rx="5" fill="#fff" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="550" y="574" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7b1fa2">AioSandboxProvider (Docker)</text>
+  <text x="550" y="590" text-anchor="middle" font-size="9" fill="#888">community/aio_sandbox/aio_sandbox_provider.py:550</text>
+
+  <rect x="410" y="600" width="280" height="66" rx="3" fill="#f5f5f5" stroke="#eee" stroke-width="0.3"/>
+  <text x="550" y="616" text-anchor="middle" font-size="9.5" fill="#555">跨进程锁 (file lock on sandbox_id)</text>
+  <text x="550" y="632" text-anchor="middle" font-size="9.5" fill="#555">→ _acquire_with_warm_pool(): 先看 warm pool</text>
+  <text x="550" y="648" text-anchor="middle" font-size="9.5" fill="#555">→ warm pool miss → Docker SDK create_container()</text>
+  <text x="550" y="664" text-anchor="middle" font-size="9.5" fill="#888">→ replicas: 3 soft cap · idle 600s 回收 · seccomp=unconfined</text>
+
+  <!-- Path C: K3s -->
+  <rect x="720" y="554" width="302" height="122" rx="5" fill="#fff" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="871" y="574" text-anchor="middle" font-size="10.5" font-weight="700" fill="#7b1fa2">ProvisionerSandboxProvider (K3s)</text>
+  <text x="871" y="590" text-anchor="middle" font-size="9" fill="#888">docker/provisioner/app.py · K8s API</text>
+
+  <rect x="730" y="600" width="284" height="66" rx="3" fill="#f5f5f5" stroke="#eee" stroke-width="0.3"/>
+  <text x="872" y="616" text-anchor="middle" font-size="9.5" fill="#555">HTTP POST → provisioner 服务 → K8s API</text>
+  <text x="872" y="632" text-anchor="middle" font-size="9.5" fill="#555">→ create Pod + NodePort Service + PVC</text>
+  <text x="872" y="648" text-anchor="middle" font-size="9.5" fill="#555">→ 等待 Pod Ready → 返回 endpoint URL</text>
+  <text x="872" y="664" text-anchor="middle" font-size="9.5" fill="#888">CPU 1C · Mem 1Gi · Storage 500Mi · privileged=false</text>
+
+  <line x1="180" y1="689" x2="180" y2="715" stroke="#7b1fa2" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== PHASE 4: Execute ===== -->
+  <rect x="60" y="719" width="800" height="60" rx="8" fill="#e8f5e9" stroke="#66bb6a" stroke-width="1.5"/>
+  <rect x="60" y="719" width="220" height="28" rx="8" fill="#2e7d32"/>
+  <rect x="60" y="733" width="220" height="14" fill="#2e7d32"/>
+  <text x="170" y="738" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">④ sandbox.execute_command(cmd)</text>
+  <text x="300" y="738" font-size="10" fill="#888">sandbox/tools.py → provider sandbox obj</text>
+
+  <rect x="80" y="757" width="760" height="14" rx="3"/>
+  <text x="460" y="768" text-anchor="middle" font-size="10" fill="#555">Local: subprocess.run(cmd, shell=True, cwd=thread_dir) · Docker: HTTP POST /execute to container · K3s: HTTP POST /execute to Pod</text>
+
+  <line x1="180" y1="779" x2="180" y2="805" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== PHASE 5: Output Processing (reuse from pipeline) ===== -->
+  <rect x="60" y="809" width="800" height="46" rx="8" fill="#e3f2fd" stroke="#42a5f5" stroke-width="1.5"/>
+  <rect x="60" y="809" width="180" height="24" rx="8" fill="#1565c0"/>
+  <rect x="60" y="819" width="180" height="14" fill="#1565c0"/>
+  <text x="150" y="826" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">⑤ 输出处理 + 返回</text>
+  <text x="260" y="826" font-size="10" fill="#888">mask_local_paths + truncate → ToolMessage → Agent</text>
+
+  <rect x="80" y="841" width="760" height="8" rx="2"/>
+
+  <!-- ===== Right: Next tool call loop ===== -->
+  <rect x="880" y="719" width="200" height="136" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="980" y="739" text-anchor="middle" font-size="10" font-weight="700" fill="#555">下一轮 tool call</text>
+
+  <rect x="892" y="752" width="176" height="46" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="980" y="770" text-anchor="middle" font-size="9.5" fill="#2e7d32">ensure_sandbox_initialized()</text>
+  <text x="980" y="786" text-anchor="middle" font-size="9" fill="#555">state["sandbox"] 已有值</text>
+  <text x="980" y="800" text-anchor="middle" font-size="9" fill="#555">→ provider.get() 直接复用</text>
+
+  <rect x="892" y="806" width="176" height="38" rx="4" fill="#fff9c4" stroke="#ffd54f" stroke-width="0.5"/>
+  <text x="980" y="822" text-anchor="middle" font-size="9.5" fill="#f57f17">跳过 acquire 步骤</text>
+  <text x="980" y="838" text-anchor="middle" font-size="9" fill="#555">同一个 sandbox 实例复用全程</text>
+
+  <!-- Summary bar -->
+  <rect x="60" y="872" width="1020" height="90" rx="6" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="570" y="894" text-anchor="middle" font-size="10.5" font-weight="700" fill="#333">生命周期核心设计</text>
+
+  <rect x="80" y="906" width="310" height="46" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="235" y="924" text-anchor="middle" font-size="10" fill="#2e7d32">Lazy Init: agent 启动时无 sandbox</text>
+  <text x="235" y="942" text-anchor="middle" font-size="10" fill="#2e7d32">首次 tool call 才触发 acquire</text>
+
+  <rect x="410" y="906" width="310" height="46" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="565" y="924" text-anchor="middle" font-size="10" fill="#2e7d32">State Caching: sandbox_id 存 runtime.state</text>
+  <text x="565" y="942" text-anchor="middle" font-size="10" fill="#2e7d32">后续调用只做 provider.get()，不再 acquire</text>
+
+  <rect x="740" y="906" width="320" height="46" rx="4" fill="#ffcdd2" stroke="#e57373" stroke-width="0.5"/>
+  <text x="900" y="924" text-anchor="middle" font-size="10" fill="#c62828">Release: SandboxMiddleware.after_agent</text>
+  <text x="900" y="942" text-anchor="middle" font-size="10" fill="#c62828">agent 结束 → provider.release(thread_id)</text>
+
+</svg>
