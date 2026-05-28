@@ -4,14 +4,17 @@ DeerFlow 暴露了哪些挂载点？怎么把自定义的东西挂上去？
 
 ## 阅读顺序
 
-1. **Config System** — config.yaml 分层、热加载、优先级链、env var 解析、config_version 升级
-2. **MCP** — 多 server（stdio/SSE/HTTP）、OAuth token 刷新、缓存失效
-3. **Skills** — SKILL.md 格式、加载/安装/启用、自定义 skill
-4. **Custom Tools & Agents** — Tool 注册流程、community tools、ACP agent 协议
+| 文件 | 内容 |
+|------|------|
+| **00-overview.md** | 全景：核心问题表、两套文件架构、热加载分流、优先级链、三套缓存 |
+| **01-config-yaml.md** | AppConfig 深挖：26 section、from_file() 8 步流水线、config_version 升级、singleton 传播 |
+| **02-extensions-json.md** | MCP + Skills 配置：MCP server config、OAuth token、MCP tools 缓存、skills 状态 |
+| **03-dynamic-loading.md** | resolve_variable 原理：动态 import + type check、model factory、extra="allow" 透传、thinking 跨 provider |
 
 ## 关键问题
 
-- 修改 config.yaml 后哪些字段实时生效，哪些必须重启？
-- MCP server 的 tool 是怎么注入到 Agent Loop 的？
-- Skills 的 allowed-tools 白名单在什么阶段执行？
-- ACP agent 和 subagent 的区别是什么？
+- 修改 config.yaml 后哪些字段实时生效，哪些必须重启？→ `00-overview.md` 热加载图
+- config.yaml 和 extensions_config.json 的关系？→ `00-overview.md` 双文件图
+- AppConfig 是怎么从 YAML 变成运行时对象的？→ `01-config-yaml.md` 8 步流水线
+- MCP server 的 tool 是怎么注入到 Agent Loop 的？→ `02-extensions-json.md` MCP 缓存
+- 怎么做到 `config.yaml` 里写个 class path 就能加载自定义 tool/model？→ `03-dynamic-loading.md`

@@ -1,0 +1,202 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="780" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1200" height="50" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="34" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="32" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">热加载分流：哪些字段实时生效，哪些必须重启？</text>
+
+  <!-- ===== DIVIDER: lifespan boundary ===== -->
+  <rect x="0" y="64" width="1200" height="2" fill="#ddd"/>
+  <rect x="0" y="385" width="1200" height="3" fill="#e57373"/>
+
+  <!-- Boundary label -->
+  <rect x="480" y="374" width="240" height="22" rx="11" fill="#e57373"/>
+  <text x="600" y="390" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">lifespan() 边界 — 进程生命周期分界线</text>
+
+  <!-- ===== TOP HALF: Startup Path (Frozen) ===== -->
+  <text x="30" y="90" fill="#c62828" font-size="15" font-weight="700">启动时（仅一次） — 这些字段改完必须重启</text>
+
+  <!-- Step 1: lifespan -->
+  <rect x="30" y="104" width="240" height="44" rx="8" fill="#ffcdd2" stroke="#e57373" stroke-width="1.5"/>
+  <text x="150" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">lifespan() app.py:160</text>
+  <text x="150" y="140" text-anchor="middle" font-size="10" fill="#888">FastAPI 启动时调一次</text>
+
+  <text x="285" y="130" font-size="18" fill="#c62828">→</text>
+
+  <!-- Step 2: get_app_config snapshot -->
+  <rect x="310" y="104" width="260" height="44" rx="8" fill="#ffcdd2" stroke="#e57373" stroke-width="1.5"/>
+  <text x="440" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">get_app_config() 快照</text>
+  <text x="440" y="140" text-anchor="middle" font-size="10" fill="#888">startup_config = get_app_config() ← 只读一次</text>
+
+  <!-- Step 3: apply logging -->
+  <rect x="595" y="104" width="180" height="44" rx="8" fill="#ffcdd2" stroke="#e57373" stroke-width="1.5"/>
+  <text x="685" y="122" text-anchor="middle" font-size="11" font-weight="700" fill="#c62828">apply_logging_level()</text>
+  <text x="685" y="140" text-anchor="middle" font-size="10" fill="#888">log_level 从此不变</text>
+
+  <text x="790" y="130" font-size="18" fill="#c62828">→</text>
+
+  <!-- Step 4: langgraph_runtime -->
+  <rect x="815" y="104" width="280" height="44" rx="8" fill="#ffcdd2" stroke="#e57373" stroke-width="1.5"/>
+  <text x="955" y="122" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">langgraph_runtime() deps.py:96</text>
+  <text x="955" y="140" text-anchor="middle" font-size="10" fill="#888">用 startup_config 构建基础设施</text>
+
+  <!-- Down arrow to infrastructure objects -->
+  <line x1="600" y1="148" x2="600" y2="174" stroke="#c62828" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <!-- Infrastructure objects grid -->
+  <rect x="30" y="180" width="1140" height="190" rx="10" fill="#fff5f5" stroke="#ef9a9a" stroke-width="1.5"/>
+
+  <text x="600" y="202" text-anchor="middle" font-size="13" font-weight="700" fill="#c62828">langgraph_runtime() 内创建的长生命周期对象（存 app.state，永不重建）</text>
+
+  <!-- 7 restart-required items in a grid -->
+  <!-- Row 1 -->
+  <rect x="50" y="218" width="250" height="62" rx="6" fill="#fff" stroke="#ef9a9a" stroke-width="1"/>
+  <text x="175" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">database.*</text>
+  <text x="175" y="258" text-anchor="middle" font-size="10" fill="#555">init_engine_from_config()</text>
+  <text x="175" y="274" text-anchor="middle" font-size="10" fill="#888">SQLAlchemy 连接池</text>
+
+  <rect x="320" y="218" width="250" height="62" rx="6" fill="#fff" stroke="#ef9a9a" stroke-width="1"/>
+  <text x="445" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">checkpointer.*</text>
+  <text x="445" y="258" text-anchor="middle" font-size="10" fill="#555">make_checkpointer()</text>
+  <text x="445" y="274" text-anchor="middle" font-size="10" fill="#888">持久化状态存储</text>
+
+  <rect x="590" y="218" width="250" height="62" rx="6" fill="#fff" stroke="#ef9a9a" stroke-width="1"/>
+  <text x="715" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">run_events.*</text>
+  <text x="715" y="258" text-anchor="middle" font-size="10" fill="#555">make_run_event_store()</text>
+  <text x="715" y="274" text-anchor="middle" font-size="10" fill="#888">memory vs SQL backend</text>
+
+  <rect x="860" y="218" width="290" height="62" rx="6" fill="#fff" stroke="#ef9a9a" stroke-width="1"/>
+  <text x="1005" y="240" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">stream_bridge.*</text>
+  <text x="1005" y="258" text-anchor="middle" font-size="10" fill="#555">make_stream_bridge()</text>
+  <text x="1005" y="274" text-anchor="middle" font-size="10" fill="#888">SSE 桥后端（memory/redis）</text>
+
+  <!-- Row 2 -->
+  <rect x="50" y="292" width="250" height="62" rx="6" fill="#fff" stroke="#ef9a9a" stroke-width="1"/>
+  <text x="175" y="314" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">sandbox.use</text>
+  <text x="175" y="332" text-anchor="middle" font-size="10" fill="#555">get_sandbox_provider()</text>
+  <text x="175" y="348" text-anchor="middle" font-size="10" fill="#888">provider 单例缓存</text>
+
+  <rect x="320" y="292" width="250" height="62" rx="6" fill="#fff" stroke="#ef9a9a" stroke-width="1"/>
+  <text x="445" y="314" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">log_level</text>
+  <text x="445" y="332" text-anchor="middle" font-size="10" fill="#555">apply_logging_level()</text>
+  <text x="445" y="348" text-anchor="middle" font-size="10" fill="#888">仅 lifespan() 调一次</text>
+
+  <rect x="590" y="292" width="250" height="62" rx="6" fill="#fff" stroke="#ef9a9a" stroke-width="1"/>
+  <text x="715" y="314" text-anchor="middle" font-size="12" font-weight="700" fill="#c62828">channels.*</text>
+  <text x="715" y="332" text-anchor="middle" font-size="10" fill="#555">start_channel_service()</text>
+  <text x="715" y="348" text-anchor="middle" font-size="10" fill="#888">IM 凭据 + 长连接</text>
+
+  <!-- Summary -->
+  <rect x="860" y="292" width="290" height="62" rx="6" fill="#ffcdd2" stroke="#e57373" stroke-width="1.5"/>
+  <text x="1005" y="314" text-anchor="middle" font-size="11" font-weight="700" fill="#c62828">这些字段全存在 app.state</text>
+  <text x="1005" y="334" text-anchor="middle" font-size="10" fill="#c62828">进程存活期间永不回收</text>
+  <text x="1005" y="352" text-anchor="middle" font-size="10" fill="#888">改完必须重启进程</text>
+
+  <!-- ===== BOTTOM HALF: Request Path (Live) ===== -->
+  <text x="30" y="410" fill="#2e7d32" font-size="15" font-weight="700">请求时（每次） — 这些字段改完实时生效</text>
+
+  <!-- Step 1: request arrives -->
+  <rect x="30" y="424" width="220" height="44" rx="8" fill="#c8e6c9" stroke="#81c784" stroke-width="1.5"/>
+  <text x="140" y="442" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">请求到达</text>
+  <text x="140" y="460" text-anchor="middle" font-size="10" fill="#888">Gateway Deps() 注入</text>
+
+  <text x="265" y="450" font-size="18" fill="#2e7d32">→</text>
+
+  <!-- Step 2: get_config() -->
+  <rect x="280" y="424" width="250" height="44" rx="8" fill="#c8e6c9" stroke="#81c784" stroke-width="1.5"/>
+  <text x="405" y="442" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">get_config() deps.py:70</text>
+  <text x="405" y="460" text-anchor="middle" font-size="10" fill="#888">每次请求调 get_app_config()</text>
+
+  <text x="545" y="450" font-size="18" fill="#2e7d32">→</text>
+
+  <!-- Step 3: mtime check -->
+  <rect x="560" y="424" width="280" height="44" rx="8" fill="#a5d6a7" stroke="#66bb6a" stroke-width="1.5"/>
+  <text x="700" y="440" text-anchor="middle" font-size="12" font-weight="700" fill="#1b5e20">mtime 检测</text>
+  <text x="700" y="460" text-anchor="middle" font-size="10" fill="#1b5e20">文件修改过？→ 重新 from_file() 加载</text>
+
+  <text x="855" y="450" font-size="18" fill="#2e7d32">→</text>
+
+  <!-- Step 4: fresh read -->
+  <rect x="870" y="424" width="230" height="44" rx="8" fill="#c8e6c9" stroke="#81c784" stroke-width="1.5"/>
+  <text x="985" y="442" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">返回最新 AppConfig</text>
+  <text x="985" y="460" text-anchor="middle" font-size="10" fill="#888">或直接返回缓存（mtime 未变）</text>
+
+  <!-- Down arrow to live fields -->
+  <line x1="600" y1="468" x2="600" y2="494" stroke="#2e7d32" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <!-- Live fields grid -->
+  <rect x="30" y="500" width="1140" height="195" rx="10" fill="#f1f8e9" stroke="#a5d6a7" stroke-width="1.5"/>
+
+  <text x="600" y="522" text-anchor="middle" font-size="13" font-weight="700" fill="#2e7d32">每个请求都能看到最新值的字段（AppConfig 不缓存到 app.state）</text>
+
+  <!-- Row 1 -->
+  <rect x="50" y="538" width="210" height="58" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="155" y="560" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">models[*]</text>
+  <text x="155" y="578" text-anchor="middle" font-size="10" fill="#555">LLM 模型配置</text>
+  <text x="155" y="592" text-anchor="middle" font-size="10" fill="#888">model name / max_tokens / thinking</text>
+
+  <rect x="280" y="538" width="210" height="58" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="385" y="560" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">tools[*] + tool_groups[*]</text>
+  <text x="385" y="578" text-anchor="middle" font-size="10" fill="#555">工具装配列表</text>
+  <text x="385" y="592" text-anchor="middle" font-size="10" fill="#888">resolve_variable 重新加载</text>
+
+  <rect x="510" y="538" width="210" height="58" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="615" y="560" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">subagents.*</text>
+  <text x="615" y="578" text-anchor="middle" font-size="10" fill="#555">subagent 并发限制、超时</text>
+  <text x="615" y="592" text-anchor="middle" font-size="10" fill="#888">custom_agents / agent overrides</text>
+
+  <rect x="740" y="538" width="210" height="58" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="845" y="560" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">memory.* / summarization.*</text>
+  <text x="845" y="578" text-anchor="middle" font-size="10" fill="#555">记忆系统 + 摘要配置</text>
+  <text x="845" y="592" text-anchor="middle" font-size="10" fill="#888">模型、阈值、debounce</text>
+
+  <rect x="970" y="538" width="182" height="58" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="1061" y="560" text-anchor="middle" font-size="12" font-weight="700" fill="#2e7d32">title.*</text>
+  <text x="1061" y="578" text-anchor="middle" font-size="10" fill="#555">自动标题生成</text>
+  <text x="1061" y="592" text-anchor="middle" font-size="10" fill="#888">max_words / model</text>
+
+  <!-- Row 2 -->
+  <rect x="50" y="608" width="210" height="40" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="155" y="626" text-anchor="middle" font-size="11" font-weight="700" fill="#2e7d32">guardrails.*</text>
+  <text x="155" y="642" text-anchor="middle" font-size="10" fill="#888">工具授权 provider</text>
+
+  <rect x="280" y="608" width="210" height="40" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="385" y="626" text-anchor="middle" font-size="11" font-weight="700" fill="#2e7d32">system prompt</text>
+  <text x="385" y="642" text-anchor="middle" font-size="10" fill="#888">agent 指令 + subagent section</text>
+
+  <rect x="510" y="608" width="210" height="40" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="615" y="626" text-anchor="middle" font-size="11" font-weight="700" fill="#2e7d32">skills.*</text>
+  <text x="615" y="642" text-anchor="middle" font-size="10" fill="#888">skills 路径 / container path</text>
+
+  <rect x="740" y="608" width="210" height="40" rx="6" fill="#fff" stroke="#c8e6c9" stroke-width="1"/>
+  <text x="845" y="626" text-anchor="middle" font-size="11" font-weight="700" fill="#2e7d32">loop_detection.*</text>
+  <text x="845" y="642" text-anchor="middle" font-size="10" fill="#888">循环检测阈值</text>
+
+  <rect x="970" y="608" width="182" height="40" rx="6" fill="#c8e6c9" stroke="#66bb6a" stroke-width="1.5"/>
+  <text x="1061" y="626" text-anchor="middle" font-size="10" font-weight="700" fill="#1b5e20">... 以及所有未列在上面的字段</text>
+
+  <!-- ===== BOTTOM: WHY ===== -->
+  <rect x="30" y="714" width="1140" height="48" rx="8" fill="#fff3e0" stroke="#ffb74d" stroke-width="1.5"/>
+  <text x="600" y="736" text-anchor="middle" font-size="11.5" font-weight="600" fill="#e65100">为什么分两半？</text>
+  <text x="600" y="754" text-anchor="middle" font-size="10.5" fill="#555">存储引擎 (database/checkpointer)、沙箱 provider、IM 连接 是进程的"骨架" — 重建这些会导致连接断开、状态丢失。</text>
+  <text x="600" y="736" text-anchor="middle" font-size="10.5" fill="#555" dx="0" dy="18">而 model、tool、memory 等是"策略" — 下次请求读新值就行，不影响在运行的连接。</text>
+
+</svg>

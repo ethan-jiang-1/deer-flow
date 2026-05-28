@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 820" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="820" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1200" height="50" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="34" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="32" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">配置系统：两套文件，两条加载路径</text>
+
+  <!-- ===== LEFT LANE: config.yaml ===== -->
+  <rect x="20" y="68" width="570" height="580" rx="10" fill="#fff8e1" stroke="#ff8f00" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="20" y="68" width="570" height="36" rx="10" fill="#ff8f00"/>
+  <rect x="20" y="90" width="570" height="14" fill="#ff8f00"/>
+  <text x="305" y="91" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">config.yaml → AppConfig (Pydantic)</text>
+
+  <!-- Priority chain -->
+  <text x="40" y="130" fill="#e65100" font-size="12" font-weight="700">优先级链 resolve_config_path()</text>
+  <rect x="40" y="140" width="530" height="80" rx="6" fill="#fff" stroke="#ffcc80" stroke-width="1"/>
+  <text x="55" y="162" font-size="11" fill="#555">① 显式传参 config_path</text>
+  <line x1="55" y1="168" x2="570" y2="168" stroke="#eee" stroke-width="0.5"/>
+  <text x="55" y="184" font-size="11" fill="#555">② DEER_FLOW_CONFIG_PATH 环境变量</text>
+  <line x1="55" y1="190" x2="570" y2="190" stroke="#eee" stroke-width="0.5"/>
+  <text x="55" y="206" font-size="11" fill="#e65100" font-weight="600">③ 项目根 config.yaml ← 最常用</text>
+  <line x1="55" y1="212" x2="570" y2="212" stroke="#eee" stroke-width="0.5"/>
+  <text x="55" y="228" font-size="11" fill="#aaa">④ Legacy: backend/config.yaml → repo_root/config.yaml</text>
+
+  <!-- Arrow -->
+  <line x1="305" y1="220" x2="305" y2="244" stroke="#e65100" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- from_file pipeline -->
+  <text x="40" y="264" fill="#e65100" font-size="12" font-weight="700">from_file() 8 步流水线</text>
+  <rect x="40" y="274" width="530" height="130" rx="6" fill="#fff" stroke="#ffcc80" stroke-width="1"/>
+  <!-- 8 step boxes -->
+  <rect x="52" y="282" width="110" height="24" rx="4" fill="#fff3e0"/>
+  <text x="107" y="298" text-anchor="middle" font-size="9.5" fill="#e65100">① resolve path</text>
+  <text x="172" y="298" font-size="14" fill="#ccc">→</text>
+  <rect x="185" y="282" width="100" height="24" rx="4" fill="#fff3e0"/>
+  <text x="235" y="298" text-anchor="middle" font-size="9.5" fill="#e65100">② YAML parse</text>
+  <text x="295" y="298" font-size="14" fill="#ccc">→</text>
+  <rect x="308" y="282" width="100" height="24" rx="4" fill="#fff3e0"/>
+  <text x="358" y="298" text-anchor="middle" font-size="9.5" fill="#e65100">③ version check</text>
+  <text x="418" y="298" font-size="14" fill="#ccc">→</text>
+  <rect x="431" y="282" width="100" height="24" rx="4" fill="#fff3e0"/>
+  <text x="481" y="298" text-anchor="middle" font-size="9.5" fill="#e65100">④ env var 解析</text>
+
+  <rect x="52" y="312" width="110" height="24" rx="4" fill="#fff3e0"/>
+  <text x="107" y="328" text-anchor="middle" font-size="9.5" fill="#e65100">⑤ DB defaults</text>
+  <text x="172" y="328" font-size="14" fill="#ccc">→</text>
+  <rect x="185" y="312" width="100" height="24" rx="4" fill="#fff3e0"/>
+  <text x="235" y="328" text-anchor="middle" font-size="9.5" fill="#e65100">⑥ load extensions</text>
+  <text x="295" y="328" font-size="14" fill="#ccc">→</text>
+  <rect x="308" y="312" width="100" height="24" rx="4" fill="#fff3e0"/>
+  <text x="358" y="328" text-anchor="middle" font-size="9.5" fill="#e65100">⑦ Pydantic validate</text>
+  <text x="418" y="328" font-size="14" fill="#ccc">→</text>
+  <rect x="431" y="312" width="125" height="24" rx="4" fill="#ffcc80"/>
+  <text x="493" y="328" text-anchor="middle" font-size="9.5" fill="#e65100" font-weight="600">⑧ propagate singletons</text>
+
+  <!-- Extra info below pipeline -->
+  <text x="55" y="370" font-size="10" fill="#888">第⑥步: 加载 extensions_config.json，覆盖 AppConfig.extensions 字段</text>
+  <text x="55" y="386" font-size="10" fill="#888">第⑧步: 把解析好的配置推到各子系统模块级全局变量</text>
+
+  <!-- Arrow -->
+  <line x1="305" y1="404" x2="305" y2="428" stroke="#e65100" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- Cache -->
+  <text x="40" y="450" fill="#e65100" font-size="12" font-weight="700">get_app_config() 缓存策略</text>
+  <rect x="40" y="460" width="530" height="75" rx="6" fill="#fff" stroke="#ffcc80" stroke-width="1"/>
+  <text x="55" y="482" font-size="11" fill="#555">模块级三个全局变量: _app_config / _app_config_path / _app_config_mtime</text>
+  <text x="55" y="502" font-size="11" fill="#555">每次调用: 检查 path 是否变 + mtime 是否变 → 变了就自动 reload</text>
+  <text x="55" y="522" font-size="11" fill="#e65100" font-weight="600">⚠ set_app_config() 注入后设置 _app_config_is_custom=True，永久禁止 auto-reload（测试用）</text>
+
+  <!-- Arrow -->
+  <line x1="305" y1="535" x2="305" y2="556" stroke="#e65100" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- Result -->
+  <rect x="40" y="562" width="530" height="72" rx="6" fill="#fff3e0" stroke="#ff8f00" stroke-width="1.5"/>
+  <text x="55" y="584" font-size="12" font-weight="700" fill="#e65100">产出: AppConfig (Pydantic, 26 个 section, extra="allow")</text>
+  <text x="55" y="604" font-size="11" fill="#555">models / sandbox / tools / tool_groups / subagents / memory / summarization / title</text>
+  <text x="55" y="622" font-size="11" fill="#555">skills / extensions / guardrails / database / checkpointer / ... 共 26 个顶层字段</text>
+
+  <!-- ===== RIGHT LANE: extensions_config.json ===== -->
+  <rect x="610" y="68" width="570" height="580" rx="10" fill="#e8eaf6" stroke="#3949ab" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="610" y="68" width="570" height="36" rx="10" fill="#3949ab"/>
+  <rect x="610" y="90" width="570" height="14" fill="#3949ab"/>
+  <text x="895" y="91" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">extensions_config.json → ExtensionsConfig</text>
+
+  <!-- Priority chain -->
+  <text x="630" y="130" fill="#283593" font-size="12" font-weight="700">优先级链 (独立于 config.yaml)</text>
+  <rect x="630" y="140" width="530" height="80" rx="6" fill="#fff" stroke="#9fa8da" stroke-width="1"/>
+  <text x="645" y="162" font-size="11" fill="#555">① 显式传参 config_path</text>
+  <line x1="645" y1="168" x2="1160" y2="168" stroke="#eee" stroke-width="0.5"/>
+  <text x="645" y="184" font-size="11" fill="#555">② DEER_FLOW_EXTENSIONS_CONFIG_PATH 环境变量</text>
+  <line x1="645" y1="190" x2="1160" y2="190" stroke="#eee" stroke-width="0.5"/>
+  <text x="645" y="206" font-size="11" fill="#283593" font-weight="600">③ 项目根 extensions_config.json + legacy mcp_config.json</text>
+  <line x1="645" y1="212" x2="1160" y2="212" stroke="#eee" stroke-width="0.5"/>
+  <text x="645" y="228" font-size="11" fill="#aaa">④ Legacy: backend/ extensions + mcp_config.json → 找不到返回 None</text>
+
+  <!-- Arrow -->
+  <line x1="895" y1="220" x2="895" y2="244" stroke="#283593" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- from_file differences -->
+  <text x="630" y="264" fill="#283593" font-size="12" font-weight="700">from_file() — 与 AppConfig 的关键差异</text>
+  <rect x="630" y="274" width="530" height="130" rx="6" fill="#fff" stroke="#9fa8da" stroke-width="1"/>
+
+  <rect x="642" y="284" width="250" height="52" rx="4" fill="#e8eaf6"/>
+  <text x="652" y="302" font-size="10.5" fill="#283593" font-weight="600">env var 解析：宽松模式</text>
+  <text x="652" y="320" font-size="10" fill="#555">$VAR 未设置 → 存空字符串 ""（不报错）</text>
+  <text x="652" y="334" font-size="10" fill="#888">AppConfig: $VAR 未设置 → raise ValueError</text>
+
+  <rect x="642" y="344" width="250" height="38" rx="4" fill="#e8eaf6"/>
+  <text x="652" y="362" font-size="10.5" fill="#283593" font-weight="600">文件可选</text>
+  <text x="652" y="378" font-size="10" fill="#555">找不到 → 返回 None → 创建空 ExtensionsConfig()</text>
+
+  <!-- Extra info -->
+  <text x="902" y="308" font-size="10" fill="#888">JSON 解析</text>
+  <text x="902" y="328" font-size="10" fill="#888">mcpServers + skills</text>
+  <text x="902" y="348" font-size="10" fill="#888">Pydantic validate</text>
+  <text x="902" y="368" font-size="10" fill="#888">camelCase alias 映射</text>
+
+  <!-- Arrow -->
+  <line x1="895" y1="404" x2="895" y2="428" stroke="#283593" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- Cache -->
+  <text x="630" y="450" fill="#283593" font-size="12" font-weight="700">缓存策略 — 无自动 reload</text>
+  <rect x="630" y="460" width="530" height="60" rx="6" fill="#fff" stroke="#9fa8da" stroke-width="1"/>
+  <text x="645" y="482" font-size="11" fill="#555">模块级 _extensions_config 单例，懒加载</text>
+  <text x="645" y="502" font-size="11" fill="#283593" font-weight="600">⚠ 不像 AppConfig 有 mtime 自动检测。需手动 reload_extensions_config() 或重启。</text>
+  <text x="645" y="520" font-size="11" fill="#888">Gateway API: PUT /api/mcp/config → 保存文件 + 调用 reload_extensions_config() + reset MCP cache</text>
+
+  <!-- Arrow -->
+  <line x1="895" y1="520" x2="895" y2="544" stroke="#283593" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- MCP cache -->
+  <rect x="630" y="550" width="530" height="84" rx="6" fill="#e8eaf6" stroke="#3949ab" stroke-width="1.5"/>
+  <text x="645" y="572" font-size="12" font-weight="700" fill="#283593">MCP Tools 独立缓存 (mcp/cache.py)</text>
+  <text x="645" y="594" font-size="11" fill="#555">独立的 mtime 失效机制：记录 _config_mtime，下次请求时比较</text>
+  <text x="645" y="614" font-size="11" fill="#555">3 次重试 + event loop 兼容（当前 loop → threadpool → asyncio.run fallback）</text>
+  <text x="645" y="632" font-size="11" fill="#888">→ 三套缓存，三个不同的失效策略</text>
+
+  <!-- ===== CONVERGENCE ===== -->
+  <rect x="200" y="668" width="800" height="132" rx="10" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <!-- Arrows from both lanes -->
+  <line x1="305" y1="634" x2="305" y2="670" stroke="#ff8f00" stroke-width="2" marker-end="url(#arrowDown)"/>
+  <line x1="895" y1="634" x2="895" y2="670" stroke="#3949ab" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <text x="600" y="694" text-anchor="middle" fill="#7b1fa2" font-size="14" font-weight="700">汇合点: get_available_tools() + make_lead_agent()</text>
+
+  <!-- Three merge boxes -->
+  <rect x="225" y="710" width="230" height="40" rx="6" fill="#fff" stroke="#ce93d8" stroke-width="1"/>
+  <text x="340" y="728" text-anchor="middle" font-size="10.5" fill="#555">config.yaml → tools (resolve_variable)</text>
+  <text x="340" y="744" text-anchor="middle" font-size="10.5" fill="#555">+ builtins + MCP tools + ACP agents</text>
+
+  <text x="470" y="735" font-size="18" fill="#7b1fa2">+</text>
+
+  <rect x="490" y="710" width="230" height="40" rx="6" fill="#fff" stroke="#ce93d8" stroke-width="1"/>
+  <text x="605" y="728" text-anchor="middle" font-size="10.5" fill="#555">extensions → MCP tools (mtime cache)</text>
+  <text x="605" y="744" text-anchor="middle" font-size="10.5" fill="#555">+ skills enabled/disabled state</text>
+
+  <text x="735" y="735" font-size="18" fill="#7b1fa2">=</text>
+
+  <rect x="755" y="710" width="220" height="40" rx="6" fill="#7b1fa2"/>
+  <text x="865" y="728" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">Agent 的完整 tool list</text>
+  <text x="865" y="744" text-anchor="middle" fill="#e1bee7" font-size="10">+ system prompt with skills</text>
+
+  <!-- Bottom annotation -->
+  <rect x="200" y="772" width="800" height="28" rx="4" fill="#fce4ec" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="600" y="791" text-anchor="middle" font-size="10.5" fill="#c62828">两套文件通过不同的缓存策略最终汇合到 tool assembly 和 prompt generation</text>
+
+</svg>
