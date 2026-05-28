@@ -1,0 +1,154 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 640" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 5 7, 10 0" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="640" fill="#fafafa" rx="8"/>
+
+  <rect x="0" y="0" width="1100" height="50" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="34" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="32" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">三条认证路径：Browser · Internal · IM Channel</text>
+
+  <!-- ===== PATH 1: Browser ===== -->
+  <rect x="20" y="66" width="340" height="555" rx="10" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <rect x="20" y="66" width="340" height="34" rx="10" fill="#1565c0"/>
+  <rect x="20" y="86" width="340" height="14" fill="#1565c0"/>
+  <text x="190" y="88" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Browser 路径 (JWT + CSRF)</text>
+
+  <text x="40" y="122" font-size="11" fill="#555">① 登录 POST /api/v1/auth/login/local</text>
+  <rect x="40" y="132" width="300" height="28" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="55" y="151" font-size="10" fill="#555">密文: bcrypt(sha256(pwd)) → v2 auto-upgrade</text>
+
+  <text x="45" y="180" font-size="11" fill="#999">→</text>
+
+  <text x="40" y="198" font-size="11" fill="#555">② 返回双 cookie</text>
+  <rect x="40" y="208" width="300" height="48" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="55" y="226" font-size="10" fill="#555">access_token=JWT → HttpOnly, Secure, SameSite=Lax</text>
+  <text x="55" y="244" font-size="10" fill="#555">csrf_token=random64 → HttpOnly=False, Secure, SameSite=Strict</text>
+
+  <text x="45" y="276" font-size="11" fill="#999">→</text>
+
+  <text x="40" y="294" font-size="11" fill="#555">③ 后续每个 state-changing 请求</text>
+  <rect x="40" y="304" width="300" height="70" rx="4" fill="#e3f2fd" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="55" y="322" font-size="10" fill="#555">Cookie 自动带 access_token</text>
+  <text x="55" y="340" font-size="10" fill="#555">Header: X-CSRF-Token = csrf_token 值</text>
+  <text x="55" y="358" font-size="10" fill="#555">AuthMiddleware → JWT decode → DB token_version</text>
+  <text x="55" y="376" font-size="10" fill="#555">CSRFMiddleware → compare_digest(cookie, header)</text>
+
+  <text x="45" y="396" font-size="11" fill="#999">→</text>
+
+  <text x="40" y="414" font-size="11" fill="#555">④ 结果</text>
+  <rect x="40" y="424" width="300" height="36" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="55" y="442" text-anchor="middle" x="190" font-size="10" fill="#2e7d32">user_id → ContextVar → 所有后续操作 scoped</text>
+
+  <!-- Failure cases -->
+  <rect x="40" y="474" width="300" height="135" rx="6" fill="#ffebee" stroke="#ef9a9a" stroke-width="0.5"/>
+  <text x="55" y="494" font-size="10" font-weight="700" fill="#c62828">失败场景:</text>
+  <text x="55" y="512" font-size="10" fill="#555">· 缺 cookie → 401 NOT_AUTHENTICATED</text>
+  <text x="55" y="528" font-size="10" fill="#555">· JWT 过期 → 401 token_expired</text>
+  <text x="55" y="544" font-size="10" fill="#555">· token_version 不匹配 → 401 token_expired</text>
+  <text x="55" y="560" font-size="10" fill="#555">· CSRF mismatch → 403 CSRF_TOKEN_MISMATCH</text>
+  <text x="55" y="576" font-size="10" fill="#555">· 登录失败 5 次/5 分 → 429 Too Many Requests</text>
+  <text x="55" y="592" font-size="10" fill="#555">· 密码太弱(40 common) → 422 VALIDATION_ERROR</text>
+
+  <!-- ===== PATH 2: Internal ===== -->
+  <rect x="380" y="66" width="340" height="555" rx="10" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <rect x="380" y="66" width="340" height="34" rx="10" fill="#6a1b9a"/>
+  <rect x="380" y="86" width="340" height="14" fill="#6a1b9a"/>
+  <text x="550" y="88" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">Internal 路径 (Gateway Token)</text>
+
+  <text x="400" y="122" font-size="11" fill="#555">① 生成 token（模块加载时一次性）</text>
+  <rect x="400" y="132" width="300" height="40" rx="4" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="415" y="150" font-size="10" fill="#555">env: DEER_FLOW_INTERNAL_AUTH_TOKEN</text>
+  <text x="415" y="166" font-size="10" fill="#555">未设置 → secrets.token_urlsafe(32) 自动生成</text>
+
+  <text x="405" y="192" font-size="11" fill="#999">→</text>
+
+  <text x="400" y="210" font-size="11" fill="#555">② 请求带 header</text>
+  <rect x="400" y="220" width="300" height="28" rx="4" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="415" y="239" font-size="10" fill="#555">X-DeerFlow-Internal-Token: <token></text>
+
+  <text x="405" y="268" font-size="11" fill="#999">→</text>
+
+  <text x="400" y="286" font-size="11" fill="#555">③ AuthMiddleware 识别</text>
+  <rect x="400" y="296" width="300" height="56" rx="4" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="415" y="314" font-size="10" fill="#555">compare_digest(header_val, stored_token)</text>
+  <text x="415" y="332" font-size="10" fill="#555">→ 创建 synthetic user (id="default")</text>
+  <text x="415" y="350" font-size="10" fill="#555">→ 完全跳过 JWT + CSRF 检查</text>
+
+  <text x="405" y="372" font-size="11" fill="#999">→</text>
+
+  <text x="400" y="390" font-size="11" fill="#555">④ 用途</text>
+  <rect x="400" y="400" width="300" height="104" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="415" y="418" font-size="10" fill="#2e7d32">· ChannelManager → Gateway API 通信</text>
+  <text x="415" y="436" font-size="10" fill="#2e7d32">· IM 平台消息创建 thread + run</text>
+  <text x="415" y="454" font-size="10" fill="#2e7d32">· 微服务间内部 API 调用</text>
+  <text x="415" y="472" font-size="10" fill="#2e7d32">· ChannelManager 还带 CSRF cookie+header</text>
+  <text x="415" y="490" font-size="10" fill="#2e7d32">  保证通过 CSRFMiddleware 检查</text>
+
+  <!-- Failure -->
+  <rect x="400" y="518" width="300" height="90" rx="6" fill="#ffebee" stroke="#ef9a9a" stroke-width="0.5"/>
+  <text x="415" y="538" font-size="10" font-weight="700" fill="#c62828">失败:</text>
+  <text x="415" y="556" font-size="10" fill="#555">token 不匹配 → 401 INVALID_TOKEN</text>
+  <text x="415" y="572" font-size="10" fill="#555">· 自动生成的 token 不跨 worker 共享</text>
+  <text x="415" y="588" font-size="10" fill="#555">· 多 worker 部署需设统一 env var</text>
+
+  <!-- ===== PATH 3: IM Channel ===== -->
+  <rect x="740" y="66" width="340" height="555" rx="10" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <rect x="740" y="66" width="340" height="34" rx="10" fill="#2e7d32"/>
+  <rect x="740" y="86" width="340" height="14" fill="#2e7d32"/>
+  <text x="910" y="88" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">IM Channel 完整流程</text>
+
+  <text x="760" y="120" font-size="11" fill="#555">① 外部消息到达</text>
+  <rect x="760" y="128" width="300" height="28" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="775" y="148" font-size="10" fill="#555">飞书/Slack/Telegram/DingTalk webhook</text>
+
+  <text x="765" y="174" font-size="11" fill="#999">→</text>
+
+  <text x="760" y="190" font-size="11" fill="#555">② Channel 验证消息来源</text>
+  <rect x="760" y="198" width="300" height="44" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="775" y="216" font-size="10" fill="#555">各平台 SDK 验证签名/webhook secret</text>
+  <text x="775" y="234" font-size="10" fill="#555">→ 发布到 MessageBus 内部队列</text>
+
+  <text x="765" y="260" font-size="11" fill="#999">→</text>
+
+  <text x="760" y="276" font-size="11" fill="#555">③ ChannelManager dispatch</text>
+  <rect x="760" y="284" width="300" height="44" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="775" y="302" font-size="10" fill="#555">创建 LangGraph SDK Client:</text>
+  <text x="775" y="320" font-size="10" fill="#555">· X-DeerFlow-Internal-Token (内部认证)</text>
+  <text x="775" y="338" font-size="10" fill="#555">· X-CSRF-Token header + Cookie (过CSRF)</text>
+
+  <text x="765" y="356" font-size="11" fill="#999">→</text>
+
+  <text x="760" y="372" font-size="11" fill="#555">④ SDK → Gateway API</text>
+  <rect x="760" y="380" width="300" height="28" rx="4" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="775" y="400" font-size="10" fill="#555">HTTP POST /api/threads/{id}/runs/stream</text>
+
+  <text x="765" y="426" font-size="11" fill="#999">→</text>
+
+  <text x="760" y="442" font-size="11" fill="#555">⑤ Agent 执行</text>
+  <rect x="760" y="450" width="300" height="44" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="775" y="468" font-size="10" fill="#2e7d32">user_id = "default" (内部用户)</text>
+  <text x="775" y="486" font-size="10" fill="#2e7d32">所有 thread/memory/upload 隔离在 default 下</text>
+
+  <!-- Failure -->
+  <rect x="760" y="508" width="300" height="100" rx="6" fill="#ffebee" stroke="#ef9a9a" stroke-width="0.5"/>
+  <text x="775" y="528" font-size="10" font-weight="700" fill="#c62828">风险:</text>
+  <text x="775" y="546" font-size="10" fill="#555">· internal token 泄露 = 全部 IM 用户被攻破</text>
+  <text x="775" y="562" font-size="10" fill="#555">· 所有 IM 用户共享 "default" user_id</text>
+  <text x="775" y="578" font-size="10" fill="#555">· 无 per-IM-user 身份映射</text>
+  <text x="775" y="594" font-size="10" fill="#555">· 多 worker 需手动设同一 DEER_FLOW_INTERNAL_AUTH_TOKEN</text>
+
+</svg>

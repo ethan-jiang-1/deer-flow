@@ -4,14 +4,18 @@
 
 ## 阅读顺序
 
-1. **Auth** — JWT/OAuth 用户认证、CSRF 防跨站、internal gateway token 组件间信任
-2. **Sandbox Isolation** — Local（无隔离）→ Docker（容器隔离）→ K3s（Pod 隔离），安全边界逐级提升
-3. **Guardrail** — Tool 执行前授权检查，可插拔 provider
-4. **Trust Boundary** — 端到端梳理：user → gateway → agent → tool → sandbox 的信任链
+| 文件 | 内容 |
+|------|------|
+| **00-overview.md** | 全景：纵深防御同心圆图、三条认证路径图、隔离对比表、已知缺陷 |
+| **01-auth.md** | 认证授权：JWT + CSRF + Internal Token + 登录限流 + 权限模型 |
+| **02-sandbox-isolation.md** | 沙箱隔离：三档对比(13维)、allow_host_bash、6层路径防穿越 |
+| **03-guardrail.md** | Guardrail + 审计：可插拔授权、高危命令拦截、输出安全 |
+| **04-trust-boundary.md** | 端到端信任链：14 层防护在代码中的位置和执行流 |
 
 ## 关键问题
 
-- `allow_host_bash: false` 到底防了什么，怎么绕过去？
-- Docker-out-of-Docker 模式下，Gateway 容器挂宿主 docker.sock 的风险面多大？
-- Guardrail 在 middleware 链的哪个位置？拦截的是 tool_call 还是 tool 执行结果？
-- CSRF + internal auth 是怎么保证 IM channel worker 不被伪造请求攻击的？
+- 三种沙箱差多少？→ `02-sandbox-isolation.md` 13 维对比表
+- `allow_host_bash: false` 到底防了什么？→ `02-sandbox-isolation.md` LocalSandbox 节
+- Guardrail 和 SandboxAudit 有什么区别？→ `03-guardrail.md`
+- 从请求到执行经过多少层检查？→ `04-trust-boundary.md` 链路图
+- 最大的安全短板是什么？→ `00-overview.md` 已知缺陷表

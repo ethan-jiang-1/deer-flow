@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 880" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="880" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1100" height="50" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="34" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="32" text-anchor="middle" fill="#fff" font-size="17" font-weight="700">纵深防御：一段 prompt 到执行之间有多少层防护？</text>
+
+  <!-- ===== LEFT: Request entry ===== -->
+  <text x="60" y="82" font-size="13" font-weight="700" fill="#333">请求入口</text>
+
+  <!-- Browser path -->
+  <rect x="40" y="96" width="280" height="36" rx="6" fill="#e3f2fd" stroke="#42a5f5" stroke-width="1"/>
+  <text x="180" y="118" text-anchor="middle" font-size="11" fill="#1565c0">Browser → Nginx :2026 → Gateway</text>
+
+  <!-- IM path -->
+  <rect x="340" y="96" width="280" height="36" rx="6" fill="#f3e5f5" stroke="#ab47bc" stroke-width="1"/>
+  <text x="480" y="118" text-anchor="middle" font-size="11" fill="#7b1fa2">IM webhook → ChannelManager → SDK</text>
+
+  <!-- Arrow from both paths -->
+  <line x1="180" y1="132" x2="180" y2="158" stroke="#999" stroke-width="1" marker-end="url(#arrowDown)"/>
+  <line x1="480" y1="132" x2="480" y2="158" stroke="#999" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== CONCENTRIC RINGS ===== -->
+  <!-- Each ring is a defense layer, growing outward from center -->
+
+  <!-- Ring diameters and centers -->
+  <!-- Center: x=550, y=590, rings grow outward -->
+
+  <!-- Ring 7: OS / Kernel (outermost) -->
+  <circle cx="550" cy="590" r="265" fill="none" stroke="#37474f" stroke-width="4" stroke-dasharray="12,4" opacity="0.4"/>
+  <text x="550" y="320" text-anchor="middle" font-size="13" font-weight="700" fill="#37474f">OS / Kernel</text>
+  <text x="550" y="336" text-anchor="middle" font-size="9" fill="#78909c">seccomp(仅Docker默认) · AppArmor · Capabilities · Namespaces</text>
+
+  <!-- Ring 6: Sandbox -->
+  <circle cx="550" cy="590" r="225" fill="#e8f5e9" stroke="#66bb6a" stroke-width="2.5"/>
+  <text x="550" y="362" text-anchor="middle" font-size="13" font-weight="700" fill="#2e7d32">Sandbox 隔离</text>
+  <text x="550" y="378" text-anchor="middle" font-size="9" fill="#66bb6a">Local(零隔离) | Docker(容器) | K3s(Pod)</text>
+  <text x="550" y="392" text-anchor="middle" font-size="9" fill="#66bb6a">allow_host_bash: false 阻止本地 Shell 执行</text>
+
+  <!-- Ring 5: Tool Validation -->
+  <circle cx="550" cy="590" r="185" fill="#fff9c4" stroke="#ffd54f" stroke-width="2.5"/>
+  <text x="550" y="404" text-anchor="middle" font-size="13" font-weight="700" fill="#f57f17">Tool 参数校验</text>
+  <text x="550" y="420" text-anchor="middle" font-size="9" fill="#f9a825">6层路径防穿越(.. → virtual path → resolved containment)</text>
+  <text x="550" y="434" text-anchor="middle" font-size="9" fill="#f9a825">输出截断 · 路径脱敏 · 错误信息清理</text>
+
+  <!-- Ring 4: Sandbox Audit -->
+  <circle cx="550" cy="590" r="148" fill="#ffccbc" stroke="#ff7043" stroke-width="2.5"/>
+  <text x="550" y="445" text-anchor="middle" font-size="13" font-weight="700" fill="#d84315">SandboxAudit (bash only)</text>
+  <text x="550" y="461" text-anchor="middle" font-size="9" fill="#e64a19">regex 匹配高危命令: rm -rf / / dd / mkfs / base64 pipe / fork bomb</text>
+  <text x="550" y="475" text-anchor="middle" font-size="9" fill="#e64a19">中危命令 warn: chmod 777 / sudo / pip install</text>
+
+  <!-- Ring 3: Guardrail -->
+  <circle cx="550" cy="590" r="112" fill="#f3e5f5" stroke="#ab47bc" stroke-width="2.5"/>
+  <text x="550" y="485" text-anchor="middle" font-size="13" font-weight="700" fill="#7b1fa2">Guardrail 工具授权</text>
+  <text x="550" y="501" text-anchor="middle" font-size="9" fill="#9c27b0">AllowlistProvider · OAP 协议 · fail-closed</text>
+  <text x="550" y="515" text-anchor="middle" font-size="9" fill="#9c27b0">每个 tool_call 执行前检查</text>
+
+  <!-- Ring 2: Permissions -->
+  <circle cx="550" cy="590" r="78" fill="#e3f2fd" stroke="#42a5f5" stroke-width="2.5"/>
+  <text x="550" y="522" text-anchor="middle" font-size="13" font-weight="700" fill="#1565c0">权限检查</text>
+  <text x="550" y="538" text-anchor="middle" font-size="9" fill="#42a5f5">6 权限: threads(r/w/d) · runs(create/read/cancel)</text>
+  <text x="550" y="552" text-anchor="middle" font-size="9" fill="#42a5f5">owner_check: 验证 thread 归属</text>
+
+  <!-- Ring 1: Auth (innermost) -->
+  <circle cx="550" cy="590" r="45" fill="#ffcdd2" stroke="#e57373" stroke-width="2.5"/>
+  <text x="550" y="580" text-anchor="middle" font-size="13" font-weight="700" fill="#c62828">认证</text>
+  <text x="550" y="596" text-anchor="middle" font-size="9" fill="#e57373">JWT · CSRF · Internal Token</text>
+  <text x="550" y="610" text-anchor="middle" font-size="9" fill="#e57373">登录限流(5次/5分)</text>
+
+  <!-- Center: Agent -->
+  <circle cx="550" cy="590" r="28" fill="#1a1a2e"/>
+  <text x="550" y="595" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Agent</text>
+
+  <!-- ===== RIGHT SIDE: Cross-cutting ===== -->
+  <text x="850" y="82" font-size="13" font-weight="700" fill="#333">横切关注点</text>
+
+  <rect x="830" y="96" width="240" height="36" rx="6" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="1"/>
+  <text x="950" y="112" text-anchor="middle" font-size="10" fill="#555">Cookie: HttpOnly · Secure · SameSite</text>
+  <text x="950" y="126" text-anchor="middle" font-size="10" fill="#555">Proxy-aware scheme 检测</text>
+
+  <rect x="830" y="142" width="240" height="36" rx="6" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="1"/>
+  <text x="950" y="158" text-anchor="middle" font-size="10" fill="#555">输入校验: Email格式 · 密码强度</text>
+  <text x="950" y="172" text-anchor="middle" font-size="10" fill="#555">model name allowlist · file path 防穿越</text>
+
+  <rect x="830" y="188" width="240" height="36" rx="6" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="1"/>
+  <text x="950" y="204" text-anchor="middle" font-size="10" fill="#555">配置: AUTH_JWT_SECRET · 0600</text>
+  <text x="950" y="218" text-anchor="middle" font-size="10" fill="#555">GATEWAY_CORS_ORIGINS · GATEWAY_ENABLE_DOCS</text>
+
+  <!-- ===== BOTTOM: Shortcomings table ===== -->
+  <text x="550" y="668" text-anchor="middle" font-size="13" font-weight="700" fill="#333">各层的已知缺陷</text>
+
+  <rect x="30" y="680" width="1040" height="185" rx="8" fill="#fff" stroke="#ddd" stroke-width="1" filter="url(#shadow)"/>
+
+  <!-- Table header -->
+  <rect x="40" y="690" width="130" height="28" rx="3" fill="#f5f5f5"/>
+  <text x="105" y="709" text-anchor="middle" font-size="11" font-weight="700" fill="#555">防护层</text>
+  <rect x="175" y="690" width="885" height="28" rx="3" fill="#f5f5f5"/>
+  <text x="617" y="709" text-anchor="middle" font-size="11" font-weight="700" fill="#555">已知缺陷</text>
+
+  <!-- Row 1 -->
+  <text x="105" y="736" text-anchor="middle" font-size="10" fill="#c62828">认证/授权</text>
+  <text x="195" y="736" font-size="10" fill="#555">OAuth(GitHub/Google) 端点声明但返回 501；权限 6 个全放行所有用户</text>
+
+  <!-- Row 2 -->
+  <text x="105" y="758" text-anchor="middle" font-size="10" fill="#7b1fa2">Guardrail</text>
+  <text x="195" y="758" font-size="10" fill="#555">只拦截 tool_call args，不拦截 tool 实际执行参数；无内置 OAP 实现，需外部</text>
+
+  <!-- Row 3 -->
+  <text x="105" y="780" text-anchor="middle" font-size="10" fill="#d84315">SandboxAudit</text>
+  <text x="195" y="780" font-size="10" fill="#555">只审计 bash，不审计 read_file/write_file/str_replace/ls；看到的是 LLM 原文不是解析后路径</text>
+
+  <!-- Row 4 -->
+  <text x="105" y="802" text-anchor="middle" font-size="10" fill="#2e7d32">Sandbox 隔离</text>
+  <text x="195" y="802" font-size="10" fill="#555">Local: 零进程隔离；Docker: seccomp=unconfined, 无CPU/内存限制；K3s: allowPrivilegeEscalation=true, 无NetworkPolicy</text>
+
+  <!-- Row 5 -->
+  <text x="105" y="824" text-anchor="middle" font-size="10" fill="#37474f">OS/Kernel</text>
+  <text x="195" y="824" font-size="10" fill="#555">无 AppArmor/SELinux 配置；无 no-new-privileges；无 read-only rootfs；download_file 有 TOCTOU race</text>
+
+  <!-- Row 6 -->
+  <text x="105" y="846" text-anchor="middle" font-size="10" fill="#9e9e9e">跨切面</text>
+  <text x="195" y="846" font-size="10" fill="#555">登录限流仅进程内(多worker不共享)；无全局速率限制；无 egress 网络防火墙</text>
+
+</svg>
