@@ -101,6 +101,8 @@ HTTP POST /api/threads/{id}/runs/stream
 SSE stream → 前端消费
 ```
 
+![调用栈（上）— 从 HTTP 请求到 agent.astream()](figures/code-trace-upper.svg)
+
 ---
 
 ## Layer A 展开：`run_agent()` [DeerFlow]
@@ -444,6 +446,8 @@ Superstep 8:  [mN.after_agent] ... [m1.after_agent] (并行，反向)
 ```
 
 **循环次数** 由 `recursion_limit` 控制（默认 100）。如果 model 反复产生 tool_calls 超过 100 个 superstep，LangGraph 抛 `GraphRecursionError`。
+
+![调用栈（下）— Pregel tick 内部与 middleware 洋葱链](figures/code-trace-lower.svg)
 
 ---
 

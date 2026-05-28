@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#64748b"/>
+    </marker>
+    <marker id="arrowDownOrange" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#d97706"/>
+    </marker>
+    <marker id="arrowDownBlue" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#2563eb"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <rect width="1000" height="620" rx="8" fill="#f8fafc"/>
+  <text x="500" y="32" text-anchor="middle" fill="#1e293b" font-size="17" font-weight="bold">调用栈（上）— 从 HTTP 请求到 agent.astream()</text>
+
+  <!-- Legend -->
+  <rect x="30" y="46" width="12" height="12" rx="2" fill="#fef3c7" stroke="#d97706" stroke-width="1"/>
+  <text x="48" y="57" fill="#64748b" font-size="7">DeerFlow</text>
+  <rect x="110" y="46" width="12" height="12" rx="2" fill="#dbeafe" stroke="#2563eb" stroke-width="1"/>
+  <text x="128" y="57" fill="#64748b" font-size="7">LangChain</text>
+  <rect x="190" y="46" width="12" height="12" rx="2" fill="#ede9fe" stroke="#7c3aed" stroke-width="1"/>
+  <text x="208" y="57" fill="#64748b" font-size="7">LangGraph</text>
+
+  <!-- ==================== HTTP entry ==================== -->
+  <rect x="330" y="74" width="220" height="26" rx="5" fill="#f1f5f9" stroke="#94a3b8" stroke-width="0.8"/>
+  <text x="440" y="91" text-anchor="middle" fill="#475569" font-size="8">HTTP POST /threads/{id}/runs/stream</text>
+  <line x1="440" y1="100" x2="440" y2="118" stroke="#64748b" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <!-- ==================== Layer A: run_agent ==================== -->
+  <rect x="30" y="122" width="940" height="170" rx="6" fill="#fef3c7" stroke="#d97706" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="30" y="122" width="300" height="24" rx="6" fill="#fde68a"/>
+  <text x="50" y="139" fill="#92400e" font-size="10" font-weight="bold">DeerFlow — run_agent()  ·  worker.py:124</text>
+  <text x="360" y="139" fill="#b45309" font-size="7">（控制平面：生命周期管理、SSE 桥接、abort/rollback）</text>
+
+  <!-- Steps -->
+  <rect x="50" y="156" width="130" height="22" rx="3" fill="#fff" stroke="#fcd34d" stroke-width="0.5"/>
+  <text x="115" y="171" text-anchor="middle" fill="#475569" font-size="7">① 快照 checkpoint</text>
+  <text x="190" y="170" fill="#94a3b8" font-size="7">→</text>
+  <rect x="200" y="156" width="130" height="22" rx="3" fill="#fff" stroke="#fcd34d" stroke-width="0.5"/>
+  <text x="265" y="171" text-anchor="middle" fill="#475569" font-size="7">② 构建 runtime context</text>
+  <text x="340" y="170" fill="#94a3b8" font-size="7">→</text>
+  <rect x="350" y="156" width="150" height="22" rx="3" fill="#fff" stroke="#fcd34d" stroke-width="0.5"/>
+  <text x="425" y="171" text-anchor="middle" fill="#475569" font-size="7">③ 注入 RunJournal + Langfuse</text>
+  <text x="510" y="170" fill="#94a3b8" font-size="7">→</text>
+  <rect x="520" y="156" width="170" height="22" rx="3" fill="#fde68a" stroke="#d97706" stroke-width="0.5"/>
+  <text x="605" y="171" text-anchor="middle" fill="#92400e" font-size="7" font-weight="bold">④ agent_factory(config)</text>
+  <text x="700" y="170" fill="#94a3b8" font-size="7">→</text>
+  <rect x="710" y="156" width="140" height="22" rx="3" fill="#fde68a" stroke="#d97706" stroke-width="0.5"/>
+  <text x="780" y="171" text-anchor="middle" fill="#92400e" font-size="7" font-weight="bold">⑤ agent.astream()</text>
+
+  <!-- How it enters astream -->
+  <text x="50" y="198" fill="#92400e" font-size="8">关键：run_agent() 的 async for 是消费端，不是循环本身</text>
+  <rect x="50" y="208" width="900" height="38" rx="3" fill="#fff" stroke="#fcd34d" stroke-width="0.4"/>
+  <text x="65" y="224" fill="#64748b" font-size="7" font-family="monospace">async for chunk in agent.astream(graph_input, config=runnable_config, stream_mode=lg_modes):</text>
+  <text x="65" y="240" fill="#94a3b8" font-size="7" font-family="monospace">    if record.abort_event.is_set(): break    </text><text x="300" y="240" fill="#64748b" font-size="6">← 协作式取消检查</text>
+  <text x="65" y="252" fill="#94a3b8" font-size="7" font-family="monospace">    await bridge.publish(run_id, sse_event, serialize(chunk))  </text><text x="420" y="252" fill="#64748b" font-size="6">← 转为 SSE event 发给前端</text>
+
+  <!-- ASTREAM underlined -->
+  <text x="50" y="282" fill="#b45309" font-size="8">这个 async for 拿到的是 LangGraph astream() yield 出来的 chunk。真正的循环在 astream() 里面 →</text>
+
+  <line x1="440" y1="292" x2="440" y2="314" stroke="#d97706" stroke-width="1.2" marker-end="url(#arrowDownOrange)"/>
+
+  <!-- ==================== Layer B: create_agent ==================== -->
+  <rect x="72" y="318" width="856" height="148" rx="6" fill="#dbeafe" stroke="#2563eb" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="72" y="318" width="420" height="24" rx="6" fill="#bfdbfe"/>
+  <text x="92" y="335" fill="#1e40af" font-size="10" font-weight="bold">LangChain — create_agent()  ·  langchain/agents/factory.py (v1.2.15)</text>
+
+  <text x="92" y="360" fill="#475569" font-size="7">输入：model + tools + middleware 列表 + system_prompt + state_schema（前四个都是 DeerFlow 组装的）</text>
+
+  <!-- 4 steps in 2x2 grid -->
+  <rect x="92" y="372" width="195" height="40" rx="3" fill="#fff" stroke="#93c5fd" stroke-width="0.5"/>
+  <text x="189" y="388" text-anchor="middle" fill="#1e40af" font-size="7" font-weight="bold">1. 收集 middleware hook</text>
+  <text x="189" y="404" text-anchor="middle" fill="#64748b" font-size="6">检查每个 mw 是否 override 6 种 hook</text>
+
+  <text x="295" y="395" fill="#94a3b8" font-size="7">→</text>
+
+  <rect x="308" y="372" width="195" height="40" rx="3" fill="#fff" stroke="#93c5fd" stroke-width="0.5"/>
+  <text x="405" y="388" text-anchor="middle" fill="#1e40af" font-size="7" font-weight="bold">2. 构建 StateGraph</text>
+  <text x="405" y="404" text-anchor="middle" fill="#64748b" font-size="6">添加 node + 条件边（_make_model_to_tools_edge）</text>
+
+  <text x="510" y="395" fill="#94a3b8" font-size="7">→</text>
+
+  <rect x="523" y="372" width="195" height="40" rx="3" fill="#fff" stroke="#93c5fd" stroke-width="0.5"/>
+  <text x="620" y="388" text-anchor="middle" fill="#1e40af" font-size="7" font-weight="bold">3. compose 洋葱链</text>
+  <text x="620" y="404" text-anchor="middle" fill="#64748b" font-size="6">_chain_model_call_handlers / _chain_tool_call_wrappers</text>
+
+  <text x="725" y="395" fill="#94a3b8" font-size="7">→</text>
+
+  <rect x="738" y="372" width="175" height="40" rx="3" fill="#bfdbfe" stroke="#2563eb" stroke-width="0.5"/>
+  <text x="825" y="388" text-anchor="middle" fill="#1e40af" font-size="7" font-weight="bold">4. 返回 CompiledStateGraph</text>
+  <text x="825" y="404" text-anchor="middle" fill="#64748b" font-size="6">已编译，可直接 astream()</text>
+
+  <!-- Node explanation -->
+  <rect x="92" y="420" width="820" height="40" rx="3" fill="#fff" stroke="#93c5fd" stroke-width="0.3"/>
+  <text x="110" y="436" fill="#475569" font-size="7">构建出哪些 node：START → [m1.before_agent]→[m2.before_agent]...→ [m1.before_model]...→ <tspan font-weight="bold" fill="#2563eb">"model"</tspan> → <tspan font-weight="bold" fill="#2563eb">"tools"</tspan> → [mN.after_model]...→ [mN.after_agent]...→ END</text>
+  <text x="110" y="452" fill="#64748b" font-size="6">每个 before_*/after_* 是独立 graph node  ·  wrap_model_call / wrap_tool_call 是融入 model/tools node 内部的洋葱链  ·  条件边根据 tool_calls 路由</text>
+
+  <line x1="440" y1="466" x2="440" y2="488" stroke="#2563eb" stroke-width="1.2" marker-end="url(#arrowDownBlue)"/>
+
+  <!-- ==================== Layer C: astream() → Pregel ==================== -->
+  <rect x="150" y="492" width="700" height="70" rx="6" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="150" y="492" width="460" height="24" rx="6" fill="#ddd6fe"/>
+  <text x="170" y="509" fill="#5b21b6" font-size="10" font-weight="bold">LangGraph — CompiledStateGraph.astream() → Pregel.astream()</text>
+
+  <text x="170" y="532" fill="#475569" font-size="7" font-family="monospace">async with AsyncPregelLoop(...) as loop:</text>
+  <text x="170" y="550" fill="#475569" font-size="7" font-family="monospace">    while loop.tick():           </text><text x="300" y="550" fill="#7c3aed" font-size="7" font-weight="bold">← 这就是 agent loop 的 while 循环！</text>
+  <text x="170" y="566" fill="#475569" font-size="7" font-family="monospace">        async for _ in runner.atick(tasks):  ... yield</text>
+
+  <!-- Arrow to next diagram -->
+  <text x="440" y="592" text-anchor="middle" fill="#64748b" font-size="8">每轮 tick 内部细节 → 见下一幅图（调用栈 下）</text>
+  <line x1="440" y1="600" x2="440" y2="616" stroke="#64748b" stroke-width="1" marker-end="url(#arrowDown)"/>
+</svg>
