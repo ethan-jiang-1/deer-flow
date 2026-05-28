@@ -216,7 +216,7 @@
   <!-- PHASE 5: COMPLETE -->
   <!-- ============================================================ -->
   <rect x="10" y="935" width="1180" height="24" rx="4" fill="url(#phaseGrad)"/>
-  <text x="600" y="952" text-anchor="middle" fill="#1f5f9" font-size="11" font-weight="bold">Phase 5: 完成 — 结果回到 Lead Agent</text>
+  <text x="600" y="952" text-anchor="middle" fill="#f1f5f9" font-size="11" font-weight="bold">Phase 5: 完成 — 结果回到 Lead Agent</text>
 
   <!-- Terminal state -->
   <text x="600" y="980" text-anchor="middle" fill="#94a3b8" font-size="10">COMPLETED → 返回 "Task Succeeded. Result: {text}" → Lead Agent 继续 · FAILED/CANCELLED/TIMED_OUT → 返回错误信息</text>
