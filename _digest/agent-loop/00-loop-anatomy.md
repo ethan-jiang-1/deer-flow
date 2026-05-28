@@ -38,49 +38,7 @@ async for chunk in agent.astream(graph_input, config=runnable_config, stream_mod
 
 ### 一圈 step 的精确时序
 
-```
-User Message arrives
-  │
-  ▼
-run_agent()  ──────────────────────────────────────────────
-  │                                                         │
-  │ 1. 快照 current checkpoint（备用 rollback）               │
-  │ 2. 构建 runtime context → 注入 __pregel_runtime          │
-  │ 3. agent_factory(config) → 构造 graph + 18 middleware    │
-  │ 4. agent.checkpointer = checkpointer                     │
-  │ 5. agent.astream(graph_input, ...)                       │
-  │                                                         │
-  ▼                                                         │
-┌────────────────── LangGraph Graph 内部 ──────────────────┐ │
-│                                                         │ │
-│  ── before_agent hooks (每条 middleware, 正向)            │ │
-│                                                         │ │
-│  ◄═══════════ 第一圈 (及后续每一圈) ═══════════►         │ │
-│  │                                                      │ │
-│  │  ── before_model hooks (正向)                         │ │
-│  │  ── wrap_model_call 洋葱 (外→内→LLM→内→外)            │ │
-│  │  ── after_model hooks (反向)                          │ │
-│  │       │                                               │ │
-│  │       ├─ 有 tool_calls?                               │ │
-│  │       │   ── wrap_tool_call 洋葱 (每个 tool)           │ │
-│  │       │   ── 收集 ToolMessage                          │ │
-│  │       │   ── 回到 before_model (下一圈)                │ │
-│  │       │                                               │ │
-│  │       └─ 没有 tool_calls?                             │ │
-│  │           ── END                                      │ │
-│  │                                                      │ │
-│  ═══════════════════════════════════════════════════════ │ │
-│                                                         │ │
-│  ── after_agent hooks (反向)                              │ │
-│                                                         │ │
-└─────────────────────────────────────────────────────────┘ │
-  │                                                         │
-  ▼                                                         │
-6. Flush journal, persist token usage                        │
-7. Sync thread title, update thread status                   │
-8. bridge.publish_end(run_id)                                │
-──────────────────────────────────────────────────────────────
-```
+![Agent Run 精确时序](figures/step-timing.svg)
 
 ## Layer 2：Middleware 就是 loop 的结构
 
@@ -92,35 +50,7 @@ run_agent()  ──────────────────────�
 - `wrap_model_call` 可以**修改传给 LLM 的 message list**，也可以**修改 return 的 response**
 - 而且这不是 graph node——是**内联函数调用**。LangGraph 的 graph 只看到一个 "model node"，但 model node 内部已经穿过了 18 层包装
 
-```
-实际执行路径（每圈）:
-
-graph node "model"
-  └─ before_model hooks (正向遍历内部列表)
-       m1.before_model → m2.before_model → ... → m18.before_model
-  └─ wrap_model_call 洋葱
-       m1.wrap_model_call(
-         m2.wrap_model_call(
-           ...
-             m18.wrap_model_call(
-               LLM.call(messages)  ← 真正调用
-             )
-           ...
-         )
-       )
-  └─ after_model hooks (反向遍历)
-       m18.after_model ← ... ← m2.after_model ← m1.after_model
-
-如果有 tool_calls → graph node "tools"
-  └─ wrap_tool_call 洋葱 (每个 tool 独立)
-       m1.wrap_tool_call(
-         m2.wrap_tool_call(
-           ...
-             tool.invoke(args)  ← 真正执行
-           ...
-         )
-       )
-```
+![Middleware Onion 执行路径](figures/middleware-onion.svg)
 
 **为什么 wrap 是洋葱嵌套而不是顺序调用？** 因为每一层可以：
 - 修改输入（如 SummarizationMiddleware 删除旧消息）
@@ -141,45 +71,7 @@ graph node "model"
 
 Subagent 不是在同一个 graph 里跑的子节点——它有自己的**完整的独立 agent loop**：
 
-```
-主 agent loop (astream, 在 asyncio event loop 上)
-  │
-  ├─ model 输出 tool_call: task(subagent_type="general-purpose", prompt="...")
-  │
-  ├─ tool 节点: task() tool 被调用
-  │    │
-  │    └─ SubagentExecutor.execute() [同步方法]
-  │         │
-  │         ├─ 检测到父 event loop 在跑
-  │         │
-  │         └─ _execute_in_isolated_loop()
-  │              │
-  │              ├─ 复制 ContextVar 上下文 (copy_context)
-  │              ├─ 提交到 persistent daemon event loop
-  │              │   (thread: "subagent-persistent-loop")
-  │              │
-  │              └─ _aexecute()
-  │                   │
-  │                   ├─ _build_initial_state(task)
-  │                   │   ├─ 加载 skills
-  │                   │   ├─ 过滤 tools (allowlist/denylist + skill policy)
-  │                   │   └─ 构建 SystemMessage + HumanMessage
-  │                   │
-  │                   ├─ _create_agent() → 新的 CompiledStateGraph
-  │                   │   └─ 自己的 middleware 链 (6-7 个)
-  │                   │
-  │                   └─ agent.astream(state, stream_mode="values")
-  │                        │
-  │                        ├─ model node → tools node → model node → ...
-  │                        ├─ 每圈检查 result.cancel_event
-  │                        ├─ 收集所有 AIMessage
-  │                        │
-  │                        └─ 返回 final_result
-  │
-  ├─ task tool 返回 final_result → 作为 ToolMessage 注入主 loop
-  │
-  └─ 主 agent 继续下一圈 model 调用
-```
+![Subagent 独立 Loop](figures/subagent-loop.svg)
 
 几个关键设计决策：
 
@@ -215,26 +107,7 @@ if result.cancel_event.is_set():
 
 前端不跑 loop，它消费 SSE stream：
 
-```
-HTTP POST /api/threads/{id}/runs/stream
-  │
-  ▼
-Gateway: asyncio.create_task(run_agent())
-  │
-  ▼
-agent.astream() 每产出一个 chunk
-  │
-  ▼
-serialize(chunk) → bridge.publish(run_id, event, data)
-  │
-  ▼
-SSE stream ──────────────────────────────────→ 前端
-  │                                              │
-  │  event: metadata                             ├─ 存 run_id/thread_id
-  │  event: values                               ├─ 全量快照 → 替换 state
-  │  event: messages                             ├─ 增量 delta → 拼接文本
-  │  event: end                                  └─ 清理、显示最终结果
-```
+![SSE Stream 管线](figures/sse-stream.svg)
 
 关键：**SSE event name 跟 LangGraph stream_mode 是 1:1 的**。`stream_mode="messages"` 产生 SSE event `"messages"`，前端用 `useStream` hook 按 event name dispatch。
 
