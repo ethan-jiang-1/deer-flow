@@ -21,6 +21,7 @@
 | **Middleware** | Agent Loop 的 19 层中间件，6 种 hook 点 | 5 篇 + 4 图 |
 | **Security** | 一段 prompt 到 `rm -rf /` 之间有多少层防护？ | 5 篇 + 4 图 |
 | **Model Layer** | 怎么做到换模型不改代码？thinking/vision 怎么统一？ | 3 篇 + 1 图 |
+| **IT/Ops** | IT 管理者视角：安全、合规、审计、成本、运维治理 | 6 篇 + 2 图 |
 
 ## 目录结构
 
@@ -31,7 +32,9 @@ _digest/
 ├── integration/          # 接入指南：Quick Start、Config、API、SDK、Docker、IM Channels
 ├── configuration/        # 配置与扩展：Config System、MCP、Skills、Custom Tools/Agents
 ├── security/             # 安全边界：Auth、Sandbox Isolation、Guardrail、Trust Boundary
-└── model-layer/          # LLM 抽象：Model Factory、Thinking/Vision、Streaming
+├── middleware/           # Agent Middleware 体系：19 个中间件、6 种 hook 点、与 Claude Code Hooks 对比
+├── model-layer/          # LLM 抽象：Model Factory、Thinking/Vision、Streaming
+└── it-ops/               # IT 治理视角：安全、合规、审计、成本、运维管理
 ```
 
 ## 工作流

@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 820" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <linearGradient id="greenBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2e7d32"/>
+      <stop offset="100%" stop-color="#43a047"/>
+    </linearGradient>
+    <linearGradient id="yellowBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f57f17"/>
+      <stop offset="100%" stop-color="#f9a825"/>
+    </linearGradient>
+    <linearGradient id="redBar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c62828"/>
+      <stop offset="100%" stop-color="#e53935"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1100" height="820" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1100" height="44" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="28" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="28" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">IT 治理视角：12 个管理维度 × DeerFlow 能力映射</text>
+
+  <!-- Legend -->
+  <rect x="30" y="56" width="12" height="12" rx="2" fill="#2e7d32"/>
+  <text x="48" y="66" font-size="9" fill="#2e7d32">已覆盖</text>
+  <rect x="110" y="56" width="12" height="12" rx="2" fill="#f57f17"/>
+  <text x="128" y="66" font-size="9" fill="#f57f17">部分覆盖</text>
+  <rect x="200" y="56" width="12" height="12" rx="2" fill="#c62828"/>
+  <text x="218" y="66" font-size="9" fill="#c62828">缺失</text>
+  <rect x="260" y="56" width="12" height="12" rx="2" fill="#e0e0e0"/>
+  <text x="278" y="66" font-size="9" fill="#555">不适用 / 外部依赖</text>
+
+  <!-- ===== Row 1: Security ===== -->
+  <rect x="30" y="82" width="1040" height="155" rx="8" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <rect x="30" y="82" width="180" height="26" rx="8" fill="url(#greenBar)"/>
+  <rect x="30" y="94" width="180" height="14" fill="url(#greenBar)"/>
+  <text x="120" y="100" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Security &amp; Access</text>
+
+  <!-- Dimension cards -->
+  <rect x="50" y="116" width="230" height="55" rx="5" fill="#fff" stroke="#c8e6c9" stroke-width="0.5"/>
+  <text x="165" y="136" text-anchor="middle" font-size="10" font-weight="700" fill="#1b5e20">1. Identity &amp; Access</text>
+  <text x="165" y="152" text-anchor="middle" font-size="8.5" fill="#555">JWT + CSRF + per-user isolation</text>
+  <text x="165" y="166" text-anchor="middle" font-size="8" fill="#2e7d32">已覆盖 · 缺 NHI</text>
+
+  <rect x="295" y="116" width="230" height="55" rx="5" fill="#fff" stroke="#c8e6c9" stroke-width="0.5"/>
+  <text x="410" y="136" text-anchor="middle" font-size="10" font-weight="700" fill="#1b5e20">2. Sandbox Isolation</text>
+  <text x="410" y="152" text-anchor="middle" font-size="8.5" fill="#555">3 modes + 6-layer anti-traversal</text>
+  <text x="410" y="166" text-anchor="middle" font-size="8" fill="#2e7d32">已覆盖</text>
+
+  <rect x="540" y="116" width="230" height="55" rx="5" fill="#fff8e1" stroke="#ffecb3" stroke-width="0.5"/>
+  <text x="655" y="136" text-anchor="middle" font-size="10" font-weight="700" fill="#e65100">3. Prompt Security</text>
+  <text x="655" y="152" text-anchor="middle" font-size="8.5" fill="#555">依赖 LLM provider safety filter</text>
+  <text x="655" y="166" text-anchor="middle" font-size="8" fill="#c62828">缺失 · 无 input guardrail</text>
+
+  <rect x="785" y="116" width="260" height="55" rx="5" fill="#fff8e1" stroke="#ffecb3" stroke-width="0.5"/>
+  <text x="915" y="136" text-anchor="middle" font-size="10" font-weight="700" fill="#e65100">4. Content Safety</text>
+  <text x="915" y="152" text-anchor="middle" font-size="8.5" fill="#555">SafetyFinishReason (reactive only)</text>
+  <text x="915" y="166" text-anchor="middle" font-size="8" fill="#f57f17">部分 · 无主动输出扫描</text>
+
+  <rect x="50" y="178" width="995" height="22" rx="3" fill="#fff" stroke="#e0e0e0" stroke-width="0.5"/>
+  <text x="547" y="193" text-anchor="middle" font-size="9" fill="#444">关键发现：Agent 无独立身份 (NHI) — 操作归因到用户而非 Agent · Input guardrail 依赖外部 provider · 输出无主动合规扫描</text>
+
+  <!-- ===== Row 2: Policy ===== -->
+  <rect x="30" y="248" width="1040" height="155" rx="8" fill="#fff3e0" stroke="#ffe0b2" stroke-width="1"/>
+  <rect x="30" y="248" width="180" height="26" rx="8" fill="url(#yellowBar)"/>
+  <rect x="30" y="260" width="180" height="14" fill="url(#yellowBar)"/>
+  <text x="120" y="274" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Policy &amp; Control</text>
+
+  <rect x="50" y="282" width="230" height="55" rx="5" fill="#fff" stroke="#ffecb3" stroke-width="0.5"/>
+  <text x="165" y="302" text-anchor="middle" font-size="10" font-weight="700" fill="#e65100">5. Tool Authorization</text>
+  <text x="165" y="318" text-anchor="middle" font-size="8.5" fill="#555">GuardrailMiddleware + AllowlistProvider</text>
+  <text x="165" y="332" text-anchor="middle" font-size="8" fill="#2e7d32">已覆盖 · 缺 per-thread 策略</text>
+
+  <rect x="295" y="282" width="230" height="55" rx="5" fill="#fff" stroke="#c8e6c9" stroke-width="0.5"/>
+  <text x="410" y="302" text-anchor="middle" font-size="10" font-weight="700" fill="#1b5e20">6. Command Audit</text>
+  <text x="410" y="318" text-anchor="middle" font-size="8.5" fill="#555">SandboxAudit (high block + med warn)</text>
+  <text x="410" y="332" text-anchor="middle" font-size="8" fill="#f57f17">部分 · 规则硬编码</text>
+
+  <rect x="540" y="282" width="230" height="55" rx="5" fill="#fff" stroke="#c8e6c9" stroke-width="0.5"/>
+  <text x="655" y="302" text-anchor="middle" font-size="10" font-weight="700" fill="#1b5e20">7. Execution Limits</text>
+  <text x="655" y="318" text-anchor="middle" font-size="8.5" fill="#555">LoopDetection + timeout + max 3 subagent</text>
+  <text x="655" y="332" text-anchor="middle" font-size="8" fill="#2e7d32">已覆盖 · 缺 per-run 预算</text>
+
+  <rect x="785" y="282" width="260" height="55" rx="5" fill="#fff8e1" stroke="#ffecb3" stroke-width="0.5"/>
+  <text x="915" y="302" text-anchor="middle" font-size="10" font-weight="700" fill="#e65100">8. Human-in-the-Loop</text>
+  <text x="915" y="318" text-anchor="middle" font-size="8.5" fill="#555">ClarificationMiddleware (对话式)</text>
+  <text x="915" y="332" text-anchor="middle" font-size="8" fill="#f57f17">部分 · 非权限审批模式</text>
+
+  <rect x="50" y="344" width="995" height="22" rx="3" fill="#fff" stroke="#e0e0e0" stroke-width="0.5"/>
+  <text x="547" y="359" text-anchor="middle" font-size="9" fill="#444">关键发现：Tool 级授权可插拔 (OAP 兼容) · 高危命令规则硬编码需 fork 修改 · 无人机交互的权限审批模式</text>
+
+  <!-- ===== Row 3: Operations ===== -->
+  <rect x="30" y="414" width="1040" height="155" rx="8" fill="#e3f2fd" stroke="#bbdefb" stroke-width="1"/>
+  <rect x="30" y="414" width="180" height="26" rx="8" fill="#1565c0"/>
+  <rect x="30" y="426" width="180" height="14" fill="#1565c0"/>
+  <text x="120" y="440" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Ops &amp; Visibility</text>
+
+  <rect x="50" y="448" width="230" height="55" rx="5" fill="#fff" stroke="#bbdefb" stroke-width="0.5"/>
+  <text x="165" y="468" text-anchor="middle" font-size="10" font-weight="700" fill="#0d47a1">9. Audit Trail</text>
+  <text x="165" y="484" text-anchor="middle" font-size="8.5" fill="#555">SandboxAudit log + RunJournal + tracing</text>
+  <text x="165" y="498" text-anchor="middle" font-size="8" fill="#f57f17">部分 · 日志非结构化</text>
+
+  <rect x="295" y="448" width="230" height="55" rx="5" fill="#fff8e1" stroke="#ffecb3" stroke-width="0.5"/>
+  <text x="410" y="468" text-anchor="middle" font-size="10" font-weight="700" fill="#e65100">10. Cost Attribution</text>
+  <text x="410" y="484" text-anchor="middle" font-size="8.5" fill="#555">TokenUsage + subagent merge</text>
+  <text x="410" y="498" text-anchor="middle" font-size="8" fill="#f57f17">部分 · 无实时仪表盘</text>
+
+  <rect x="540" y="448" width="230" height="55" rx="5" fill="#fce4ec" stroke="#ffcdd2" stroke-width="0.5"/>
+  <text x="655" y="468" text-anchor="middle" font-size="10" font-weight="700" fill="#c62828">11. Fleet Dashboard</text>
+  <text x="655" y="484" text-anchor="middle" font-size="8.5" fill="#555">无聚合视图 · 无异常检测</text>
+  <text x="655" y="498" text-anchor="middle" font-size="8" fill="#c62828">缺失</text>
+
+  <rect x="785" y="448" width="260" height="55" rx="5" fill="#fce4ec" stroke="#ffcdd2" stroke-width="0.5"/>
+  <text x="915" y="468" text-anchor="middle" font-size="10" font-weight="700" fill="#c62828">12. Kill Switch</text>
+  <text x="915" y="484" text-anchor="middle" font-size="8.5" fill="#555">Cooperative cancel only (非全局)</text>
+  <text x="915" y="498" text-anchor="middle" font-size="8" fill="#c62828">缺失</text>
+
+  <rect x="50" y="510" width="995" height="22" rx="3" fill="#fff" stroke="#e0e0e0" stroke-width="0.5"/>
+  <text x="547" y="525" text-anchor="middle" font-size="9" fill="#444">关键发现：数据能支撑 dashboard 但无内建 UI · 成本归属有链路但无实时熔断 · 无 Agent 级 SLO/error budget</text>
+
+  <!-- ===== Row 4: Lifecycle ===== -->
+  <rect x="30" y="580" width="1040" height="130" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <rect x="30" y="580" width="200" height="26" rx="8" fill="#546e7a"/>
+  <rect x="30" y="592" width="200" height="14" fill="#546e7a"/>
+  <text x="130" y="598" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Compliance &amp; Lifecycle</text>
+
+  <rect x="50" y="616" width="300" height="45" rx="5" fill="#fff8e1" stroke="#ffecb3" stroke-width="0.5"/>
+  <text x="200" y="634" text-anchor="middle" font-size="10" font-weight="700" fill="#e65100">Data Governance · 合规映射</text>
+  <text x="200" y="652" text-anchor="middle" font-size="8.5" fill="#555">Per-user 隔离有 · 无 PII 主动扫描 · 无自动合规报告</text>
+
+  <rect x="370" y="616" width="300" height="45" rx="5" fill="#fff8e1" stroke="#ffecb3" stroke-width="0.5"/>
+  <text x="520" y="634" text-anchor="middle" font-size="10" font-weight="700" fill="#e65100">GDPR · SOC2 · EU AI Act</text>
+  <text x="520" y="652" text-anchor="middle" font-size="8.5" fill="#555">技术控制有 · 合规文档缺 · 框架本身非高风险系统</text>
+
+  <rect x="690" y="616" width="360" height="45" rx="5" fill="#fce4ec" stroke="#ffcdd2" stroke-width="0.5"/>
+  <text x="870" y="634" text-anchor="middle" font-size="10" font-weight="700" fill="#c62828">Agent 蔓延 · 生命周期 · Kill Switch</text>
+  <text x="870" y="652" text-anchor="middle" font-size="8.5" fill="#555">无集中式 Agent 清单 · subagent 权限无衰减 · 无全局终止</text>
+
+  <!-- Bottom maturity bar -->
+  <rect x="30" y="726" width="1040" height="78" rx="8" fill="#1a1a2e"/>
+  <text x="550" y="750" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">DeerFlow IT 治理成熟度自评：Level 3 (Structured) — 策略分层但人工审核不规模化</text>
+
+  <rect x="60" y="764" width="240" height="28" rx="4" fill="#2e7d32" opacity="0.3"/>
+  <text x="180" y="783" text-anchor="middle" fill="#fff" font-size="9">Level 1: Reactive ❌</text>
+
+  <rect x="315" y="764" width="240" height="28" rx="4" fill="#2e7d32" opacity="0.4"/>
+  <text x="435" y="783" text-anchor="middle" fill="#fff" font-size="9">Level 2: Partial ❌</text>
+
+  <rect x="570" y="764" width="240" height="28" rx="4" fill="#2e7d32" opacity="0.85"/>
+  <text x="690" y="783" text-anchor="middle" fill="#fff" font-size="9" font-weight="700">Level 3: Structured ✓ 当前</text>
+
+  <rect x="825" y="764" width="220" height="28" rx="4" fill="#2e7d32" opacity="0.3"/>
+  <text x="935" y="783" text-anchor="middle" fill="#fff" font-size="9">Level 4: Designed-In →</text>
+
+</svg>
