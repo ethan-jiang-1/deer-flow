@@ -15,11 +15,12 @@
 
 | 维度 | 回答的问题 | 状态 |
 |------|-----------|------|
-| **Architecture** | 内部怎么设计的？核是什么，外围怎么挂？ | 7 篇 + 8 图 |
-| **Integration** | 怎么接入使用？API / SDK / Docker / IM？ | 8 篇 |
-| **Configuration** | 怎么挂自定义东西上去？MCP / Skills / Tools？ | 待开始 |
-| **Security** | 一段 prompt 到 `rm -rf /` 之间有多少层防护？ | 待开始 |
-| **Model Layer** | 怎么做到换模型不改代码的？thinking/vision 怎么统一？ | 待开始 |
+| **Architecture** | 内部怎么设计的？核是什么，外围怎么挂？ | 11 篇 + 10 图 |
+| **Integration** | 怎么接入使用？API / SDK / Docker / IM？ | 8 篇 + 1 图 |
+| **Configuration** | 两套配置文件、热加载、动态模块加载 | 4 篇 + 2 图 |
+| **Middleware** | Agent Loop 的 19 层中间件，6 种 hook 点 | 5 篇 + 4 图 |
+| **Security** | 一段 prompt 到 `rm -rf /` 之间有多少层防护？ | 5 篇 + 4 图 |
+| **Model Layer** | 怎么做到换模型不改代码？thinking/vision 怎么统一？ | 3 篇 + 1 图 |
 
 ## 目录结构
 
