@@ -5,36 +5,45 @@
 ## 为什么不碰源代码
 
 1. 本项目是 [bytedance/deer-flow](https://github.com/bytedance/deer-flow) 的 fork，`main` 分支的唯一职责是**跟踪上游**
-2. 上游更新频繁（每周数十个 commit），`main` 必须保持干净才能无冲突地 `git pull`
+2. 上游更新频繁，`main` 必须保持干净才能无冲突地 `git pull`
 3. 所有研究笔记、个人理解、集成实验记录都在 `_digest/` 下，在 `ethan` 分支上独立演进
 4. `ethan` 分支永远不会 merge 回 `main`，它只是一个研究工作台
 
-简而言之：**`main` = 上游镜像，`ethan` + `_digest/` = 学习空间。**
+**`main` = 上游镜像，`ethan` + `_digest/` = 学习空间。**
 
-## 研究优先级
+## 研究维度
 
-1. **Integration（集成）** — 如何接入 DeerFlow，如何在我的应用中使用它
-2. **Architecture（架构）** — 内部设计、数据流、核心抽象
-3. **Modules（模块）** — 各子系统的实现细节
-4. **Notes（笔记）** — 零散发现、待深入的点
+| 维度 | 回答的问题 | 状态 |
+|------|-----------|------|
+| **Architecture** | 内部怎么设计的？核是什么，外围怎么挂？ | 7 篇 + 8 图 |
+| **Integration** | 怎么接入使用？API / SDK / Docker / IM？ | 8 篇 |
+| **Configuration** | 怎么挂自定义东西上去？MCP / Skills / Tools？ | 待开始 |
+| **Security** | 一段 prompt 到 `rm -rf /` 之间有多少层防护？ | 待开始 |
+| **Model Layer** | 怎么做到换模型不改代码的？thinking/vision 怎么统一？ | 待开始 |
 
 ## 目录结构
 
 ```
 _digest/
-  README.md          # 本文件 — 规则、说明、研究策略
-  integration/       # 集成指南：配置、启动、API、SDK、部署
-  architecture/      # 架构分析：分层、数据流、Middleware、核心抽象
-  modules/           # 模块深挖：逐个包/模块的源码阅读笔记
-  notes/             # 零散笔记、TODO、待追踪的上游变更
+├── README.md             # 本文件
+├── architecture/         # 内部设计：Agent Loop、Middleware、Sandbox、Subagent、Memory...
+├── integration/          # 接入指南：Quick Start、Config、API、SDK、Docker、IM Channels
+├── configuration/        # 配置与扩展：Config System、MCP、Skills、Custom Tools/Agents
+├── security/             # 安全边界：Auth、Sandbox Isolation、Guardrail、Trust Boundary
+└── model-layer/          # LLM 抽象：Model Factory、Thinking/Vision、Streaming
 ```
 
 ## 工作流
 
 - 切到 `ethan` 分支工作：`git checkout ethan`
-- 研究过程中发现值得记录的内容 -> 写入 `_digest/` 对应目录
+- 研究过程中发现值得记录的内容 → 写入 `_digest/` 对应目录
 - 定期回到 `main` 拉上游：`git checkout main && git pull upstream main`
 - 需要时把上游的新变更 merge 到 `ethan`：`git checkout ethan && git merge main`
+
+## 待追踪
+
+- 上游每次大版本更新的关键 diff
+- 值得关注的上游 issue/PR
 
 ## 上游信息
 
