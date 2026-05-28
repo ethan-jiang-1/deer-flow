@@ -2,6 +2,10 @@
 
 DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tools → model 再产生 tool_calls → ... 直到 model 输出纯文本。这个循环本身不复杂，复杂的是**循环每一圈上挂了多少东西**。
 
+**回答的核心问题**：agent loop 到底在哪（谁的代码在循环）、middleware 怎么嵌入 loop、想扩展应该从哪个层面加。
+
+> **约束：不修改项目源代码。** 本 `_digest/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
+
 ## 阅读顺序
 
 | 文件 | 内容 |

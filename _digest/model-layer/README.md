@@ -2,6 +2,10 @@
 
 怎么做到换模型不改代码？thinking/vision 这些新能力怎么统一抽象？
 
+**回答的核心问题**：`create_chat_model()` 工厂怎么路由到 8 个 provider、thinking/vision 的跨 provider 适配策略、streaming 的 chunk 归一化与 SSE 事件模型。
+
+> **约束：不修改项目源代码。** 本 `_digest/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
+
 ## 阅读顺序
 
 | 文件 | 内容 |

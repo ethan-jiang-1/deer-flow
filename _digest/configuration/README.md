@@ -2,6 +2,10 @@
 
 DeerFlow 暴露了哪些挂载点？怎么把自定义的东西挂上去？
 
+**回答的核心问题**：两套配置文件（config.yaml + extensions_config.json）的结构、热加载机制、动态模块加载（resolve_variable）、怎么用 class path 挂自定义 tool/model。
+
+> **约束：不修改项目源代码。** 本 `_digest/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
+
 ## 阅读顺序
 
 | 文件 | 内容 |

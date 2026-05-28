@@ -159,7 +159,7 @@ IT-ops 的 defense-in-depth.svg 和 it-governance-overview.svg 是重复 securit
 | **Frontend** | 前端架构、状态管理、Stream 管线 | **缺失**（仅 architecture/11 简略提及） |
 | **Channels** | IM 平台对接的内部设计 | **缺失** |
 | **Deployment** | 本地/Docker/K8s 部署模式 | **缺失** |
-| **Agent Loop** | agent loop 的技术内核：谁循环、middleware 怎么嵌入、怎么外扩 | **新建** 3 篇（2026-05-28） |
+| **Agent Loop** | agent loop 的技术内核：谁循环、middleware 怎么嵌入、怎么外扩 | **新建** 4 篇（2026-05-28） |
 | **Testing** | 测试策略、blocking_io 门控、e2e mock | **缺失** |
 
 ## 目标目录结构

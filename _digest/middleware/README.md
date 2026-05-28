@@ -2,6 +2,10 @@
 
 LangGraph agent loop 和 LLM/tool 执行之间的中间层。19 个 middleware，6 种 hook 点，控制着 agent 的每一次 model 调用和 tool 执行。
 
+**回答的核心问题**：middleware 是认真设计的还是随意堆砌的？6 种 hook 分别在什么时候触发？洋葱链怎么 compose？我怎么加一个自己的 middleware？跟 Claude Code Hooks 有什么异同？
+
+> **约束：不修改项目源代码。** 本 `_digest/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
+
 ## 阅读顺序
 
 | 文件 | 内容 |
