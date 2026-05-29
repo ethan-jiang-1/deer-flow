@@ -6,7 +6,7 @@
 
 | 问题 | 答案 |
 |------|------|
-| **纵深多少层？** | 7 层：Auth → Permissions → Guardrail → SandboxAudit → Tool 校验 → Sandbox 隔离 → OS |
+| **纵深多少层？** | 粗粒度 7 层 / 细粒度 14 层。详见 [04-trust-boundary.md](04-trust-boundary.md) 逐层代码定位 |
 | **三种沙箱差多少？** | Local(零隔离) → Docker(容器,但 seccomp=unconfined) → K3s(Pod,有资源限制但 allowPrivilegeEscalation) |
 | **三种认证方式的区别？** | Browser(JWT+CSRF) → Internal(共享 token,跳过全部检查) → IM Channel(已有签名+内部 token) |
 | **Guardrail 拦截什么？** | 可插拔的 tool_call 执行前授权检查；内置 AllowlistProvider；默认 fail-closed |
@@ -19,7 +19,7 @@
 
 ![Defense in Depth](figures/security-defense-in-depth.svg)
 
-七层同心圆，从外到内逐层收窄：
+粗粒度 7 层同心圆，从外到内逐层收窄（细粒度 14 层见 [04-trust-boundary.md](04-trust-boundary.md)）：
 
 | 层 | 拦截什么 | 失效后果 |
 |----|---------|---------|

@@ -43,7 +43,7 @@ Tool 执行前有两层保护：Guardrail（可插拔授权）和 SandboxAudit�
 ### Middleware 链位置
 
 ```
-Middleware 链（共 20 个，按 index 排序）
+Middleware 链（共 19 个，按 index 排序）
   ...
   第 5 位: xxx
   第 6 位: GuardrailMiddleware     ← 拦截所有 tool_call，判断 allow/deny

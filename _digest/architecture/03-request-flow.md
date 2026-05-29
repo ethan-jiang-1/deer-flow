@@ -26,7 +26,7 @@ sequenceDiagram
 
     RM->>MLA: make_lead_agent(config)
     MLA->>MLA: resolve model + tools + prompt
-    MLA->>MLA: build 20 middlewares
+    MLA->>MLA: build 19 middlewares
     MLA-->>RM: CompiledStateGraph
 
     RM->>LG: graph.astream(input, stream_mode)

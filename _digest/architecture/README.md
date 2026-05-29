@@ -20,7 +20,7 @@
 
 [03-request-flow.md](03-request-flow.md) — 一次请求 14 步完整生命周期。图：[request-flow.svg](figures/request-flow.svg)
 
-[04-middleware-chain.md](04-middleware-chain.md) — 20 个 Middleware、5 个阶段。图：[middleware-chain.svg](figures/middleware-chain.svg)
+[04-middleware-chain.md](04-middleware-chain.md) — ⛔ 已废弃，请用 [middleware/ section](../middleware/README.md) 代替
 
 ### 第三步：各模块
 
@@ -43,5 +43,5 @@
 | [agent-runtime-overview.svg](figures/agent-runtime-overview.svg) | 同心圆分层：Agent Loop → Services → Harness → Gateway → Access |
 | [harness-app-boundary.svg](figures/harness-app-boundary.svg) | Harness/App 两层边界 + CI 导入规则 |
 | [request-flow.svg](figures/request-flow.svg) | 请求数据流：14 步从 HTTP → SSE |
-| [middleware-chain.svg](figures/middleware-chain.svg) | 20 Middlewares：5 阶段 · 触发点 · 职责 |
+| [middleware-chain.svg](figures/middleware-chain.svg) | 19 Middlewares：6 种 hook 点 · 触发点 · 职责 |
 | [sandbox-architecture.svg](figures/sandbox-architecture.svg) | Sandbox：ABC + 3 实现 + 虚拟路径 |
