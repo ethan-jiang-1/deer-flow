@@ -90,17 +90,20 @@
 ```
 _digest/
 ├── README.md                      # 本文件（推进计划 + checklist）
-├── architecture/                  # 内部设计（04 需淘汰）
-├── integration/                   # 接入指南（02 需处理）
+├── architecture/                  # 内部设计（含 MCP deep-dive）
+├── integration/                   # 接入指南
 ├── configuration/                 # 配置与扩展
-├── security/                      # 安全边界（防御层数需统一）
-├── middleware/                    # Agent 中间件体系（质量最高）
-├── model-layer/                   # LLM 抽象（streaming 需加深）
-├── it-ops/                        # IT 治理（展开篇需加深）
-├── builtin-tools/                 # 内置工具全量清单
+├── security/                      # 安全边界
+├── middleware/                    # Agent 中间件体系（20 个，质量最高）
+├── model-layer/                   # LLM 抽象（7 个自定义适配器 + 标准直通）
+├── it-ops/                        # IT 治理
+├── builtin-tools/                 # 内置工具全量清单（17 个）
 ├── community-tools/               # 外部工具集成（9 个 provider）
 ├── agent-loop/                    # Agent Loop 技术内核
-├── frontend/                      # 前端架构（Next.js + React 19）
+├── runtime/                       # 🆕 运行基础设施（RunManager/StreamBridge/Journal）
+├── tracing/                       # 🆕 LangSmith/Langfuse 追踪系统
+├── app-layer/                     # 🆕 应用层（API 端点/上传安全/认证）
+├── frontend/                      # 前端架构
 ├── channels/                      # IM 通道系统（7 平台）
 ├── deployment/                    # 部署架构（4 种模式）
 └── testing/                       # 测试策略（3 层体系）

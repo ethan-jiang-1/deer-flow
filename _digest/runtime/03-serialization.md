@@ -13,6 +13,30 @@
 - `runtime/runs/worker.py` — SSE 发布
 - `app/gateway/routers/threads.py` — REST 响应
 
+### 分发流程
+
+```mermaid
+flowchart TD
+    INPUT[LangGraph stream chunk] --> MODE{mode?}
+
+    MODE -->|messages| TUPLE["(chunk, metadata) 元组"]
+    TUPLE --> MT[serialize_messages_tuple]
+    MT --> JSON1[JSON-serializable]
+
+    MODE -->|values| DICT["完整 state dict"]
+    DICT --> CV[serialize_channel_values]
+    CV --> STRIP[去除 __pregel_* 和 __interrupt__]
+    STRIP --> JSON2[JSON-serializable]
+
+    MODE -->|其他| OBJ[任意 LC 对象]
+    OBJ --> LC[serialize_lc_object]
+    LC --> JSON3[JSON-serializable]
+
+    JSON1 --> PUB[bridge.publish → SSE]
+    JSON2 --> PUB
+    JSON3 --> PUB
+```
+
 ### API
 
 ```python
@@ -46,6 +70,44 @@ def serialize_lc_object(obj):
 ## converters.py — OpenAI 格式转换
 
 提供将 LangChain 消息转换为 OpenAI Chat Completions 格式的纯函数。目前未接入 RunJournal（RunJournal 直接使用 `message.model_dump()`），但可供需要 OpenAI 线路格式的消费者使用。
+
+### 转换管线
+
+```mermaid
+flowchart LR
+    subgraph LangChain
+        HM[HumanMessage]
+        AM[AI Message]
+        SM[SystemMessage]
+        TM[ToolMessage]
+    end
+
+    subgraph L2O[langchain_to_openai_message]
+        direction TB
+        R[_ROLE_MAP: human→user, ai→assistant, tool→tool]
+        TC{有 tool_calls?}
+        ARGS["json.dumps(args)<br/>跳过已序列化的 str"]
+        CONTENT["content=null (纯 tool call)<br/>content=list (多模态)"]
+    end
+
+    subgraph OpenAI
+        USER["{role: user, content}"]
+        ASSIST["{role: assistant, content, tool_calls?}"]
+        SYS["{role: system, content}"]
+        TOOL["{role: tool, tool_call_id, content}"]
+    end
+
+    HM --> R --> USER
+    AM --> TC
+    TC -->|Yes| ARGS --> CONTENT --> ASSIST
+    TC -->|No| ASSIST
+    SM --> R --> SYS
+    TM --> R --> TOOL
+
+    ASSIST --> FINISH[_infer_finish_reason]
+    FINISH --> COMPL[langchain_to_openai_completion]
+    COMPL --> OC["{id, model, choices, usage}"]
+```
 
 ### langchain_to_openai_message()
 

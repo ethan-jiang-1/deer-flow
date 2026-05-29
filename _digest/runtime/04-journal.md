@@ -11,6 +11,50 @@
 2. 累计 token 用量（按 caller 分桶）
 3. 管理写入缓冲区和进度刷盘
 
+### 回调触发流程
+
+```mermaid
+sequenceDiagram
+    participant AG as Agent Graph
+    participant LJ as LangChain Callbacks
+    participant JN as RunJournal
+    participant BUF as Write Buffer (20 条阈值)
+    participant ES as RunEventStore
+
+    AG->>LJ: graph 执行开始
+    LJ->>JN: on_chain_start(parent_run_id=None)
+    JN-->>JN: emit "run.start" trace
+
+    AG->>LJ: LLM 调用开始
+    LJ->>JN: on_chat_model_start(messages, tags)
+    JN-->>JN: 提取 first_human_msg (跳过 summary)
+    JN-->>JN: 记录 start time 到 _llm_start_times
+
+    AG->>LJ: LLM 调用完成
+    LJ->>JN: on_llm_end(response, tags)
+    JN-->>JN: 计算 latency_ms
+    JN-->>JN: 提取 usage_metadata
+    JN-->>JN: _identify_caller(tags) → lead/subagent/middleware
+    JN-->>JN: 按 caller 分桶 token (去重 by run_id)
+    JN->>BUF: emit "llm.ai.response" + 累计 token
+    JN-->>JN: _schedule_progress_flush (限流 5s)
+
+    BUF-->>BUF: len(buffer) >= 20?
+    BUF->>ES: _flush_sync → _flush_async → put_batch
+
+    AG->>LJ: Tool 调用完成
+    LJ->>JN: on_tool_end(output=ToolMessage)
+    JN->>BUF: emit "llm.tool.result"
+
+    AG->>LJ: graph 执行结束
+    LJ->>JN: on_chain_end / on_chain_error
+    JN->>BUF: emit "run.end" / "run.error"
+
+    Note over JN,ES: Worker finally 块
+    JN->>JN: flush() → 排空剩余 buffer
+    JN->>ES: 最终 put_batch
+```
+
 ## 设计决策
 
 ### on_llm_new_token 不写事件

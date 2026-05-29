@@ -153,3 +153,23 @@ Agent/tool 路径用这个判断来决定是否需要虚拟路径转换。
 Docker 部署中，Gateway 容器通过挂载宿主机 `/var/run/docker.sock` 来启动沙箱容器：
 - Gateway 容器内调用 Docker API → 宿主机 Docker daemon → 创建沙箱容器
 - `host.docker.internal:host-gateway` 解决容器-宿主机网络通信
+
+## 安全能力门控 (`sandbox/security.py`)
+
+两个关键的安全门控函数，在工具注册和子 agent 创建前检查：
+
+```mermaid
+flowchart TD
+    START[config.yaml sandbox.use] --> L{uses_local_sandbox_provider?}
+    L -->|Yes| HB{allow_host_bash?}
+    L -->|No (AIO/Docker/K3s)| PASS[host bash 允许]
+
+    HB -->|true| PASS2[host bash 显式允许]
+    HB -->|false| BLOCK[host bash 被阻止]
+    BLOCK --> TOOLS[bash 工具从 agent toolset 中移除]
+    BLOCK --> SUB[bash 子 agent 被禁用]
+```
+
+- **`uses_local_sandbox_provider()`** — 检测沙箱 provider 是否为 `LocalSandboxProvider`（零隔离）
+- **`is_host_bash_allowed()`** — 如果在本地沙箱上未设置 `allow_host_bash: true` 则返回 `False`；AIO/Docker/K3s 返回 `True`（它们有容器隔离）
+- 本地沙箱上的被阻止 bash 产生明确的错误消息，指出不安全的边界并建议切换到 AIO

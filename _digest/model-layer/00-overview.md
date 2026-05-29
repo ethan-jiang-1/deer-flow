@@ -1,6 +1,6 @@
 # Model Layer 全景
 
-怎么做到换模型不改代码？thinking/vision 这些新能力怎么统一抽象？这层只有一个公开 API — `create_chat_model()` — 但背后藏着 8 个 provider 适配器、3 种 thinking 配置模式、per-provider 的 streaming 归一化。
+怎么做到换模型不改代码？thinking/vision 这些新能力怎么统一抽象？这层只有一个公开 API — `create_chat_model()` — 但背后藏着 7 个 DeerFlow 自定义适配器（加上 2 个标准 LangChain 直通路径共 9 条 provider 路由）、3 种 thinking 配置模式、per-provider 的 streaming 归一化。
 
 ![model-layer-overview](figures/model-layer-overview.svg)
 
@@ -80,6 +80,21 @@ LLM provider 各自实现了 thinking/reasoning 的返回格式，互不兼容�
 - **MindIE** 工具调用用 XML 格式 `<tool_call>`/`<tool_response>` — 与 LangChain 的 function-call 格式不同
 
 每个 patch 类的核心职责就是：**把 provider 特有的格式翻译成 LangChain 标准格式，并在多 turn 对话中保持这些特有字段不丢失。**
+
+### 标准 LangChain 直通路径（无需 DeerFlow 适配器）
+
+`config.example.yaml` 中预配置了以下可直接使用的 provider 路由，使用标准 LangChain 类，无需 DeerFlow patch：
+
+| Provider | `use` 值 | 说明 |
+|----------|---------|------|
+| **Ollama** | `langchain_ollama:ChatOllama` | 支持 thinking（通过 `reasoning_effort`），适合本地模型 |
+| **Google Gemini (原生 SDK)** | `langchain_google_genai:ChatGoogleGenerativeAI` | 使用 Google 原生 SDK 而非 OpenAI 网关 |
+| **OpenRouter** | `langchain_openai:ChatOpenAI` + `base_url` | 标准 OpenAI 类，切换 `base_url` 即可 |
+| **Novita AI** | `langchain_openai:ChatOpenAI` + `base_url` | 同上，切 `base_url` |
+| **火山引擎/豆包** | `deerflow.models.patched_deepseek:PatchedChatDeepSeek` | 复用 DeepSeek 适配器 |
+| **Kimi K2.5** | `deerflow.models.patched_deepseek:PatchedChatDeepSeek` | 复用 DeepSeek 适配器 |
+
+**总计**：7 个 DeerFlow 自定义适配器 + 2 个标准 LangChain 直通 = **9 条独立 provider 路由**，外加 4 个仅换 `base_url` 的变体。
 
 ## Factory 流程
 

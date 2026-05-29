@@ -14,6 +14,41 @@
 
 ## 两层附着策略
 
+```mermaid
+flowchart TD
+    subgraph 入口点
+        GW["Gateway worker<br/>run_agent()"]
+        CL["嵌入式客户端<br/>DeerFlowClient.stream()"]
+    end
+
+    subgraph 附着决策
+        CALLBACKS["build_tracing_callbacks()<br/>→ [LangChainTracer?, LangfuseCallbackHandler?]"]
+        META["inject_langfuse_metadata(config)<br/>→ metadata{langfuse_session_id, user_id, ...}"]
+
+        CALLBACKS -->|append to| CB[config.callbacks]
+        META -->|merge into| MT[config.metadata]
+    end
+
+    GW --> CALLBACKS
+    GW --> META
+    CL --> CALLBACKS
+    CL --> META
+
+    CB --> GRAPH["graph.astream(config)"]
+    MT --> GRAPH
+
+    GRAPH --> ROOT["on_chain_start(parent_run_id=None)"]
+    ROOT -->|"Langfuse 将 metadata 提升到根 trace"| TRACE[一个 trace 包含所有 node/LLM/tool 子 span]
+
+    subgraph 回退路径
+        MU["MemoryUpdater (图外调用者)"]
+        MU -->|create_chat_model(attach_tracing=True)| MODEL["模型级 callback 附着"]
+        MODEL --> TRACE2[独立 trace]
+    end
+
+    style ROOT fill:#f9f,stroke:#333,stroke-width:2px
+```
+
 追踪回调在两个层级工作：
 
 ### 层 1：图根级别（入口点附着）
@@ -63,6 +98,30 @@ Langfuse v4 的 `CallbackHandler._parse_langfuse_trace_attributes()` 从 `Runnab
 当 Langfuse 不在启用的 provider 列表中时返回 `{}` — 确保 LangSmith-only 部署不受影响。
 
 ### inject_langfuse_metadata() — 双路径共享
+
+```mermaid
+flowchart LR
+    subgraph 调用者
+        GW2["Gateway worker<br/>run_agent()"]
+        CL2["DeerFlowClient<br/>stream()"]
+    end
+
+    subgraph 共享 helper
+        B["build_langfuse_trace_metadata()"]
+    end
+
+    GW2 -->|"inject_langfuse_metadata(config, thread_id=..., user_id=...)"| B
+    CL2 -->|"inject_langfuse_metadata(config, thread_id=..., user_id=...)"| B
+
+    B -->|Langfuse enabled| L4["{langfuse_session_id: thread_id,<br/>  langfuse_user_id: 'default',<br/>  langfuse_trace_name: 'lead-agent',<br/>  langfuse_tags: [env:prod, model:X]}"]
+
+    B -->|LangSmith only| EMPTY["{} (no-op)"]
+
+    L4 --> MERGE["merged_metadata.setdefault(key, value)<br/>← 调用者提供的值优先"]
+    MERGE --> CONFIG["config['metadata']"]
+
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+```
 
 ```python
 def inject_langfuse_metadata(config, *, thread_id, user_id, ...):

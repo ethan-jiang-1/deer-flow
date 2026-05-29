@@ -33,6 +33,7 @@
 | 9 | [09-skills-tools.md](09-skills-tools.md) — Skills + Tools + MCP | — |
 | 10 | [10-persistence.md](10-persistence.md) — DB/Checkpointer/SSE | — |
 | 11 | [11-frontend.md](11-frontend.md) — Next.js 层、流式渲染 | — |
+| 12 | [12-mcp-deep-dive.md](12-mcp-deep-dive.md) — MCP Session Pool / OAuth / 缓存 | — |
 
 ---
 
@@ -43,5 +44,5 @@
 | [agent-runtime-overview.svg](figures/agent-runtime-overview.svg) | 同心圆分层：Agent Loop → Services → Harness → Gateway → Access |
 | [harness-app-boundary.svg](figures/harness-app-boundary.svg) | Harness/App 两层边界 + CI 导入规则 |
 | [request-flow.svg](figures/request-flow.svg) | 请求数据流：14 步从 HTTP → SSE |
-| [middleware-chain.svg](figures/middleware-chain.svg) | 19 Middlewares：6 种 hook 点 · 触发点 · 职责 |
+| [middleware-chain.svg](figures/middleware-chain.svg) | 20 Middlewares：6 种 hook 点 · 触发点 · 职责 |
 | [sandbox-architecture.svg](figures/sandbox-architecture.svg) | Sandbox：ABC + 3 实现 + 虚拟路径 |
