@@ -2,6 +2,8 @@
 
 19 个 middleware，按 hook 点分组。每个条目：文件位置、触发点、位置编号、用途、配置项、非显而易见的细节。
 
+> **交叉引用：** Guardrail + SandboxAudit 的安全视角见 [security/03-guardrail.md](../security/03-guardrail.md)。Lead Agent 工厂（ThreadState、make_lead_agent）见 [architecture/05-lead-agent.md](../architecture/05-lead-agent.md)。
+
 ## before_agent (5 个)
 
 ### ThreadDataMiddleware

@@ -2,6 +2,8 @@
 
 Agent 执行 bash 命令、读写文件时，能碰到什么？不能碰到什么？这是 IT 管理者最关心的问题——"一段 prompt 能不能搞出 `rm -rf /`？"
 
+> **交叉引用：** 三种沙箱的隔离级别 + 提权/网络/seccomp 对比见 [security/02-sandbox-isolation.md](../security/02-sandbox-isolation.md)。
+
 ## 三种沙箱模式
 
 | 模式 | `sandbox.use` | 隔离级别 | 适用场景 |
@@ -80,3 +82,52 @@ thread_2 → sandbox_id="local:thread_2" → workspace at users/alice/threads/t2
 | **Resource exhaustion** | 无 CPU/内存限制 | 在 Docker/K3s 层配 cgroup limit |
 | **网络访问** | Agent 可以通过 curl/wget 访问外网 | 评估是否需要网络隔离（sandbox network policy） |
 | **Skills 注入** | 恶意 skill 可被 agent 加载 | Skills security scanner（LLM 扫描 + 人工审核） |
+
+## 设计决策分析
+
+### 为什么是 6 层路径防穿透，而不是 1 层？
+
+单一防护层（比如只做 `path.relative_to` 检查）的致命缺陷：一个 bug 全线崩溃。6 层设计的原则是**每层假设前面的层已经被绕过**：
+
+1. 虚拟路径体系假设 tool 层翻译出了 bug → 限制 blast radius
+2. Tool 层翻译假设沙箱层出了问题 → 独立校验
+3. `allow_host_bash` 假设前面全失效了 → 最粗粒度的 kill switch
+4. CWD 注入假设命令构造有 bug → 即使路径检查漏了，命令也被限定在 workspace
+5. 路径参数校验假设 CWD 没生效 → 最后一层参数级过滤
+6. 输出脱敏假设一切正常但 host 路径意外泄露 → 信息泄露的最后防线
+
+这种设计不是 academic exercise——Local 模式下没有内核级隔离，路径翻译是唯一的屏障。6 层叠加把"翻译器 bug → agent 读 /etc/passwd"的概率压到极低。
+
+### 为什么 per-thread 而不是 per-user 沙箱实例？
+
+Per-user 共享沙箱的风险是 thread 间文件污染：thread A 创建的文件可能被 thread B 覆盖/删除/读取。Per-thread 隔离避免了并发文件操作冲突，也简化了审计——每个 thread 的操作限定在自己的 workspace。
+
+代价是资源开销更大（N 个 thread = N 个 sandbox 实例）。Local 模式用 LRU cache（上限 256）管理 per-thread 实例，超过上限时淘汰最久未用的。
+
+### 为什么 SandboxAudit 的高危模式是硬编码的？
+
+不可配置的高危命令列表看似僵化，但在 Agent 安全场景中是正确的权衡：
+- **审计可证明性**：审查者可以精确知道什么会被拦截，不需要审计生产配置
+- **配置错误免疫**：`denied_commands: ["rm"]` 写错成 `denied_commands: ["rm "]` 不会导致保护失效
+- **LLM 不可预测性**：Agent 的行为不是预定义的，不能依赖"用户不会让 agent 执行危险命令"的假设
+
+对于需要自定义高危列表的场景，建议在 Guardrail provider 层实现参数级检测——provider 能拿到 `tool_input`，可以做比 regex 更精细的判断。
+
+### 与行业沙箱方案的对比
+
+| 方案 | 隔离机制 | 启动延迟 | 资源开销 | DeerFlow 对应 |
+|------|---------|---------|---------|-------------|
+| **Local subprocess** | 无（共享内核） | 0ms | 极低 | Local 模式 |
+| **Docker container** | 内核 namespace + cgroup | 1-3s | 中等 | AioSandbox |
+| **K8s Pod** | Pod namespace + NetworkPolicy | 5-30s | 较高 | K3s Provisioner |
+| **gVisor (Google)** | 用户态内核（sentry） | <100ms | 中等 | 未支持 |
+| **Firecracker (AWS)** | microVM (KVM) | 125ms | 低 | 未支持 |
+| **WebAssembly** | Wasm sandbox (capability-based) | ~0ms | 极低 | 未支持 |
+
+DeerFlow 的三层沙箱覆盖了主流场景，但缺少 microVM 和 Wasm 这两个新兴方向。microVM（Firecracker）提供了比容器更强的隔离（独立 guest kernel），启动速度接近容器；Wasm 提供了 capability-based 的细粒度权限控制。如果你的安全需求超过 Docker 但没到需要 K3s 的程度，可以考虑在 Docker 层配置 AppArmor/SELinux profile 来补偿。
+
+### Docker 模式的安全注意
+
+Docker 模式下 DeerFlow **显式设置 `seccomp=unconfined`**（`aio_sandbox.py`），这意味着内核允许容器内的进程调用 ~300+ 系统调用（默认 Docker seccomp profile 会阻止 ~44 个高风险 syscall）。这个设计的初衷是避免工具兼容性问题（某些 CLI 工具需要 `ptrace`、`mount` 等受限 syscall），但代价是增加了容器逃逸面。
+
+生产部署建议：如果不需要全量 syscall，在 Docker daemon 层面重新启用默认 seccomp profile，或者编写自定义 profile 只放行需要的 syscall。

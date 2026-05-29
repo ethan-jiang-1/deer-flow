@@ -130,3 +130,94 @@ Turn 2: 上一轮的 reasoning 字段必须出现在 AIMessage 里 → 否则 AP
 - **PatchedMiniMax** — `reasoning_details` + inline `<think>` 标签都要解析
 
 这些都不是 DeerFlow 发明的需求——是各家 provider API 的硬性约束。patch 类的作用就是自动处理这些约束，使用者不需要知道。
+
+## Thinking 模式检测的代码路径
+
+`create_chat_model()`（`factory.py:50`）中 thinking 配置的解析流程：
+
+```
+create_chat_model(name, thinking_enabled=None)
+  │
+  ├─ 1. 加载 model config from config.yaml
+  │
+  ├─ 2. thinking_enabled is None?
+  │     └─ 从 config["thinking_enabled"] 读取（默认 False）
+  │
+  ├─ 3. 如果 model_config.supports_thinking is False:
+  │     └─ thinking_enabled 强制为 False（即使前端 toggle 打开）
+  │
+  ├─ 4. 模式检测（通过 when_thinking_enabled 的 shape）:
+  │     │
+  │     ├─ when_thinking_enabled.thinking.type 存在?
+  │     │   → Anthropic 原生模式
+  │     │   → 直接设置 model.thinking = {"type": "enabled"/"disabled", ...}
+  │     │
+  │     ├─ when_thinking_enabled.extra_body.thinking.type 存在?
+  │     │   → OpenAI 网关模式
+  │     │   → 设置 model.extra_body.thinking.type
+  │     │   → disable 时额外设 reasoning_effort="minimal"
+  │     │
+  │     ├─ when_thinking_enabled.extra_body.chat_template_kwargs 含 thinking/enable_thinking?
+  │     │   → vLLM 模式
+  │     │   → _normalize_vllm_chat_template_kwargs() 做旧版兼容转换
+  │     │   → 设置 model.extra_body.chat_template_kwargs.enable_thinking
+  │     │
+  │     └─ 全不匹配?
+  │         → 仅设置 reasoning_effort（通用降级）
+  │
+  └─ 5. reasoning_effort 处理:
+        ├─ supports_reasoning_effort is False? → 从 kwargs 中 strip
+        └─ Codex provider? → 映射为 none/low/medium/high/xhigh 五档
+```
+
+### Anthropic 模式的 auto_thinking_budget
+
+Claude provider（`claude_provider.py:250`）有一个自动 thinking budget 计算：当 `thinking_enabled=True` 且未显式指定 `budget_tokens` 时，自动分配 `max_tokens` 的 80% 给 thinking。这是基于 Anthropic 的建议——thinking 需要足够的 token 预算才能有效。
+
+```python
+# claude_provider.py:261
+thinking_budget = int(max_tokens * 0.8) if max_tokens else None
+```
+
+### vLLM 旧版兼容
+
+`_normalize_vllm_chat_template_kwargs()`（`vllm_provider.py:39`）处理 vLLM 0.19.0 之前的配置格式——`chat_template_kwargs.thinking` → `chat_template_kwargs.enable_thinking`。在 `_get_request_payload` 被调用时执行转换，不影响 config.yaml 中的声明。
+
+## Vision 启用链路的代码级 trace
+
+```
+用户上传图片 / Agent 调 view_image tool
+  │
+  ├─ Step 1: RuntimeFeatures 判断是否启用
+  │     lead agent 路径: model_config.supports_vision → 自动决定
+  │     SDK 路径: RuntimeFeatures.vision → 显式控制
+  │     如果 vision=False → ViewImageMiddleware 根本不加入链
+  │
+  ├─ Step 2: view_image tool 执行 (sandbox/tools.py)
+  │     ├─ 路径校验: 限定在 /mnt/user-data/{workspace,uploads,outputs}
+  │     ├─ 文件类型校验: magic bytes 检查 JPEG/PNG/WebP
+  │     ├─ 大小上限: 20MB
+  │     ├─ base64 编码
+  │     └─ 写入 ThreadState.viewed_images (merge_viewed_images reducer)
+  │
+  ├─ Step 3: ViewImageMiddleware.before_model (deerflow/agents/middlewares/)
+  │     ├─ 从 ThreadState 读取 viewed_images
+  │     ├─ 构造 HumanMessage:
+  │     │     content = [{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64,..."}}]
+  │     └─ 注入到 messages 列表（在 system prompt 之后，最后一条 user message 之前）
+  │
+  ├─ Step 4: Model 调用
+  │     └─ LLM 收到带 image_url content block 的多模态消息
+  │
+  └─ Step 5: 状态清理
+        └─ merge_viewed_images reducer: 已处理图片被移除，防止重复注入
+```
+
+### Vision 与 model 配置的关系
+
+`supports_vision: true` 是三个独立决策的前置条件：
+1. `view_image` tool 是否加入 toolset
+2. `ViewImageMiddleware` 是否加入 middleware 链
+3. 前端是否显示图片上传 UI
+
+如果 `supports_vision: false`（默认），三者全关——即使前端传了图片也不会被处理。

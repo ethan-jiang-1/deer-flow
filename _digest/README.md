@@ -30,20 +30,20 @@
 
 ### Phase 2：结构修复
 
-- [ ] **2.1 处理 integration/02-configuration.md（465 行）** — 太长且在错误位置。两种方案：a) 拆分到 configuration/ 下作为 04-config-reference.md，integration/02 缩减为百行内的接入视角摘要；b) 直接标为"配置参考详见 configuration/ section"，大幅精简
-- [ ] **2.2 加交叉引用** — 至少在以下关键路径上加双向链接：
+- [x] **2.1 处理 integration/02-configuration.md（465 行）** — 全量迁移到 configuration/04-config-reference.md，integration/02 缩减为 ~80 行接入视角摘要
+- [x] **2.2 加交叉引用** — 5 对关键路径双向链接已添加
   - security/03 ↔ middleware/03-catalog（GuardrailMiddleware）
   - security/02 ↔ architecture/06（sandbox 三种实现）
   - middleware/03-catalog ↔ architecture/05（ThreadState、make_lead_agent）
   - it-ops/02 ↔ security/02（sandbox 治理 vs 安全视角）
   - agent-loop/00 ↔ middleware/01（loop 结构 vs hook 执行流）
-- [ ] **2.3 it-ops/README 跨目录索引加真实 markdown 链接** — 目前是纯文本表格，改成 `[security/01-auth.md](../security/01-auth.md)` 格式
+- [x] **2.3 it-ops/README 跨目录索引加真实 markdown 链接**
 
 ### Phase 3：加深偏薄章节
 
-- [ ] **3.1 model-layer/02-streaming.md 扩展** — 从 96 行扩展到 200+ 行。补 per-provider chunk 归一化的完整分析：vLLM reasoning 字段保留、MiniMax `<think>` 标签解析、MindIE tool+stream 降级、Codex Responses API SSE 格式
-- [ ] **3.2 it-ops/01~05 加深** — 每篇从 58-148 行扩展到 150-200 行。从 checklist 风格转为"为什么这样设计"的深层分析
-- [ ] **3.3 model-layer/01-thinking-vision.md 扩展** — 三种 thinking 配置模式的实际代码路径、vision 启用链路的完整 trace
+- [x] **3.1 model-layer/02-streaming.md 扩展** — 从 96 行扩展到 220+ 行。补了 per-provider chunk 归一化完整分析：vLLM 多态 reasoning、MiniMax 双源 reasoning+`preserve_whitespace` 拼接、MindIE 15字符合成 chunk、Codex 内部 SSE 收集、DeepSeek/Gemini outbound 重注入、共同模式总结、provider 对比表
+- [x] **3.2 it-ops/01~05 加深** — 每篇新增"设计决策分析"section，补 fail-closed 理由、6 层路径防护原理、per-thread 隔离权衡、硬编码审计列表博弈、bounded autonomy 设计哲学、CSRF double-submit 选择、token_version 机制、Docker seccomp 风险、行业沙箱对比
+- [x] **3.3 model-layer/01-thinking-vision.md 扩展** — 新增 thinking 模式检测代码路径（factory.py 5 步流程图）、vision 启用链路 5 步 trace、vLLM 旧版兼容、Anthropic auto_thinking_budget、vision 三决策联动
 
 ### Phase 4：填充新 section — community-tools/
 

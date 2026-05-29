@@ -2,6 +2,8 @@
 
 三种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。
 
+> **交叉引用：** Sandbox ABC 抽象 + 三种实现架构见 [architecture/06-sandbox.md](../architecture/06-sandbox.md)。IT 治理视角（策略执行、审计可观测性）见 [it-ops/02-sandbox-governance.md](../it-ops/02-sandbox-governance.md)。
+
 ## 挂入方式
 
 Sandbox 如何挂入 Agent 执行流？核心是 **SandboxMiddleware** + **lazy init**。

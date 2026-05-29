@@ -2,6 +2,8 @@
 
 DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。
 
+> **交叉引用：** 三种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../security/02-sandbox-isolation.md)。
+
 ## 抽象接口
 
 ```python

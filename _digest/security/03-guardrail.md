@@ -2,6 +2,8 @@
 
 Tool 执行前有两层保护：Guardrail（可插拔授权）和 SandboxAudit（bash 命令模式匹配）。
 
+> **交叉引用：** middleware 视角的 GuardrailMiddleware/SandboxAuditMiddleware 见 [middleware/03-catalog.md](../middleware/03-catalog.md)（wrap_tool_call 段）。
+
 ## Guardrails 行业概念：DeerFlow 在哪一层？
 
 在 AI Agent 领域，"Guardrails" 是一个广义概念——约束 agent 行为的**多层控制机制**，不是单一产品。行业标准按干预时机分三层：

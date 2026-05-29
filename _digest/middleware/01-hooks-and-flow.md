@@ -2,6 +2,8 @@
 
 Agent 的每一次 step 穿过 6 种 hook 点。理解每种 hook 的触发时机、执行方式、和它适合做什么，是理解整个 middleware 系统的基础。
 
+> **交叉引用：** Middleware hook 在 Agent loop 中的位置见 [agent-loop/00-loop-anatomy.md](../agent-loop/00-loop-anatomy.md)（三层循环嵌套全景）。
+
 ## 6 种 Hook 点
 
 ### before_agent

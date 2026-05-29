@@ -4,6 +4,8 @@
 
 **DeerFlow 没有手写 `while` 循环。** loop 由 LangGraph 的 compiled graph 驱动——model node 和 tools node 交替执行，直到 model 不再输出 tool_calls。DeerFlow 的代码做的是**在每一圈上绑定 middleware hook**，以及对 loop 整体做生命周期管理（启停、取消、回滚、日志）。
 
+> **交叉引用：** Middleware 6 种 hook 点的触发时机与执行流见 [middleware/01-hooks-and-flow.md](../middleware/01-hooks-and-flow.md)。
+
 ## 全景：三层循环嵌套
 
 ![三层循环嵌套](figures/three-layer-loop.svg)

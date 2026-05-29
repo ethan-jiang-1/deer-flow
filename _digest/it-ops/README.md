@@ -33,11 +33,11 @@ IT 治理视角的文档**整合**了以下目录的内容，不重复叙述细�
 
 | 原文档位置 | 被整合到 |
 |-----------|---------|
-| `security/01-auth.md` | `01-access-control.md` |
-| `security/02-sandbox-isolation.md` | `02-sandbox-governance.md` |
-| `security/03-guardrail.md` | `03-policy-enforcement.md` |
-| `security/04-trust-boundary.md` | `00-overview.md` (defense-in-depth view) |
-| `architecture/06-sandbox.md` | `02-sandbox-governance.md` |
-| `architecture/10-persistence.md` | `04-audit-observability.md` |
-| `configuration/00-overview.md` | `05-compliance-lifecycle.md` |
-| `middleware/03-catalog.md` | 各主题文档引用 |
+| [security/01-auth.md](../security/01-auth.md) | [01-access-control.md](01-access-control.md) |
+| [security/02-sandbox-isolation.md](../security/02-sandbox-isolation.md) | [02-sandbox-governance.md](02-sandbox-governance.md) |
+| [security/03-guardrail.md](../security/03-guardrail.md) | [03-policy-enforcement.md](03-policy-enforcement.md) |
+| [security/04-trust-boundary.md](../security/04-trust-boundary.md) | [00-overview.md](00-overview.md) (defense-in-depth) |
+| [architecture/06-sandbox.md](../architecture/06-sandbox.md) | [02-sandbox-governance.md](02-sandbox-governance.md) |
+| [architecture/10-persistence.md](../architecture/10-persistence.md) | [04-audit-observability.md](04-audit-observability.md) |
+| [configuration/00-overview.md](../configuration/00-overview.md) | [05-compliance-lifecycle.md](05-compliance-lifecycle.md) |
+| [middleware/03-catalog.md](../middleware/03-catalog.md) | 各主题文档引用 |

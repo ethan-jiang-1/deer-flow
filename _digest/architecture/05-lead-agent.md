@@ -2,6 +2,8 @@
 
 DeerFlow 的核心：`make_lead_agent` 工厂函数创建与 LangGraph 兼容的 Agent。
 
+> **交叉引用：** Agent 如何挂载 middleware 链见 [middleware/03-catalog.md](../middleware/03-catalog.md)。
+
 ## 入口
 
 ```python
