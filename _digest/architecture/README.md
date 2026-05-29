@@ -20,8 +20,6 @@
 
 [03-request-flow.md](03-request-flow.md) — 一次请求 14 步完整生命周期。图：[request-flow.svg](figures/request-flow.svg)
 
-[04-middleware-chain.md](04-middleware-chain.md) — ⛔ 已废弃，请用 [middleware/ section](../middleware/README.md) 代替
-
 ### 第三步：各模块
 
 | # | 文件 | 图 |
