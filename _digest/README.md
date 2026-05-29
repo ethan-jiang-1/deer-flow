@@ -47,41 +47,41 @@
 
 ### Phase 4：填充新 section — community-tools/
 
-- [ ] **4.1 community-tools/00-overview.md** — 9 个集成的全景图、tool 装配流程中的位置、provider 选择决策树
-- [ ] **4.2 community-tools/01-web-search.md** — 6 种 search provider 对比（DDG/Tavily/Serper/Exa/Firecrawl/InfoQuest）、参数差异、返回格式
-- [ ] **4.3 community-tools/02-web-fetch.md** — 4 种 fetch provider 的 URL→markdown 管线（Jina/Exa/InfoQuest/Firecrawl）
-- [ ] **4.4 community-tools/03-image-search.md** — DDG/InfoQuest 图片搜索、与 vision model 的对接
-- [ ] **4.5 community-tools/04-aio-sandbox.md** — AioSandboxProvider 深入：Docker 容器管理、Apple Container 探测、LRU 淘汰、K3s provisioner
+- [x] **4.1 community-tools/00-overview.md** — 9 集成全景图、reflection 加载机制、按名去重、provider 选择决策树
+- [x] **4.2 community-tools/01-web-search.md** — 6 种 search provider 逐项对比（签名/认证/HTTP/返回格式/配置）、返回格式不一致性分析
+- [x] **4.3 community-tools/02-web-fetch.md** — 4 种 fetch provider 的 URL→markdown 管线图、ReadabilityExtractor 共用机制、Async→Sync 包装原理
+- [x] **4.4 community-tools/03-image-search.md** — DDG image search 签名+过滤参数、与 view_image tool 的对接链路
+- [x] **4.5 community-tools/04-aio-sandbox.md** — AioSandboxProvider 完整生命周期（acquire→warm pool→idle eviction→shutdown）、确定性 sandbox ID 跨进程 discovery、容器运行时探测、K3s provisioner、Docker seccomp 风险
 
 ### Phase 5：填充新 section — frontend/
 
-- [ ] **5.1 frontend/00-overview.md** — 技术栈全景、组件树、数据流图
-- [ ] **5.2 frontend/01-stream-pipeline.md** — SSE → React 管线：useThreadStream、LangGraph stream_mode 映射、增量渲染
-- [ ] **5.3 frontend/02-message-rendering.md** — streamdown 流式 markdown、thinking block、tool call 卡片、artifact 预览
-- [ ] **5.4 frontend/03-state-management.md** — TanStack Query 缓存、ThreadState context、localStorage 偏好
-- [ ] **5.5 frontend/04-workspace-layout.md** — Drag 面板、响应式、command palette
-- [ ] **5.6 frontend/05-subagent-ui.md** — TaskTracker context 状态机
+- [x] **5.1 frontend/00-overview.md** — 技术栈全景、目录结构、数据流 3 层架构
+- [x] **5.2 frontend/01-stream-pipeline.md** — SSE → React 管线：useThreadStream、LangGraph SDK useStream、消息合并策略、token 追踪、4 套 streamdown 插件配置
+- [x] **5.3 frontend/02-message-rendering.md** — 消息分组→分类渲染、thinking block 三源提取+防幻觉 HTML、tool call 卡片、artifact 预览、文件附件渲染
+- [x] **5.4 frontend/03-state-management.md** — TanStack Query 查询/变更、LangGraph SDK 流式状态、localStorage useSyncExternalStore、4 个 React Context、组件本地状态
+- [x] **5.5 frontend/04-workspace-layout.md** — ResizablePanelGroup 双面板、Welcome/Conversation 两种模式、Command Palette 快捷键、Theme CSS 变量、9 种自定义动画
+- [x] **5.6 frontend/05-subagent-ui.md** — SubtaskContext 状态机、in_progress/completed/failed 三态渲染、Shimmer/ShineBorder/FlipDisplay 动画、parseSubtaskResult 防御式解析
 
 ### Phase 6：填充新 section — channels/
 
-- [ ] **6.1 channels/00-overview.md** — 7 平台架构全景、两种 stream 策略分裂
-- [ ] **6.2 channels/01-message-bus.md** — MessageBus pub/sub、ChannelManager dispatch loop
-- [ ] **6.3 channels/02-stream-strategies.md** — 增量流式（Feishu/DingTalk）vs 阻塞等待（Slack/Telegram）
-- [ ] **6.4 channels/03-thread-mapping.md** — Channel→Thread ID 持久化、命令系统、per-platform 细节
+- [x] **6.1 channels/00-overview.md** — 7 平台架构全景、两种 stream 策略分裂、连接方式矩阵
+- [x] **6.2 channels/01-message-bus.md** — MessageBus 双向 pub/sub、ChannelManager semaphore(5) 并发控制、4 层 config 合并
+- [x] **6.3 channels/02-stream-strategies.md** — 增量流式（350ms throttle、Feishu card patching、WeCom reply_stream）vs 阻塞等待（runs.wait、artifact 分发）
+- [x] **6.4 channels/03-thread-mapping.md** — ChannelStore JSON 原子写入、各平台 topic_id 语义、/new /bootstrap 等 6 命令、per-user session 层叠
 
 ### Phase 7：填充新 section — deployment/
 
-- [ ] **7.1 deployment/00-overview.md** — 4 种部署模式对比矩阵、进程拓扑
-- [ ] **7.2 deployment/01-local-dev.md** — `make dev`：uvicorn hot reload、Turbopack、多进程管理
-- [ ] **7.3 deployment/02-docker.md** — Docker Compose 4 服务、网络配置、DooD 模式
-- [ ] **7.4 deployment/03-nginx-and-k8s.md** — Nginx 路由规则、K8s Provisioner 模式
+- [x] **7.1 deployment/00-overview.md** — 4 种部署模式对比矩阵、进程拓扑、关键环境变量
+- [x] **7.2 deployment/01-local-dev.md** — make dev 4 进程拓扑、hot reload 机制、常见问题诊断
+- [x] **7.3 deployment/02-docker.md** — Docker Compose 5 服务拓扑、DooD 模式原理、生产 checklist
+- [x] **7.4 deployment/03-nginx-and-k8s.md** — SSE proxy_buffering off 原理、rate limiting、K3s Provisioner Pod spec、RBAC 配置
 
 ### Phase 8：填充新 section — testing/
 
-- [ ] **8.1 testing/00-overview.md** — 测试金字塔、框架选型、CI 流程
-- [ ] **8.2 testing/01-harness-boundary.md** — test_harness_boundary.py 的 AST 分析 + CI 强制执行
-- [ ] **8.3 testing/02-gateway-conformance.md** — TestGatewayConformance：SDK/Gateway 格式一致性
-- [ ] **8.4 testing/03-e2e-and-unit.md** — Playwright E2E + Vitest 单元测试模式
+- [x] **8.1 testing/00-overview.md** — 测试金字塔、CI 强制边界、Gateway 一致性、E2E mock SSE 策略
+- [x] **8.2 testing/01-harness-boundary.md** — AST import 扫描机制、豁免注释体系、CI 集成
+- [x] **8.3 testing/02-gateway-conformance.md** — 双路径对比原理、消息/tool/chunk 一致性、序列化层 regression 检测
+- [x] **8.4 testing/03-e2e-and-unit.md** — Vitest 消息处理/subtask/settings 测试、Playwright API mock + 关键场景、pytest provider 测试清单
 
 ---
 
@@ -98,12 +98,12 @@ _digest/
 ├── model-layer/                   # LLM 抽象（streaming 需加深）
 ├── it-ops/                        # IT 治理（展开篇需加深）
 ├── builtin-tools/                 # 内置工具全量清单
-├── community-tools/               # [新建] 外部工具集成
+├── community-tools/               # 外部工具集成（9 个 provider）
 ├── agent-loop/                    # Agent Loop 技术内核
-├── frontend/                      # [新建] 前端架构
-├── channels/                      # [新建] IM 通道系统
-├── deployment/                    # [新建] 部署架构
-└── testing/                       # [新建] 测试策略
+├── frontend/                      # 前端架构（Next.js + React 19）
+├── channels/                      # IM 通道系统（7 平台）
+├── deployment/                    # 部署架构（4 种模式）
+└── testing/                       # 测试策略（3 层体系）
 ```
 
 ## 工作流
