@@ -25,3 +25,4 @@ _faq_on_digested/
 | 1 | Skill 选取精度：skill 太多时 LLM 选择不准，DeerFlow 现状是什么？Codex 怎么解的？ | [skill-selection-accuracy/](skill-selection-accuracy/) |
 | 2 | 任务 MD 文件能否精确指定 Skill？"长城任务"里写了用哪个 skill，能保证选中吗？ | [command-skill-linkage/](command-skill-linkage/) |
 | 3 | 企业自主静默执行中如何精准选择 Skill？现有环境有什么可用积木？ | [precise-skill-selection/](precise-skill-selection/) |
+| 4 | MCP 工具管理：大量 MCP 工具引入噪声，有没有最佳推荐？ | [mcp-best-practices/](mcp-best-practices/) |
