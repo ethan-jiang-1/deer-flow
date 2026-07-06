@@ -1,29 +1,76 @@
 ---
-title: "与上游同步"
-description: "|------|-----|"
-topics: [-upstream-sync]
+title: "上游同步追踪"
+description: "记录与 bytedance/deer-flow 上游的对齐位置、同步操作流程、变更对 digest 的影响映射。"
+type: index
 ---
 
-# 与上游同步
-
-> 当前 `main` 分支跟踪 [bytedance/deer-flow](https://github.com/bytedance/deer-flow) 上游。
-> `ethan` 分支承载所有 `_digest/` 和 `_faq_on_digested/` 研究笔记。
-> **`ethan` 永远不会 merge 回 `main`。**
-
----
+# 上游同步追踪
 
 ## 当前同步点
 
 | 项目 | 值 |
 |------|-----|
-| **上游仓库** | `bytedance/deer-flow` |
-| **Fork** | `ethan-jiang-1/deer-flow` (origin) |
-| **main 最新 commit** | `162fb214` |
-| **merge base** | `162fb214`（main == ethan 的共同祖先） |
-| **同步日期** | 2026-07-06 |
-| **上游领先** | 0 commits（当前已同步） |
+| **上游仓库** | [bytedance/deer-flow](https://github.com/bytedance/deer-flow) |
+| **对齐的上游 commit** | `162fb214` |
+| **日期** | 2026-07-04 |
+| **内容** | `fix(mcp): skip session pooling for HTTP/SSE transports (#3203)` |
+| **ethan 分支 HEAD** | `0607b312` |
+| **标记日期** | 2026-07-06 |
 
-`main` 最近 10 个上游 commit：
+## 同步操作
+
+### 1. 查看与上游的距离
+
+```bash
+git fetch upstream main
+echo "上游领先: $(git log 162fb214..upstream/main --oneline | wc -l) commits"
+git log 162fb214..upstream/main --oneline
+```
+
+> 如果 `git fetch upstream` 失败，浏览器打开：
+> `https://github.com/bytedance/deer-flow/compare/162fb214...main`
+
+### 2. 看改了什么文件
+
+```bash
+git diff --stat 162fb214..upstream/main
+```
+
+### 3. 合并
+
+```bash
+git checkout main && git pull upstream main
+git checkout ethan && git merge main
+```
+
+---
+
+## 上游变更 → Digest 影响速查
+
+| 上游改动路径 | 影响的 digest 目录 |
+|-------------|-------------------|
+| `backend/.../agents/lead_agent/` | `overview/`, `concepts/lead-agent/` |
+| `backend/.../agents/middlewares/` | `internals/middleware/`, `internals/agent-loop/` |
+| `backend/.../sandbox/` | `concepts/sandbox/`, `operations/security/` |
+| `backend/.../subagents/` | `concepts/subagent/` |
+| `backend/.../skills/` | `concepts/skills-tools/` |
+| `backend/.../tools/` | `concepts/builtin-tools/` |
+| `backend/.../mcp/` | `internals/mcp/` |
+| `backend/.../models/` | `internals/model-layer/` |
+| `backend/.../config/` | `internals/configuration/` |
+| `backend/.../memory/` | `concepts/memory/` |
+| `backend/.../runtime/` | `internals/runtime/` |
+| `backend/.../client.py` | `getting-started/` |
+| `backend/app/gateway/` | `operations/app-layer/` |
+| `backend/app/channels/` | `operations/channels/` |
+| `frontend/` | `frontend/` |
+| `config.example.yaml` | `internals/configuration/`, `getting-started/` |
+| `.github/workflows/` | `testing/` |
+| `docker/` | `operations/deployment/` |
+
+## 最近上游历史
+
+`162fb214` 之前的 15 个 commit（最近→最远）：
 
 ```
 162fb214 fix(mcp): skip session pooling for HTTP/SSE transports
@@ -36,65 +83,17 @@ f68bcb77 fix(frontend): guard message copy clipboard access
 11dd5b06 fix(frontend): strip unclosed <think> tags from streaming AI content
 f9b70713 fix(sandbox): add group/other read permissions to uploaded files
 8785658a fix(agents): preserve todos state across node updates
+0fb05825 fix(runtime): make run creation persistence atomic
+66d6a6a4 fix: harden run finalization persistence
+f0bae286 fix(middleware): handle repeated tool call ids
+2eeb5979 fix(runs): expose active progress counters
+914d6a4f docs: add provider safety termination post
 ```
 
----
+## 同步后更新 Digest 的流程
 
-## 同步流程
-
-### 什么时候同步
-
-- 想看看上游有什么新东西时
-- 准备基于最新上游代码更新 digest 内容时
-
-### 步骤
-
-```bash
-# 1. 切到 main，拉上游
-git checkout main
-git pull origin main    # 或如果配了 upstream: git pull upstream main
-
-# 2. 看看多了什么
-git log 162fb214..main --oneline
-# （把 162fb214 替换成上一轮记录的 merge base）
-
-# 3. 判断哪些变更影响 _digest/ 覆盖的领域
-#    - middleware 变更 → 检查 middleware/ 相关笔记
-#    - sandbox 变更 → 检查 sandbox 相关笔记
-#    - config 变更 → 检查 configuration/ 相关笔记
-#    ...
-
-# 4. 合并到 ethan
-git checkout ethan
-git merge main
-
-# 5. 更新本文件的「当前同步点」
-```
-
-### 影响的 digest 领域速查
-
-| 上游变更路径 | 可能影响的 digest 目录 |
-|-------------|----------------------|
-| `backend/packages/harness/deerflow/agents/` | `agent-loop/`, `middleware/`, `architecture/05` |
-| `backend/packages/harness/deerflow/sandbox/` | `architecture/06`, `security/02` |
-| `backend/packages/harness/deerflow/subagents/` | `architecture/07` |
-| `backend/packages/harness/deerflow/skills/` | `architecture/09` |
-| `backend/packages/harness/deerflow/tools/` | `builtin-tools/`, `architecture/09` |
-| `backend/packages/harness/deerflow/mcp/` | `architecture/12`, `configuration/02` |
-| `backend/packages/harness/deerflow/models/` | `model-layer/` |
-| `backend/packages/harness/deerflow/config/` | `configuration/`, `harness-hooks/` |
-| `backend/packages/harness/deerflow/memory/` | `architecture/08` |
-| `backend/packages/harness/deerflow/runtime/` | `runtime/` |
-| `backend/app/gateway/` | `app-layer/` |
-| `frontend/` | `frontend/`, `architecture/11` |
-| `.github/workflows/` | `testing/`, `deployment/` |
-| `config.example.yaml` | `configuration/`, `integration/` |
-
----
-
-## 工作流规则
-
-- `main` = 上游镜像，**绝不直接在上面改代码**
-- `ethan` + `_digest/` + `_faq_on_digested/` = 学习空间
-- 新发现写入 `_digest/` 或 `_faq_on_digested/`
-- 定期回到 `main` 拉上游，合并到 `ethan`
+1. `git log <旧>..<新> --oneline` 看新增 commit
+2. `git diff --stat <旧>..<新>` 看文件改动
+3. 对照「影响速查」标记受影响的 digest 目录
+4. 读上游 diff → 对比 digest → 更新或追加
+5. 更新本文件的「当前同步点」
