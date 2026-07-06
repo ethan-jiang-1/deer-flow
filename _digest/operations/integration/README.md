@@ -1,24 +1,12 @@
-# DeerFlow 集成指南
+# Integration — 集成参考
 
 > 如何将 DeerFlow 接入你的应用。
 
-**回答的核心问题**：四种集成手段（API / SDK / Docker / IM Channel）的对比与决策、完整配置参考、SSE 流式协议、环境变量全集。
-
-> **约束：不修改项目源代码。** 本 `_digest/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
-
-## 先看这个
-
-**[00-overview.md](00-overview.md)** — 4 种集成手段一张图看懂，含决策树和对比矩阵。**从这里开始。**
-
-## 详细文档
+## 阅读顺序
 
 | 文件 | 内容 |
 |------|------|
-| [00-overview.md](00-overview.md) | 总览：4 种集成手段对比 + 决策树 + 最小示例 |
-| [01-quick-start.md](01-quick-start.md) | 快速启动：本地/Docker 两种方式，启动后验证 |
-| [02-configuration.md](02-configuration.md) | 配置详解：`config.yaml` + `extensions_config.json` 所有段 |
-| [03-api-reference.md](03-api-reference.md) | ① HTTP API 端点详解：全部路由、SSE 流式协议 |
-| [04-python-sdk.md](04-python-sdk.md) | ② Python SDK：`DeerFlowClient` 嵌入模式 |
-| [05-docker.md](05-docker.md) | ③ Docker 部署：compose 结构、4 个服务 |
-| [06-environment.md](06-environment.md) | 环境变量全参考 |
-| [07-im-channels.md](07-im-channels.md) | ④ IM 频道集成：7 个平台 |
+| `01-overview.md` | 总览：4 种集成手段对比 + 决策树 + 最小示例 |
+| `02-api-reference.md` | 完整 HTTP API 端点详解 + SSE 流式协议 |
+| `03-docker.md` | Docker 部署：compose 结构、4 个服务 |
+| `04-im-channels.md` | IM 频道集成：7 个平台 |

@@ -4,7 +4,7 @@
 
 | 文件 | 内容 |
 |------|------|
-| [00-overview.md](00-overview.md) | 全景：两层附着策略、LangSmith/Langfuse 双 provider、工厂模式、Langfuse v4 合约、元数据注入、配置、环境标签 |
+| [langsmith-langfuse-dual-provider.md](langsmith-langfuse-dual-provider.md) | 全景：两层附着策略、LangSmith/Langfuse 双 provider、工厂模式、Langfuse v4 合约、元数据注入、配置、环境标签 |
 
 ## 关键设计决策
 
