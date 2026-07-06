@@ -355,6 +355,10 @@ client.chat("继续之前的工作，实现 spec-3", thread_id="sdd-project")
 
 | 问题 | 路径 |
 |------|------|
+| Agent Workflow 编排：Main Agent 启动 Sub-agent | [agent-workflow-orchestration.md](agent-workflow-orchestration.md) |
+
+| 问题 | 路径 |
+|------|------|
 | 不依赖 Docker 可以跑吗？ | `_faq_on_digested/getting-started-first-flow/no-docker.md` |
 | 本地文件系统和 Git 集成 | `_faq_on_digested/getting-started-first-flow/filesystem-and-git.md` |
 | Agent 专属工作目录 | `_faq_on_digested/getting-started-first-flow/agent-workspace.md` |
