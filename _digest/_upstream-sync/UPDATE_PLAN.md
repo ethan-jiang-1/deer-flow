@@ -179,3 +179,103 @@ type: index
 7. ⚪ 补充新子系统
 
 预计工作量：🔴 2 文件重写 + 🟡 10 文件更新 + 🟢 5 文件验证 + ⚪ 6 新文件 = 约 23 个文件的变更。
+
+---
+
+# Part 2：质量保证 — 自洽性检查
+
+> 加了新内容之后，旧的消化内容是否还逻辑自洽、结构合理、没有矛盾？
+
+## A. 交叉引用完整性
+
+更新任何文件后，必须检查所有引用它的地方是否仍然一致。
+
+| 引用关系 | 检查点 |
+|---------|--------|
+| `overview/01-system-overview.md` → middleware 数量 | 改为 29 |
+| `internals/agent-loop/` → middleware 数量 | 改为 29 |
+| `internals/agent-loop/03-code-trace.md` → middleware 名称列表 | 更新为新的 29 个名称 |
+| `concepts/sandbox/` → 实现数量 | 改为 5（Local, AIO, BoxLite, E2B, Provisioner） |
+| `concepts/lead-agent/` → ThreadState 字段 | 补充 4 个新字段 |
+| `operations/security/02-sandbox-isolation.md` → sandbox 数量 | 改为 5 |
+| 所有 README.md 中引用 middleware 数量的地方 | grep `19` → 改为 `29` |
+| `overview/figures/agent-loop.svg` | 更新 middleware 链可视化 |
+
+**执行方式**：grep 全 digest 目录搜索 `19`（旧中间件数）、`3 种`（sandbox 数）、`three`（sandbox），逐个核实。
+
+## B. 内容矛盾检测
+
+新功能可能让旧内容变成错误。需要逐条验证：
+
+| 旧内容断言 | 新代码现实 | 风险 |
+|-----------|-----------|------|
+| "Skills 在系统 prompt 中全量注入" | deferred discovery 模式下只有名字列表 | 🟡 旧断言不再普遍成立 |
+| "Sandbox 有三种实现" | 现在有 5 种（+BoxLite +E2B） | 🟡 需要更新 |
+| "配置热加载靠 mtime 检测" | 改为 content digest | 🟢 小改 |
+| "中间件共 19 个" | 现在是 29 个 | 🔴 全 digest 散布此数字 |
+| "checkpointer 配置在 checkpointer 段" | 已 deprecated，改用 database 段 | 🟡 需要更新 configuration/ |
+| "Memory 是 fire-and-forget 队列" | 新增 staleness review + guaranteed categories | 🟡 补充但不矛盾 |
+| "Subagent 失败即 FAILED" | 新增 MAX_TURNS_REACHED 状态 | 🟡 补充 |
+| "StreamBridge 是内存实现" | 新增 Redis 后端 | 🟡 补充 |
+| "DeerFlow 没有 CLI" | 现在有 `deerflow` 终端命令 | 🟡 需要更新 getting-started/ 和 cli-and-sdd/ |
+| "Gateway router 有 16 个" | 新增 console、features、channel_connections、github_webhooks、scheduled_tasks | 🟡 需要更新 app-layer/ |
+
+**执行方式**：逐条核对，更新或标注。
+
+## C. 结构一致性
+
+新增内容后，目录结构是否需要调整？
+
+| 问题 | 判断 |
+|------|------|
+| `concepts/skills-tools/` 只有一个文件，加 deferred-discovery 和 request-secrets 后是否需要拆成子目录？ | 建议拆：`skill-md-and-tool-assembly.md` 保留为主文件，新增 `deferred-discovery.md` 和 `request-secrets.md` 作为 detail |
+| `internals/` 是否需要为 Goal 模块新增子目录？ | 可放在 `internals/runtime/` 下（Goal 是 runtime 层功能） |
+| `getting-started/` 是否需要添加 TUI 内容？ | 建议添加 `06-tui.md` |
+| `concepts/sandbox/` 单一文件是否需要拆？ | 5 种实现仍然可以放在一个文件里，但建议加子目录结构以便后续扩展 |
+
+## D. 数字一致性审计
+
+全 digest 范围内需要统一的数字：
+
+| 数字 | 旧值 | 新值 | 搜索 pattern |
+|------|------|------|-------------|
+| 中间件数量 | 19 | 29 | `grep -r "19.*middleware\|middleware.*19" _digest/` |
+| Sandbox 实现数 | 3 | 5 | `grep -r "3.*sandbox\|three.*sandbox\|三种\|3 种" _digest/` |
+| Gateway Router 数 | 16 | ~20 | `grep -r "16.*router\|16 个" _digest/` |
+| Config 段数 | 26 | ~35 | `grep -r "26.*section\|26 个" _digest/` |
+| ThreadState 字段数 | ~7 | ~11 | 更新 `concepts/lead-agent/` |
+| Skill 加载方式 | 1（全量） | 2（legacy + deferred） | 更新 `concepts/skills-tools/` |
+
+**执行方式**：写完所有 P0/P1 更新后，跑一次全量 grep 审计，修复不一致。
+
+## E. 开发者旅程连贯性
+
+更新完后，模拟一次新开发者的阅读路径，确认信息流不中断：
+
+```
+overview/01-system-overview.md    → 数字正确？
+overview/03-logical-architecture.md → SVG 中间件链正确？
+getting-started/01-quick-start.md  → TUI 入口已提及？
+concepts/lead-agent/               → ThreadState 字段完整？
+concepts/sandbox/                  → 5 种实现都已列出？
+concepts/subagent/                 → MAX_TURNS_REACHED 已说明？
+concepts/memory/                   → staleness + token counting 已说明？
+concepts/skills-tools/             → deferred discovery + secrets 已说明？
+internals/middleware/03-catalog.md → 29 个完整目录
+internals/agent-loop/03-code-trace.md → middleware 名称匹配
+operations/security/               → InputSanitization + env scrubbing
+testing/                           → record/replay 已添加
+```
+
+---
+
+## 修正后的执行顺序
+
+1. 🔴 重写 `internals/middleware/` + `concepts/skills-tools/`
+2. 🟡 更新核心概念文件（agent, sandbox, subagent, memory）
+3. 🟡 更新内部机制文件（agent-loop, configuration）
+4. 🟡 更新运维层文件（security, app-layer）
+5. 🟢 验证 + 数字审计（grep 全量搜索不一致数字）
+6. 🟢 交叉引用检查（确保所有链接可达、名称匹配）
+7. ⚪ 新增子系统文件（TUI, goal, record/replay, deferred, secrets, connections）
+8. 🔵 开发者旅程连贯性走查
