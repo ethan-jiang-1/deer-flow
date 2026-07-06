@@ -12,11 +12,5 @@
 | `harness-hooks/` | 扩展点：配置热加载、单例传播、反射加载、Guardrail、MCP 拦截器、ContextVar 覆盖 |
 | `configuration/` | 配置系统：config.yaml 全字段参考、extensions_config.json、动态加载 |
 | `runtime/` | 自建运行时：RunManager、StreamBridge、Serialization、RunJournal |
-
-## 单篇文件
-
-| 文件 | 内容 |
-|------|------|
-| `10-persistence.md` | 持久化：DB/Checkpointer/Store 三后端 |
-| `11-frontend.md` | 前端架构：Next.js、流式渲染 |
-| `12-mcp-deep-dive.md` | MCP 深度：Session Pool、OAuth、缓存失效 |
+| `persistence/` | 持久化：DB/Checkpointer/Store 三后端（SQLite/Postgres/Memory） |
+| `mcp/` | MCP 深度：Session Pool、OAuth、缓存失效 |
