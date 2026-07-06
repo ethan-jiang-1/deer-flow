@@ -357,6 +357,7 @@ client.chat("继续之前的工作，实现 spec-3", thread_id="sdd-project")
 |------|------|
 | Agent Workflow 编排：Main Agent 启动 Sub-agent | [agent-workflow-orchestration.md](agent-workflow-orchestration.md) |
 | 🔰 一步步跟我做：从零到 DeerFlow 跑起来 | [step-by-step-setup.md](step-by-step-setup.md) |
+| 所有交互手段 + Agent 测试 + 从实验到 CI | [interaction-methods-and-testing.md](interaction-methods-and-testing.md) |
 
 | 问题 | 路径 |
 |------|------|
