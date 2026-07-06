@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1100" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/></marker>
+    <marker id="arrow-red" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#EF5350"/></marker>
+  </defs>
+
+  <text x="450" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">DeerFlow 请求完整生命周期</text>
+  <text x="450" y="42" text-anchor="middle" font-size="10" fill="#78909C">从 HTTP POST 到 SSE 返回的 17 步完整追踪 · 基于源码</text>
+
+  <!-- ===== PHASE 1: Entry ===== -->
+  <rect x="20" y="58" width="860" height="30" rx="4" fill="#ECEFF1"/>
+  <text x="450" y="78" text-anchor="middle" font-size="12" font-weight="700" fill="#546E7A">Phase 1: HTTP Entry</text>
+
+  <!-- User -->
+  <rect x="300" y="98" width="300" height="40" rx="6" fill="#E8F5E9" stroke="#66BB6A" stroke-width="1.5"/>
+  <text x="450" y="116" text-anchor="middle" font-size="10" font-weight="600" fill="#2E7D32">POST /api/threads/{thread_id}/runs/stream</text>
+  <text x="450" y="130" text-anchor="middle" font-size="9" fill="#388E3C">Body: {"input": {"messages": [...]}, "context": {...}}</text>
+
+  <line x1="450" y1="140" x2="450" y2="158" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Nginx -->
+  <rect x="250" y="162" width="400" height="48" rx="6" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="450" y="182" text-anchor="middle" font-size="11" font-weight="700" fill="#E65100">Nginx (:2026)</text>
+  <text x="450" y="198" text-anchor="middle" font-size="9" fill="#795548">/api/langgraph/* → rewrite → /api/* | 其他 /api/* → 直接转发</text>
+  <text x="450" y="210" text-anchor="middle" font-size="8" fill="#A1887F">docker/nginx/nginx.conf · nginx.local.conf</text>
+
+  <line x1="450" y1="212" x2="450" y2="230" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Auth -->
+  <rect x="250" y="234" width="400" height="38" rx="6" fill="#E3F2FD" stroke="#42A5F5" stroke-width="1.5"/>
+  <text x="450" y="253" text-anchor="middle" font-size="11" font-weight="600" fill="#1565C0">Gateway (:8001) — AuthMiddleware · CSRFMiddleware</text>
+  <text x="450" y="268" text-anchor="middle" font-size="9" fill="#1976D2">JWT / Internal / Anonymous · CSRF Double-Submit Cookie</text>
+
+  <line x1="450" y1="274" x2="450" y2="292" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== PHASE 2: stream_run ===== -->
+  <rect x="20" y="296" width="860" height="28" rx="4" fill="#ECEFF1"/>
+  <text x="450" y="315" text-anchor="middle" font-size="12" font-weight="700" fill="#546E7A">Phase 2: stream_run() — thread_runs.py</text>
+
+  <rect x="250" y="330" width="400" height="65" rx="6" fill="#E3F2FD" stroke="#42A5F5" stroke-width="1.5"/>
+  <text x="450" y="350" text-anchor="middle" font-size="11" font-weight="600" fill="#1565C0">Router: thread_runs.py → stream_run()</text>
+  <text x="450" y="366" text-anchor="middle" font-size="9" fill="#1976D2">get_stream_bridge(request) · get_run_manager(request)</text>
+  <text x="450" y="380" text-anchor="middle" font-size="9" fill="#1976D2">record = await start_run(body, thread_id, request)</text>
+  <text x="450" y="393" text-anchor="middle" font-size="8" fill="#64B5F6">→ StreamingResponse(sse_consumer(bridge, record, ...))</text>
+
+  <line x1="450" y1="397" x2="450" y2="415" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== PHASE 3: start_run ===== -->
+  <rect x="20" y="420" width="860" height="28" rx="4" fill="#ECEFF1"/>
+  <text x="450" y="439" text-anchor="middle" font-size="12" font-weight="700" fill="#546E7A">Phase 3: start_run() — services.py</text>
+
+  <rect x="200" y="454" width="500" height="125" rx="6" fill="#E3F2FD" stroke="#42A5F5" stroke-width="1.5"/>
+  <text x="450" y="474" text-anchor="middle" font-size="11" font-weight="600" fill="#1565C0">start_run(body, thread_id, request) — 8 步准备</text>
+  <text x="450" y="492" text-anchor="middle" font-size="9" fill="#1976D2">① 验证 model (allowlist) ② RunManager.create_or_reject() → RunRecord</text>
+  <text x="450" y="506" text-anchor="middle" font-size="9" fill="#1976D2">③ upsert thread metadata ④ resolve agent_factory = make_lead_agent</text>
+  <text x="450" y="520" text-anchor="middle" font-size="9" fill="#1976D2">⑤ normalize input messages ⑥ build_run_config() → RunnableConfig</text>
+  <text x="450" y="534" text-anchor="middle" font-size="9" fill="#1976D2">⑦ merge_run_context_overrides() — 白名单 context keys</text>
+  <text x="450" y="548" text-anchor="middle" font-size="9" fill="#1976D2">⑧ inject_authenticated_user_context()</text>
+  <text x="450" y="565" text-anchor="middle" font-size="9" fill="#64B5F6">→ asyncio.create_task(run_agent(run_context, input, config, ...))</text>
+
+  <!-- Fork: background task -->
+  <line x1="450" y1="581" x2="450" y2="600" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="320" y="580" width="260" height="18" rx="3" fill="#FFEBEE"/>
+  <text x="450" y="593" text-anchor="middle" font-size="8" fill="#C62828">asyncio.create_task → 后台执行</text>
+  <path d="M 580 589 L 650 589 L 650 1050 L 580 1050" fill="none" stroke="#EF5350" stroke-width="1.5" stroke-dasharray="4,2"/>
+  <text x="660" y="750" font-size="9" fill="#EF5350" transform="rotate(90,660,750)">同时: sse_consumer 监听 StreamBridge → SSE frames → HTTP response</text>
+
+  <!-- ===== PHASE 4: run_agent ===== -->
+  <rect x="20" y="605" width="860" height="28" rx="4" fill="#ECEFF1"/>
+  <text x="450" y="624" text-anchor="middle" font-size="12" font-weight="700" fill="#546E7A">Phase 4: run_agent() — worker.py (后台任务)</text>
+
+  <rect x="100" y="640" width="700" height="125" rx="6" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="450" y="660" text-anchor="middle" font-size="11" font-weight="600" fill="#E65100">run_agent(run_context, graph_input, config) — 17 步执行</text>
+  <text x="450" y="678" text-anchor="middle" font-size="9" fill="#795548">① 解包 RunContext ② 初始化 RunJournal ③ set_status→running</text>
+  <text x="450" y="692" text-anchor="middle" font-size="9" fill="#795548">④ 捕获 pre-run checkpoint ⑤ publish metadata event</text>
+  <text x="450" y="706" text-anchor="middle" font-size="9" fill="#795548">⑥ build_runtime_context ⑦ install __pregel_runtime ⑧ inject journal callback</text>
+  <text x="450" y="720" text-anchor="middle" font-size="9" fill="#795548">⑨ inject_langfuse_metadata ⑩ resolve_root_run_name</text>
+  <text x="450" y="738" text-anchor="middle" font-size="9" fill="#E65100">⑪ agent = make_lead_agent(config) — 图构建 (见下方)</text>
+  <text x="450" y="752" text-anchor="middle" font-size="9" fill="#795548">⑫ attach checkpointer + store ⑬ set interrupt nodes ⑭ map stream modes</text>
+  <text x="450" y="764" text-anchor="middle" font-size="8" fill="#A1887F">→ ⑮ agent.astream(graph_input, config, stream_mode=[values, messages, custom])</text>
+
+  <line x1="450" y1="767" x2="450" y2="788" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== PHASE 5: make_lead_agent ===== -->
+  <rect x="20" y="793" width="860" height="28" rx="4" fill="#ECEFF1"/>
+  <text x="450" y="812" text-anchor="middle" font-size="12" font-weight="700" fill="#546E7A">Phase 5: make_lead_agent() — 图构建 (agent.py)</text>
+
+  <rect x="60" y="828" width="780" height="135" rx="6" fill="#F3E5F5" stroke="#AB47BC" stroke-width="1.5"/>
+  <text x="450" y="848" text-anchor="middle" font-size="11" font-weight="600" fill="#6A1B9A">_make_lead_agent(config) — 7 步组装 Agent Graph</text>
+  <text x="450" y="866" text-anchor="middle" font-size="9" fill="#7B1FA2">a. _get_runtime_config() — 合并 configurable + context</text>
+  <text x="450" y="880" text-anchor="middle" font-size="9" fill="#7B1FA2">b. resolve model_name: request → agent config → global default</text>
+  <text x="450" y="894" text-anchor="middle" font-size="9" fill="#7B1FA2">c. load_agent_config(name) — custom agent SOUL.md + config.yaml</text>
+  <text x="450" y="908" text-anchor="middle" font-size="9" fill="#7B1FA2">d. inject tracing callbacks e. get_available_tools() — 4 来源组装</text>
+  <text x="450" y="922" text-anchor="middle" font-size="9" fill="#7B1FA2">f. create_chat_model(name, thinking) g. available_skill_names</text>
+  <text x="450" y="936" text-anchor="middle" font-size="9" fill="#7B1FA2">h. filter tools by skill allowed-tools i. _build_middlewares() — 19 个有序链</text>
+  <text x="450" y="950" text-anchor="middle" font-size="9" fill="#7B1FA2">j. apply_prompt_template() k. create_agent(model, tools, middleware, prompt, ThreadState)</text>
+  <text x="450" y="963" text-anchor="middle" font-size="8" fill="#CE93D8">→ CompiledStateGraph (LangGraph)</text>
+
+  <line x1="450" y1="965" x2="450" y2="986" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== PHASE 6: Pregel ===== -->
+  <rect x="20" y="991" width="860" height="28" rx="4" fill="#ECEFF1"/>
+  <text x="450" y="1010" text-anchor="middle" font-size="12" font-weight="700" fill="#546E7A">Phase 6: agent.astream() → LangGraph Pregel → SSE → 客户端</text>
+
+  <rect x="100" y="1025" width="700" height="65" rx="6" fill="#E8F5E9" stroke="#43A047" stroke-width="1.5"/>
+  <text x="450" y="1045" text-anchor="middle" font-size="10" font-weight="600" fill="#1B5E20">LangGraph Pregel 执行 — Turn 1..N</text>
+  <text x="450" y="1061" text-anchor="middle" font-size="9" fill="#2E7D32">before_model → LLM call → AIMessage (text+tool_calls)</text>
+  <text x="450" y="1075" text-anchor="middle" font-size="9" fill="#2E7D32">after_model → tool execute → ToolMessage → 循环 或 END</text>
+  <text x="450" y="1089" text-anchor="middle" font-size="8" fill="#81C784">每个 chunk → serialize() → StreamBridge.publish(run_id, evt)</text>
+
+  <!-- Final: SSE consumer -->
+  <rect x="580" y="1025" width="290" height="65" rx="6" fill="#FFEBEE" stroke="#EF5350" stroke-width="2"/>
+  <text x="725" y="1045" text-anchor="middle" font-size="10" font-weight="700" fill="#B71C1C">SSE Consumer (同时)</text>
+  <text x="725" y="1061" text-anchor="middle" font-size="8" fill="#C62828">bridge.subscribe(run_id)</text>
+  <text x="725" y="1075" text-anchor="middle" font-size="8" fill="#C62828">→ async for event</text>
+  <text x="725" y="1089" text-anchor="middle" font-size="8" fill="#C62828">→ SSE frame → HTTP response</text>
+
+  <!-- Config loading note -->
+  <rect x="30" y="55" width="160" height="22" rx="3" fill="#F5F5F5" stroke="#BDBDBD"/>
+  <text x="110" y="70" text-anchor="middle" font-size="7" fill="#757575">config.yaml (mtime hot-reload)</text>
+</svg>

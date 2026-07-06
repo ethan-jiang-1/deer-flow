@@ -1,0 +1,140 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 720" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/></marker>
+  </defs>
+
+  <text x="450" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">DeerFlow 进程拓扑 — 组件部署图</text>
+  <text x="450" y="42" text-anchor="middle" font-size="10" fill="#78909C">物理进程/容器及端口映射 · 数据流向</text>
+
+  <!-- ===== Nginx ===== -->
+  <rect x="150" y="60" width="600" height="100" rx="10" fill="#ECEFF1" stroke="#78909C" stroke-width="2.5"/>
+  <text x="450" y="85" text-anchor="middle" font-size="14" font-weight="700" fill="#37474F">Nginx (Reverse Proxy) — :2026</text>
+  <text x="450" y="103" text-anchor="middle" font-size="10" fill="#546E7A">docker/nginx/nginx.local.conf · nginx.conf</text>
+  <!-- Nginx routing rules -->
+  <rect x="175" y="115" width="175" height="30" rx="4" fill="#CFD8DC"/>
+  <text x="262" y="134" text-anchor="middle" font-size="9" fill="#37474F">/api/langgraph/* → rewrite → /api/*</text>
+  <rect x="362" y="115" width="175" height="30" rx="4" fill="#CFD8DC"/>
+  <text x="450" y="134" text-anchor="middle" font-size="9" fill="#37474F">/api/* → Gateway:8001</text>
+  <rect x="550" y="115" width="180" height="30" rx="4" fill="#CFD8DC"/>
+  <text x="640" y="134" text-anchor="middle" font-size="9" fill="#37474F">/ → Frontend:3000</text>
+
+  <!-- Arrows from Nginx -->
+  <line x1="300" y1="162" x2="200" y2="230" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="450" y1="162" x2="450" y2="230" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="600" y1="162" x2="700" y2="230" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="240" y="195" font-size="8" fill="#78909C">API</text>
+  <text x="470" y="195" font-size="8" fill="#78909C">API</text>
+  <text x="640" y="195" font-size="8" fill="#78909C">Web</text>
+
+  <!-- ===== Gateway ===== -->
+  <rect x="100" y="235" width="700" height="180" rx="10" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2.5"/>
+  <text x="450" y="260" text-anchor="middle" font-size="14" font-weight="700" fill="#0D47A1">FastAPI Gateway — :8001 (app/gateway/)</text>
+
+  <!-- Gateway internals -->
+  <rect x="120" y="275" width="330" height="65" rx="5" fill="#BBDEFB"/>
+  <text x="285" y="295" text-anchor="middle" font-size="11" font-weight="700" fill="#1565C0">16 REST Routers</text>
+  <text x="285" y="312" text-anchor="middle" font-size="8" fill="#1976D2">/api/models · /api/mcp · /api/memory</text>
+  <text x="285" y="325" text-anchor="middle" font-size="8" fill="#1976D2">/api/skills · /api/agents · /api/auth</text>
+  <text x="285" y="338" text-anchor="middle" font-size="8" fill="#1976D2">/api/threads/{id}/runs/stream · /wait</text>
+
+  <rect x="470" y="275" width="310" height="65" rx="5" fill="#BBDEFB"/>
+  <text x="625" y="295" text-anchor="middle" font-size="11" font-weight="700" fill="#1565C0">LangGraph-Compatible Runtime</text>
+  <text x="625" y="312" text-anchor="middle" font-size="8" fill="#1976D2">RunManager · StreamBridge · Checkpointer</text>
+  <text x="625" y="325" text-anchor="middle" font-size="8" fill="#1976D2">RunRepository · ThreadMetaStore</text>
+  <text x="625" y="338" text-anchor="middle" font-size="8" fill="#1976D2">RunEventStore · RunJournal · RunWorker</text>
+
+  <!-- Middleware bar -->
+  <rect x="120" y="348" width="660" height="28" rx="4" fill="#90CAF9"/>
+  <text x="450" y="367" text-anchor="middle" font-size="9" fill="#0D47A1">AuthMiddleware · CSRFMiddleware · CORS (conditional) · lifespan: config load → langgraph_runtime → channel service</text>
+
+  <!-- Harness callout -->
+  <rect x="120" y="385" width="660" height="22" rx="4" fill="#E8EAF6"/>
+  <text x="450" y="400" text-anchor="middle" font-size="9" fill="#283593">→ make_lead_agent(config) — Harness 工厂调用</text>
+
+  <!-- Arrow down to Harness -->
+  <line x1="450" y1="417" x2="450" y2="450" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ===== Harness ===== -->
+  <rect x="100" y="455" width="700" height="155" rx="10" fill="#FFF3E0" stroke="#FF9800" stroke-width="2.5"/>
+  <text x="450" y="480" text-anchor="middle" font-size="14" font-weight="700" fill="#E65100">Harness (deerflow.*) — packages/harness/deerflow/</text>
+
+  <!-- Harness module grid -->
+  <rect x="120" y="495" width="130" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="185" y="515" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">agents/</text>
+  <text x="185" y="530" text-anchor="middle" font-size="7" fill="#E65100">lead_agent · middlewares</text>
+  <text x="185" y="540" text-anchor="middle" font-size="7" fill="#E65100">memory · prompt · state</text>
+
+  <rect x="262" y="495" width="130" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="327" y="515" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">sandbox/</text>
+  <text x="327" y="530" text-anchor="middle" font-size="7" fill="#E65100">local · aio_sandbox</text>
+  <text x="327" y="540" text-anchor="middle" font-size="7" fill="#E65100">tools · middleware</text>
+
+  <rect x="404" y="495" width="130" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="469" y="515" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">tools/ + skills/</text>
+  <text x="469" y="530" text-anchor="middle" font-size="7" fill="#E65100">builtins · MCP · community</text>
+  <text x="469" y="540" text-anchor="middle" font-size="7" fill="#E65100">SKILL.md · tool_policy</text>
+
+  <rect x="546" y="495" width="110" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="601" y="515" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">subagents/</text>
+  <text x="601" y="530" text-anchor="middle" font-size="7" fill="#E65100">executor · registry</text>
+  <text x="601" y="540" text-anchor="middle" font-size="7" fill="#E65100">builtins (2)</text>
+
+  <rect x="668" y="495" width="112" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="724" y="515" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">models/</text>
+  <text x="724" y="530" text-anchor="middle" font-size="7" fill="#E65100">factory · patched_*</text>
+  <text x="724" y="540" text-anchor="middle" font-size="7" fill="#E65100">vllm · codex</text>
+
+  <rect x="120" y="550" width="160" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="200" y="570" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">config/ + runtime/</text>
+  <text x="200" y="585" text-anchor="middle" font-size="7" fill="#E65100">AppConfig (26)· RunManager</text>
+  <text x="200" y="595" text-anchor="middle" font-size="7" fill="#E65100">StreamBridge · Journal · Store</text>
+
+  <rect x="292" y="550" width="160" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="372" y="570" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">mcp/ + community/</text>
+  <text x="372" y="585" text-anchor="middle" font-size="7" fill="#E65100">client · cache · oauth</text>
+  <text x="372" y="595" text-anchor="middle" font-size="7" fill="#E65100">tavily · jina · firecrawl</text>
+
+  <rect x="464" y="550" width="160" height="48" rx="4" fill="#FFE0B2"/>
+  <text x="544" y="570" text-anchor="middle" font-size="9" font-weight="700" fill="#BF360C">tracing/ + reflection/</text>
+  <text x="544" y="585" text-anchor="middle" font-size="7" fill="#E65100">langsmith · langfuse</text>
+  <text x="544" y="595" text-anchor="middle" font-size="7" fill="#E65100">resolve_class · resolve_var</text>
+
+  <rect x="636" y="550" width="144" height="48" rx="4" fill="#C8E6C9"/>
+  <text x="708" y="570" text-anchor="middle" font-size="9" font-weight="700" fill="#1B5E20">client.py</text>
+  <text x="708" y="585" text-anchor="middle" font-size="7" fill="#2E7D32">DeerFlowClient</text>
+  <text x="708" y="595" text-anchor="middle" font-size="7" fill="#2E7D32">嵌入式 Python SDK</text>
+
+  <!-- ===== Frontend ===== -->
+  <rect x="500" y="235" width="300" height="130" rx="10" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
+  <text x="650" y="260" text-anchor="middle" font-size="13" font-weight="700" fill="#1B5E20">Frontend — :3000</text>
+  <text x="650" y="278" text-anchor="middle" font-size="10" fill="#2E7D32">Next.js 16 · App Router</text>
+
+  <rect x="515" y="290" width="270" height="30" rx="4" fill="#C8E6C9"/>
+  <text x="650" y="309" text-anchor="middle" font-size="9" fill="#1B5E20">core/ — threads · agents · skills · mcp</text>
+  <rect x="515" y="325" width="270" height="30" rx="4" fill="#C8E6C9"/>
+  <text x="650" y="344" text-anchor="middle" font-size="9" fill="#1B5E20">components/workspace/ — chats · messages · settings</text>
+
+  <!-- ===== Provisioner ===== -->
+  <rect x="100" y="235" width="190" height="60" rx="6" fill="#FCE4EC" stroke="#EC407A" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="195" y="258" text-anchor="middle" font-size="10" font-weight="700" fill="#880E4F">Provisioner — :8002</text>
+  <text x="195" y="275" text-anchor="middle" font-size="8" fill="#AD1457">K3s Pod Manager</text>
+  <text x="195" y="288" text-anchor="middle" font-size="8" fill="#AD1457">(Docker/K3s only, optional)</text>
+
+  <!-- ===== Data Storage ===== -->
+  <rect x="100" y="640" width="700" height="70" rx="8" fill="#F5F5F5" stroke="#BDBDBD" stroke-width="1.5"/>
+  <text x="450" y="660" text-anchor="middle" font-size="11" font-weight="700" fill="#424242">Data Storage</text>
+  <rect x="120" y="670" width="120" height="30" rx="3" fill="#E0E0E0"/>
+  <text x="180" y="689" text-anchor="middle" font-size="8" fill="#424242">config.yaml</text>
+  <rect x="255" y="670" width="140" height="30" rx="3" fill="#E0E0E0"/>
+  <text x="325" y="689" text-anchor="middle" font-size="8" fill="#424242">extensions_config.json</text>
+  <rect x="410" y="670" width="130" height="30" rx="3" fill="#E0E0E0"/>
+  <text x="475" y="689" text-anchor="middle" font-size="8" fill="#424242">.deer-flow/data/ (SQLite)</text>
+  <rect x="555" y="670" width="110" height="30" rx="3" fill="#E0E0E0"/>
+  <text x="610" y="689" text-anchor="middle" font-size="8" fill="#424242">skills/{public,custom}/</text>
+  <rect x="680" y="670" width="100" height="30" rx="3" fill="#E0E0E0"/>
+  <text x="730" y="689" text-anchor="middle" font-size="8" fill="#424242">.deer-flow/users/</text>
+
+  <!-- Boundary note -->
+  <rect x="20" y="55" width="155" height="28" rx="3" fill="#F3E5F5" stroke="#CE93D8"/>
+  <text x="97" y="73" text-anchor="middle" font-size="7" fill="#6A1B9A">Harness/App 边界 CI 强制</text>
+</svg>

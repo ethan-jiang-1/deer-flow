@@ -6,70 +6,13 @@
 
 ## 总览：四层同心圆
 
-```
-                        ┌──────────────────────────────┐
-                        │         Access Layer          │
-                        │  Web UI · HTTP API · IM Ch    │
-                        │  Python SDK (DeerFlowClient)  │
-                        ├──────────────────────────────┤
-                        │       Gateway (app.*)         │
-                        │  REST routers · Auth · CSRF   │
-                        │  LangGraph-compatible runtime │
-                        │  IM Channel Service           │
-                        ├──────────────────────────────┤
-                        │    Harness (deerflow.*)       │
-                        │  ┌─────────────────────────┐ │
-                        │  │   Agent Graph (LangGraph)│ │
-                        │  │   Middleware Chain (19)  │ │
-                        │  │   Tools · Skills · MCP   │ │
-                        │  │   Sandbox · Subagents    │ │
-                        │  │   Memory · Tracing       │ │
-                        │  └─────────────────────────┘ │
-                        ├──────────────────────────────┤
-                        │      Core Infrastructure      │
-                        │  Checkpointer · RunManager    │
-                        │  StreamBridge · Persistence   │
-                        │  Model Factory · Config       │
-                        └──────────────────────────────┘
-```
+![四层同心圆](figures/concentric-rings.svg)
 
 ---
 
 ## Agent Loop 核心循环
 
-```
-        ┌──────────────────────────────────────────────┐
-        │              Agent Loop (per turn)            │
-        │                                              │
-        │  System Prompt                               │
-        │  ┌──────────────────────────────────────┐    │
-        │  │ <memory>  <available_skills>          │    │
-        │  │ <available-deferred-tools>  SOUL.md   │    │
-        │  │ <thread_data>  <uploaded_files>       │    │
-        │  └──────────────────────────────────────┘    │
-        │         │                                     │
-        │         ▼                                     │
-        │  ┌─────────────┐                             │
-        │  │  LLM Call   │ ← thinking / vision /       │
-        │  │  (model)    │   reasoning_effort           │
-        │  └──────┬──────┘                             │
-        │         │                                     │
-        │    ┌────▼────┐                               │
-        │    │ Tool    │  bash · read_file · write_file │
-        │    │ Calls   │  ls · glob · grep · str_replace│
-        │    │         │  task(subagent) · tool_search  │
-        │    │         │  present_files · ask_clarify   │
-        │    │         │  MCP tools · Community tools   │
-        │    └────┬────┘                               │
-        │         │                                     │
-        │    ┌────▼────┐                               │
-        │    │ Results │  ToolMessage → next LLM call   │
-        │    └────┬────┘  或 END（无更多 tool calls）    │
-        │         │                                     │
-        │         ▼                                     │
-        │   继续循环 或 结束 turn                        │
-        └──────────────────────────────────────────────┘
-```
+![Agent Loop](figures/agent-loop.svg)
 
 ---
 
@@ -105,66 +48,19 @@
 
 ## Skills 加载与选择链
 
-```
-skills/{public,custom}/**/SKILL.md
-        │
-        ▼
-LocalSkillStorage.load_skills()
-  → os.walk() 扫描目录
-  → parse_skill_file() 解析 YAML frontmatter
-  → 过滤 enabled_only（来自 extensions_config.json）
-        │
-        ▼
-get_skills_prompt_section()
-  → 全量平铺 name + description → <available_skills> XML 块
-  → 注入系统 prompt
-        │
-        ▼
-LLM 自主判断 → read_file(SKILL.md) → 遵循指令
-```
+![Skills Loading](figures/skills-loading.svg)
 
 ---
 
 ## Sub-agent 委派模型
 
-```
-Lead Agent
-    │
-    │  task("code-reviewer", "审查 X 文件")
-    ▼
-SubagentExecutor
-    │
-    ├─ 双线程池: _scheduler_pool (3) + _execution_pool (3)
-    ├─ MAX_CONCURRENT_SUBAGENTS = 3
-    ├─ 超时: 15 分钟
-    │
-    ├─→ Subagent 1 (独立 agent graph)
-    ├─→ Subagent 2 (独立 agent graph)    ← 并行执行
-    └─→ Subagent 3 (独立 agent graph)
-    │
-    ▼
-结果聚合 → Lead Agent 下一 turn
-```
+![Subagent Delegation](figures/subagent-delegation.svg)
 
 ---
 
 ## Sandbox 虚拟路径系统
 
-```
-Agent 看到的（虚拟）              宿主机实际路径
-──────────────────────────      ──────────────────────────────────
-/mnt/user-data/workspace/   →   {base}/users/{uid}/threads/{tid}/user-data/workspace/
-/mnt/user-data/uploads/     →   {base}/users/{uid}/threads/{tid}/user-data/uploads/
-/mnt/user-data/outputs/     →   {base}/users/{uid}/threads/{tid}/user-data/outputs/
-/mnt/skills/ (只读)         →   {project}/skills/
-/mnt/acp-workspace/ (只读)  →   {base}/users/{uid}/threads/{tid}/acp-workspace/
-自定义 mounts               →   宿主机任意目录（config.yaml 配置）
-
-安全层：
-  validate_local_tool_path()  →  路径白名单（4 个前缀）
-  _reject_path_traversal()    →  拒绝 ..
-  mask_local_paths_in_output()→  脱敏宿主机路径
-```
+![Sandbox Paths](figures/sandbox-paths.svg)
 
 ---
 

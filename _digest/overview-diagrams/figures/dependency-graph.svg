@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#78909C"/></marker>
+  </defs>
+
+  <text x="400" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">Harness 内部依赖关系图</text>
+  <text x="400" y="42" text-anchor="middle" font-size="10" fill="#78909C">deerflow-harness (packages/harness/deerflow/) 模块间 import 关系</text>
+
+  <!-- ===== Top: client.py ===== -->
+  <rect x="270" y="58" width="260" height="35" rx="8" fill="#C8E6C9" stroke="#43A047" stroke-width="2"/>
+  <text x="400" y="80" text-anchor="middle" font-size="12" font-weight="700" fill="#1B5E20">client.py — DeerFlowClient (嵌入式入口)</text>
+
+  <!-- Arrow to agents -->
+  <line x1="400" y1="95" x2="400" y2="118" stroke="#78909C" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== agents/ ===== -->
+  <rect x="230" y="122" width="340" height="72" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+  <text x="400" y="145" text-anchor="middle" font-size="11" font-weight="700" fill="#0D47A1">agents/ — Agent 编排核心</text>
+  <text x="400" y="162" text-anchor="middle" font-size="8" fill="#1565C0">make_lead_agent → create_agent · 19 Middleware · ThreadState</text>
+  <text x="400" y="177" text-anchor="middle" font-size="8" fill="#1565C0">prompt.py (system prompt 生成) · memory/ (MemoryMiddleware → Updater → Queue)</text>
+  <text x="400" y="190" text-anchor="middle" font-size="7" fill="#64B5F6">DynamicContextMiddleware · SummarizationMiddleware · TodoListMiddleware · ...</text>
+
+  <!-- Three arrows from agents to sandbox/tools/skills -->
+  <line x1="300" y1="196" x2="200" y2="248" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="400" y1="196" x2="400" y2="248" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="500" y1="196" x2="600" y2="248" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- ===== sandbox/ ===== -->
+  <rect x="50" y="252" width="220" height="60" rx="8" fill="#FFEBEE" stroke="#EF5350" stroke-width="1.5"/>
+  <text x="160" y="275" text-anchor="middle" font-size="10" font-weight="700" fill="#B71C1C">sandbox/</text>
+  <text x="160" y="292" text-anchor="middle" font-size="8" fill="#C62828">local/ · aio_sandbox/</text>
+  <text x="160" y="306" text-anchor="middle" font-size="8" fill="#C62828">tools.py · security.py</text>
+
+  <!-- ===== tools/ ===== -->
+  <rect x="290" y="252" width="220" height="60" rx="8" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="400" y="275" text-anchor="middle" font-size="10" font-weight="700" fill="#E65100">tools/</text>
+  <text x="400" y="292" text-anchor="middle" font-size="8" fill="#BF360C">builtins/ · MCP tools</text>
+  <text x="400" y="306" text-anchor="middle" font-size="8" fill="#BF360C">community/ · subagent task()</text>
+
+  <!-- ===== skills/ ===== -->
+  <rect x="530" y="252" width="220" height="60" rx="8" fill="#E8EAF6" stroke="#5C6BC0" stroke-width="1.5"/>
+  <text x="640" y="275" text-anchor="middle" font-size="10" font-weight="700" fill="#283593">skills/</text>
+  <text x="640" y="292" text-anchor="middle" font-size="8" fill="#3949AB">storage/ · parser.py</text>
+  <text x="640" y="306" text-anchor="middle" font-size="8" fill="#3949AB">tool_policy.py</text>
+
+  <!-- Three arrows down to config -->
+  <line x1="160" y1="314" x2="160" y2="368" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="400" y1="314" x2="400" y2="368" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="640" y1="314" x2="640" y2="368" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- ===== config/ ===== -->
+  <rect x="100" y="372" width="600" height="52" rx="8" fill="#F3E5F5" stroke="#AB47BC" stroke-width="2"/>
+  <text x="400" y="394" text-anchor="middle" font-size="11" font-weight="700" fill="#6A1B9A">config/ — 配置与路径系统</text>
+  <text x="400" y="411" text-anchor="middle" font-size="8" fill="#7B1FA2">app_config.py (AppConfig, 26 sections) · sandbox_config · model_config · skills_config</text>
+  <text x="400" y="424" text-anchor="middle" font-size="7" fill="#CE93D8">extensions_config · subagents_config · memory_config · paths.py · runtime_paths.py · 20+ models</text>
+
+  <!-- Three arrows down from config -->
+  <line x1="250" y1="426" x2="200" y2="478" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="400" y1="426" x2="400" y2="478" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="550" y1="426" x2="600" y2="478" stroke="#78909C" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- ===== Bottom row: models/, runtime/, mcp/ ===== -->
+  <rect x="50" y="482" width="220" height="52" rx="8" fill="#E0F7FA" stroke="#00ACC1" stroke-width="1.5"/>
+  <text x="160" y="504" text-anchor="middle" font-size="10" font-weight="700" fill="#006064">models/</text>
+  <text x="160" y="520" text-anchor="middle" font-size="8" fill="#00838F">factory.py (create_chat_model)</text>
+  <text x="160" y="532" text-anchor="middle" font-size="7" fill="#4DD0E1">patched_openai · patched_deepseek · vllm · codex</text>
+
+  <rect x="290" y="482" width="220" height="52" rx="8" fill="#F3E5F5" stroke="#AB47BC" stroke-width="1.5"/>
+  <text x="400" y="504" text-anchor="middle" font-size="10" font-weight="700" fill="#6A1B9A">runtime/</text>
+  <text x="400" y="520" text-anchor="middle" font-size="8" fill="#7B1FA2">RunManager · StreamBridge · Journal</text>
+  <text x="400" y="532" text-anchor="middle" font-size="7" fill="#CE93D8">checkpointer/ · store/ · serialization</text>
+
+  <rect x="530" y="482" width="220" height="52" rx="8" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="640" y="504" text-anchor="middle" font-size="10" font-weight="700" fill="#E65100">mcp/</text>
+  <text x="640" y="520" text-anchor="middle" font-size="8" fill="#BF360C">client · cache · oauth</text>
+  <text x="640" y="532" text-anchor="middle" font-size="7" fill="#FFB74D">session_pool · interceptors</text>
+
+  <!-- Cross-cutting callouts -->
+  <rect x="50" y="548" width="700" height="42" rx="6" fill="#F5F5F5" stroke="#BDBDBD"/>
+  <text x="400" y="565" text-anchor="middle" font-size="9" fill="#616161">Cross-cutting: tracing/ (LangSmith+Langfuse) · reflection/ (resolve_class) · guardrails/ · uploads/ · community/ (tavily/jina/firecrawl/aio_sandbox)</text>
+  <text x="400" y="582" text-anchor="middle" font-size="8" fill="#9E9E9E">Import direction: agents → sandbox/tools/skills → config → models/runtime/mcp. Config is the shared dependency hub.</text>
+</svg>

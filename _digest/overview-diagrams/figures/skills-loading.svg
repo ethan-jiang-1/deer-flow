@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 480" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/></marker>
+  </defs>
+
+  <text x="400" y="22" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">Skills 加载与选择链</text>
+  <text x="400" y="38" text-anchor="middle" font-size="10" fill="#78909C">从磁盘上的 SKILL.md 到系统 prompt 注入的完整流程</text>
+
+  <!-- Step 1: Disk -->
+  <rect x="200" y="55" width="400" height="42" rx="6" fill="#E8EAF6" stroke="#5C6BC0" stroke-width="2"/>
+  <text x="400" y="73" text-anchor="middle" font-size="10" font-weight="700" fill="#283593">skills/{public,custom}/**/SKILL.md</text>
+  <text x="400" y="88" text-anchor="middle" font-size="8" fill="#3949AB">public/: 23 内置 skills (git tracked) · custom/: 用户 skills (gitignored)</text>
+
+  <line x1="400" y1="99" x2="400" y2="118" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Parse -->
+  <rect x="180" y="122" width="440" height="78" rx="6" fill="#E3F2FD" stroke="#1E88E5" stroke-width="1.5"/>
+  <text x="400" y="143" text-anchor="middle" font-size="11" font-weight="700" fill="#0D47A1">LocalSkillStorage.load_skills(enabled_only=True)</text>
+  <text x="400" y="160" text-anchor="middle" font-size="9" fill="#1565C0">deerflow/skills/storage/local_skill_storage.py:63-74</text>
+  <text x="400" y="176" text-anchor="middle" font-size="9" fill="#1976D2">① os.walk() 递归扫描 public/ + custom/ 目录</text>
+  <text x="400" y="190" text-anchor="middle" font-size="9" fill="#1976D2">② parse_skill_file() — 解析 YAML frontmatter (name, description, license, allowed-tools)</text>
+  <text x="400" y="204" text-anchor="middle" font-size="8" fill="#64B5F6">③ 过滤 enabled_only — 来自 extensions_config.json 的 skills.{name}.enabled 状态</text>
+
+  <line x1="400" y1="202" x2="400" y2="222" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: Inject -->
+  <rect x="180" y="226" width="440" height="65" rx="6" fill="#FFF3E0" stroke="#FF9800" stroke-width="1.5"/>
+  <text x="400" y="247" text-anchor="middle" font-size="11" font-weight="700" fill="#E65100">get_skills_prompt_section() → 系统 prompt 注入</text>
+  <text x="400" y="264" text-anchor="middle" font-size="9" fill="#BF360C">deerflow/agents/lead_agent/prompt.py:626-656</text>
+  <text x="400" y="280" text-anchor="middle" font-size="9" fill="#795548">所有 enabled skill 的 (name, description, category, file_path) 全量平铺</text>
+  <text x="400" y="294" text-anchor="middle" font-size="8" fill="#A1887F">不经任何过滤、排序、或相关性计算 → XML 格式 &lt;available_skills&gt; 块</text>
+
+  <line x1="400" y1="293" x2="400" y2="315" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: LLM -->
+  <rect x="180" y="319" width="440" height="55" rx="6" fill="#F3E5F5" stroke="#AB47BC" stroke-width="1.5"/>
+  <text x="400" y="340" text-anchor="middle" font-size="11" font-weight="700" fill="#6A1B9A">LLM 自主选择 → read_file(SKILL.md) → 遵循指令</text>
+  <text x="400" y="358" text-anchor="middle" font-size="9" fill="#7B1FA2">纯 LLM 自主决策，零辅助 · 无 relevance 排序 · 无 keyword/trigger 匹配 · 无 embedding 语义搜索</text>
+  <text x="400" y="372" text-anchor="middle" font-size="8" fill="#CE93D8">唯一筛选机制: AgentConfig.skills (静态 whitelist) 或 is_bootstrap → {"bootstrap"} (硬编码)</text>
+
+  <!-- Problem callout -->
+  <rect x="50" y="390" width="700" height="80" rx="6" fill="#FFEBEE" stroke="#EF5350" stroke-width="1.5"/>
+  <text x="400" y="412" text-anchor="middle" font-size="12" font-weight="700" fill="#B71C1C">⚠ 已知问题：Skill 数量超过 50 时选择精度下降至 50%-80%</text>
+  <text x="400" y="432" text-anchor="middle" font-size="9" fill="#C62828">原因: Context 稀释 (平铺 50+ skill) · 描述歧义 (相似 skill 间混淆) · 长尾遗忘 (列表末尾少被选)</text>
+  <text x="400" y="450" text-anchor="middle" font-size="9" fill="#C62828">改进方向: context budget 硬上限 · trigger_keywords frontmatter · skill_search tool (类似 tool_search 模式)</text>
+  <text x="400" y="466" text-anchor="middle" font-size="8" fill="#EF9A9A">详见 _faq_on_digested/skill-selection-accuracy/ 和 precise-skill-selection/</text>
+</svg>

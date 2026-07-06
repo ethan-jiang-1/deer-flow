@@ -1,0 +1,143 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 750" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/></marker>
+  </defs>
+
+  <text x="425" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">DeerFlow Agent Loop — 核心执行循环</text>
+  <text x="425" y="42" text-anchor="middle" font-size="10" fill="#78909C">每个 turn 的完整执行周期 · 基于 LangGraph create_agent + 19 Middleware</text>
+
+  <!-- System Prompt Box -->
+  <rect x="175" y="60" width="500" height="115" rx="8" fill="#E8EAF6" stroke="#5C6BC0" stroke-width="2"/>
+  <text x="425" y="82" text-anchor="middle" font-size="13" font-weight="700" fill="#283593">System Prompt 组装</text>
+  <rect x="195" y="92" width="145" height="28" rx="4" fill="#C5CAE9"/>
+  <text x="267" y="111" text-anchor="middle" font-size="10" fill="#1A237E">&lt;memory&gt; 用户记忆</text>
+  <rect x="350" y="92" width="145" height="28" rx="4" fill="#C5CAE9"/>
+  <text x="422" y="111" text-anchor="middle" font-size="10" fill="#1A237E">&lt;available_skills&gt;</text>
+  <rect x="505" y="92" width="150" height="28" rx="4" fill="#C5CAE9"/>
+  <text x="580" y="111" text-anchor="middle" font-size="10" fill="#1A237E">SOUL.md (agent 人格)</text>
+  <rect x="222" y="128" width="135" height="28" rx="4" fill="#C5CAE9"/>
+  <text x="290" y="147" text-anchor="middle" font-size="10" fill="#1A237E">&lt;deferred-tools&gt;</text>
+  <rect x="365" y="128" width="135" height="28" rx="4" fill="#C5CAE9"/>
+  <text x="432" y="147" text-anchor="middle" font-size="10" fill="#1A237E">&lt;thread_data&gt;</text>
+  <rect x="508" y="128" width="145" height="28" rx="4" fill="#C5CAE9"/>
+  <text x="580" y="147" text-anchor="middle" font-size="10" fill="#1A237E">&lt;uploaded_files&gt;</text>
+
+  <!-- Arrow down -->
+  <line x1="425" y1="178" x2="425" y2="210" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- LLM Call -->
+  <rect x="250" y="215" width="350" height="65" rx="10" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2.5"/>
+  <text x="425" y="240" text-anchor="middle" font-size="14" font-weight="700" fill="#0D47A1">LLM Call — 模型调用</text>
+  <text x="425" y="258" text-anchor="middle" font-size="10" fill="#1565C0">model (DeepSeek/GPT/Claude/...) · thinking · vision · reasoning_effort</text>
+  <text x="425" y="274" text-anchor="middle" font-size="10" fill="#1565C0">→ AIMessage (text + tool_calls)</text>
+
+  <!-- Middleware wrap -->
+  <text x="615" y="247" font-size="9" fill="#5C6BC0" transform="rotate(-90,615,247)">← 19 Middleware 包裹 →</text>
+
+  <!-- Arrow -->
+  <line x1="425" y1="283" x2="425" y2="315" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Tool Execution -->
+  <rect x="200" y="320" width="450" height="100" rx="10" fill="#FFF3E0" stroke="#FF9800" stroke-width="2.5"/>
+  <text x="425" y="345" text-anchor="middle" font-size="14" font-weight="700" fill="#E65100">Tool Execution — 工具执行</text>
+
+  <!-- Tool groups -->
+  <rect x="218" y="355" width="130" height="28" rx="4" fill="#FFE0B2"/>
+  <text x="283" y="374" text-anchor="middle" font-size="9" fill="#BF360C">bash · read · write</text>
+  <rect x="358" y="355" width="100" height="28" rx="4" fill="#FFE0B2"/>
+  <text x="408" y="374" text-anchor="middle" font-size="9" fill="#BF360C">ls · glob · grep</text>
+  <rect x="468" y="355" width="164" height="28" rx="4" fill="#FFE0B2"/>
+  <text x="550" y="374" text-anchor="middle" font-size="9" fill="#BF360C">str_replace · present_files</text>
+  <rect x="238" y="390" width="130" height="25" rx="4" fill="#FFE0B2"/>
+  <text x="303" y="407" text-anchor="middle" font-size="9" fill="#BF360C">task (subagent)</text>
+  <rect x="378" y="390" width="100" height="25" rx="4" fill="#FFE0B2"/>
+  <text x="428" y="407" text-anchor="middle" font-size="9" fill="#BF360C">tool_search</text>
+  <rect x="488" y="390" width="145" height="25" rx="4" fill="#FFE0B2"/>
+  <text x="560" y="407" text-anchor="middle" font-size="9" fill="#BF360C">MCP tools · Community</text>
+
+  <!-- Arrow -->
+  <line x1="425" y1="423" x2="425" y2="455" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Results Box -->
+  <rect x="225" y="460" width="400" height="50" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
+  <text x="425" y="483" text-anchor="middle" font-size="13" font-weight="700" fill="#1B5E20">Results → Sandbox Middleware → Present</text>
+  <text x="425" y="500" text-anchor="middle" font-size="10" fill="#2E7D32">ToolMessage 注入 → 返回 LLM (下一 turn) 或 END (无更多 tool_calls)</text>
+
+  <!-- Loop back arrow -->
+  <path d="M 650 485 Q 700 485 700 260 Q 700 200 610 200" fill="none" stroke="#EF5350" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#arrow)"/>
+  <text x="708" y="340" font-size="9" fill="#EF5350" transform="rotate(90,708,340)">循环直到无 tool_calls 或达 recursion_limit</text>
+
+  <!-- Middleware Chain (horizontal bar at bottom) -->
+  <rect x="40" y="540" width="770" height="195" rx="8" fill="#F5F5F5" stroke="#BDBDBD" stroke-width="1.5"/>
+  <text x="425" y="562" text-anchor="middle" font-size="12" font-weight="700" fill="#424242">19 Middleware 执行链（按顺序）</text>
+
+  <!-- Mermaid-style numbered boxes -->
+  <!-- Row 1: 1-7 -->
+  <rect x="55" y="575" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="104" y="590" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">1. ThreadData</text>
+  <text x="104" y="604" text-anchor="middle" font-size="7" fill="#5C6BC0">per-thread dirs</text>
+  <rect x="160" y="575" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="209" y="590" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">2. Uploads</text>
+  <text x="209" y="604" text-anchor="middle" font-size="7" fill="#5C6BC0">注入已上传文件</text>
+  <rect x="265" y="575" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="314" y="590" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">3. Sandbox</text>
+  <text x="314" y="604" text-anchor="middle" font-size="7" fill="#5C6BC0">获取/释放</text>
+  <rect x="370" y="575" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="419" y="590" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">4. DanglingTC</text>
+  <text x="419" y="604" text-anchor="middle" font-size="7" fill="#5C6BC0">补丁缺失 TM</text>
+  <rect x="475" y="575" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="524" y="590" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">5. LLMError</text>
+  <text x="524" y="604" text-anchor="middle" font-size="7" fill="#5C6BC0">规范化错误</text>
+  <rect x="580" y="575" width="98" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="629" y="590" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">6. Guardrail*</text>
+  <text x="629" y="604" text-anchor="middle" font-size="7" fill="#F57C00">pre-tool auth</text>
+  <rect x="685" y="575" width="110" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="740" y="590" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">7. SandboxAudit</text>
+  <text x="740" y="604" text-anchor="middle" font-size="7" fill="#5C6BC0">审计日志</text>
+
+  <!-- Row 2: 8-14 -->
+  <rect x="55" y="618" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="104" y="633" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">8. ToolError</text>
+  <text x="104" y="647" text-anchor="middle" font-size="7" fill="#5C6BC0">异常→TM</text>
+  <rect x="160" y="618" width="98" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="209" y="633" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">9. Summary*</text>
+  <text x="209" y="647" text-anchor="middle" font-size="7" fill="#F57C00">上下文压缩</text>
+  <rect x="265" y="618" width="98" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="314" y="633" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">10. TodoList*</text>
+  <text x="314" y="647" text-anchor="middle" font-size="7" fill="#F57C00">plan_mode</text>
+  <rect x="370" y="618" width="98" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="419" y="633" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">11. TokenUse*</text>
+  <text x="419" y="647" text-anchor="middle" font-size="7" fill="#F57C00">统计用量</text>
+  <rect x="475" y="618" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="524" y="633" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">12. Title</text>
+  <text x="524" y="647" text-anchor="middle" font-size="7" fill="#5C6BC0">自动标题</text>
+  <rect x="580" y="618" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="629" y="633" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">13. Memory</text>
+  <text x="629" y="647" text-anchor="middle" font-size="7" fill="#5C6BC0">排队→更新</text>
+  <rect x="685" y="618" width="110" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="740" y="633" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">14. ViewImage*</text>
+  <text x="740" y="647" text-anchor="middle" font-size="7" fill="#F57C00">base64注入</text>
+
+  <!-- Row 3: 15-19 + hook points -->
+  <rect x="55" y="661" width="98" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="104" y="676" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">15. Deferred*</text>
+  <text x="104" y="690" text-anchor="middle" font-size="7" fill="#F57C00">tool_search</text>
+  <rect x="160" y="661" width="98" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="209" y="676" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">16. Subagent*</text>
+  <text x="209" y="690" text-anchor="middle" font-size="7" fill="#F57C00">limit 3</text>
+  <rect x="265" y="661" width="98" height="34" rx="4" fill="#E8EAF6" stroke="#7986CB"/>
+  <text x="314" y="676" text-anchor="middle" font-size="8" font-weight="700" fill="#283593">17. LoopDetect</text>
+  <text x="314" y="690" text-anchor="middle" font-size="7" fill="#5C6BC0">检测死循环</text>
+  <rect x="370" y="661" width="98" height="34" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="419" y="676" text-anchor="middle" font-size="8" font-weight="700" fill="#E65100">18. Safety*</text>
+  <text x="419" y="690" text-anchor="middle" font-size="7" fill="#F57C00">安全终止</text>
+  <rect x="475" y="661" width="150" height="34" rx="4" fill="#FFEBEE" stroke="#EF5350" stroke-width="2"/>
+  <text x="550" y="676" text-anchor="middle" font-size="8" font-weight="700" fill="#B71C1C">19. Clarification ↑</text>
+  <text x="550" y="690" text-anchor="middle" font-size="7" fill="#C62828">必须最后 · interrupt→END</text>
+
+  <text x="640" y="680" font-size="8" fill="#78909C">* = 条件启用</text>
+  <text x="640" y="693" font-size="8" fill="#78909C">↑ = 必须最后</text>
+
+  <rect x="55" y="703" width="740" height="25" rx="4" fill="#ECEFF1"/>
+  <text x="425" y="720" text-anchor="middle" font-size="9" fill="#546E7A">6 Hook Points: before_model → LLM → after_model → Tool Execute → after_tool → after_step</text>
+</svg>

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 620" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#78909C"/></marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-size="18" font-weight="700" fill="#263238">DeerFlow 逻辑结构 — 四层同心圆</text>
+
+  <!-- Layer 4: Access (outermost) -->
+  <rect x="40" y="55" width="720" height="540" rx="18" fill="#E8F5E9" stroke="#66BB6A" stroke-width="2.5"/>
+  <text x="400" y="80" text-anchor="middle" font-size="14" font-weight="700" fill="#2E7D32">Access Layer — 访问层</text>
+  <text x="400" y="98" text-anchor="middle" font-size="11" fill="#388E3C">Web UI (Next.js :3000) · HTTP API (curl/SDK) · IM Channels · Python SDK (DeerFlowClient)</text>
+
+  <!-- Layer 3: Gateway -->
+  <rect x="105" y="115" width="590" height="465" rx="14" fill="#E3F2FD" stroke="#42A5F5" stroke-width="2.5"/>
+  <text x="400" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#1565C0">Gateway (app.*) — 应用网关层</text>
+  <text x="400" y="158" text-anchor="middle" font-size="11" fill="#1976D2">16 Routers · AuthMiddleware(身份验证) · CSRFMiddleware · LangGraph-Compatible Runtime · IM Channel Service</text>
+
+  <!-- Layer 2: Harness -->
+  <rect x="170" y="178" width="460" height="388" rx="12" fill="#FFF3E0" stroke="#FF9800" stroke-width="2.5"/>
+  <text x="400" y="203" text-anchor="middle" font-size="14" font-weight="700" fill="#E65100">Harness (deerflow.*) — 核心引擎层</text>
+
+  <!-- Harness sub-components -->
+  <rect x="200" y="220" width="195" height="55" rx="6" fill="#FFF8E1" stroke="#FFB74D" stroke-width="1.5"/>
+  <text x="297" y="240" text-anchor="middle" font-size="11" font-weight="700" fill="#F57C00">agents/</text>
+  <text x="297" y="256" text-anchor="middle" font-size="9" fill="#795548">Agent Graph · Middlewares (19)</text>
+  <text x="297" y="270" text-anchor="middle" font-size="9" fill="#795548">Memory · Prompt · ThreadState</text>
+
+  <rect x="405" y="220" width="195" height="55" rx="6" fill="#FFF8E1" stroke="#FFB74D" stroke-width="1.5"/>
+  <text x="502" y="240" text-anchor="middle" font-size="11" font-weight="700" fill="#F57C00">sandbox/</text>
+  <text x="502" y="256" text-anchor="middle" font-size="9" fill="#795548">Local · Docker · K3s</text>
+  <text x="502" y="270" text-anchor="middle" font-size="9" fill="#795548">Tools (bash/read/write/ls)</text>
+
+  <rect x="200" y="285" width="195" height="55" rx="6" fill="#FFF8E1" stroke="#FFB74D" stroke-width="1.5"/>
+  <text x="297" y="305" text-anchor="middle" font-size="11" font-weight="700" fill="#F57C00">tools/ + skills/</text>
+  <text x="297" y="321" text-anchor="middle" font-size="9" fill="#795548">Builtins · MCP · Community</text>
+  <text x="297" y="335" text-anchor="middle" font-size="9" fill="#795548">Skills (SKILL.md) · Tool Policy</text>
+
+  <rect x="405" y="285" width="195" height="55" rx="6" fill="#FFF8E1" stroke="#FFB74D" stroke-width="1.5"/>
+  <text x="502" y="305" text-anchor="middle" font-size="11" font-weight="700" fill="#F57C00">subagents/ + models/</text>
+  <text x="502" y="321" text-anchor="middle" font-size="9" fill="#795548">SubagentExecutor · task()</text>
+  <text x="502" y="335" text-anchor="middle" font-size="9" fill="#795548">Model Factory · 7 Providers</text>
+
+  <rect x="200" y="350" width="195" height="55" rx="6" fill="#FFF8E1" stroke="#FFB74D" stroke-width="1.5"/>
+  <text x="297" y="370" text-anchor="middle" font-size="11" font-weight="700" fill="#F57C00">config/ + runtime/</text>
+  <text x="297" y="386" text-anchor="middle" font-size="9" fill="#795548">AppConfig (26 sections)</text>
+  <text x="297" y="400" text-anchor="middle" font-size="9" fill="#795548">RunManager · StreamBridge</text>
+
+  <rect x="405" y="350" width="195" height="55" rx="6" fill="#FFF8E1" stroke="#FFB74D" stroke-width="1.5"/>
+  <text x="502" y="370" text-anchor="middle" font-size="11" font-weight="700" fill="#F57C00">mcp/ + tracing/ + community/</text>
+  <text x="502" y="386" text-anchor="middle" font-size="9" fill="#795548">MCP Client · OAuth · Cache</text>
+  <text x="502" y="400" text-anchor="middle" font-size="9" fill="#795548">LangSmith · Langfuse · Tavily · ...</text>
+
+  <rect x="200" y="415" width="400" height="38" rx="6" fill="#FFF8E1" stroke="#FFB74D" stroke-width="1.5"/>
+  <text x="400" y="432" text-anchor="middle" font-size="11" font-weight="700" fill="#F57C00">client.py — DeerFlowClient (嵌入式 Python SDK)</text>
+  <text x="400" y="447" text-anchor="middle" font-size="9" fill="#795548">chat() · stream() · list_models() · upload_files() · 零 HTTP 依赖</text>
+
+  <!-- Layer 1: Core Infrastructure (innermost) -->
+  <rect x="235" y="468" width="330" height="82" rx="10" fill="#F3E5F5" stroke="#AB47BC" stroke-width="2.5"/>
+  <text x="400" y="492" text-anchor="middle" font-size="13" font-weight="700" fill="#6A1B9A">Core Infrastructure — 基础设施层</text>
+  <text x="400" y="512" text-anchor="middle" font-size="10" fill="#7B1FA2">Checkpointer (LangGraph) · RunManager · StreamBridge</text>
+  <text x="400" y="528" text-anchor="middle" font-size="10" fill="#7B1FA2">Persistence (SQLite/Postgres) · Model Factory · Config (YAML+hot-reload)</text>
+  <text x="400" y="544" text-anchor="middle" font-size="10" fill="#7B1FA2">Reflection (resolve_class) · Guardrails · Loop Detection</text>
+
+  <!-- Bottom note -->
+  <text x="400" y="610" text-anchor="middle" font-size="9" fill="#90A4AE">Harness/App 边界由 tests/test_harness_boundary.py CI 强制执行 — deerflow.* 不得 import app.*</text>
+</svg>

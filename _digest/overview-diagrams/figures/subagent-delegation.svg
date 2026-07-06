@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 500" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/></marker>
+  </defs>
+
+  <text x="375" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">Sub-agent 委派模型</text>
+
+  <!-- Lead Agent -->
+  <rect x="225" y="45" width="300" height="50" rx="8" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+  <text x="375" y="67" text-anchor="middle" font-size="13" font-weight="700" fill="#0D47A1">Lead Agent (主 Agent)</text>
+  <text x="375" y="83" text-anchor="middle" font-size="9" fill="#1565C0">LLM 决定调用 task("subagent_name", "task description")</text>
+
+  <line x1="375" y1="97" x2="375" y2="122" stroke="#546E7A" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- SubagentExecutor -->
+  <rect x="175" y="126" width="400" height="72" rx="8" fill="#FFF3E0" stroke="#FF9800" stroke-width="2"/>
+  <text x="375" y="150" text-anchor="middle" font-size="13" font-weight="700" fill="#E65100">SubagentExecutor — 子 Agent 执行引擎</text>
+  <text x="375" y="168" text-anchor="middle" font-size="10" fill="#BF360C">deerflow/subagents/executor.py</text>
+  <text x="375" y="186" text-anchor="middle" font-size="9" fill="#795548">双线程池: _scheduler_pool (3 workers) + _execution_pool (3 workers)</text>
+  <text x="375" y="198" text-anchor="middle" font-size="8" fill="#A1887F">MAX_CONCURRENT_SUBAGENTS = 3 · 超时: 15 minutes</text>
+
+  <!-- Three arrows to parallel agents -->
+  <line x1="230" y1="200" x2="180" y2="250" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="375" y1="200" x2="375" y2="250" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="520" y1="200" x2="570" y2="250" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Subagent 1 -->
+  <rect x="70" y="255" width="200" height="85" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="1.5"/>
+  <text x="170" y="278" text-anchor="middle" font-size="12" font-weight="700" fill="#1B5E20">Subagent 1</text>
+  <text x="170" y="296" text-anchor="middle" font-size="9" fill="#2E7D32">独立的 Agent Graph</text>
+  <text x="170" y="312" text-anchor="middle" font-size="8" fill="#388E3C">自己的 model · tools</text>
+  <text x="170" y="326" text-anchor="middle" font-size="8" fill="#388E3C">自己的 middleware · skills</text>
+  <text x="170" y="340" text-anchor="middle" font-size="7" fill="#81C784">e.g. general-purpose / code-reviewer</text>
+
+  <!-- Subagent 2 -->
+  <rect x="275" y="255" width="200" height="85" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="1.5"/>
+  <text x="375" y="278" text-anchor="middle" font-size="12" font-weight="700" fill="#1B5E20">Subagent 2</text>
+  <text x="375" y="296" text-anchor="middle" font-size="9" fill="#2E7D32">独立的 Agent Graph</text>
+  <text x="375" y="312" text-anchor="middle" font-size="8" fill="#388E3C">自己的 model · tools</text>
+  <text x="375" y="326" text-anchor="middle" font-size="8" fill="#388E3C">自己的 middleware · skills</text>
+  <text x="375" y="340" text-anchor="middle" font-size="7" fill="#81C784">e.g. bash / test-writer</text>
+
+  <!-- Subagent 3 -->
+  <rect x="480" y="255" width="200" height="85" rx="8" fill="#E8F5E9" stroke="#43A047" stroke-width="1.5"/>
+  <text x="580" y="278" text-anchor="middle" font-size="12" font-weight="700" fill="#1B5E20">Subagent 3</text>
+  <text x="580" y="296" text-anchor="middle" font-size="9" fill="#2E7D32">独立的 Agent Graph</text>
+  <text x="580" y="312" text-anchor="middle" font-size="8" fill="#388E3C">自己的 model · tools</text>
+  <text x="580" y="326" text-anchor="middle" font-size="8" fill="#388E3C">自己的 middleware · skills</text>
+  <text x="580" y="340" text-anchor="middle" font-size="7" fill="#81C784">e.g. custom agent</text>
+
+  <!-- "Parallel" indicator -->
+  <text x="330" y="298" font-size="28" fill="#FF9800" opacity="0.3">⟷</text>
+
+  <!-- Aggregation arrows back -->
+  <line x1="170" y1="342" x2="170" y2="390" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="375" y1="342" x2="375" y2="390" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="580" y1="342" x2="580" y2="390" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Aggregation point -->
+  <rect x="130" y="394" width="500" height="30" rx="6" fill="#ECEFF1" stroke="#90A4AE" stroke-width="1.5"/>
+  <text x="380" y="414" text-anchor="middle" font-size="10" font-weight="700" fill="#455A64">结果聚合 → Lead Agent 下一 turn (SubagentResult → ToolMessage)</text>
+
+  <!-- Events timeline -->
+  <rect x="70" y="440" width="610" height="50" rx="6" fill="#F5F5F5" stroke="#E0E0E0"/>
+  <text x="375" y="458" text-anchor="middle" font-size="9" font-weight="700" fill="#616161">SSE Events: task_started → task_running → task_completed / task_failed / task_timed_out</text>
+  <text x="375" y="474" text-anchor="middle" font-size="8" fill="#9E9E9E">Built-in agents: general-purpose (all tools except task) · bash (shell ops specialist)</text>
+  <text x="375" y="486" text-anchor="middle" font-size="8" fill="#9E9E9E">Custom agents: config.yaml → subagents.custom_agents.{name}: {model, tools, skills, max_turns, timeout}</text>
+</svg>
