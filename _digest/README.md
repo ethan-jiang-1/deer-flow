@@ -106,7 +106,8 @@ _digest/
 ├── frontend/                      # 前端架构
 ├── channels/                      # IM 通道系统（7 平台）
 ├── deployment/                    # 部署架构（4 种模式）
-└── testing/                       # 测试策略（3 层体系）
+├── testing/                       # 测试策略（3 层体系）
+└── overview-diagrams/             # 🆕 总览三图（逻辑结构 + 组件结构 + 启动流程）
 ```
 
 ## 工作流
