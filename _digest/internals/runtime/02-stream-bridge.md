@@ -1,3 +1,9 @@
+---
+title: "StreamBridge — 流发布/订阅协议"
+description: "- `runtime/stream_bridge/base.py` (73 行) — 抽象协议"
+topics: [runtime, streaming, checkpointer]
+---
+
 # StreamBridge — 流发布/订阅协议
 
 ## 文件

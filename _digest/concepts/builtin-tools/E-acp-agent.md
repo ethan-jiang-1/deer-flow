@@ -1,3 +1,9 @@
+---
+title: "E. 外部 Agent 集成"
+description: "## invoke_acp_agent"
+topics: [tools, builtin, sandbox-tools]
+---
+
 # E. 外部 Agent 集成
 
 ---

@@ -1,3 +1,9 @@
+---
+title: "Skills 与 Tool 系统"
+description: "## Skills 系统"
+topics: [skills, tools, prompt-engineering]
+---
+
 # Skills 与 Tool 系统
 
 ## Skills 系统

@@ -1,3 +1,9 @@
+---
+title: "Model Layer 全景"
+description: "怎么做到换模型不改代码？thinking/vision 这些新能力怎么统一抽象？这层只有一个公开 API — `create_chat_model()` — 但背后藏着 7 个 DeerFlow 自定义适配器（加上 2 个标准 LangCh"
+topics: [models, llm, provider-factory]
+---
+
 # Model Layer 全景
 
 怎么做到换模型不改代码？thinking/vision 这些新能力怎么统一抽象？这层只有一个公开 API — `create_chat_model()` — 但背后藏着 7 个 DeerFlow 自定义适配器（加上 2 个标准 LangChain 直通路径共 9 条 provider 路由）、3 种 thinking 配置模式、per-provider 的 streaming 归一化。

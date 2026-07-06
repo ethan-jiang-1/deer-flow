@@ -1,3 +1,9 @@
+---
+title: "A. Agent 运行时控制"
+description: "## present_files"
+topics: [tools, builtin, sandbox-tools]
+---
+
 # A. Agent 运行时控制
 
 ## present_files

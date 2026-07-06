@@ -1,3 +1,9 @@
+---
+title: "Image Search"
+description: "DeerFlow 有两个 image search provider，都使用 DuckDuckGo 作为后端。"
+topics: [tools, community, external-integration]
+---
+
 # Image Search
 
 DeerFlow 有两个 image search provider，都使用 DuckDuckGo 作为后端。

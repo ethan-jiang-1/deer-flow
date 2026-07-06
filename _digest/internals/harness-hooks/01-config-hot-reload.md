@@ -1,3 +1,9 @@
+---
+title: "配置热重载：mtime 侦测 + 路径感知 + 原子替换"
+description: "**核心文件：** `deerflow/config/app_config.py:360-389`"
+topics: [hooks, extension, plugin-system]
+---
+
 # 配置热重载：mtime 侦测 + 路径感知 + 原子替换
 
 **核心文件：** `deerflow/config/app_config.py:360-389`

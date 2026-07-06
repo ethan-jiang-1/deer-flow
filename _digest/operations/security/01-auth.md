@@ -1,3 +1,9 @@
+---
+title: "认证与授权"
+description: "DeerFlow 有三条并行的认证路径，共享同一套 Gateway 中间件链。"
+topics: [security, auth, isolation-defense]
+---
+
 # 认证与授权
 
 DeerFlow 有三条并行的认证路径，共享同一套 Gateway 中间件链。

@@ -1,3 +1,9 @@
+---
+title: "Python SDK — DeerFlowClient"
+description: "`DeerFlowClient` 提供嵌入式 Python 访问，不需要 HTTP 服务。源码：`backend/packages/harness/deerflow/client.py`。"
+topics: [setup, configuration, quickstart]
+---
+
 # Python SDK — DeerFlowClient
 
 `DeerFlowClient` 提供嵌入式 Python 访问，不需要 HTTP 服务。源码：`backend/packages/harness/deerflow/client.py`。

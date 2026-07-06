@@ -1,3 +1,9 @@
+---
+title: "IM 通道系统全景"
+description: "DeerFlow 通过 7 个 IM 平台通道（Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat）让用户通过聊天消息与 Agent 交互。"
+topics: [channels, im, messaging]
+---
+
 # IM 通道系统全景
 
 DeerFlow 通过 7 个 IM 平台通道（Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat）让用户通过聊天消息与 Agent 交互。

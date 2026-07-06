@@ -1,3 +1,9 @@
+---
+title: "链装配：Middleware 是怎么串起来的"
+description: "两条装配路径，一套定位系统。理解这个才能知道怎么把自己的 middleware 挂上去。"
+topics: [middleware, hooks, interceptor-chain]
+---
+
 # 链装配：Middleware 是怎么串起来的
 
 两条装配路径，一套定位系统。理解这个才能知道怎么把自己的 middleware 挂上去。

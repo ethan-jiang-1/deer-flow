@@ -1,3 +1,9 @@
+---
+title: "DeerFlow 启动与请求处理全流程"
+description: "![Startup Sequence](figures/startup-sequence.svg)"
+topics: [architecture, system-overview]
+---
+
 # DeerFlow 启动与请求处理全流程
 
 > 从敲命令到 agent 返回第一个 token 的完整时序。基于源码追踪，非推测。

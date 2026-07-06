@@ -1,3 +1,9 @@
+---
+title: "配置与扩展系统"
+description: "DeerFlow 暴露了哪些挂载点？怎么把自定义的东西挂上去？"
+type: index
+---
+
 # 配置与扩展系统
 
 DeerFlow 暴露了哪些挂载点？怎么把自定义的东西挂上去？

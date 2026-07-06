@@ -1,3 +1,9 @@
+---
+title: "F. Plan Mode"
+description: "## write_todos"
+topics: [tools, builtin, sandbox-tools]
+---
+
 # F. Plan Mode
 
 ---

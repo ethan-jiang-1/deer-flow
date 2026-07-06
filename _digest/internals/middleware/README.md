@@ -1,3 +1,9 @@
+---
+title: "Agent Middleware 体系"
+description: "LangGraph agent loop 和 LLM/tool 执行之间的中间层。19 个 middleware，6 种 hook 点，控制着 agent 的每一次 model 调用和 tool 执行。"
+type: index
+---
+
 # Agent Middleware 体系
 
 LangGraph agent loop 和 LLM/tool 执行之间的中间层。19 个 middleware，6 种 hook 点，控制着 agent 的每一次 model 调用和 tool 执行。

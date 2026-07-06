@@ -1,3 +1,9 @@
+---
+title: "Tracing — 追踪系统"
+description: "| 文件 | 行数 | 职责 |"
+topics: [tracing, observability, langsmith]
+---
+
 # Tracing — 追踪系统
 
 ## 源文件

@@ -1,3 +1,9 @@
+---
+title: "本地开发：make dev"
+description: "`make dev` 启动 4 个独立进程，用于个人开发环境。"
+topics: [setup, configuration, quickstart]
+---
+
 # 本地开发：make dev
 
 `make dev` 启动 4 个独立进程，用于个人开发环境。

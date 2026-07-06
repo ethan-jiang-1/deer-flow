@@ -1,3 +1,9 @@
+---
+title: "沙箱治理"
+description: "Agent 执行 bash 命令、读写文件时，能碰到什么？不能碰到什么？这是 IT 管理者最关心的问题——"一段 prompt 能不能搞出 `rm -rf /`？""
+topics: [governance, compliance, audit]
+---
+
 # 沙箱治理
 
 Agent 执行 bash 命令、读写文件时，能碰到什么？不能碰到什么？这是 IT 管理者最关心的问题——"一段 prompt 能不能搞出 `rm -rf /`？"

@@ -1,3 +1,9 @@
+---
+title: "Web Search：6 种 Provider 对比"
+description: "所有 6 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回 "
+topics: [tools, community, external-integration]
+---
+
 # Web Search：6 种 Provider 对比
 
 所有 6 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回 JSON string。差异在可选参数、认证方式和返回格式。

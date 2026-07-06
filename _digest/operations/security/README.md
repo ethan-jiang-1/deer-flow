@@ -1,3 +1,9 @@
+---
+title: "安全与信任边界"
+description: "一段用户 prompt 到 agent 执行 `rm -rf /` — 中间有多少层防护？"
+type: index
+---
+
 # 安全与信任边界
 
 一段用户 prompt 到 agent 执行 `rm -rf /` — 中间有多少层防护？

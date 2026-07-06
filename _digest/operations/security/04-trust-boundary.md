@@ -1,3 +1,9 @@
+---
+title: "端到端信任链"
+description: "从外部请求到 agent 工具在沙箱中执行，经过的**每一个**安全检查点和它所保护的对象。"
+topics: [security, auth, isolation-defense]
+---
+
 # 端到端信任链
 
 从外部请求到 agent 工具在沙箱中执行，经过的**每一个**安全检查点和它所保护的对象。

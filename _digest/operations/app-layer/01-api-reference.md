@@ -1,3 +1,9 @@
+---
+title: "REST API 端点文档"
+description: "完整的 REST API 端点表，包括之前在 digest 中缺失的端点。"
+topics: [gateway, api, rest]
+---
+
 # REST API 端点文档
 
 ## 端点总览

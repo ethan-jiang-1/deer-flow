@@ -1,3 +1,9 @@
+---
+title: "Deployment — 部署架构"
+description: "DeerFlow 支持 4 种部署模式：本地开发（`make dev`）、Docker 开发（`make docker-start`）、Docker 生产（`make up`）、K8s（Provisioner）。"
+type: index
+---
+
 # Deployment — 部署架构
 
 DeerFlow 支持 4 种部署模式：本地开发（`make dev`）、Docker 开发（`make docker-start`）、Docker 生产（`make up`）、K8s（Provisioner）。

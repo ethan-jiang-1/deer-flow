@@ -1,3 +1,9 @@
+---
+title: "沙箱系统"
+description: "DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。"
+topics: [sandbox, isolation, filesystem]
+---
+
 # 沙箱系统
 
 DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。

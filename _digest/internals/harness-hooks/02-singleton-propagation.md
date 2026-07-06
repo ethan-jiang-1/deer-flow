@@ -1,3 +1,9 @@
+---
+title: "单例传播：AppConfig → 12 个子配置的推送链"
+description: "**核心文件：** `deerflow/config/app_config.py:188-211`"
+topics: [hooks, extension, plugin-system]
+---
+
 # 单例传播：AppConfig → 12 个子配置的推送链
 
 **核心文件：** `deerflow/config/app_config.py:188-211`

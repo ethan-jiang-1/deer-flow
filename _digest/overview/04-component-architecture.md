@@ -1,3 +1,9 @@
+---
+title: "DeerFlow 组件结构图"
+description: "![Process Topology](figures/process-topology.svg)"
+topics: [architecture, system-overview]
+---
+
 # DeerFlow 组件结构图
 
 > 展示所有物理组件（进程/服务/模块）及其连接关系。每个框对应一个真实的代码模块或运行中进程。

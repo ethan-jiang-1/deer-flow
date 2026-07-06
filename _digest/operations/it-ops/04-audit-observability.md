@@ -1,3 +1,9 @@
+---
+title: "审计与可观测"
+description: "Agent 干了什么？什么时候干的？花了多少钱？出问题了能回溯吗？"
+topics: [governance, compliance, audit]
+---
+
 # 审计与可观测
 
 Agent 干了什么？什么时候干的？花了多少钱？出问题了能回溯吗？

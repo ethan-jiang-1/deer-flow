@@ -1,3 +1,9 @@
+---
+title: "Middleware 完整目录"
+description: "20 个 middleware，按 hook 点分组。每个条目：文件位置、触发点、位置编号、用途、配置项、非显而易见的细节。"
+topics: [middleware, hooks, interceptor-chain]
+---
+
 # Middleware 完整目录
 
 20 个 middleware，按 hook 点分组。每个条目：文件位置、触发点、位置编号、用途、配置项、非显而易见的细节。

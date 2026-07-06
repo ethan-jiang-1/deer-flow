@@ -1,3 +1,9 @@
+---
+title: "RunJournal — LLM 调用日志与 Token 统计"
+description: "`runtime/journal.py` (572 行)"
+topics: [runtime, streaming, checkpointer]
+---
+
 # RunJournal — LLM 调用日志与 Token 统计
 
 ## 文件

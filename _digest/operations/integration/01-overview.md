@@ -1,3 +1,9 @@
+---
+title: "集成总览：4 种手段，一张图看懂"
+description: "![integration-methods](figures/integration-methods.svg)"
+topics: [integration, sdk, docker-deploy]
+---
+
 # 集成总览：4 种手段，一张图看懂
 
 > **不读大块文章，先看图。**

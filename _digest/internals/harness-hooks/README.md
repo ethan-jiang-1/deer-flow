@@ -1,3 +1,9 @@
+---
+title: "DeerFlow 配置钩子与插件机制全景"
+description: "DeerFlow 没有文件系统 watcher（inotify/watchdog），也不依赖 WebSocket 推送。它靠的是**拉模式 + 多层传播 + 动态加载**的组合。"
+type: index
+---
+
 # DeerFlow 配置钩子与插件机制全景
 
 > **核心问题：用户更新配置后，DeerFlow 怎么"知道"并让改动生效？**

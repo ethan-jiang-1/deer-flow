@@ -1,3 +1,9 @@
+---
+title: "IT 治理全景：Agent 时代的 12 个管理维度"
+description: "2026 年是 Agent 治理的分水岭。EU AI Act 8 月生效，OWASP 在 2025 年 12 月发布了首个 Agentic AI Top 10，Gartner 预测到 2028 年 Fortune 500 每家跑 15 万+"
+topics: [governance, compliance, audit]
+---
+
 # IT 治理全景：Agent 时代的 12 个管理维度
 
 2026 年是 Agent 治理的分水岭。EU AI Act 8 月生效，OWASP 在 2025 年 12 月发布了首个 Agentic AI Top 10，Gartner 预测到 2028 年 Fortune 500 每家跑 15 万+ agent。但 Deloitte 2026 年调查显示：**只有 21% 的企业有成熟的 Agent 治理体系**。

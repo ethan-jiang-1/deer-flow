@@ -1,3 +1,9 @@
+---
+title: "C. Agent 定义管理"
+description: "这 3 个 tool 让 Agent 可以创建和修改自身的配置——包括 SOUL.md（行为定义）、config.yaml（配置）和 skills（自定义技能）。"
+topics: [tools, builtin, sandbox-tools]
+---
+
 # C. Agent 定义管理
 
 这 3 个 tool 让 Agent 可以创建和修改自身的配置——包括 SOUL.md（行为定义）、config.yaml（配置）和 skills（自定义技能）。

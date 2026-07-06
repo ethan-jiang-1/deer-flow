@@ -1,3 +1,9 @@
+---
+title: "Middleware 设计哲学与批判性分析"
+description: "19 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？"
+topics: [middleware, hooks, interceptor-chain]
+---
+
 # Middleware 设计哲学与批判性分析
 
 19 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？

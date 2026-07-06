@@ -1,3 +1,9 @@
+---
+title: "Frontend — 前端架构"
+description: "Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战是**流式渲染**：SSE 事件流 → LangGraph stream_mode 映射 → 增量 markdown 渲染 →"
+type: index
+---
+
 # Frontend — 前端架构
 
 Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战是**流式渲染**：SSE 事件流 → LangGraph stream_mode 映射 → 增量 markdown 渲染 → React 状态同步。

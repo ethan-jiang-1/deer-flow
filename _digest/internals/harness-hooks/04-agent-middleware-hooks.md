@@ -1,3 +1,9 @@
+---
+title: "Agent 中间件 Hook 系统：生命周期 + 定位 + 开关"
+description: "- `deerflow/agents/features.py` — `RuntimeFeatures` + `@Next`/`@Prev` 装饰器"
+topics: [hooks, extension, plugin-system]
+---
+
 # Agent 中间件 Hook 系统：生命周期 + 定位 + 开关
 
 > **交叉引用：** 本文侧重**用户如何把自己的 middleware 挂上去**。6 种 hook 点的运行时行为详见 [middleware/01-hooks-and-flow.md](../middleware/01-hooks-and-flow.md)。链装配的完整代码流程见 [middleware/02-chain-assembly.md](../middleware/02-chain-assembly.md)。

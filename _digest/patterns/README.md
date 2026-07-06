@@ -1,3 +1,9 @@
+---
+title: "Patterns — 开发模式"
+description: "实际开发 DeerFlow 应用的模式、工作流、最佳实践。"
+type: index
+---
+
 # Patterns — 开发模式
 
 实际开发 DeerFlow 应用的模式、工作流、最佳实践。

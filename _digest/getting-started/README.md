@@ -1,3 +1,9 @@
+---
+title: "Getting Started — 安装、配置、首次运行"
+description: "| 文件 | 内容 |"
+type: index
+---
+
 # Getting Started — 安装、配置、首次运行
 
 ## 阅读顺序

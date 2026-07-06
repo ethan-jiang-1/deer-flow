@@ -1,3 +1,9 @@
+---
+title: "配置接入概览"
+description: "| 文件 | 用途 | 生成方式 |"
+topics: [setup, configuration, quickstart]
+---
+
 # 配置接入概览
 
 > 从接入/运维视角看 DeerFlow 的配置体系。字段级参考见 [configuration/ section](../configuration/00-overview.md)。

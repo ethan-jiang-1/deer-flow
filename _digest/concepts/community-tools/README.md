@@ -1,3 +1,9 @@
+---
+title: "Community Tools — 外部工具集成"
+description: "DeerFlow 通过 `community/` 目录集成了 9 个第三方工具 provider，覆盖 web 搜索、网页抓取、图片搜索和远程沙箱。这些是 Agent 连接外部世界的主要通道。"
+type: index
+---
+
 # Community Tools — 外部工具集成
 
 DeerFlow 通过 `community/` 目录集成了 9 个第三方工具 provider，覆盖 web 搜索、网页抓取、图片搜索和远程沙箱。这些是 Agent 连接外部世界的主要通道。

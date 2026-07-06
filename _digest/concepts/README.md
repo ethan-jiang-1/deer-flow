@@ -1,3 +1,9 @@
+---
+title: "Concepts — 核心概念"
+description: "DeerFlow 的六大核心抽象。理解这些就理解了 DeerFlow。"
+type: index
+---
+
 # Concepts — 核心概念
 
 DeerFlow 的六大核心抽象。理解这些就理解了 DeerFlow。

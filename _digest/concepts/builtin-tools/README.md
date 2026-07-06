@@ -1,3 +1,9 @@
+---
+title: "DeerFlow Built-in Tools 全量目录"
+description: "DeerFlow 共有 **17 个唯一 tool name**（17 个 function call），其中 7 个沙箱工具通过 `config.yaml` → `resolve_variable()` 动态加载（默认配置标配），7 个在"
+type: index
+---
+
 # DeerFlow Built-in Tools 全量目录
 
 > 基于源码 `backend/packages/harness/deerflow/tools/` 和 `sandbox/tools.py` 逐文件核实，2026-05-28。

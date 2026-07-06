@@ -1,3 +1,9 @@
+---
+title: "快速启动"
+description: "- Python 3.12+"
+topics: [setup, configuration, quickstart]
+---
+
 # 快速启动
 
 ## 前提条件

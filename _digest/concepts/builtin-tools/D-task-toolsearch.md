@@ -1,3 +1,9 @@
+---
+title: "D. 任务委派 & 工具发现"
+description: "## task (Subagent)"
+topics: [tools, builtin, sandbox-tools]
+---
+
 # D. 任务委派 & 工具发现
 
 ---

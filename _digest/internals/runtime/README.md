@@ -1,3 +1,9 @@
+---
+title: "Runtime — 运行基础设施"
+description: "`deerflow.runtime` 是 DeerFlow 的运行基础设施层，相当于一个小型 LangGraph Platform 运行时的自实现。它将 Agent 图执行、事件流发布/订阅、运行生命周期管理、序列化、以及 LLM 调用日志"
+type: index
+---
+
 # Runtime — 运行基础设施
 
 ## 概览

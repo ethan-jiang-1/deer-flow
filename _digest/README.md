@@ -1,3 +1,9 @@
+---
+title: "DeerFlow 源码研究笔记 — 开发者知识库"
+description: "## 从这里开始：按你的阶段选择"
+type: index
+---
+
 # DeerFlow 源码研究笔记 — 开发者知识库
 
 > **约束：绝不修改源代码。** `main` 分支跟踪 [bytedance/deer-flow](https://github.com/bytedance/deer-flow) 上游，`ethan` 分支承载所有研究内容。

@@ -1,3 +1,9 @@
+---
+title: "Middleware 就是 Loop 的结构"
+description: "在 [[00-loop-anatomy]] 里我们说了 loop 本身不自写。那么 DeerFlow 的代码到底"写"了什么？**写了 loop 每一圈的每一个钩子。** middleware 系统就是 DeerFlow agent loo"
+topics: [agent-loop, langgraph, execution-model]
+---
+
 # Middleware 就是 Loop 的结构
 
 在 [[00-loop-anatomy]] 里我们说了 loop 本身不自写。那么 DeerFlow 的代码到底"写"了什么？**写了 loop 每一圈的每一个钩子。** middleware 系统就是 DeerFlow agent loop 的全部原创代码。

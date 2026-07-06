@@ -1,3 +1,9 @@
+---
+title: "策略执行"
+description: "Agent 能做什么、不能做什么——这些边界不是靠 system prompt "劝" 出来的，而是靠**代码强制执行**的。"
+topics: [governance, compliance, audit]
+---
+
 # 策略执行
 
 Agent 能做什么、不能做什么——这些边界不是靠 system prompt "劝" 出来的，而是靠**代码强制执行**的。

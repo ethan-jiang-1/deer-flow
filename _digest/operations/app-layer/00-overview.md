@@ -1,3 +1,9 @@
+---
+title: "网关架构全景"
+description: "- `app/gateway/app.py` — FastAPI 应用 + lifespan"
+topics: [gateway, api, rest]
+---
+
 # 网关架构全景
 
 ## 文件

@@ -1,3 +1,9 @@
+---
+title: "合规与生命周期"
+description: "数据怎么存的？用户数据隔离吗？Agent 生命周期怎么管？能不能满足 GDPR/SOC2 审计？"
+topics: [governance, compliance, audit]
+---
+
 # 合规与生命周期
 
 数据怎么存的？用户数据隔离吗？Agent 生命周期怎么管？能不能满足 GDPR/SOC2 审计？

@@ -1,3 +1,9 @@
+---
+title: "与上游同步"
+description: "|------|-----|"
+topics: [-upstream-sync]
+---
+
 # 与上游同步
 
 > 当前 `main` 分支跟踪 [bytedance/deer-flow](https://github.com/bytedance/deer-flow) 上游。

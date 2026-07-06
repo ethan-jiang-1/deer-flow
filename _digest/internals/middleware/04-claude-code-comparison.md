@@ -1,3 +1,9 @@
+---
+title: "Claude Code Hooks vs DeerFlow Middleware"
+description: "同一种理念，两种实现。两者都在 Agent 生命周期的关键节点挂入自定义逻辑，但面向不同的用户、用不同的方式。"
+topics: [middleware, hooks, interceptor-chain]
+---
+
 # Claude Code Hooks vs DeerFlow Middleware
 
 同一种理念，两种实现。两者都在 Agent 生命周期的关键节点挂入自定义逻辑，但面向不同的用户、用不同的方式。

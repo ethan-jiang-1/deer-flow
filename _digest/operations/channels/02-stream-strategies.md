@@ -1,3 +1,9 @@
+---
+title: "两种流式策略：增量流式 vs 阻塞等待"
+description: "DeerFlow 的 IM 通道有两个代码路径，由 `supports_streaming` 属性决定："
+topics: [channels, im, messaging]
+---
+
 # 两种流式策略：增量流式 vs 阻塞等待
 
 DeerFlow 的 IM 通道有两个代码路径，由 `supports_streaming` 属性决定：

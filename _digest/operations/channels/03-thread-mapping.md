@@ -1,3 +1,9 @@
+---
+title: "Channel→Thread ID 持久化与命令系统"
+description: "## ChannelStore — 文件级持久化"
+topics: [channels, im, messaging]
+---
+
 # Channel→Thread ID 持久化与命令系统
 
 ## ChannelStore — 文件级持久化

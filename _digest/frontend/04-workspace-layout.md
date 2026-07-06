@@ -1,3 +1,9 @@
+---
+title: "工作区布局：Drag 面板、响应式、Command Palette"
+description: "## 顶层 Shell"
+topics: [frontend, nextjs, react]
+---
+
 # 工作区布局：Drag 面板、响应式、Command Palette
 
 ## 顶层 Shell

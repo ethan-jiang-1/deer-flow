@@ -1,3 +1,9 @@
+---
+title: "社区工具集成全景"
+description: "DeerFlow 在 `deerflow/community/` 下集成了 9 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索和沙箱隔离。"
+topics: [tools, community, external-integration]
+---
+
 # 社区工具集成全景
 
 DeerFlow 在 `deerflow/community/` 下集成了 9 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索和沙箱隔离。

@@ -1,3 +1,9 @@
+---
+title: "Nginx 路由 + K3s Provisioner"
+description: "## Nginx 路由规则"
+topics: [deployment, docker, kubernetes]
+---
+
 # Nginx 路由 + K3s Provisioner
 
 ## Nginx 路由规则

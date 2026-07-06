@@ -1,3 +1,9 @@
+---
+title: "沙箱隔离"
+description: "三种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。"
+topics: [security, auth, isolation-defense]
+---
+
 # 沙箱隔离
 
 三种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。

@@ -1,3 +1,9 @@
+---
+title: "Docker Compose 部署"
+description: "`docker/docker-compose.yml` — 4 服务 + PostgreSQL："
+topics: [deployment, docker, kubernetes]
+---
+
 # Docker Compose 部署
 
 ## 服务拓扑

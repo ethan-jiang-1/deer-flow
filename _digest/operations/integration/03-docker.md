@@ -1,3 +1,9 @@
+---
+title: "Docker 部署"
+description: "生产部署（`docker/docker-compose.yaml`）4 个服务，通过 `deer-flow` bridge 网络互联："
+topics: [integration, sdk, docker-deploy]
+---
+
 # Docker 部署
 
 ## 架构

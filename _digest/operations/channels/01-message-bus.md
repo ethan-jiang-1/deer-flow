@@ -1,3 +1,9 @@
+---
+title: "MessageBus pub/sub + ChannelManager dispatch loop"
+description: "## MessageBus"
+topics: [channels, im, messaging]
+---
+
 # MessageBus pub/sub + ChannelManager dispatch loop
 
 ## MessageBus

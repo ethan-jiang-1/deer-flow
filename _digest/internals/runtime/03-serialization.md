@@ -1,3 +1,9 @@
+---
+title: "序列化层"
+description: "- `runtime/serialization.py` (79 行) — 规范序列化入口"
+topics: [runtime, streaming, checkpointer]
+---
+
 # 序列化层
 
 ## 文件

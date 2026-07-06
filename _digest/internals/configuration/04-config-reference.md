@@ -1,3 +1,9 @@
+---
+title: "config.yaml 全段参考"
+description: "DeerFlow 有两个配置文件，都放在项目根目录。"
+topics: [configuration, hot-reload, yaml-config]
+---
+
 # config.yaml 全段参考
 
 > 迁移自 `integration/02-configuration.md`。本文是 `config.yaml` + `extensions_config.json` 的字段级参考手册。

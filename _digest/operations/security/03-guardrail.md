@@ -1,3 +1,9 @@
+---
+title: "Guardrail 与审计"
+description: "Tool 执行前有两层保护：Guardrail（可插拔授权）和 SandboxAudit（bash 命令模式匹配）。"
+topics: [security, auth, isolation-defense]
+---
+
 # Guardrail 与审计
 
 Tool 执行前有两层保护：Guardrail（可插拔授权）和 SandboxAudit（bash 命令模式匹配）。

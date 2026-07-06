@@ -1,3 +1,9 @@
+---
+title: "扩展点：从内到外怎么往里加东西"
+description: "前面两篇讲了 loop 的结构和 middleware 的设计。这篇回答实际问题：**我想扩展 DeerFlow，应该从哪个层面加东西？**"
+topics: [agent-loop, langgraph, execution-model]
+---
+
 # 扩展点：从内到外怎么往里加东西
 
 前面两篇讲了 loop 的结构和 middleware 的设计。这篇回答实际问题：**我想扩展 DeerFlow，应该从哪个层面加东西？**

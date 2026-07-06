@@ -1,3 +1,9 @@
+---
+title: "Testing — 测试策略与实践"
+description: "Agent 测试是所有 AI 应用中最棘手的部分。这里整理了 DeerFlow 自己的测试基建 + 外部最佳实践。"
+type: index
+---
+
 # Testing — 测试策略与实践
 
 Agent 测试是所有 AI 应用中最棘手的部分。这里整理了 DeerFlow 自己的测试基建 + 外部最佳实践。

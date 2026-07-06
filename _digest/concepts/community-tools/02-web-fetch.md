@@ -1,3 +1,9 @@
+---
+title: "Web Fetch：5 种 URL→Markdown 管线"
+description: "所有 5 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markd"
+topics: [tools, community, external-integration]
+---
+
 # Web Fetch：5 种 URL→Markdown 管线
 
 所有 5 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markdown string（截断到 4096 字符）。

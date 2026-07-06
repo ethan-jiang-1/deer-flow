@@ -1,3 +1,9 @@
+---
+title: "消息渲染：Streamdown、Thinking Block、Tool Call 卡片"
+description: "消息从原始 LangGraph `Message[]` 到 DOM 经过分组、分类、逐类型渲染的完整链路。"
+topics: [frontend, nextjs, react]
+---
+
 # 消息渲染：Streamdown、Thinking Block、Tool Call 卡片
 
 消息从原始 LangGraph `Message[]` 到 DOM 经过分组、分类、逐类型渲染的完整链路。

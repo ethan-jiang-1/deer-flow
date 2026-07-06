@@ -1,3 +1,9 @@
+---
+title: "环境变量全参考"
+description: "所有环境变量来自 `.env.example` 和代码中的 `config.py`。"
+topics: [setup, configuration, quickstart]
+---
+
 # 环境变量全参考
 
 所有环境变量来自 `.env.example` 和代码中的 `config.py`。

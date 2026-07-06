@@ -1,3 +1,9 @@
+---
+title: "访问控制"
+description: "谁在用 agent？agent 在替谁执行操作？权限边界在哪里？"
+topics: [governance, compliance, audit]
+---
+
 # 访问控制
 
 谁在用 agent？agent 在替谁执行操作？权限边界在哪里？

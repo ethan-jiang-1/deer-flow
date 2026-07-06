@@ -1,3 +1,9 @@
+---
+title: "请求数据流"
+description: "一次完整的对话请求如何流经系统。以 `POST /api/threads/{id}/runs/stream` 为例。"
+topics: [architecture, system-overview]
+---
+
 # 请求数据流
 
 一次完整的对话请求如何流经系统。以 `POST /api/threads/{id}/runs/stream` 为例。

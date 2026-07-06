@@ -1,3 +1,9 @@
+---
+title: "DeerFlow 逻辑结构图"
+description: "## 总览：四层同心圆"
+topics: [architecture, system-overview]
+---
+
 # DeerFlow 逻辑结构图
 
 > 从概念层面展示 DeerFlow 的核心抽象和它们之间的关系。不涉及物理部署，只看"是什么、怎么连"。

@@ -1,3 +1,9 @@
+---
+title: "AppConfig — config.yaml 内部机制"
+description: "`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:84`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 26 "
+topics: [configuration, hot-reload, yaml-config]
+---
+
 # AppConfig — config.yaml 内部机制
 
 `AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:84`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 26 个顶层 section。

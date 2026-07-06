@@ -1,3 +1,9 @@
+---
+title: "系统全景"
+description: "![Agent Runtime 同心圆分层](figures/agent-runtime-overview.svg)"
+topics: [architecture, system-overview]
+---
+
 # 系统全景
 
 ## 同心圆分层架构

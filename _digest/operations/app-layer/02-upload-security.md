@@ -1,3 +1,9 @@
+---
+title: "上传安全管道"
+description: "`deerflow/uploads/manager.py` (311 行) — 与 FastAPI 无关的纯业务逻辑"
+topics: [gateway, api, rest]
+---
+
 # 上传安全管道
 
 ## 文件

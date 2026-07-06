@@ -1,3 +1,9 @@
+---
+title: "Streaming"
+description: "DeerFlow 的 streaming 在两层上运作：**传输层**（StreamBridge — 怎么把数据从 worker 推到前端）和**模型层**（per-provider chunk 归一化 — 怎么把各家 provider 的"
+topics: [models, llm, provider-factory]
+---
+
 # Streaming
 
 DeerFlow 的 streaming 在两层上运作：**传输层**（StreamBridge — 怎么把数据从 worker 推到前端）和**模型层**（per-provider chunk 归一化 — 怎么把各家 provider 的 chunk 变成统一的格式）。

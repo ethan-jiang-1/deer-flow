@@ -1,3 +1,9 @@
+---
+title: "B. 沙箱 / 文件系统"
+description: "全部定义在 `packages/harness/deerflow/sandbox/tools.py`，通过 `config.yaml` 的 `tools[]` 段加载。默认配置标配全部 7 个。"
+topics: [tools, builtin, sandbox-tools]
+---
+
 # B. 沙箱 / 文件系统
 
 全部定义在 `packages/harness/deerflow/sandbox/tools.py`，通过 `config.yaml` 的 `tools[]` 段加载。默认配置标配全部 7 个。

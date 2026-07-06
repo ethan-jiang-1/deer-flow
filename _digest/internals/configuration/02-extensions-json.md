@@ -1,3 +1,9 @@
+---
+title: "ExtensionsConfig — MCP 与 Skills 配置"
+description: "`extensions_config.json` 是独立的 JSON 配置文件，管理 MCP server 连接和 skills 启用/禁用状态。与 `config.yaml` 不同，它是**可选的** — 找不到就返回空配置。"
+topics: [configuration, hot-reload, yaml-config]
+---
+
 # ExtensionsConfig — MCP 与 Skills 配置
 
 `extensions_config.json` 是独立的 JSON 配置文件，管理 MCP server 连接和 skills 启用/禁用状态。与 `config.yaml` 不同，它是**可选的** — 找不到就返回空配置。

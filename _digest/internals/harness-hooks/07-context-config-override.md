@@ -1,3 +1,9 @@
+---
+title: "ContextVar 运行时配置覆盖：push/pop 栈 + 测试注入"
+description: "**核心文件：** `deerflow/config/app_config.py:336-337, 442-456`"
+topics: [hooks, extension, plugin-system]
+---
+
 # ContextVar 运行时配置覆盖：push/pop 栈 + 测试注入
 
 **核心文件：** `deerflow/config/app_config.py:336-337, 442-456`

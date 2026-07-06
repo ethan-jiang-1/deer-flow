@@ -1,3 +1,9 @@
+---
+title: "IM Channels — 即时通讯平台集成"
+description: "DeerFlow 通过 outbound WebSocket/polling 连接接入 7 个 IM 平台。所有频道共享同一套消息总线架构，但在 stream 策略上分裂为两派：增量流式（Feishu/DingTalk）和阻塞等待（Slac"
+type: index
+---
+
 # IM Channels — 即时通讯平台集成
 
 DeerFlow 通过 outbound WebSocket/polling 连接接入 7 个 IM 平台。所有频道共享同一套消息总线架构，但在 stream 策略上分裂为两派：增量流式（Feishu/DingTalk）和阻塞等待（Slack/Telegram）。

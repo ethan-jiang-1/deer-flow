@@ -1,3 +1,9 @@
+---
+title: "LLM 抽象层"
+description: "怎么做到换模型不改代码？thinking/vision 这些新能力怎么统一抽象？"
+type: index
+---
+
 # LLM 抽象层
 
 怎么做到换模型不改代码？thinking/vision 这些新能力怎么统一抽象？

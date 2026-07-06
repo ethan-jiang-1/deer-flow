@@ -1,3 +1,9 @@
+---
+title: "Agent Loop — 技术内核"
+description: "DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tools → model 再产生 tool_calls → ... 直到 model 输出纯文本。这个循环本身不复杂，复杂的是**循环"
+type: index
+---
+
 # Agent Loop — 技术内核
 
 DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tools → model 再产生 tool_calls → ... 直到 model 输出纯文本。这个循环本身不复杂，复杂的是**循环每一圈上挂了多少东西**。

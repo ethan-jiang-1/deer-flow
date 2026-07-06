@@ -1,3 +1,9 @@
+---
+title: "IM 频道集成"
+description: "DeerFlow 可以接入 7 个即时通讯平台。所有频道通过 outbound 连接（WebSocket 或 polling），不需要公网 IP。"
+topics: [integration, sdk, docker-deploy]
+---
+
 # IM 频道集成
 
 DeerFlow 可以接入 7 个即时通讯平台。所有频道通过 outbound 连接（WebSocket 或 polling），不需要公网 IP。

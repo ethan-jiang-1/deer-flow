@@ -1,3 +1,9 @@
+---
+title: "MCP 深度解析 — Session Pool、OAuth、缓存"
+description: "- `deerflow/mcp/cache.py` (159 行) — 惰性初始化、mtime 缓存失效"
+topics: [mcp, tools, protocol-integration]
+---
+
 # MCP 深度解析 — Session Pool、OAuth、缓存
 
 ## 相关文件
