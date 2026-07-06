@@ -117,24 +117,63 @@ DEER_FLOW_SKILLS_PATH=/Users/bowhead/deer-flow/skills \
 
 你会看到 agent 逐字输出，就像 ChatGPT 那样。
 
-### 实验 3：探索工具
+### 实验 3：搞懂 agent 的工作目录在哪里
 
-```python
-# agent 用了哪些工具？可以直接问它
->>> print(client.chat("用 ls 工具列出 /mnt/user-data/workspace 目录的内容"))
+在让 agent 写文件之前，先搞清楚一个重要问题：**agent 的工作目录到底在宿主机上哪儿？**
 
-# 让 agent 写文件，然后你去宿主机上看
->>> print(client.chat("在 workspace 里创建一个 hello.txt，内容是 'Hello from DeerFlow'"))
-```
-
-验证文件确实写到了宿主机：
+退出 Python REPL（Ctrl+D），重新开，这次加 `DEER_FLOW_HOME`：
 
 ```bash
-ls /Users/bowhead/deer-flow/backend/.deer-flow/users/default/threads/*/user-data/workspace/hello.txt 2>/dev/null
-# 应该能看到 hello.txt
+cd /Users/bowhead/ai_deerflow_wiki
+
+DEER_FLOW_HOME=/Users/bowhead/ai_deerflow_wiki/.deer-flow \
+DEER_FLOW_SKILLS_PATH=/Users/bowhead/deer-flow/skills \
+  uv run python
 ```
 
-默认情况下 agent 的工作目录在 `deer-flow/backend/.deer-flow/...`。后面会教你挂到自己的目录。
+> **`DEER_FLOW_HOME` 是什么？** 它就是 DeerFlow 所有运行时数据（对话记录、工作目录、agent 配置）的根。默认是 `deer-flow/backend/.deer-flow/`，但你是在自己项目里跑，应该指定到你自己的目录。
+
+```python
+>>> from deerflow.client import DeerFlowClient
+>>> client = DeerFlowClient()
+
+# 让 agent 看看自己的工作目录
+>>> print(client.chat("ls /mnt/user-data/workspace"))
+# 应该是空的——新项目嘛
+
+# 让 agent 创建一个文件
+>>> print(client.chat("在 workspace 里写一个 hello.txt，内容是 'Hello from my own project'"))
+```
+
+现在去宿主机上看：
+
+```bash
+ls /Users/bowhead/ai_deerflow_wiki/.deer-flow/users/default/threads/*/user-data/workspace/
+# 应该能看到 hello.txt！
+
+cat /Users/bowhead/ai_deerflow_wiki/.deer-flow/users/default/threads/*/user-data/workspace/hello.txt
+# Hello from my own project
+```
+
+**这就通了。** Agent 在沙箱里写的 `/mnt/user-data/workspace/hello.txt`，就是宿主机上 `.deer-flow/.../workspace/hello.txt`。你的项目目录就是 agent 的数据根。
+
+### 实验 4：让 agent 看更多东西
+
+```python
+# agent 有哪些工具？
+>>> print(client.chat("列出 /mnt/skills/public/ 下的目录（只列第一层）"))
+
+# agent 能读自己刚写的文件吗？
+>>> print(client.chat("读 /mnt/user-data/workspace/hello.txt 的内容"))
+
+# 让 agent 在 workspace 下建一个子目录结构
+>>> print(client.chat(
+...     "在 /mnt/user-data/workspace 下创建这样的目录结构：\n"
+...     "knowledge/ — 知识库\n"
+...     "workflows/ — 流程定义\n"
+...     "data/ — 工作数据"
+... ))
+```
 
 ---
 
@@ -350,11 +389,21 @@ agent 会根据你的 SKILL.md 指令，自动创建目录、写 README、建 CH
 # 你的 API key（至少设一个）
 export DEEPSEEK_API_KEY="sk-..."
 
-# Skills 目录 — 指向 deer-flow 仓库
+# DeerFlow 数据根——运行时数据（对话、工作目录、agent 配置）放哪
+export DEER_FLOW_HOME=/Users/bowhead/ai_deerflow_wiki/.deer-flow
+
+# Skills 目录——指向 deer-flow 仓库
 export DEER_FLOW_SKILLS_PATH=/Users/bowhead/deer-flow/skills
 ```
 
-可以把它们写到 `.env` 文件里（`ai_deerflow_wiki/.env`），uv run 会自动加载。
+可以把它们写到 `.env` 文件里（`ai_deerflow_wiki/.env`），uv run 会自动加载：
+```bash
+cat > /Users/bowhead/ai_deerflow_wiki/.env << 'EOF'
+DEEPSEEK_API_KEY=sk-你的key
+DEER_FLOW_HOME=/Users/bowhead/ai_deerflow_wiki/.deer-flow
+DEER_FLOW_SKILLS_PATH=/Users/bowhead/deer-flow/skills
+EOF
+```
 
 ---
 
