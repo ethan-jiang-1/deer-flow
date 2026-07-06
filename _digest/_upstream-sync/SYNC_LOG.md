@@ -8,6 +8,23 @@ type: index
 
 ---
 
+## #2 — 2026-07-07（同步）
+
+| 项目 | 值 |
+|------|-----|
+| **操作** | 同步 |
+| **旧锚点** | `162fb214` |
+| **新锚点** | `4915b5e` |
+| **上游新增 commits** | 323 |
+| **harness 变更** | 222 files, +26,161 / -2,126 lines |
+| **前端变更** | 308 files, +30,943 / -2,219 lines |
+| **config.example.yaml** | +734 / -51 lines |
+| **主要变更领域** | middleware（5→29 个，加了 24 个新中间件）、skills（deferred discovery、request-scoped secrets、slash activation）、sandbox（BoxLite、E2B、warm pool）、subagents（turn-budget cap、step capture、checkpointer isolation）、TUI（全新 `deerflow` 终端）、Gateway（console、trace correlation、Redis stream bridge、Alembic migrations）、memory（staleness review、token counting）、channels（GitHub webhook、user-owned connections）、testing（record/replay e2e） |
+| **影响的 digest** | concepts/lead-agent、concepts/sandbox、concepts/subagent、concepts/memory、concepts/skills-tools、internals/middleware、internals/agent-loop、internals/model-layer、internals/harness-hooks、internals/configuration、internals/runtime、testing/、operations/security、operations/app-layer、operations/channels、frontend/ |
+| **备注** | 这是 323 个 commit 的大版本跳跃（从 2.0-m1 → 2.1-dev）。中间件链从 19 增长到 29 个，需要全面重写相关 digest。TUI 和 deferred skill discovery 是全新子系统。 |
+
+---
+
 ## #1 — 2026-07-06（初始锚定）
 
 | 项目 | 值 |

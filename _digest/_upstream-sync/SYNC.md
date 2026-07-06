@@ -13,11 +13,11 @@ type: index
 **这个目录只做一件事**：记住我们分析的是上游哪个版本的代码。知道了这个锚点，下次 sync 时跑一下 diff，就知道上游改了哪些文件，也就知道了更新 digest 的源头在哪里。
 
 ```
-上游 commit 162fb214  ← 我们 digest 的基准
+上游 commit 162fb214  ← 初始锚点（2026-07-04）
         │
-        ├─ 上游继续跑…… fd41fdb（当前 HEAD）
+        ├─ 323 commits later...
         │
-        └─ diff(162fb214, fd41fdb) → 哪些文件变了 → 哪些 digest 要更新
+        └─ 上游 commit 4915b5e  ← 新锚点（2026-07-07，已同步）
 ```
 
 ## 核心约定
@@ -35,13 +35,11 @@ ethan  = main + _digest/ + _faq_on_digested/（51 个 commit，186 个文件，�
 
 | 项目 | 值 |
 |------|-----|
-| **`main` HEAD（= 消化基准）** | `162fb214` |
-| **merge base（main ∩ ethan）** | `162fb214` |
-| **日期** | 2026-07-04 |
-| **该 commit 内容** | `fix(mcp): skip session pooling for HTTP/SSE transports (#3203)` |
-| **ethan HEAD** | `e6d2768b` |
-| **ethan 领先 main** | 51 commits（全在 `_digest/` + `_faq_on_digested/`） |
-| **main 领先 ethan** | 0 commits（已完全同步） |
+| **`main` HEAD（= 消化基准）** | `4915b5e` |
+| **旧锚点** | `162fb214`（2026-07-04） |
+| **日期** | 2026-07-07 |
+| **上游变更规模** | 323 commits |
+| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #2 |
 | **上游当前 HEAD** | `fd41fdb`（bytedance/deer-flow main） |
 | **我们落后上游** | `162fb214` → `fd41fdb`，[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...main) |
 
