@@ -26,6 +26,8 @@ ethan  = main + _digest/ + _faq_on_digested/（51 个 commit，186 个文件，�
 | **ethan HEAD** | `e6d2768b` |
 | **ethan 领先 main** | 51 commits（全在 `_digest/` + `_faq_on_digested/`） |
 | **main 领先 ethan** | 0 commits（已完全同步） |
+| **上游当前 HEAD** | `fd41fdb`（bytedance/deer-flow main） |
+| **我们落后上游** | `162fb214` → `fd41fdb`，[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...main) |
 
 ## 未来同步时怎么看
 
