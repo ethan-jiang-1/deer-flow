@@ -2,11 +2,15 @@
 
 DeerFlow 是一个开源 super-agent harness，基于 LangGraph，通过 Skills、自定义 Agent、Sub-agent 委派、MCP 工具四个层次来定义 agent 行为。
 
-**快速上手路径**：`git clone` → `make config` → 配模型 → `make docker-start` → 打开 `http://localhost:2026` → 跟 agent 聊几句。
+**快速上手路径**：`git clone` → `make config` → 配模型 → `make docker-start`（或 `make dev` 本地启动）→ 打开 `http://localhost:2026` → 跟 agent 聊几句。
 
 **详细安装步骤**：见 [part-a-setup.md](part-a-setup.md)。
 
 **搭建 Agent Flow**：见 [part-b-first-flow.md](part-b-first-flow.md)。
+
+**补充问题**：
+- [不依赖 Docker 可以跑吗？](no-docker.md) — 默认就是本地模式，零 Docker 完全可行
+- [本地文件系统和 Git 集成](filesystem-and-git.md) — 用 custom mounts 让 agent 直接操作宿主机上的知识库、项目、Git 仓库
 
 ---
 
@@ -49,10 +53,11 @@ DeerFlow 官方推荐：**Doubao-Seed-2.0-Code**、**DeepSeek V3.2**、**Kimi 2.
 
 ### 最小化上手路径
 
-1. `git clone` → `make config` → 配一个模型 → `make docker-start`
+1. `git clone` → `make config` → 配一个模型 → `make docker-start`（或 `make dev` 本地启动）
 2. 在 Web 界面跟 agent 聊几句，确认通了
 3. 写一个 `skills/custom/my-skill/SKILL.md`，聊一句测试它是否被加载
 4. 如需要深度自动化，用 `DeerFlowClient` 在脚本中调用
+5. 如需 agent 访问宿主机文件，配置 `sandbox.mounts` 自定义挂载（见 [filesystem-and-git.md](filesystem-and-git.md)）
 
 ---
 
