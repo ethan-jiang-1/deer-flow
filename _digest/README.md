@@ -15,7 +15,7 @@ type: index
 | 🗺️ 快速理解 DeerFlow 是什么 | [overview/](overview/) | `01-system-overview.md` → 同心圆架构；`01-logical-architecture.md` → 逻辑三图 |
 | ⚡ 马上装起来跑 | [getting-started/](getting-started/) | `01-quick-start.md` → 最快上手；`04-python-sdk.md` → `DeerFlowClient` 入门 |
 | 🧱 理解核心概念 | [concepts/](concepts/) | Agent、Skill、Tool、Sandbox、Sub-agent、Memory 六大模块 |
-| 🛠️ 看怎么实际开发 | `_faq_on_digested/cli-and-sdd/` | CLI 实验、SDD 协作、Sub-agent 编排、Step-by-Step |
+| 🛠️ 看怎么实际开发 | [patterns/](patterns/) | CLI 实验、SDD 协作、Sub-agent 编排、Step-by-Step |
 | 🔬 深入内部机制 | [internals/](internals/) | Agent Loop、Middleware Chain、Model Layer、Config、Runtime |
 | 🧪 测试策略和方法 | [testing/](testing/) | 测试金字塔、FakeToolCallingModel、CI 门禁、Agent 测试最佳实践 |
 | 🚀 部署和运维 | [operations/](operations/) | 安全、部署、追踪、IM 通道、IT 治理、API 参考 |
