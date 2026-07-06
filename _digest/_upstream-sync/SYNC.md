@@ -31,6 +31,8 @@ ethan  = main + _digest/ + _faq_on_digested/（51 个 commit，186 个文件，�
 
 ## 当前锚点
 
+> 同步历史见 [SYNC_LOG.md](SYNC_LOG.md)
+
 | 项目 | 值 |
 |------|-----|
 | **`main` HEAD（= 消化基准）** | `162fb214` |
