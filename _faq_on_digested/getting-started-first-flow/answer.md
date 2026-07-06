@@ -11,6 +11,7 @@ DeerFlow 是一个开源 super-agent harness，基于 LangGraph，通过 Skills�
 **补充问题**：
 - [不依赖 Docker 可以跑吗？](no-docker.md) — 默认就是本地模式，零 Docker 完全可行
 - [本地文件系统和 Git 集成](filesystem-and-git.md) — 用 custom mounts 让 agent 直接操作宿主机上的知识库、项目、Git 仓库
+- [Agent 专属工作目录与文件系统约定](agent-workspace.md) — Agentic workflow 场景：给 agent 一个独立、持久的文件系统来放知识、数据、流程定义
 
 ---
 
