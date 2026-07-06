@@ -1,9 +1,3 @@
-# Q4: MCP 工具管理——大量 MCP 工具引入噪声，有没有最佳推荐？
-
-> **问题：** 多个 MCP server 引入几十上百个工具，LLM 选不准。DeerFlow 里怎么管理？有没有最佳实践？
-
----
-
 ## 核心发现：DeerFlow 有一个专门为此设计的机制——`tool_search` 延迟加载（但默认关闭）
 
 DeerFlow 的代码库中**已经实现了一套完整的 MCP 工具延迟发现系统**，直接回应了"大量 MCP 工具造成噪声"的问题。但这不是默认行为——需要显式开启。
@@ -230,18 +224,9 @@ tool_configs = [tool for tool in config.tools
 
 ---
 
-## 综合对比：所有可以限制 MCP 工具可见性的机制
+## 综合对比
 
-| 机制 | 对 MCP 生效? | 粒度 | 确定性 | 动态? |
-|------|-------------|------|--------|-------|
-| **Server `enabled: false`** | ✅ | 整个 server | 100% | 可以（Gateway API PUT） |
-| **`tool_search.enabled`** | ✅ | 按需（LLM 搜索） | ~80%（依赖 LLM 判断何时搜索） | 始终动态 |
-| **Skill `allowed-tools`** | ✅ | 每个 skill 声明白名单 | 100%（如果 skill 被精确选中） | 静态（写在 SKILL.md 里） |
-| **Subagent `tools` allowlist** | ✅ | 每个子 agent 精确列出工具名 | 100% | 静态（写在 config.yaml 里） |
-| **Subagent `disallowed_tools`** | ✅ | 每个子 agent 精确列出工具名 | 100% | 静态（写在 config.yaml 里） |
-| **Guardrails `denied_tools`** | ✅ | 运行时拒绝执行 | 100% | 静态（但运行时判断） |
-| **`tool_groups`** | **❌** | 不适用 | — | — |
-| **`include_mcp=False`** | ✅ | 全部 MCP 工具 | 100% | 代码级（实践中没用） |
+详见 [comparison-matrix.md](comparison-matrix.md)。
 
 ---
 
@@ -347,8 +332,8 @@ DeerFlow 文档明确警告：**不要添加 MCP filesystem server**。DeerFlow 
 - `_digest/harness-hooks/04-agent-middleware-hooks.md` — DeferredToolFilterMiddleware 在中间件链中的位置
 - `_digest/harness-hooks/06-mcp-interceptors.md` — MCP 拦截器链 + Gateway API 写回机制
 - `_digest/middleware/03-catalog.md` — 18 middleware 目录
-- `_faq_on_digested/precise-skill-selection/README.md` — Q3: 自主执行中的精准 skill 选择（subagent allowlist, skill allowed-tools）
-- `_faq_on_digested/skill-selection-accuracy/README.md` — Q1: skill 选取精度问题
+- `_faq_on_digested/precise-skill-selection/` — Q3: 自主执行中的精准 skill 选择（subagent allowlist, skill allowed-tools）
+- `_faq_on_digested/skill-selection-accuracy/` — Q1: skill 选取精度问题
 
 Sources:
 - DeerFlow 源码: `deerflow/tools/builtins/tool_search.py:39-202` — `DeferredToolRegistry` + `tool_search`

@@ -1,9 +1,3 @@
-# Q2: 任务 MD 文件能否精确指定要用的 Skill？
-
-> **问题：** 在做"长城任务"（一个长长的 MD 文件描述复杂任务）时，任务 MD 里写了"要用哪个 skill"，这个 skill 能不能被精确选中和执行？还是说 skill 选择必须是用户交互时才能生效？有没有一个准确的机制？
-
----
-
 ## 答案：**不能。没有准确的机制。**
 
 这个问题的本质和 Q1 的 skill 选取精度问题是**同一个问题**——只是换了载体。Q1 里用户打字说"帮我部署 k8s"，DeerFlow 依赖 LLM 阅读理解 skill 列表来决定调用 `k8s-deploy` skill。当用户把需求写进 MD 文件，情况完全一样：MD 文件内容进入对话消息流→LLM 读→LLM 判断该用哪个 skill。没有任何新的机制介入。
@@ -253,7 +247,7 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 
 ## 相关 digest 笔记
 
-- `_faq_on_digested/skill-selection-accuracy/README.md` — Q1: skill 选取精度问题的根源分析
+- `_faq_on_digested/skill-selection-accuracy/` — Q1: skill 选取精度问题的根源分析
 - `_digest/harness-hooks/07-context-config-override.md` — ContextVar 运行时覆盖机制，`_CONTEXT_CONFIGURABLE_KEYS` 白名单模式
 - `_digest/harness-hooks/08-agent-self-modification.md` — `update_agent` 的自修改流程
 - `_digest/middleware/01-hooks-and-flow.md` — 中间件生命周期中如何处理上下文

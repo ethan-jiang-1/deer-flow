@@ -1,9 +1,3 @@
-# Q3: 企业自主静默执行中，如何精准选择 Skill？
-
-> **问题：** Q1 和 Q2 揭示了 DeerFlow 的 skill 选择完全依赖 LLM 自主判断——这在企业"自主静默执行"（Autonomous Headless Execution）场景下不可接受。**现有环境里有什么可以支撑精准 skill 选择？不假设"如果要改"，而是挖掘已经存在但可能没有串联起来的机制。**
-
----
-
 ## 核心发现：两条已经存在的路径
 
 经过对 DeerFlow 代码库的全面挖掘，发现**两条已经存在的精准 skill 选择路径**——但它们各自缺少了对方拥有的那部分能力：
@@ -356,140 +350,13 @@ for key, value in body.config.items():
 
 ---
 
-## 综合：DeerFlow 中已有的可用于"精准 skill 选择"的积木
+## 综合积木清单
 
-| 积木 | 位置 | 做什么 | 缺什么 |
-|------|------|--------|--------|
-| `DeerFlowClient.available_skills` | `client.py:116` | 直接指定 skill 列表 | 不走 HTTP，不动态切换 |
-| `AgentConfig.skills` | `agents_config.py:49` | agent config 文件静态声明 | 不能 per-task 动态变 |
-| `_CONTEXT_CONFIGURABLE_KEYS` | `services.py:124` | HTTP context 白名单 | 缺少 `skills` key |
-| `_get_runtime_config()` | `agent.py:51` | 合并 configurable + context | 已经在读 cfg.get()，就缺 key |
-| `_available_skill_names()` | `agent.py:356` | 决定可用 skill 集合 | 只读 agent_config + is_bootstrap，不读 runtime |
-| `DeferredToolRegistry` | `tool_search.py:39` | ContextVar 隔离 + promote 模式 | 只用于 MCP tools，不用于 skills |
-| `update_agent` tool | `update_agent_tool.py:71` | 运行时自改 skills | 下个 turn 才生效 |
-| Bootstrap flow | `manager.py:936` | 硬编码 skill 限定 | 只有一个映射 |
-| `merge_run_context_overrides` | `services.py:139` | context → configurable/context | 只处理白名单内的 key |
-| Channel commands | `commands.py:11` | 命令→extra_context 管道 | 只有 bootstrap 有实际逻辑 |
+详见 [building-blocks.md](building-blocks.md)。
 
----
+## 实现路径
 
-## 实现精准 Skill 选择的三条可能路径（全部基于已有积木）
-
-### 路径 A：扩展 Gateway context key（最小改动，最大效果）
-
-**利用的积木：** `_CONTEXT_CONFIGURABLE_KEYS` + `_get_runtime_config()` + `_available_skill_names()`
-
-在 `_CONTEXT_CONFIGURABLE_KEYS` 中加 `"skills"`，在 `_make_lead_agent()` 中读它，把它传入 `_available_skill_names()`。然后调用方可以：
-
-```
-POST /api/threads/{id}/runs/stream
-{
-  "input": {...},
-  "context": {
-    "agent_name": "my-agent",
-    "skills": ["k8s-deploy", "python-testing"]
-  }
-}
-```
-
-**优势：** 任何能调 HTTP 的系统都可以精准指定 skill。外部编排器、CI/CD、甚至前端页面都可以。
-
-**代码改动量：** ~5 行。`services.py` 加 1 个 key，`agent.py` 加 3-4 行读 cfg + 优先使用逻辑。
-
-### 路径 B：Embedded Client 路径增强（已有能力 + 加动态切换）
-
-**利用的积木：** `DeerFlowClient.available_skills`（已存在但只在 `__init__`）
-
-让 `available_skills` 变成 `chat()`/`stream()` 的 per-call 参数而不是 `__init__` 参数。当前 `chat()` 已支持 per-call 覆盖 `model_name`, `thinking_enabled`, `subagent_enabled` 等（client.py 的 docstring 已文档化），加 `available_skills` 是同一模式。
-
-**优势：** 同一 client 实例可以执行不同 skill 集合的多个任务，不需要创建多个 instance。
-
-**代码改动量：** ~15 行。在 `chat()`/`stream()` 签名中加参数，在 `_ensure_agent()` 的 config key 和 `apply_prompt_template` 调用中使用 per-call 值而不是 instance 值。
-
-### 路径 C：Skill Deferred Registry 模式（中长期方案）
-
-**利用的积木：** `DeferredToolRegistry` + ContextVar 隔离 + `skill_search` tool
-
-创建 `DeferredSkillRegistry`，类似 `DeferredToolRegistry`：
-- Session 开始：所有 skill 的 SKILL.md body 不注入 prompt，只注入 name+description
-- 外部系统（或 LLM）调用 `skill_search("k8s deploy")` → promote 匹配 skill
-- 已 promote 的 skill 的完整 instructions 被注入到后续 prompt
-- ContextVar 保证 per-request 隔离
-
-**优势：** 支持"自主静默执行"中由外部系统（或 LLM）按需加载 skill。同时解决了 Q1 的 context budget 问题。
-
-**代码改动量：** ~200 行。新的 registry 类 + prompt 生成逻辑调整 + middleware 或 prompt template 修改。
-
----
-
-## 一个具体场景的演练
-
-假设你的"长城任务"是这样运作的：
-
-1. CI/CD 触发一个部署任务
-2. 需要用到 `k8s-deploy`, `python-testing`, `db-migration` 三个 skill
-3. 必须保证这三个 skill 被加载——不能依赖 LLM 自己去想
-
-### 现在就能做到的（路径 A 组合）：
-
-```bash
-# CI/CD 脚本直接调 Gateway API
-curl -X POST http://localhost:8001/api/threads/task-001/runs/wait \
-  -H "Content-Type: application/json" \
-  -d '{
-    "input": {
-      "messages": [{
-        "role": "human",
-        "content": "执行长城任务：部署 v2.3.1 到生产环境..."
-      }]
-    },
-    "context": {
-      "agent_name": "deploy-agent",
-      "skills": ["k8s-deploy", "python-testing", "db-migration"]
-    }
-  }'
-```
-
-前提是路径 A 的 5 行改动已完成。
-
-### 现在就能做到的（不改变代码，利用 agent config）：
-
-1. 预先创建 agent config：
-
-```yaml
-# agents/deploy-agent/config.yaml
-name: deploy-agent
-skills: [k8s-deploy, python-testing, db-migration]
-```
-
-2. 调 API：
-
-```bash
-curl -X POST .../runs/wait -d '{
-  "input": {...},
-  "context": {"agent_name": "deploy-agent"}
-}'
-```
-
-**这种方式不需要任何代码改动。** 缺点是需要为每种 skill 组合预先创建 agent。
-
-### 现在就能做到的（利用 Embedded Client）：
-
-```python
-# Python 脚本，直接在进程中执行
-from deerflow import DeerFlowClient
-
-client = DeerFlowClient(
-    available_skills=["k8s-deploy", "python-testing", "db-migration"],
-    agent_name="deploy-agent",
-)
-result = client.chat(
-    "执行长城任务：部署 v2.3.1...",
-    thread_id="task-001",
-)
-```
-
-**这种方式也不需要任何代码改动。** 缺点是你必须在 Python 进程中运行。
+详见 [implementation-paths.md](implementation-paths.md)。
 
 ---
 
@@ -507,8 +374,8 @@ result = client.chat(
 
 ## 相关 digest 笔记
 
-- `_faq_on_digested/skill-selection-accuracy/README.md` — Q1: skill 选取精度问题
-- `_faq_on_digested/command-skill-linkage/README.md` — Q2: 任务 MD 与 skill 联动
+- `_faq_on_digested/skill-selection-accuracy/` — Q1: skill 选取精度问题
+- `_faq_on_digested/command-skill-linkage/` — Q2: 任务 MD 与 skill 联动
 - `_digest/harness-hooks/04-agent-middleware-hooks.md` — DeferredToolFilterMiddleware 在 chain 中的位置
 - `_digest/harness-hooks/06-mcp-interceptors.md` — MCP 工具发现机制
 - `_digest/harness-hooks/07-context-config-override.md` — ContextVar 运行时覆盖 + 配置优先级
