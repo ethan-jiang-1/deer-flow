@@ -6,6 +6,20 @@ type: index
 
 # 上游同步追踪
 
+## 这个目录是干什么的
+
+我们 fork 了 [bytedance/deer-flow](https://github.com/bytedance/deer-flow)，在 `ethan` 分支上分析源码、写 digest。上游不会等我们——它持续在往前跑。
+
+**这个目录只做一件事**：记住我们分析的是上游哪个版本的代码。知道了这个锚点，下次 sync 时跑一下 diff，就知道上游改了哪些文件，也就知道了更新 digest 的源头在哪里。
+
+```
+上游 commit 162fb214  ← 我们 digest 的基准
+        │
+        ├─ 上游继续跑…… fd41fdb（当前 HEAD）
+        │
+        └─ diff(162fb214, fd41fdb) → 哪些文件变了 → 哪些 digest 要更新
+```
+
 ## 核心约定
 
 ```
