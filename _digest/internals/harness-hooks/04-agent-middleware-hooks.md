@@ -25,7 +25,7 @@ DeerFlow 有两个独立的 middleware 装配入口：
 | 配置源 | `config.yaml` 各 section | `RuntimeFeatures` dataclass |
 | 用户注入 | `extra_middleware` 参数 | `extra_middleware` 参数 |
 
-Lead Agent 多了 4 个生产级 middleware：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）。
+Lead Agent 多了 5 个生产级 middleware：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）。
 
 ## 用户挂自己的 middleware 的 3 种方式
 

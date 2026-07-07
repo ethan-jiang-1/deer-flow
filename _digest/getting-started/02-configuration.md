@@ -33,7 +33,7 @@ topics: [setup, configuration, quickstart]
 | `models[].use` | Provider 类路径，reflection 加载 | 否 |
 | `tool_groups` | 工具分组（web/ file:read/ file:write/ bash） | 否 |
 | `tools` | 内置工具 provider 列表（web_search/web_fetch/image_search/ls/bash 等） | 否 |
-| `sandbox` | 沙箱实现选择（Local/Docker/K3s） | **是**（`sandbox.use`） |
+| `sandbox` | 沙箱实现选择（Local/Docker/K3s/BoxLite/E2B） | **是**（`sandbox.use`） |
 | `sandbox.allow_host_bash` | 主机 bash 开关，默认 false | 否 |
 | `subagents` | 子 Agent 超时/最大轮次/模型覆盖 | 否 |
 | `acp_agents` | 外部 Agent 协议（Claude Code/Codex） | 否 |

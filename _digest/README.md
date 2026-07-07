@@ -12,7 +12,7 @@ type: index
 
 | 你想… | 去这里 | 重点文件 |
 |--------|--------|---------|
-| 🗺️ 快速理解 DeerFlow 是什么 | [overview/](overview/) | `01-system-overview.md` → 同心圆架构；`01-logical-architecture.md` → 逻辑三图 |
+| 🗺️ 快速理解 DeerFlow 是什么 | [overview/](overview/) | `01-system-overview.md` → 同心圆架构；`03-logical-architecture.md` → 逻辑三图 |
 | ⚡ 马上装起来跑 | [getting-started/](getting-started/) | `01-quick-start.md` → 最快上手；`04-python-sdk.md` → `DeerFlowClient` 入门 |
 | 🧱 理解核心概念 | [concepts/](concepts/) | Agent、Skill、Tool、Sandbox、Sub-agent、Memory 六大模块 |
 | 🛠️ 看怎么实际开发 | `_faq_on_digested/cli-and-sdd/` | CLI 实验、SDD 协作、Sub-agent 编排、Step-by-Step |

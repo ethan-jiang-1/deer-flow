@@ -28,7 +28,7 @@ topics: [configuration, hot-reload, yaml-config]
 `_check_config_version()` (`app_config.py:226`) 从 `config.yaml` 读 `config_version`（整数，缺省 = 0），然后在上 5 级目录找 `config.example.yaml`，取其 `config_version`。用户版本 < example 版本时，发出 warning：
 
 ```
-Your config.yaml (version 5) is outdated — the latest version is 10.
+Your config.yaml (version 5) is outdated — the latest version is 19.
 Run `make config-upgrade` to merge new fields into your config.
 ```
 
@@ -140,3 +140,4 @@ pop_current_app_config()                   # 弹出
 | 🆕 `suggestions` | | 自动生成跟进问题建议 |
 
 注：config version 10→19，`checkpointer` 已废弃但后向兼容。
+

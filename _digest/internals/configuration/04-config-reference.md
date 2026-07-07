@@ -33,7 +33,7 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 ## 配置版本
 
 ```yaml
-config_version: 10
+config_version: 19
 ```
 
 用于检测配置过期。改 schema 时上游会升这个数字。`make config-upgrade` 把新字段合并到已有 `config.yaml`。

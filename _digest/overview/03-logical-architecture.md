@@ -24,31 +24,9 @@ topics: [architecture, system-overview]
 
 ## Middleware Chain（29 个中间件，按执行序）
 
-```
-每个 turn 的 LLM 调用和 Tool 执行被以下中间件包裹：
-
- 1. ThreadDataMiddleware      — 创建 per-thread 目录
- 2. UploadsMiddleware          — 追踪已上传文件
- 3. SandboxMiddleware          — 获取/释放沙箱
- 4. DanglingToolCallMiddleware — 补丁缺失的 ToolMessage
- 5. LLMErrorHandlingMiddleware — 规范化 LLM 错误
- 6. GuardrailMiddleware        — pre-tool-call 鉴权（可选）
- 7. SandboxAuditMiddleware     — 安全审计日志
- 8. ToolErrorHandlingMiddleware— 工具异常→ToolMessage
- 9. SummarizationMiddleware    — 上下文压缩（可选）
-10. TodoListMiddleware         — write_todos 任务跟踪（plan_mode）
-11. TokenUsageMiddleware       — token 统计（可选）
-12. TitleMiddleware            — 自动生成会话标题
-13. MemoryMiddleware           — 排队异步更新记忆
-14. ViewImageMiddleware        — vision 图片 base64 注入（可选）
-15. DeferredToolFilterMdlwr    — MCP 工具延迟发现（可选）
-16. SubagentLimitMiddleware    — 限制并行子 agent 数（可选）
-17. LoopDetectionMiddleware    — 检测 tool-call 死循环
-18. SafetyFinishReasonMdlwr    — 安全终止处理（可选）
-19. ClarificationMiddleware    — 拦截 ask_clarification→interrupt（必须最后）
+完整目录见 [internals/middleware/03-catalog.md](../internals/middleware/03-catalog.md)。
 
 6 个 Hook 点：before_model → LLM → after_model → Tool Execute → after_tool → after_step
-```
 
 ---
 
