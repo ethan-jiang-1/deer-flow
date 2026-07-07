@@ -19,3 +19,4 @@ type: index
 | `it-ops/` | IT 治理：访问控制、Sandbox 治理、策略执行、审计、合规 |
 | `app-layer/` | Gateway API：认证、完整 REST 端点、上传安全 |
 | `integration/` | 集成参考：API 参考、Docker 部署、IM 通道配置 |
+| `scheduler.md` | 🆕 定时任务：cron/一次性、租约锁、执行生命周期、调试指南 |
