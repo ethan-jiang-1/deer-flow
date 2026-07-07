@@ -33,6 +33,11 @@ type: index
 | 19 | `getting-started/06-tui.md` | ⚪ 新：TUI 终端 |
 | 20 | `internals/runtime/goal-continuation.md` | ⚪ 新：Goal 续跑 |
 | 21 | `testing/07-record-replay.md` | ⚪ 新：record/replay |
+| 22 | 🔢 全量 grep 数字审计 | 搜 `19`、`3 种`、`16 个`、`26 个`，逐个核实修复 |
+| 23 | 🔗 交叉引用检查 | 确保所有 digest 间链接可达、名称匹配 |
+| 24 | 📋 矛盾检测 10 条 | 逐条核对旧断言是否被新代码推翻 |
+| 25 | 🗂️ 结构一致性 | 确认目录结构不需要进一步调整 |
+| 26 | 🚶 开发者旅程走查 | 模拟 overview→concepts→internals→operations 完整阅读路径 |
 
 ---
 
