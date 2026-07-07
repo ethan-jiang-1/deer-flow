@@ -22,7 +22,7 @@ topics: [architecture, system-overview]
 
 ---
 
-## Middleware Chain（19 个中间件，按执行序）
+## Middleware Chain（29 个中间件，按执行序）
 
 ```
 每个 turn 的 LLM 调用和 Tool 执行被以下中间件包裹：

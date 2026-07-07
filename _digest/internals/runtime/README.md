@@ -85,6 +85,8 @@ sequenceDiagram
 | `runs/schemas.py` | 30 | RunStatus、DisconnectMode 枚举 |
 | `runs/naming.py` | ~30 | 根运行名解析 |
 | `store/async_provider.py` | 115 | LangGraph async store 工厂（匹配 checkpointer 后端） |
+| `goal.py` | 522 | 🆕 Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker |
+| `goal-continuation.md` | — | 🆕 开发者文档：Goal 续跑循环完整说明 |
 
 ### 关键设计决策
 

@@ -6,7 +6,7 @@ topics: [setup, configuration, quickstart]
 
 # 配置接入概览
 
-> 从接入/运维视角看 DeerFlow 的配置体系。字段级参考见 [configuration/ section](../configuration/00-overview.md)。
+> 从接入/运维视角看 DeerFlow 的配置体系。字段级参考见 [configuration/ section](../getting-started/00-config-overview.md)。
 
 ## 两份配置文件
 
@@ -73,4 +73,4 @@ topics: [setup, configuration, quickstart]
 
 ## 完整参考
 
-字段级配置手册见 [configuration/04-config-reference.md](../configuration/04-config-reference.md)，设计原理见 [configuration/00-overview.md](../configuration/00-overview.md)。
+字段级配置手册见 [configuration/04-config-reference.md](../internals/configuration/04-config-reference.md)，设计原理见 [configuration/00-overview.md](../getting-started/00-config-overview.md)。

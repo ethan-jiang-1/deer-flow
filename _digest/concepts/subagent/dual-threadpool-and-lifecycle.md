@@ -12,7 +12,7 @@ Lead Agent 把复杂任务委派给后台子 Agent 并行执行。
 
 LLM 不会凭空知道有哪些 subagent — 它通过**两个独立的信息源**获知，缺一不可。
 
-![Subagent Discovery](figures/subagent-discovery.svg)
+![Subagent Discovery](../../internals/agent-loop/figures/subagent-discovery.svg)
 
 ### Channel 1: Tool Schema（`task` 工具的 description）
 
@@ -60,7 +60,7 @@ system prompt 还教 LLM 何时用 `task`、并发限制（max 3）、分批策�
 
 ## 完整生命周期时序图
 
-![Subagent Lifecycle](figures/subagent-lifecycle.svg)
+![Subagent Lifecycle](../../internals/agent-loop/figures/subagent-lifecycle.svg)
 
 ---
 
@@ -327,10 +327,26 @@ class SubagentConfig:
 ```
 PENDING → RUNNING → COMPLETED  → (cleanup)
                          ↓
-                  FAILED / CANCELLED / TIMED_OUT
+                  FAILED / CANCELLED / TIMED_OUT / MAX_TURNS_REACHED 🆕
 ```
 
-`try_set_terminal()` 是线程安全的 first-terminal-wins — 用 `_state_lock` 保证只有一个 terminal 状态写入，防止 timeout 和正常完成竞争覆盖结果。
+`try_set_terminal()` 线程安全 first-terminal-wins。
+
+## Turn-Budget Cap（MAX_TURNS_REACHED）🆕
+
+源码：`deerflow/subagents/executor.py:717`
+
+Subagent 的 `max_turns`（general-purpose 默认 150，旧值 100）设到 `recursion_limit`。耗尽时 LangGraph 抛出 `GraphRecursionError`。`_aexecute()` 专门 catch 此异常（在 generic `except` 之前），设置 `MAX_TURNS_REACHED` 状态并**恢复已流式输出的部分结果**。Lead agent 收到带 `subagent_result_brief` + `subagent_error` 的响应，能区分「坏了」和「预算用完了」（旧版一律报 FAILED）。
+
+## Step Capture & Persistence 🆕
+
+源码：`deerflow/subagents/step_events.py`
+
+`capture_new_step_messages()` 遍历每个新追加的消息（不只 `messages[-1]`），保留多工具调用的所有 `ToolMessage`。`build_subagent_step()` 截断超大内容（`SUBAGENT_STEP_MAX_CHARS=8192`）。`_SubagentEventBuffer` 批量写入 `RunEventStore`（category=`"subagent"`），前端通过 `list_events?task_id=...` 分页拉取。修复了 issue #3779（多 tool call 只保留最后一个）。
+
+## Checkpointer Isolation 🆕
+
+Subagent 编译时 `checkpointer=False`——永不继承父 run 的 checkpointer。每次运行独立 `ThreadState`，deferred MCP tool 提升按 subagent run 隔离。源码：`deerflow/subagents/executor.py:433`
 
 ---
 
@@ -340,7 +356,9 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 |------|-----|----------|
 | 最大并发 | 3 | `MAX_CONCURRENT_SUBAGENTS` + `SubagentLimitMiddleware` |
 | 不能递归委派 | `subagent_enabled=False` | `task_tool` → `get_available_tools()` |
-| 默认超时 | 15 min | `SubagentConfig.timeout_seconds`, `future.result(timeout)` |
+| 默认超时 | 30 min | `SubagentConfig.timeout_seconds`, `future.result(timeout)` |
+| 默认 max_turns | 150（general-purpose） | `SubagentConfig.max_turns` |
 | 轮询间隔 | 5s | `task_tool` polling loop |
 | 取消方式 | cooperative | `cancel_event.set()`, 在 `astream` chunk 边界检查 |
 | thinking | 关闭 | `create_chat_model(thinking_enabled=False)` |
+| checkpointer | 隔离（False） | `executor.py:433` |

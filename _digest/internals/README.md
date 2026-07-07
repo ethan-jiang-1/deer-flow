@@ -13,7 +13,7 @@ type: index
 | 目录 | 内容 |
 |------|------|
 | `agent-loop/` | Agent 循环核心：三层嵌套、中间件即循环、扩展点、代码追踪 |
-| `middleware/` | 中间件体系：6 hook 点、链组装、19 middleware 目录、Claude Code 对比 |
+| `middleware/` | 中间件体系：6 hook 点、链组装、29 middleware 目录、Claude Code 对比 |
 | `model-layer/` | 模型抽象：`create_chat_model()` 工厂、thinking/vision、streaming |
 | `harness-hooks/` | 扩展点：配置热加载、单例传播、反射加载、Guardrail、MCP 拦截器、ContextVar 覆盖 |
 | `configuration/` | 配置系统：config.yaml 全字段参考、extensions_config.json、动态加载 |

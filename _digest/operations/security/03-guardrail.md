@@ -8,7 +8,7 @@ topics: [security, auth, isolation-defense]
 
 Tool 执行前有两层保护：Guardrail（可插拔授权）和 SandboxAudit（bash 命令模式匹配）。
 
-> **交叉引用：** middleware 视角的 GuardrailMiddleware/SandboxAuditMiddleware 见 [middleware/03-catalog.md](../middleware/03-catalog.md)（wrap_tool_call 段）。
+> **交叉引用：** middleware 视角的 GuardrailMiddleware/SandboxAuditMiddleware 见 [middleware/03-catalog.md](../../internals/middleware/03-catalog.md)（wrap_tool_call 段）。
 
 ## Guardrails 行业概念：DeerFlow 在哪一层？
 
@@ -51,7 +51,7 @@ Tool 执行前有两层保护：Guardrail（可插拔授权）和 SandboxAudit�
 ### Middleware 链位置
 
 ```
-Middleware 链（共 19 个，按 index 排序）
+Middleware 链（共 29 个，按 index 排序）
   ...
   第 5 位: xxx
   第 6 位: GuardrailMiddleware     ← 拦截所有 tool_call，判断 allow/deny
@@ -279,3 +279,34 @@ bash tool 执行
 ### 审计日志非结构化
 
 SandboxAuditMiddleware 的审计日志是 `logger.info()` 文本，不是结构化 JSON。对于需要接入 SIEM/SOAR 的企业部署，需要额外做日志解析和格式化。
+
+---
+
+## Input Sanitization 🆕
+
+`InputSanitizationMiddleware`（中间件链第 1 位）在 prompt injection 到达 LLM 之前做两件事：
+
+1. **转义注入标记**：将用户消息中的 `<system>`、`<instruction>`、`<role>` 等 XML tag 转为 `&lt;system&gt;` 等字面形式
+2. **边界包裹**：用 `--- BEGIN USER INPUT ---` / `--- END USER INPUT ---` 标定真实用户输入边界
+
+原始未洗文本保留在 `additional_kwargs[ORIGINAL_USER_CONTENT_KEY]`，下游消费者（slash activation、regeneration）可以恢复。只在 `wrap_model_call` 操作，不修改 checkpoint。
+
+## Environment Scrubbing 🆕
+
+`deerflow/sandbox/env_policy.py` — `build_sandbox_env()` 在向 sandbox 进程注入请求级密钥之前剥离宿主机敏感环境变量：
+
+- 通配：`*KEY*`、`*SECRET*`、`*TOKEN*`、`*PASSWORD*`、`*CREDENTIAL*`、`*DSN*`
+- 精确名：`DATABASE_URL`、`REDIS_URL`、`GH_PAT`、`GITHUB_PAT` 等
+- Benign 变量（`PATH`、`HOME`、`LANG`）保留
+
+注入的请求级密钥（request-scoped secrets）在注入后覆盖任何同名变量。
+
+## Secrets Redaction 🆕
+
+`secret_context.REDACTED_CONTEXT_KEYS` 确保 secret-bearing context key（`secrets`、`__active_skill_secrets`）从以下路径中剥离：
+- Trace（LangSmith/Langfuse 永远不看到 secret 值）
+- 持久化 run record（`runs.kwargs_json`）
+- API 响应（`RunResponse.kwargs`）
+- 日志记录
+
+Secret 值存在于 process memory 中仅够完成当前 bash 调用。

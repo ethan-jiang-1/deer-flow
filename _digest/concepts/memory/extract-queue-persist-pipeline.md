@@ -122,6 +122,51 @@ memory:
 - **原子写入**：先写 temp file → `os.replace()` 到目标文件 → 使缓存失效
 - **并发安全**：进程内同一用户同一 agent 的读写被 `MemoryQueue` 的去抖机制序列化
 
+## Staleness Review 🆕
+
+同一次 LLM 调用中（不增加 API 开销），检测并清理过期 fact：
+
+1. `_select_stale_candidates()` 选超过 `staleness_age_days`（默认 90 天）的 fact，排除 `staleness_protected_categories`（默认 `["correction"]`）
+2. 候选数 ≥ `staleness_min_candidates`（默认 3）时触发
+3. LLM 逐条判断 KEEP 或 REMOVE
+4. `_apply_updates` 硬性交叉校验：只删除 LLM 建议的 ∩ 实际候选的，保护类别和未过期 fact **永不被删除**
+5. 上限 `staleness_max_removals_per_cycle`（默认 10），超额时保留最低置信度 fact
+
+## Token Counting 🆕
+
+两种策略，由 `memory.token_counting` 控制：
+
+| 策略 | 说明 |
+|------|------|
+| `tiktoken`（默认） | `cl100k_base` 精确计数。编码懒加载+缓存。失败后 600s cooldown。网络受限环境可能阻塞首次加载 |
+| `char` | 零网络依赖。CJK 感知估算：非 CJK `//4`，CJK `//2` |
+
+## Guaranteed Categories 🆕
+
+`guaranteed_categories`（默认 `["correction"]`）中的 fact 走独立 token 预算（`guaranteed_token_budget`，默认 500），放在 Facts 块最前面，不被普通 fact 挤出。
+
+## Sync 更新路径修复 🆕
+
+`_do_update_memory_sync` 使用独立 `ThreadPoolExecutor` + `model.invoke()`（同步 HTTP），避免触碰 lead agent 共享的 async httpx 连接池，消除跨 loop 连接复用 bug（issue #2615）。
+
+## Upload Stripping 🆕
+
+`_strip_upload_mentions_from_memory()` 从摘要和 fact 中删除关于上传文件的句子，防止 agent 在后续 session 中搜索不存在的文件。
+
+## 新配置参数
+
+```yaml
+memory:
+  token_counting: tiktoken              # tiktoken | char
+  guaranteed_categories: [correction]   # 保证注入的 fact 类别
+  guaranteed_token_budget: 500          # 保证类别的 token 上限
+  staleness_review_enabled: true        # 开启过期清理
+  staleness_age_days: 90                # 超过此天数才候选
+  staleness_min_candidates: 3           # 至少这么多候选才触发
+  staleness_max_removals_per_cycle: 10  # 每次最多删除数
+  staleness_protected_categories: [correction]  # 永不过期类别
+```
+
 ## 用户隔离迁移
 
 从 legacy 共享布局迁移到 per-user 布局：

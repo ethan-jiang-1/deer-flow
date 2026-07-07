@@ -16,6 +16,7 @@ type: index
 | `03-python-sdk.md` | DeerFlowClient 嵌入式 SDK |
 | `04-local-dev.md` | 本地开发模式：`make dev` 进程拓扑 |
 | `05-environment.md` | 完整环境变量参考 |
+| `06-tui.md` | 🆕 `deerflow` 终端工作台：安装、三种模式、CI 集成 |
 
 ## 补充
 

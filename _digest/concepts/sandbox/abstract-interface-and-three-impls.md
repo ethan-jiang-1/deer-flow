@@ -8,7 +8,7 @@ topics: [sandbox, isolation, filesystem]
 
 DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。
 
-> **交叉引用：** 三种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../security/02-sandbox-isolation.md)。
+> **交叉引用：** 三种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../../operations/security/02-sandbox-isolation.md)。
 
 ## 抽象接口
 
@@ -44,7 +44,9 @@ class SandboxProvider:
 
 `acquire_async` 的存在意义：Docker 沙箱的创建、跨进程锁、就绪轮询都必须在 async 路径上，不能阻塞 event loop。
 
-## 三种实现
+## 五种实现
+
+所有实现共享 `WarmPoolLifecycleMixin`（`community/warm_pool_lifecycle.py`），提供 idle timeout、replicas 软上限、过期 warm entry 回收。
 
 ### 1. LocalSandboxProvider（默认）
 
@@ -54,80 +56,52 @@ sandbox:
   allow_host_bash: false
 ```
 
-**Per-thread 隔离**：
-- `acquire(thread_id)` → 创建 `LocalSandbox`，id = `local:{thread_id}`
-- `acquire()` / `acquire(None)` → 返回 legacy 单例 `local`
-- 每个 thread 有独立的路径映射
-
-**LRU 缓存**：
-- 最多 256 个 per-thread sandbox
-- `threading.Lock` 保护
-
-**路径映射**：
-
-| Agent 看到的虚拟路径 | 实际 host 路径 |
-|---|---|
-| `/mnt/user-data/workspace` | `.deer-flow/users/{user_id}/threads/{thread_id}/user-data/workspace` |
-| `/mnt/user-data/uploads` | `.deer-flow/users/{user_id}/threads/{thread_id}/user-data/uploads` |
-| `/mnt/user-data/outputs` | `.deer-flow/users/{user_id}/threads/{thread_id}/user-data/outputs` |
-| `/mnt/skills` | `skills/`（项目目录下） |
-| `/mnt/acp-workspace` | `.deer-flow/users/{user_id}/threads/{thread_id}/acp-workspace` |
-
-**Host bash 安全**：
-- 默认 `allow_host_bash: false`
-- 因为 LocalSandboxProvider 不是安全隔离边界，bash 默认关闭
-- 仅在完全信任的单用户本地工作流中开启
-
-**输出截断**：
-```
-bash_output_max_chars: 20000       # middle-truncation (head + tail)
-read_file_output_max_chars: 50000  # head-truncation
-ls_output_max_chars: 20000         # head-truncation
-```
+Per-thread 隔离、LRU 缓存（256）、虚拟路径映射。Host bash 默认关闭。
 
 ### 2. AioSandboxProvider（Docker 隔离）
 
 ```yaml
 sandbox:
   use: deerflow.community.aio_sandbox:AioSandboxProvider
-  image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
-  port: 8080
-  replicas: 3                        # 最多 3 个并发容器
-  container_prefix: deer-flow-sandbox
-  mounts:
-    - host_path: /path/on/host
-      container_path: /home/user/shared
-      read_only: false
-  environment:                       # 注入容器环境变量
-    NODE_ENV: production
-    API_KEY: $MY_API_KEY             # $VAR 从 host 解析
+  replicas: 3
 ```
 
-**平台自适应**：
-- macOS：先探测 Apple Container（`apple-virtualization.framework`），不可用再 fallback Docker
-- 其他平台：Docker
-- 通过 `agent-sandbox >= 0.0.19` 库实现
-
-**LRU 淘汰**：
-- replicas: 3 → 最多创建 3 个容器
-- 超出后最久未使用的被 evict（释放为新 sandbox 腾空间）
-
-**虚拟路径一致性**：
-- Skills 目录自动挂载到 `skills.container_path`（默认 `/mnt/skills`）
-- User-data 目录通过 volume mount 传入容器同一虚拟路径
-- **Agent 不感知 local 还是 AIO** — 两者接受相同的 `/mnt/user-data/...` 路径
+平台自适应（macOS Apple Container → Docker fallback）。Warm pool 持有释放的容器供快速重用。
 
 ### 3. Provisioner 模式（K3s Pod）
 
+AioSandboxProvider + `provisioner_url`。每个 sandbox → 一个 K3s Pod。适合生产。
+
+### 4. BoxLiteProvider（Micro-VM 隔离）🆕
+
 ```yaml
 sandbox:
-  use: deerflow.community.aio_sandbox:AioSandboxProvider
-  provisioner_url: http://provisioner:8002
+  use: deerflow.community.boxlite:BoxliteProvider
+  image: python:3.12-slim
+  replicas: 3
+  idle_timeout: 600
 ```
 
-- 每个 `sandbox_id` → 一个 K3s Pod
-- Provisioner 管理 Pod 生命周期
-- 适合生产（强隔离、可扩展）
+KVM（Linux）/ Hypervisor.framework（macOS）micro-VM。私有 asyncio event loop（BoxLite 句柄是 loop-affine）。Warm pool 同 `(user, thread)` 回收。
+
+### 5. E2BSandboxProvider（云端沙箱）🆕
+
+```yaml
+sandbox:
+  use: deerflow.community.e2b_sandbox:E2BSandboxProvider
+```
+
+e2b code-interpreter 云端沙箱。多进程发现（metadata 标记）。Output sync（释放时从 VM 回传 outputs/workspace 到 host）。
+
+### 环境变量擦洗 🆕
+
+`env_policy.build_sandbox_env()` 在注入请求级密钥前从继承环境剥离敏感变量：
+
+- 通配模式：`*KEY*`、`*SECRET*`、`*TOKEN*`、`*PASSWORD*`、`*CREDENTIAL*`、`*DSN*`
+- 精确名：`DATABASE_URL`、`REDIS_URL`、`GH_PAT`、`GITHUB_PAT` 等连接串
+- Benign 变量（`PATH`、`HOME`、`LANG`）保留
+
+源码：`deerflow/sandbox/env_policy.py`
 
 ## Sandbox 检测
 

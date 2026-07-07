@@ -56,7 +56,7 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 
 **ThreadState** 是贯穿全程的状态对象：`messages` (对话历史)、`sandbox` (沙箱实例)、`artifacts` (产物)、`todos` (计划)、`viewed_images` (图片缓存)。
 
-**关键理解：** 这不是一个简单的 while 循环，是 LangGraph 的 StateGraph 节点 + 边。每轮 step，graph 自动从 checkpointer 恢复 ThreadState，经过 middleware 链 → LLM → 条件边（有 tool_calls 则走 tool 节点然后循环，纯文本则走 END）。详见 [03-request-flow.md](03-request-flow.md) 和 [middleware/ section](../middleware/README.md)。
+**关键理解：** 这不是一个简单的 while 循环，是 LangGraph 的 StateGraph 节点 + 边。每轮 step，graph 自动从 checkpointer 恢复 ThreadState，经过 middleware 链 → LLM → 条件边（有 tool_calls 则走 tool 节点然后循环，纯文本则走 END）。详见 [03-request-flow.md](05-request-flow.md) 和 [middleware/ section](../internals/middleware/README.md)。
 
 #### 挂入关系
 
@@ -68,7 +68,7 @@ Agent Loop 直接调用 Ring 1 的服务（Sandbox.execute、tool invocation、m
 
 Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python async 函数调用。
 
-![Core Services Hook Points](figures/core-services-hook-points.svg)
+![Core Services Hook Points](../overview/figures/agent-runtime-overview.svg)
 
 **图上能看到的：**
 - 左列：Skills 和 Tools 在图构建时（编译期）装配。虚线 = 编译期绑定，不参与 loop 运行时。
@@ -115,7 +115,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 2. 调用 `create_chat_model()` 创建 LLM 实例
 3. 调用 `get_available_tools()` 装配 tool 列表（config + MCP + builtins + ACP agents）
 4. 调用 `apply_prompt_template()` 生成 system prompt（注入 skills、memory、日期、subagent 指令）
-5. 调用 `_build_middlewares()` 构建 19 个 middleware
+5. 调用 `_build_middlewares()` 构建 29 个 middleware
 6. 调用 `create_agent(model, tools, middleware, state_schema, checkpointer)` 返回 CompiledStateGraph
 
 **`make_lead_agent` 是唯一对外暴露的 graph factory**，在 `langgraph.json` 中注册为 `"lead_agent"`。
@@ -166,7 +166,7 @@ SDK:         DeerFlowClient.chat() ────→ Agent Loop (同进程，无�
 IM:          IM webhook → Gateway → RunManager → Agent Loop
 ```
 
-SDK 的优势：零网络开销、无序列化、不需要启动 Gateway 进程。详见 [../integration/04-python-sdk.md](../integration/04-python-sdk.md)。
+SDK 的优势：零网络开销、无序列化、不需要启动 Gateway 进程。详见 [../integration/04-python-sdk.md](../getting-started/03-python-sdk.md)。
 
 ---
 

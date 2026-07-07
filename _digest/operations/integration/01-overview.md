@@ -172,7 +172,7 @@ channels:
 
 | 手段 | 详细文档 | 相关配置 |
 |------|----------|----------|
-| ① HTTP API | [03-api-reference.md](03-api-reference.md) | `config.yaml` models |
-| ② Python SDK | [04-python-sdk.md](04-python-sdk.md) | 同 config.yaml |
-| ③ Docker | [05-docker.md](05-docker.md) | `docker-compose.yaml` |
-| ④ IM 频道 | [07-im-channels.md](07-im-channels.md) | `config.yaml` channels |
+| ① HTTP API | [03-api-reference.md](02-api-reference.md) | `config.yaml` models |
+| ② Python SDK | [04-python-sdk.md](../../getting-started/03-python-sdk.md) | 同 config.yaml |
+| ③ Docker | [05-docker.md](03-docker.md) | `docker-compose.yaml` |
+| ④ IM 频道 | [07-im-channels.md](04-im-channels.md) | `config.yaml` channels |

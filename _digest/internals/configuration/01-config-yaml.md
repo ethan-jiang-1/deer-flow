@@ -1,12 +1,12 @@
 ---
 title: "AppConfig — config.yaml 内部机制"
-description: "`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:84`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 26 "
+description: `AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:84`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。
 topics: [configuration, hot-reload, yaml-config]
 ---
 
 # AppConfig — config.yaml 内部机制
 
-`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:84`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 26 个顶层 section。
+`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:84`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 ~35 个顶层 section。
 
 ## from_file() 8 步流水线
 
@@ -99,7 +99,7 @@ pop_current_app_config()                   # 弹出
 
 ---
 
-## 26 Section 速览
+## ~35 Section 速览
 
 | Section | 类型 | 作用 |
 |---------|------|------|
@@ -122,11 +122,21 @@ pop_current_app_config()                   # 弹出
 | `circuit_breaker` | `CircuitBreakerConfig` | LLM 断路器 |
 | `loop_detection` | `LoopDetectionConfig` | 循环 tool call 检测 |
 | `safety_finish_reason` | `SafetyFinishReasonConfig` | provider 安全过滤拦截 |
-| `database` | `DatabaseConfig` | DB 后端（默认 SQLite） |
+| `database` | `DatabaseConfig` | DB 后端（默认 SQLite），统一 checkpointer + Store + app repos |
 | `run_events` | `RunEventsConfig` | run event 存储 |
-| `checkpointer` | `CheckpointerConfig` | 持久化状态存储 |
-| `stream_bridge` | `StreamBridgeConfig` | SSE bridge 后端 |
+| `checkpointer` | `CheckpointerConfig` | ⚠️ **已废弃**，改用 `database` |
+| `stream_bridge` | `StreamBridgeConfig` | SSE bridge 后端（memory / redis） |
 | `extensions` | `ExtensionsConfig` | MCP + skills 状态（从 JSON 合并） |
 | `config_version` | int（extra） | 配置版本号（vs config.example.yaml） |
+| 🆕 `logging.enhance` | | 请求 trace correlation（X-Trace-Id） |
+| 🆕 `token_budget` | | Per-run token 限制（warn + hard_stop 阈值） |
+| 🆕 `max_recursion_limit` | | 客户端 recursion_limit 上限（默认 1000） |
+| 🆕 `tool_output` | | 超大 tool 结果磁盘持久化 + 截断 |
+| 🆕 `tool_progress` | | Tool 停滞检测状态机 |
+| 🆕 `read_before_write` | | 写文件前必须 read_file（默认 on） |
+| 🆕 `scheduler` | | 后台 cron + 一次性任务调度 |
+| 🆕 `channel_connections` | | 用户拥有的 IM 频道绑定 |
+| 🆕 `auth.oidc` | | OIDC SSO（Keycloak/Google/Azure/Okta） |
+| 🆕 `suggestions` | | 自动生成跟进问题建议 |
 
-注：`config_version` 不在 Pydantic 字段里，通过 `extra="allow"` 被保留。
+注：config version 10→19，`checkpointer` 已废弃但后向兼容。

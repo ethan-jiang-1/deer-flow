@@ -203,3 +203,48 @@ class RunCreateRequest:
 ```
 
 这允许前端在往返传输中发送掩码值，而真实密钥保留在磁盘上。
+
+---
+
+## 新增端点 🆕
+
+### Console (`/api/console`)
+
+只读可观测性端点（需要 SQL backend）：
+
+| 端点 | 说明 |
+|------|------|
+| `GET /stats` | 标题计数器：total_runs, active_runs, total_threads, total_agents, total_tokens, total_cost |
+| `GET /runs` | 分页跨线程 run 列表，join thread 标题，含 per-run 成本 |
+| `GET /usage` | 每日 token 用量序列（最多 90 天），per-model 分解 |
+
+成本估算需要 `models[*].pricing` 块（`currency`, `input_per_million`, `output_per_million`, `input_cache_hit_per_million`）。Memory backend 返回 503。
+
+### Goal (`/api/threads/{id}/goal`)
+
+Thread goal 自动续跑：
+
+- `GET /goal` — 读取活跃 goal
+- `PUT /goal` — 设置 goal（可配 `max_continuations`，上限 8）
+- `DELETE /goal` — 清除 goal
+
+设置后，每个 visible assistant turn 后，非思考 evaluator 模型评估 goal 是否满足。`goal_not_met_yet` → 注入隐藏 HumanMessage 让 agent 继续工作。No-progress breaker 在连续 2 次无新证据时停止。
+
+### Channel Connections (`/api/channels`)
+
+用户拥有的 IM 频道绑定：
+
+- `GET /providers` — 列出支持的 provider 及每个 provider 的就绪状态
+- `GET /connections` — 列出当前用户的绑定
+- `POST /{provider}/connect` — 发起绑定（返回一次性 connect code）
+- `DELETE /connections/{id}` — 撤销绑定
+
+支持 7 个 provider：Telegram（deep-link）、Slack、Discord、Feishu、DingTalk、WeChat、WeCom（binding code）。
+
+### GitHub Webhooks (`/api/webhooks/github`)
+
+`POST /` — 接收 GitHub App webhook 事件。HMAC 验证（`X-Hub-Signature-256`）。识别事件：`issues`、`issue_comment`、`pull_request`、`pull_request_review` 等。Per-agent binding 支持 `config.yaml` 中声明 `github:` 块。
+
+### Scheduled Tasks
+
+CRUD on scheduled task 定义（cron 或一次性），含 lease/status 列和执行追踪。

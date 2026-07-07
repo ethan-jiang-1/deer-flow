@@ -56,7 +56,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ## 两套文件，两条路径
 
-![Config Two Files](figures/config-two-files.svg)
+![Config Two Files](../internals/configuration/figures/config-two-files.svg)
 
 `config.yaml` 是**必须存在**的主配置 — 找不到直接 `FileNotFoundError`。`extensions_config.json` 是**可选的**扩展配置 — 找不到返回空 `ExtensionsConfig()`。
 
@@ -79,7 +79,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ## 热加载：谁实时生效，谁必须重启？
 
-![Config Hot Reload](figures/config-hot-reload.svg)
+![Config Hot Reload](../internals/configuration/figures/config-hot-reload.svg)
 
 `lifespan()`（`app/gateway/app.py:160`）是进程生命周期分界线。启动时 `get_app_config()` 的快照传给 `langgraph_runtime()`，构建所有长生命周期对象并存到 `app.state`。后续请求走另一条路径 — 直接调 `get_app_config()` 检测 mtime 决定要不要重新从磁盘加载。
 

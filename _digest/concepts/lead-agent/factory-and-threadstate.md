@@ -8,7 +8,7 @@ topics: [agent, factory, threadstate]
 
 DeerFlow 的核心：`make_lead_agent` 工厂函数创建与 LangGraph 兼容的 Agent。
 
-> **交叉引用：** Agent 如何挂载 middleware 链见 [middleware/03-catalog.md](../middleware/03-catalog.md)。
+> **交叉引用：** Agent 如何挂载 middleware 链见 [middleware/03-catalog.md](../../internals/middleware/03-catalog.md)。
 
 ## 入口
 
@@ -159,20 +159,28 @@ graph = create_agent(
 ## ThreadState — 状态 Schema
 
 ```python
-class ThreadState(AgentState):           # 继承 LangChain AgentState
-    sandbox: SandboxState | None         # {"sandbox_id": "local:..."}
-    thread_data: ThreadDataState | None  # {workspace_path, uploads_path, outputs_path}
-    title: str | None                    # 自动生成的线程标题
-    artifacts: list[str]                 # 产物路径列表（去重 reducer）
-    todos: list | None                   # 计划任务列表（合并 reducer）
-    uploaded_files: list[dict] | None    # 最近上传文件
-    viewed_images: dict[str, ViewedImageData]  # base64 图片缓存
+class ThreadState(AgentState):
+    sandbox: SandboxState | None
+    thread_data: ThreadDataState | None
+    title: str | None
+    artifacts: list[str]                 # 去重 reducer
+    todos: list | None                   # 合并 reducer
+    uploaded_files: list[dict] | None
+    viewed_images: dict[str, ViewedImageData]
+    # 🆕 以下为新增字段
+    delegations: list[DelegationEntry]   # task 委派台账（merge_delegations）
+    skill_context: list[SkillEntry]      # 已加载 skill 引用（merge_skill_context）
+    summary_text: str | None             # summarization 产出的压缩文本（LastValue）
+    promoted: PromotedTools | None       # deferred MCP tool 提升记录（merge_promoted）
 ```
 
 ### 自定义 Reducers
 
 | 字段 | Reducer | 行为 |
 |------|---------|------|
-| `artifacts` | `merge_artifacts` | 合并 + 去重（`dict.fromkeys` 保持顺序） |
-| `todos` | `merge_todos` | `None` = 保留旧值；非 `None` = 覆盖（空列表也是有效更新） |
-| `viewed_images` | `merge_viewed_images` | `{}` → 清空；非空 → 合并覆盖（同 key 新值覆盖旧） |
+| `artifacts` | `merge_artifacts` | 合并 + 去重 |
+| `todos` | `merge_todos` | None=保留旧值；非None=覆盖 |
+| `viewed_images` | `merge_viewed_images` | `{}`→清空；非空→合并覆盖 |
+| `delegations` | `merge_delegations` | 🆕 追加，同 ID 最新胜，终态不可降级，上限 50 |
+| `skill_context` | `merge_skill_context` | 🆕 按 path 去重，最近读取的保留，上限 8 |
+| `promoted` | `merge_promoted` | 🆕 catalog-hash 作用域，catalog 变更时全量替换 |

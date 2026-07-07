@@ -7,7 +7,7 @@ topics: [configuration, hot-reload, yaml-config]
 # config.yaml 全段参考
 
 > 迁移自 `integration/02-configuration.md`。本文是 `config.yaml` + `extensions_config.json` 的字段级参考手册。
-> 配置系统的设计原理见 [00-overview.md](00-overview.md)，动态加载机制见 [03-dynamic-loading.md](03-dynamic-loading.md)。
+> 配置系统的设计原理见 [00-overview.md](../../getting-started/00-config-overview.md)，动态加载机制见 [03-dynamic-loading.md](03-dynamic-loading.md)。
 
 DeerFlow 有两个配置文件，都放在项目根目录。
 
@@ -416,7 +416,7 @@ circuit_breaker:
 
 ## IM Channels
 
-详见 [../integration/07-im-channels.md](../integration/07-im-channels.md)。
+详见 [../integration/07-im-channels.md](../../operations/integration/04-im-channels.md)。
 
 ---
 

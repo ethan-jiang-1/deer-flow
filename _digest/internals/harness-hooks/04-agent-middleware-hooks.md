@@ -21,7 +21,7 @@ DeerFlow 有两个独立的 middleware 装配入口：
 | | Lead Agent（生产路径） | SDK（`create_deerflow_agent`） |
 |---|---|---|
 | 入口 | Gateway 的 `make_lead_agent()` | `factory.py:create_deerflow_agent()` |
-| 数量 | 19 个（全量） | 14 个（精简） |
+| 数量 | 29 个（全量） | ~10 个（精简） |
 | 配置源 | `config.yaml` 各 section | `RuntimeFeatures` dataclass |
 | 用户注入 | `extra_middleware` 参数 | `extra_middleware` 参数 |
 
