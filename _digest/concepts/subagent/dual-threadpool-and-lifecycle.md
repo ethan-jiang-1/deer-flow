@@ -294,13 +294,15 @@ subagents:
       timeout_seconds: 600
 ```
 
-**模型覆盖**（按优先级）：
+**模型指定**（按优先级）：
 
-1. Agent 级: `subagents.agents.general-purpose.model: "qwen3:32b"`
-2. Custom agent 定义中的 `model` 字段
-3. 继承: 使用父 agent 的当前 model → fallback 到 `app_config.models[0].name`
+1. Agent 级覆盖: `subagents.agents.{name}.model` — 最高优先级
+2. Custom agent 自身的 `model` 字段 — 例如 `model: gpt-4o`
+3. `"inherit"`（默认）— 使用父 agent 的模型，fallback 到 `models[0].name`
 
-`resolve_subagent_model_name()` 在 `subagents/config.py:44` 处理。
+> ⚠️ `model` 的值必须是 `config.yaml` 中 `models[].name` 之一。`"inherit"` 是特殊字符串，其余值直接传给 `create_chat_model(name)`。
+
+源码：`resolve_subagent_model_name()` in `subagents/config.py:44`
 
 ---
 

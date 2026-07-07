@@ -552,3 +552,65 @@ flowchart LR
 
     MEMORY -.->|"MemoryThreadMetaStore<br/>(绕过 SQL)"| GW
 ```
+
+## 迁移：SQLite → Postgres（含数据）
+
+### 前置条件
+
+- 运行中的 PostgreSQL 实例（`auto_create_postgres_db` 在 `engine.py` 中处理自动建库）
+- 安装 asyncpg 驱动：
+  ```bash
+  # 本地
+  cd backend && uv sync --all-packages --extra postgres
+  # Docker：设置 UV_EXTRAS=postgres 环境变量
+  ```
+
+### 切换步骤
+
+```bash
+# 1. 在 .env 中设置连接 URL
+echo 'DATABASE_URL=postgresql://user:pass@host:5432/deerflow' >> .env
+
+# 2. 修改 config.yaml
+# database:
+#   backend: postgres
+#   postgres_url: $DATABASE_URL
+
+# 3. 重启
+make dev
+```
+
+DeerFlow 将自动：创建数据库（如不存在）→ `bootstrap_schema()` 创建所有表 → 运行 alembic 迁移 → 初始化 checkpointer 和 Store。
+
+### 数据迁移
+
+**没有内置数据迁移工具。** 切换后端后，旧 SQLite 文件（`.deer-flow/data/deerflow.db`）仍存在但不再使用。
+
+**使用 pgloader（推荐）：**
+```bash
+pgloader sqlite://.deer-flow/data/deerflow.db postgresql://user:pass@host:5432/deerflow
+```
+
+需迁移的表：
+- DeerFlow app 表：`runs`, `threads_meta`, `feedback`, `users`, `run_events`, `channel_connections`, `channel_credentials`, `channel_oauth_states`, `channel_conversations`
+- LangGraph checkpointer 表：`checkpoints`, `checkpoint_blobs`, `checkpoint_writes`
+- 跳过 `alembic_version`（每个后端独立维护）
+- 注意类型差异：SQLite TEXT → Postgres JSONB
+
+**不受数据库影响的数据**（文件系统，不需要迁移）：
+- Memory 文件（`memory.json`）
+- 上传文件（`.deer-flow/users/{uid}/threads/{tid}/user-data/`）
+- Skills、Agent 配置
+
+### 多 Worker 执行
+
+`GATEWAY_WORKERS > 1` 时，非 Postgres 后端（SQLite/memory）Gateway 拒绝启动。Postgres 使用 `pg_advisory_lock` 跨进程串行化 bootstrap。
+
+### 数据存储布局
+
+- **SQLite**：checkpointer、Store、应用表全部在同一个 `deerflow.db` 文件中（WAL 日志模式，写不阻塞读）
+- **Postgres**：checkpointer 和 app 使用同一数据库但独立连接池（checkpointer 用 `psycopg_pool`，app 用 SQLAlchemy+asyncpg）
+
+### 已废弃
+
+`checkpointer` 配置段已废弃。统一使用 `database` 段。如两者都存在，`checkpointer` 段优先级更高（仅用于 LangGraph checkpointer 和 Store；app repository 始终使用 `database`）。
