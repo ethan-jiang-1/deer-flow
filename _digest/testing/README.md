@@ -25,7 +25,8 @@ Agent 测试是所有 AI 应用中最棘手的部分。这里分两层：DeerFlo
 | `05-testing-skills-and-workflows.md` | 测试 Skill 加载、Workflow 行为序列（trajectory）、interrupt_before 单步评测 |
 | `06-ci-and-automation.md` | CI 流水线、@requires_llm 标记、环境隔离、Token 预算、决策矩阵 |
 | `07-record-replay.md` | 🆕 ReplayChatModel 深度：输入哈希、volatile 归一化、caller-aware key、golden shape 断言 |
-| `08-testing-patterns-reference.md` | 🆕 11 种可复用测试模式：FakeRedis、FrozenDatetime、Fake evaluator、Textual pilot、hermetic replay 等 |
+| `08-testing-patterns-reference.md` | 11 种可复用测试模式：FakeRedis、FrozenDatetime、Fake evaluator、Textual pilot、hermetic replay 等 |
+| `09-what-to-copy-from-deerflow-ci.md` | 🆕 借鉴 DeerFlow 自己的实践：CI 模板、FakeToolCallingModel、隔离 fixture、record/replay、验收模板 |
 
 ## 补充
 
