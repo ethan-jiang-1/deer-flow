@@ -8,6 +8,34 @@ type: index
 
 > 基准：`162fb214` → `4915b5e`（323 commits），2026-07-07
 
+## ▶ 步步为营执行清单
+
+| 步 | 文件 | 做什么 |
+|----|------|--------|
+| 1 | `internals/middleware/03-catalog.md` | 🔴 重写：29 个中间件完整目录 |
+| 2 | `internals/middleware/02-chain-assembly.md` | 🔴 重写：两阶段组装 |
+| 3 | `internals/middleware/00-overview.md` | 🟡 更新数字 19→29 |
+| 4 | `concepts/skills-tools/skill-md-and-tool-assembly.md` | 🔴 重写：加 deferred discovery + secrets |
+| 5 | `concepts/skills-tools/` 拆子目录 | 🟡 新增 deferred-discovery.md + request-secrets.md |
+| 6 | `concepts/lead-agent/factory-and-threadstate.md` | 🟡 加 4 个新 ThreadState 字段 |
+| 7 | `concepts/sandbox/abstract-interface-and-three-impls.md` | 🟡 3→5 种实现 |
+| 8 | `concepts/subagent/dual-threadpool-and-lifecycle.md` | 🟡 加 turn-budget cap, step persistence |
+| 9 | `concepts/memory/extract-queue-persist-pipeline.md` | 🟡 加 staleness review, token counting |
+| 10 | `internals/agent-loop/00-loop-anatomy.md` | 🟡 更新数字 |
+| 11 | `internals/agent-loop/03-code-trace.md` | 🟡 更新 middleware 名称 |
+| 12 | `internals/configuration/01-config-yaml.md` | 🟡 加新 sections |
+| 13 | `operations/security/03-guardrail.md` | 🟡 加 InputSanitization + env scrubbing |
+| 14 | `operations/app-layer/00-overview.md` | 🟡 加新路由 |
+| 15 | `operations/app-layer/01-api-reference.md` | 🟡 加新端点 |
+| 16 | 🔢 数字审计 | grep 全 digest 修复旧数字 |
+| 17 | 🔗 交叉引用检查 | 确保所有链接可达 |
+| 18 | `overview/01-system-overview.md` | 🟢 更新全览数字 |
+| 19 | `getting-started/06-tui.md` | ⚪ 新：TUI 终端 |
+| 20 | `internals/runtime/goal-continuation.md` | ⚪ 新：Goal 续跑 |
+| 21 | `testing/07-record-replay.md` | ⚪ 新：record/replay |
+
+---
+
 ## 优先级说明
 
 | 级别 | 含义 |
@@ -279,3 +307,4 @@ testing/                           → record/replay 已添加
 6. 🟢 交叉引用检查（确保所有链接可达、名称匹配）
 7. ⚪ 新增子系统文件（TUI, goal, record/replay, deferred, secrets, connections）
 8. 🔵 开发者旅程连贯性走查
+
