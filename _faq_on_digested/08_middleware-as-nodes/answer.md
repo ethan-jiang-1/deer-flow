@@ -359,3 +359,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 - `langchain/agents/factory.py`：middleware node 创建 L1372-1453，关键节点定义 L1455-1481，before_model 边 L1578-1597，after_model 反向边 L1600-1614，after_agent 反向边 L1617-1639，`_add_middleware_edge` L1819-1864
 - `langchain/agents/middleware/types.py`：`AgentMiddleware` 抽象类定义
 - `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L269-405，展示 29 个 middleware 的完整列表和添加顺序
+
+## 补充文件
+
+- [complete-catalog.md](complete-catalog.md) —— **完整 29 个 middleware 一览表**（按顺序、按 hook 类型、按使用频率分类）
