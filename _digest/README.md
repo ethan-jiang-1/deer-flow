@@ -51,3 +51,12 @@ _digest/
 - 研究内容 → `_digest/`
 - 问答内容 → `_faq_on_digested/`
 - 同步上游 → 参考 `_upstream-sync/SYNC.md`
+
+## ⏱ 时间预算
+
+| 时间 | 读什么 | 得到什么 |
+|------|--------|---------|
+| 5 分钟 | `overview/01-system-overview.md` | 四层同心圆架构 + 进程拓扑 |
+| 15 分钟 | + `overview/03-logical-architecture.md` + `overview/06-startup-flow.md` | Agent Loop 怎么跑、启动全流程 |
+| 30 分钟 | + `concepts/lead-agent/` + `concepts/sandbox/` + `concepts/subagent/` | 三大核心抽象 |
+| 60 分钟 | + `concepts/skills-tools/` + `concepts/memory/` + `internals/middleware/03-catalog.md` | 全部核心概念 |

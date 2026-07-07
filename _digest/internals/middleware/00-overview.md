@@ -203,3 +203,29 @@ DeerFlow 的 `@Next`/`@Prev` 部分解决了这个问题，但只要有人动了
 **但它不够"open"。** Flask 的 middleware 生态系统之所以繁荣，是因为任何人都可以 `pip install flask-xxx` 然后装饰一下就接入。DeerFlow 的 middleware 需要你了解 29 个 middleware 的位置关系、选了正确的 anchor、处理 `@Next`/`@Prev` 的冲突——门槛远高于 Flask。这是一个**内部架构的整洁 > 外部扩展的便利**的选择——对于 ByteDance 的内部项目可能合理，对于开源项目可能限制了社区贡献。
 
 **类比：** 如果 Flask 是自动挡（装饰器随便加，框架自己理顺序），DeerFlow 就是手动挡（`@Next(A)` 挂三档，`@Prev(B)` 挂四档）——更精确、更可控，但需要你知道档位在哪。
+
+## 完整示例：自定义 Middleware
+
+```python
+from langchain.agents.middleware import AgentMiddleware, Next, Prev
+from deerflow.agents.middlewares.tool_error_handling_middleware import ToolErrorHandlingMiddleware
+
+class AuditLoggingMiddleware(AgentMiddleware):
+    """每次 tool 执行后记录审计日志。"""
+
+    def after_tool(self, state, runtime):
+        last_msg = state["messages"][-1]
+        if hasattr(last_msg, "name"):
+            print(f"[AUDIT] tool={last_msg.name} thread={runtime.context.get('thread_id')}")
+        return None  # 不修改 state
+
+# 使用 extra_middleware 注入（自动定位在 ToolErrorHandling 之前）
+from deerflow.agents.factory import create_deerflow_agent, RuntimeFeatures
+agent = create_deerflow_agent(
+    model=model,
+    features=RuntimeFeatures(sandbox=True),
+    extra_middleware=[(AuditLoggingMiddleware(), Prev(ToolErrorHandlingMiddleware))],
+)
+```
+
+`@Next(X)` / `@Prev(X)` 定位机制让你精确控制插入位置，无需知道链中其他 middleware 的索引。

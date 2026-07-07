@@ -193,3 +193,17 @@ Transport：stdio、SSE、HTTP。OAuth 支持 client_credentials + refresh_token
 | `describe_skill` | `skills.deferred_discovery` | `skills/describe.py` |
 | `task` | `subagent_enabled` | subagent 系统 |
 | `invoke_acp_agent` | ACP 配置了 agent | ACP 系统 |
+
+## 故障排查
+
+| 症状 | 可能原因 | 检查 |
+|------|---------|------|
+| Skill 不出现 | 未启用 | `extensions_config.json` → `skills.{name}.enabled: true` |
+| Skill 不出现 | Agent 白名单 | custom agent `config.yaml` → `skills:` 包含该 skill |
+| Skill 不出现（deferred 模式） | 索引未构建 | `skills.deferred_discovery: true` + skill 目录存在 `SKILL.md` |
+| 修改后未生效 | 热加载未触发 | 重启 Gateway 或等 mtime 检测（`get_or_new_skill_storage()`） |
+| Secret 未注入 | 声明缺失 | `SKILL.md` frontmatter → `required-secrets: [NAME]` |
+| Secret 未注入 | 调用方未传 | run request `context.secrets` 包含该 key |
+| Secret 未注入（自主加载） | 被阻止 | `secrets-autonomous: false` 阻止了 in-context 绑定，用 `/skill-name` 显式激活 |
+| /skill-name 不生效 | 语法错误 | 严格格式：`/skill-name task description`（斜杠+名称+空格+task+空格+描述） |
+| /skill-name 不生效 | 保留命令 | `/new`、`/help` 等保留命令被拒绝 |
