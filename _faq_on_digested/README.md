@@ -27,3 +27,23 @@ _faq_on_digested/
 2. **答案必须引用源代码**的具体文件和行号作为证据
 3. **不重复**已在 digest 中写过的内容——指向它而不是复制
 4. 如果问题涉及 DeerFlow 之外的系统（如 Codex、Claude Code），标注来源
+
+## 已答问题
+
+| # | 问题 | 子目录 |
+|---|------|--------|
+| 1 | Skill 选取精度 | [skill-selection-accuracy/](skill-selection-accuracy/) |
+| 2 | 任务 MD 与 skill 联动 | [command-skill-linkage/](command-skill-linkage/) |
+| 3 | 企业静默执行 skill 选择 | [precise-skill-selection/](precise-skill-selection/) |
+| 4 | MCP 工具管理 | [mcp-best-practices/](mcp-best-practices/) |
+| 5 | 入门指南 | [getting-started-first-flow/](getting-started-first-flow/) |
+| 6 | CLI/SDD 协作 | [cli-and-sdd/](cli-and-sdd/) |
+| 7 | Agent 图两个固定 Node | [graph-nodes/](graph-nodes/) |
+| 8 | Middleware 就是 Node | [middleware-as-nodes/](middleware-as-nodes/) |
+| 9 | 扩展 ThreadState | [custom-state-and-reducers/](custom-state-and-reducers/) |
+
+## 配方（Recipe）
+
+| 名称 | 文件 |
+|------|------|
+| 自动化代码审查 Bot | [automated-code-review-bot.md](automated-code-review-bot.md) |
