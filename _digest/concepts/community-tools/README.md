@@ -44,3 +44,5 @@ DeerFlow 通过 `community/` 目录集成了 9 个第三方工具 provider，覆
 | 图片搜索 | `packages/harness/deerflow/community/image_search/` |
 | AIO 沙箱 | `packages/harness/deerflow/community/aio_sandbox/` |
 | Tool 装配入口 | `packages/harness/deerflow/tools/tools.py:get_available_tools()` |
+
+| `05-how-to-add-provider.md` | 🆕 如何添加新的 tool provider：目录结构、tool 函数、认证、config.yaml 注册、测试 |
