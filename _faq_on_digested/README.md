@@ -32,15 +32,15 @@ _faq_on_digested/
 
 | # | 问题 | 子目录 |
 |---|------|--------|
-| 1 | Skill 选取精度 | [skill-selection-accuracy/](skill-selection-accuracy/) |
-| 2 | 任务 MD 与 skill 联动 | [command-skill-linkage/](command-skill-linkage/) |
-| 3 | 企业静默执行 skill 选择 | [precise-skill-selection/](precise-skill-selection/) |
-| 4 | MCP 工具管理 | [mcp-best-practices/](mcp-best-practices/) |
-| 5 | 入门指南 | [getting-started-first-flow/](getting-started-first-flow/) |
-| 6 | CLI/SDD 协作 | [cli-and-sdd/](cli-and-sdd/) |
-| 7 | Agent 图两个固定 Node | [graph-nodes/](graph-nodes/) |
-| 8 | Middleware 就是 Node | [middleware-as-nodes/](middleware-as-nodes/) |
-| 9 | 扩展 ThreadState | [custom-state-and-reducers/](custom-state-and-reducers/) |
+| 1 | Skill 选取精度 | [01_skill-selection-accuracy/](01_skill-selection-accuracy/) |
+| 2 | 任务 MD 与 skill 联动 | [02_command-skill-linkage/](02_command-skill-linkage/) |
+| 3 | 企业静默执行 skill 选择 | [03_precise-skill-selection/](03_precise-skill-selection/) |
+| 4 | MCP 工具管理 | [04_mcp-best-practices/](04_mcp-best-practices/) |
+| 5 | 入门指南 | [05_getting-started-first-flow/](05_getting-started-first-flow/) |
+| 6 | CLI/SDD 协作 | [06_cli-and-sdd/](06_cli-and-sdd/) |
+| 7 | Agent 图两个固定 Node | [07_graph-nodes/](07_graph-nodes/) |
+| 8 | Middleware 就是 Node | [08_middleware-as-nodes/](08_middleware-as-nodes/) |
+| 9 | 扩展 ThreadState | [09_custom-state-and-reducers/](09_custom-state-and-reducers/) |
 
 ## 配方（Recipe）
 
