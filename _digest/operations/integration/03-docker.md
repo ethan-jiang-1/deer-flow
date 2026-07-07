@@ -129,7 +129,7 @@ gateway:
 
 1. **builder** — 安装 Python 3.12 + Node.js 22 + uv
 2. **dev** — 保留编译工具链
-3. **runtime** — 精简镜像（~200MB 更小）
+3. **runtime** — 精简镜像（~200 MiB 更小）
 
 build args: `APT_MIRROR`, `UV_IMAGE`, `UV_INDEX_URL`, `UV_EXTRAS`
 

@@ -98,7 +98,7 @@ supports_vision: true  →  ViewImageMiddleware 加入链  →  before_model 注
 
 不是所有模型都能看图。`supports_vision: true` 是前提条件。启用后的完整流程：
 
-1. **Tool 执行** — agent 调 `view_image` tool，tool 读取文件（验证 JPEG/PNG/WebP，max 20MB，magic byte 检查），base64 编码，存入 `ThreadState.viewed_images`
+1. **Tool 执行** — agent 调 `view_image` tool，tool 读取文件（验证 JPEG/PNG/WebP，max 20 MiB，magic byte 检查），base64 编码，存入 `ThreadState.viewed_images`
 2. **Middleware 注入** — `ViewImageMiddleware.before_model` 在下一次 model 调用前，把 `viewed_images` 中的图片转为 `HumanMessage` 的 `image_url` content block（base64 data URI）
 3. **Model 调用** — LLM 收到的 messages 里包含图片数据，像正常的多模态请求一样处理
 4. **状态清理** — `merge_viewed_images` reducer 合并/清理已处理图片
@@ -202,7 +202,7 @@ thinking_budget = int(max_tokens * 0.8) if max_tokens else None
   ├─ Step 2: view_image tool 执行 (sandbox/tools.py)
   │     ├─ 路径校验: 限定在 /mnt/user-data/{workspace,uploads,outputs}
   │     ├─ 文件类型校验: magic bytes 检查 JPEG/PNG/WebP
-  │     ├─ 大小上限: 20MB
+  │     ├─ 大小上限: 20 MiB
   │     ├─ base64 编码
   │     └─ 写入 ThreadState.viewed_images (merge_viewed_images reducer)
   │

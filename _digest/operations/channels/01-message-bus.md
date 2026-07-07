@@ -1,6 +1,6 @@
 ---
 title: "MessageBus pub/sub + ChannelManager dispatch loop"
-description: "## MessageBus"
+description: "IM 频道消息总线：双向 pub/sub、入站队列、出站回调。"
 topics: [channels, im, messaging]
 ---
 

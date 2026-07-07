@@ -143,7 +143,7 @@ _ALLOWED_IMAGE_VIRTUAL_ROOTS = (
 4. **后缀白名单**: `.jpg` / `.jpeg` / `.png` / `.webp`
 5. **Magic byte 校验**: 检查文件头字节（`\xff\xd8\xff` = JPEG, `\x89PNG` = PNG, `RIFF...WEBP` = WebP）
 6. **MIME 一致性**: magic byte 推断的 MIME 必须与后缀匹配
-7. **大小限制**: 最大 20MB（`_MAX_IMAGE_BYTES = 20 * 1024 * 1024`）
+7. **大小限制**: 最大 20 MiB（`_MAX_IMAGE_BYTES = 20 * 1024 * 1024`）
 
 ### 注入链路
 
