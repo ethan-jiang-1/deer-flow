@@ -272,3 +272,6 @@ def isolated_env(tmp_path, monkeypatch):
 | `backend/tests/test_sandbox_tools_security.py` | 路径安全测试（93 个） |
 | `backend/tests/test_client.py` | 流式输出测试（143 个） |
 | `backend/tests/conftest.py` | 全局 fixture：单例重置、circular import mock |
+
+---
+> **See also:** [Testing Skills & Workflows](05-testing-skills-and-workflows.md) · [CI & Automation](06-ci-and-automation.md) · [Pattern Reference](08-testing-patterns-reference.md)

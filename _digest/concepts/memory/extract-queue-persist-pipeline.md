@@ -192,3 +192,6 @@ Legacy 布局（`{base_dir}/memory.json`）仍作为只读 fallback。
 | 导入 | `POST /api/memory/import` |
 | 配置 | `GET /api/memory/config` |
 | 状态 | `GET /api/memory/status` |
+
+---
+> **See also:** [MemoryConfig source](../../../backend/packages/harness/deerflow/config/memory_config.py) · [Testing staleness review](../../testing/08-testing-patterns-reference.md)

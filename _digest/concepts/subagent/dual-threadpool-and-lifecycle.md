@@ -362,3 +362,6 @@ Subagent 编译时 `checkpointer=False`——永不继承父 run 的 checkpointe
 | 取消方式 | cooperative | `cancel_event.set()`, 在 `astream` chunk 边界检查 |
 | thinking | 关闭 | `create_chat_model(thinking_enabled=False)` |
 | checkpointer | 隔离（False） | `executor.py:433` |
+
+---
+> **See also:** [Lead Agent factory](../lead-agent/factory-and-threadstate.md) · [Middleware: SubagentLimitMiddleware](../../internals/middleware/03-catalog.md) · [Testing sub-agents](../../testing/04-agent-test-patterns.md)

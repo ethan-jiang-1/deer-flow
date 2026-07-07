@@ -60,3 +60,19 @@ _digest/
 | 15 分钟 | + `overview/03-logical-architecture.md` + `overview/06-startup-flow.md` | Agent Loop 怎么跑、启动全流程 |
 | 30 分钟 | + `concepts/lead-agent/` + `concepts/sandbox/` + `concepts/subagent/` | 三大核心抽象 |
 | 60 分钟 | + `concepts/skills-tools/` + `concepts/memory/` + `internals/middleware/03-catalog.md` | 全部核心概念 |
+
+## 🤖 AI Agent 快速检索
+
+```
+# 按关键词查找
+prompt injection  → operations/security/03-guardrail.md (InputSanitization)
+request secrets   → concepts/skills-tools/skill-md-and-tool-assembly.md
+goal continuation → internals/runtime/goal-continuation.md
+custom middleware → internals/middleware/02-chain-assembly.md + 00-overview.md
+TUI / CLI         → getting-started/06-tui.md
+record replay     → testing/07-record-replay.md
+staleness review  → concepts/memory/extract-queue-persist-pipeline.md
+BoxLite / E2B     → concepts/sandbox/abstract-interface-and-three-impls.md
+deferred MCP      → internals/middleware/03-catalog.md (#22 DeferredToolFilter)
+deferred skills   → concepts/skills-tools/skill-md-and-tool-assembly.md
+```

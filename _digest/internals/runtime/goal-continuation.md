@@ -103,3 +103,6 @@ def latest_visible_assistant_signature(messages):
 `test_goal_runtime.py`（236 行，18 个测试函数）是纯粹的单元测试：JSON 解析、对话格式化、续跑逻辑、evidence signature 计算。
 
 源码：`deerflow/runtime/goal.py`（522 行），`deerflow/runtime/runs/worker.py`（goal 续跑循环在 `run_agent` 的 finally 块中），`deerflow/client.py`（`set_goal`/`get_goal`/`clear_goal` 方法）
+
+---
+> **See also:** [TUI goal management](../../getting-started/06-tui.md) · [Goal source](../../../backend/packages/harness/deerflow/runtime/goal.py) · [Goal tests](../../../backend/tests/test_goal_runtime.py)

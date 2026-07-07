@@ -153,3 +153,6 @@ flowchart TD
 - **`uses_local_sandbox_provider()`** — 检测沙箱 provider 是否为 `LocalSandboxProvider`（零隔离）
 - **`is_host_bash_allowed()`** — 如果在本地沙箱上未设置 `allow_host_bash: true` 则返回 `False`；AIO/Docker/K3s 返回 `True`（它们有容器隔离）
 - 本地沙箱上的被阻止 bash 产生明确的错误消息，指出不安全的边界并建议切换到 AIO
+
+---
+> **See also:** [Security: Sandbox Isolation](../../operations/security/02-sandbox-isolation.md) · [Sandbox Governance](../../operations/it-ops/02-sandbox-governance.md) · [Env Policy (source)](../../../backend/packages/harness/deerflow/sandbox/env_policy.py)

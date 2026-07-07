@@ -95,3 +95,6 @@ Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含
 | 前置 middleware | 无 | InputSanitization + ToolOutputBudget |
 | 上下文层 | 无 | DynamicContext + SkillActivation + DurableContext |
 | 尾部 middleware | Clarification 最后 | Custom → SafetyFinishReason → Clarification |
+
+---
+> **See also:** [Agent Loop anatomy](../agent-loop/00-loop-anatomy.md) · [Middleware catalog](03-catalog.md) · [Testing custom middleware](../../testing/04-agent-test-patterns.md)

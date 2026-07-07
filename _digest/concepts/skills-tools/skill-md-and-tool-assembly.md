@@ -207,3 +207,6 @@ Transport：stdio、SSE、HTTP。OAuth 支持 client_credentials + refresh_token
 | Secret 未注入（自主加载） | 被阻止 | `secrets-autonomous: false` 阻止了 in-context 绑定，用 `/skill-name` 显式激活 |
 | /skill-name 不生效 | 语法错误 | 严格格式：`/skill-name task description`（斜杠+名称+空格+task+空格+描述） |
 | /skill-name 不生效 | 保留命令 | `/new`、`/help` 等保留命令被拒绝 |
+
+---
+> **See also:** [Security: Input Sanitization & Secrets Redaction](../../operations/security/03-guardrail.md) · [Middleware: SkillActivationMiddleware](../../internals/middleware/03-catalog.md) · [Testing Skills](../../testing/05-testing-skills-and-workflows.md)
