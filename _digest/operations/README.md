@@ -20,4 +20,5 @@ type: index
 | `app-layer/` | Gateway API：认证、完整 REST 端点、上传安全 |
 | `integration/` | 集成参考：API 参考、Docker 部署、IM 通道配置 |
 | `scheduler.md` | 定时任务：cron/一次性、租约锁、执行生命周期、调试指南 |
-| `backup-and-monitoring.md` | 🆕 备份恢复与监控：数据清单、备份脚本、Console API、LangFuse |
+| `github-integration.md` | 🆕 GitHub 集成：webhook、per-agent binding、安装 token、gh CLI |
+| `backup-and-monitoring.md` | 备份恢复与监控：数据清单、备份脚本、Console API、LangFuse |
