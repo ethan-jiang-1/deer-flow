@@ -167,7 +167,7 @@ class ThreadState(AgentState):
     todos: list | None                   # 合并 reducer
     uploaded_files: list[dict] | None
     viewed_images: dict[str, ViewedImageData]
-    # 🆕 以下为新增字段
+    # 🆕 以下为新增字段（详见 internals/middleware/ 中 DurableContextMiddleware 和 SkillActivationMiddleware）
     delegations: list[DelegationEntry]   # task 委派台账（merge_delegations）
     skill_context: list[SkillEntry]      # 已加载 skill 引用（merge_skill_context）
     summary_text: str | None             # summarization 产出的压缩文本（LastValue）

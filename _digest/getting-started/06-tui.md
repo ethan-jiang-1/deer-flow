@@ -66,3 +66,28 @@ echo "analyze" | deerflow --json | tee /tmp/agent-output.jsonl
 ```
 
 Headless 模式使用 `persistence=False`（不写 threads_meta，无后台 DB loop）。
+
+## 架构
+
+TUI 14 个源文件的分层：
+
+| 层 | 文件 | 职责 |
+|----|------|------|
+| 入口 | `cli.py` | `plan_launch()` 决策 + `main()` 分发 |
+| App | `app.py` | Textual `App`，worker thread 跑 `DeerFlowClient.stream()` |
+| 状态 | `view_state.py` | 不可变 `ViewState` + `reduce(state, action)` |
+| 运行时 | `runtime.py` | `translate(StreamEvent) → [Action]` |
+| 持久化 | `persistence.py` | `ThreadMetaWriter` 写 `threads_meta` 表 |
+| 会话 | `session.py` | `open_session()` 构建 `DeerFlowClient` + checkpointer |
+| UI | `widgets/composer.py`, `render.py`, `theme.py` | 输入框、Rich 渲染、颜色 |
+| 辅助 | `command_registry.py`, `input_history.py`, `message_format.py` | Slash 命令、↑↓ 历史、工具摘要 |
+
+纯层（无 Textual 依赖）全部可单元测试：`test_tui_cli.py`、`test_tui_view_state.py`、`test_tui_runtime.py` 等 12 个测试文件。
+
+## 持久化与 Web UI 集成
+
+TUI 通过 `persistence.py` 的 `ThreadMetaWriter` 写入 `threads_meta` SQL 表（与 Gateway 共享同一 DB）。TUI session 自动出现在 Web UI 左侧栏。`open_session(persistence=True)`（TUI 模式）启用此功能；`persistence=False`（headless 模式）跳过。
+
+## 与 DeerFlowClient 的关系
+
+TUI 是 `DeerFlowClient` 的 UI shell——不 fork agent 行为。`DeerFlowClient.stream()` 在 worker 线程上同步运行，action 通过 `call_from_thread` 编组到 UI 线程。同一套 `config.yaml`、同一套 `DEER_FLOW_HOME`。

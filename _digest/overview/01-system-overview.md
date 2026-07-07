@@ -56,7 +56,7 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 
 **ThreadState** 是贯穿全程的状态对象：`messages` (对话历史)、`sandbox` (沙箱实例)、`artifacts` (产物)、`todos` (计划)、`viewed_images` (图片缓存)。
 
-**关键理解：** 这不是一个简单的 while 循环，是 LangGraph 的 StateGraph 节点 + 边。每轮 step，graph 自动从 checkpointer 恢复 ThreadState，经过 middleware 链 → LLM → 条件边（有 tool_calls 则走 tool 节点然后循环，纯文本则走 END）。详见 [03-request-flow.md](05-request-flow.md) 和 [middleware/ section](../internals/middleware/README.md)。
+**关键理解：** 这不是一个简单的 while 循环，是 LangGraph 的 StateGraph 节点 + 边。每轮 step，graph 自动从 checkpointer 恢复 ThreadState，经过 middleware 链 → LLM → 条件边（有 tool_calls 则走 tool 节点然后循环，纯文本则走 END）。详见 [05-request-flow.md](05-request-flow.md) 和 [middleware/ section](../internals/middleware/README.md)。
 
 #### 挂入关系
 
@@ -166,7 +166,7 @@ SDK:         DeerFlowClient.chat() ────→ Agent Loop (同进程，无�
 IM:          IM webhook → Gateway → RunManager → Agent Loop
 ```
 
-SDK 的优势：零网络开销、无序列化、不需要启动 Gateway 进程。详见 [../integration/04-python-sdk.md](../getting-started/03-python-sdk.md)。
+SDK 的优势：零网络开销、无序列化、不需要启动 Gateway 进程。详见 [getting-started/03-python-sdk.md](../getting-started/03-python-sdk.md)。
 
 ---
 

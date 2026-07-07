@@ -177,7 +177,7 @@ _scheduler_pool (ThreadPoolExecutor, 3 workers)
 **关键细节：**
 
 - **thinking 关闭**: `create_chat_model(thinking_enabled=False)` — subagent 不需要 thinking 模式
-- **max_turns**: `RunnableConfig(recursion_limit=config.max_turns)` — 防止 subagent 无限循环（默认 50，bash 是 60）
+- **max_turns**: `RunnableConfig(recursion_limit=config.max_turns)` — 防止 subagent 无限循环（默认 150（general-purpose），bash 是 60）
 - **cancel_event**: `threading.Event` — cooperative 取消信号，subagent 在每次 `astream` chunk 后检查，不强制杀线程
 - **timeout**: scheduler thread 用 `future.result(timeout=900s)` — 超时后设 cancel_event + try_set_terminal(TIMED_OUT) + cancel future
 
@@ -266,7 +266,7 @@ Scheduler thread 需要阻塞在 `future.result(timeout=900s)` 上做超时控�
 
 - `tools=None` — 继承父 agent 全部工具
 - `disallowed_tools=["task", "ask_clarification", "present_files"]` — 不能委派、不能追问、不能弹文件
-- `max_turns=100`
+- `max_turns=150`
 - 适用于研究、分析、多步骤推理
 
 ### bash
