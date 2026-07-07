@@ -80,12 +80,12 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 
 | 服务 | Hook 点 | 触发机制 | async? | 详见 |
 |------|---------|----------|--------|------|
-| **Skills** | Graph Construction | `get_skills_prompt_section()` → system prompt 注入 | 否（编译期） | `09-skills-tools.md` |
-| **Tools** | Graph Construction + Tool Execute | `get_available_tools()` → `create_agent(tools=...)` 绑定 | 编译期同步，运行时 `awrap_tool_call` | `09-skills-tools.md` |
-| **Memory** | before_agent + after_agent | DynamicContextMiddleware 注入 + MemoryMiddleware 入队 | `abefore_agent` (async) | `08-memory.md` |
-| **Subagents** | after_model + Tool Execute | SubagentLimitMiddleware 截断 + `task_tool()` 异步协程 | `aafter_model` + async coroutine | `07-subagent.md` |
-| **Sandbox** | Tool Execute (lazy init) | `ensure_sandbox_initialized(runtime)` 包裹每个 sandbox tool | `ensure_sandbox_initialized_async` = `asyncio.to_thread` | `06-sandbox.md` |
-| **Checkpointer** | 非 middleware | `agent.checkpointer = checkpointer` 直接属性赋值 | LangGraph 内部使用 | `10-persistence.md` |
+| **Skills** | Graph Construction | `get_skills_prompt_section()` → system prompt 注入 | 否（编译期） | [concepts/skills-tools/skill-md-and-tool-assembly.md](../concepts/skills-tools/skill-md-and-tool-assembly.md) |
+| **Tools** | Graph Construction + Tool Execute | `get_available_tools()` → `create_agent(tools=...)` 绑定 | 编译期同步，运行时 `awrap_tool_call` | [concepts/skills-tools/skill-md-and-tool-assembly.md](../concepts/skills-tools/skill-md-and-tool-assembly.md) |
+| **Memory** | before_agent + after_agent | DynamicContextMiddleware 注入 + MemoryMiddleware 入队 | `abefore_agent` (async) | [concepts/memory/extract-queue-persist-pipeline.md](../concepts/memory/extract-queue-persist-pipeline.md) |
+| **Subagents** | after_model + Tool Execute | SubagentLimitMiddleware 截断 + `task_tool()` 异步协程 | `aafter_model` + async coroutine | [concepts/subagent/dual-threadpool-and-lifecycle.md](../concepts/subagent/dual-threadpool-and-lifecycle.md) |
+| **Sandbox** | Tool Execute (lazy init) | `ensure_sandbox_initialized(runtime)` 包裹每个 sandbox tool | `ensure_sandbox_initialized_async` = `asyncio.to_thread` | [concepts/sandbox/abstract-interface-and-three-impls.md](../concepts/sandbox/abstract-interface-and-three-impls.md) |
+| **Checkpointer** | 非 middleware | `agent.checkpointer = checkpointer` 直接属性赋值 | LangGraph 内部使用 | [internals/persistence/db-checkpointer-store-backends.md](../internals/persistence/db-checkpointer-store-backends.md) |
 
 #### 挂入关系
 
@@ -126,7 +126,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 
 | 组件 | 作用 | 挂入 Ring 2 的方式 |
 |------|------|-------------------|
-| **FastAPI** | HTTP 服务 :8001，15 个 Routers | `POST /threads/{id}/runs/stream` → `RunManager.create_or_reject()` |
+| **FastAPI** | HTTP 服务 :8001，~20 个 Routers | `POST /threads/{id}/runs/stream` → `RunManager.create_or_reject()` |
 | **Auth** | JWT/OAuth/CSRF/Internal Auth | FastAPI Deps() 注入 → thread_runs 路由获取 user_id |
 | **IM Channels** | 7 个平台的消息接收/发送 | 平台 webhook → message_bus → langgraph-sdk → Gateway API |
 
