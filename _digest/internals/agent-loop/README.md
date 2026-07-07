@@ -20,6 +20,7 @@ DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tool
 | **01-middleware-as-loop.md** | 中间件不是 loop 外的东西——它就是 loop 本身的结构 |
 | **02-extension-points.md** | 从内到外的扩展点：怎么加 tool、怎么加 middleware、怎么加 subagent |
 | **03-code-trace.md** | 代码路径追踪：从 `run_agent()` 到 Pregel `tick()` 的完整调用链，每步标注谁负责 |
+| **04-error-handling-and-debugging.md** | 🆕 错误处理与调试：loop detection、LLM 重试、tool 元数据、日志、认证、大文件 |
 
 ## 关键问题
 
