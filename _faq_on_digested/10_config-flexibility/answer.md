@@ -153,6 +153,65 @@ Gateway 启动时就是利用这个机制来隔离不同请求间的 config 快�
 
 ---
 
+## 你可能不知道的额外机制
+
+### `.env` 文件支持
+
+`serve.sh` 启动时会 source `.env` 文件（`serve.sh:34-38`），`app_config.py:50` 还有 `load_dotenv()`。所以你可以在项目根目录放一个 `.env`：
+
+```bash
+# .env
+OPENAI_API_KEY=sk-xxx
+DEER_FLOW_CONFIG_PATH=prod.yaml
+```
+
+**不需要手动 `export`**——DeerFlow 启动时自动加载。
+
+### 专用环境变量（不看 YAML 就能覆盖）
+
+除了 `$VAR` 通用注入，DeerFlow 还有一批**直接读 `os.environ` 的固定 env var**，不经过 YAML：
+
+| Env Var | 覆盖什么 |
+|---------|---------|
+| `DEER_FLOW_HOME` | 运行时数据目录（默认 `.deer-flow`） |
+| `DEER_FLOW_PROJECT_ROOT` | 项目根目录（影响所有相对路径搜索） |
+| `DEER_FLOW_SKILLS_PATH` | Skills 目录 |
+| `DEER_FLOW_CHANNELS_LANGGRAPH_URL` | IM 通道的 LangGraph API URL |
+| `DEER_FLOW_CHANNELS_GATEWAY_URL` | IM 通道的 Gateway URL |
+| `DEER_FLOW_STREAM_BRIDGE_REDIS_URL` | Redis Stream Bridge 地址 |
+| `DEER_FLOW_SANDBOX_HOST` | AIO Sandbox host |
+| `DEER_FLOW_HOST_BASE_DIR` | Docker 卷挂载时 host 侧等价路径 |
+| `GATEWAY_HOST` / `GATEWAY_PORT` | Gateway 监听地址 |
+| `GATEWAY_ENABLE_DOCS` | 是否启用 `/docs`（生产关闭） |
+| `DEER_FLOW_FILE_IO_WORKERS` | 文件 I/O 线程池大小 |
+
+**这些绕过了 YAML**，即使 `config.yaml` 里写了对应值，env var 在代码层直接读取（通过 `os.getenv()`）。
+
+### `ConfigDict(extra="allow")`——未知 key 静默接受
+
+`AppConfig` 用的是 `extra="allow"`（`app_config.py:190`）。这意味着你在 `config.yaml` 里写**不在 schema 里的自定义 key** 不会报错：
+
+```yaml
+# 这些 DeerFlow 不认识，但不会报错
+my_custom_tool:
+  enabled: true
+  endpoint: https://...
+```
+
+这对第三方扩展很友好——你可以在 config 里塞自己的配置，通过 `AppConfig.model_dump()` 读取。
+
+### Extensions JSON 的 `$VAR` 解析是 fail-soft
+
+`config.yaml` 里 `$MISSING_VAR` → 直接报错 `ValueError`。但 `extensions_config.json` 里同样的写法 **静默退化为空字符串 `""`**——不会让 startup 崩溃。这属于故意的不对称设计：主配置 fail-loud，扩展配置 fail-soft。
+
+### Uvicorn `--reload` 监听 `.yaml` 变动
+
+Dev 模式下，`serve.sh:331` 启动 uvicorn 时加了：
+```
+--reload --reload-include='*.yaml' --reload-include='.env'
+```
+所以改 `config.yaml` 不仅触发热加载——**整个 uvicorn worker 都会重启**（进程级）。
+
 ## 如果你想要"配置文件 + override patch"模式
 
 目前没有一个内建的机制让你写：
