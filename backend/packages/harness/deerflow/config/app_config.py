@@ -1,4 +1,3 @@
-import hashlib
 import logging
 import os
 from collections.abc import Mapping
@@ -13,22 +12,28 @@ from pydantic import BaseModel, ConfigDict, Field, PrivateAttr, model_validator
 from deerflow.config.acp_config import ACPAgentConfig, load_acp_config_from_dict
 from deerflow.config.agents_api_config import AgentsApiConfig, load_agents_api_config_from_dict
 from deerflow.config.auth_config import AuthAppConfig
+from deerflow.config.authorization_config import AuthorizationConfig, load_authorization_config_from_dict
 from deerflow.config.channel_connections_config import ChannelConnectionsConfig
 from deerflow.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
 from deerflow.config.database_config import DatabaseConfig
 from deerflow.config.extensions_config import ExtensionsConfig
+from deerflow.config.file_signature import ConfigSignature as _ConfigSignature
+from deerflow.config.file_signature import get_config_signature as _get_config_signature
 from deerflow.config.guardrails_config import GuardrailsConfig, load_guardrails_config_from_dict
+from deerflow.config.input_polish_config import InputPolishConfig
 from deerflow.config.loop_detection_config import LoopDetectionConfig
 from deerflow.config.memory_config import MemoryConfig, load_memory_config_from_dict
 from deerflow.config.model_config import ModelConfig
 from deerflow.config.read_before_write_config import ReadBeforeWriteConfig
 from deerflow.config.reload_boundary import format_field_description
 from deerflow.config.run_events_config import RunEventsConfig
+from deerflow.config.run_ownership_config import RunOwnershipConfig
 from deerflow.config.runtime_paths import existing_project_file
 from deerflow.config.safety_finish_reason_config import SafetyFinishReasonConfig
 from deerflow.config.sandbox_config import SandboxConfig
 from deerflow.config.scheduler_config import SchedulerConfig
 from deerflow.config.skill_evolution_config import SkillEvolutionConfig
+from deerflow.config.skill_scan_config import SkillScanConfig
 from deerflow.config.skills_config import SkillsConfig
 from deerflow.config.stream_bridge_config import StreamBridgeConfig, load_stream_bridge_config_from_dict
 from deerflow.config.subagents_config import SubagentsAppConfig, load_subagents_config_from_dict
@@ -154,6 +159,7 @@ class AppConfig(BaseModel):
     tools: list[ToolConfig] = Field(default_factory=list, description="Available tools")
     tool_groups: list[ToolGroupConfig] = Field(default_factory=list, description="Available tool groups")
     skills: SkillsConfig = Field(default_factory=SkillsConfig, description="Skills configuration")
+    skill_scan: SkillScanConfig = Field(default_factory=SkillScanConfig, description="Native deterministic skill safety scanning configuration")
     skill_evolution: SkillEvolutionConfig = Field(default_factory=SkillEvolutionConfig, description="Agent-managed skill evolution configuration")
     extensions: ExtensionsConfig = Field(default_factory=ExtensionsConfig, description="Extensions configuration (MCP servers and skills state)")
     tool_output: ToolOutputConfig = Field(default_factory=ToolOutputConfig, description="Tool output budget protection configuration")
@@ -165,6 +171,8 @@ class AppConfig(BaseModel):
     acp_agents: dict[str, ACPAgentConfig] = Field(default_factory=dict, description="ACP-compatible agent configuration")
     subagents: SubagentsAppConfig = Field(default_factory=SubagentsAppConfig, description="Subagent runtime configuration")
     guardrails: GuardrailsConfig = Field(default_factory=GuardrailsConfig, description="Guardrail middleware configuration")
+    authorization: AuthorizationConfig = Field(default_factory=AuthorizationConfig, description="Fine-grained resource authorization configuration (RBAC and beyond)")
+    input_polish: InputPolishConfig = Field(default_factory=InputPolishConfig, description="Pre-send input polishing configuration.")
     suggestions: SuggestionsConfig = Field(default_factory=SuggestionsConfig, description="Follow-up suggestions configuration.")
     circuit_breaker: CircuitBreakerConfig = Field(default_factory=CircuitBreakerConfig, description="LLM circuit breaker configuration")
     channel_connections: ChannelConnectionsConfig = Field(
@@ -213,6 +221,13 @@ class AppConfig(BaseModel):
         description=format_field_description(
             "stream_bridge",
             field_doc="Stream bridge connecting agent workers to SSE endpoints.",
+        ),
+    )
+    run_ownership: RunOwnershipConfig = Field(
+        default_factory=RunOwnershipConfig,
+        description=format_field_description(
+            "run_ownership",
+            field_doc="Run ownership and lease configuration for multi-worker deployments.",
         ),
     )
 
@@ -341,6 +356,7 @@ class AppConfig(BaseModel):
         load_subagents_config_from_dict(config.subagents.model_dump())
         load_tool_search_config_from_dict(config.tool_search.model_dump())
         load_guardrails_config_from_dict(config.guardrails.model_dump())
+        load_authorization_config_from_dict(config.authorization.model_dump())
         load_checkpointer_config_from_dict(config.checkpointer.model_dump() if config.checkpointer is not None else None)
         load_stream_bridge_config_from_dict(config.stream_bridge.model_dump() if config.stream_bridge is not None else None)
         load_acp_config_from_dict({name: agent.model_dump() for name, agent in acp_agents.items()})
@@ -501,7 +517,6 @@ class AppConfig(BaseModel):
 _app_config: AppConfig | None = None
 _app_config_path: Path | None = None
 _app_config_mtime: float | None = None
-_ConfigSignature = tuple[float | None, int | None, str | None]
 _app_config_signature: _ConfigSignature | None = None
 _app_config_is_custom = False
 _current_app_config: ContextVar[AppConfig | None] = ContextVar("deerflow_current_app_config", default=None)
@@ -514,24 +529,6 @@ def _get_config_mtime(config_path: Path) -> float | None:
         return config_path.stat().st_mtime
     except OSError:
         return None
-
-
-def _get_config_signature(config_path: Path) -> _ConfigSignature | None:
-    """Get cache metadata for a config file, including a content digest."""
-    try:
-        stat_result = config_path.stat()
-    except OSError:
-        return None
-
-    digest = hashlib.sha256()
-    try:
-        with config_path.open("rb") as f:
-            for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                digest.update(chunk)
-    except OSError:
-        return (stat_result.st_mtime, stat_result.st_size, None)
-
-    return (stat_result.st_mtime, stat_result.st_size, digest.hexdigest())
 
 
 def _load_and_cache_app_config(config_path: str | None = None) -> AppConfig:
