@@ -138,6 +138,32 @@ runs:create · runs:read · runs:cancel
 
 ---
 
+## OIDC/SSO 🆕
+
+`app/gateway/auth/session_cookie.py` — Generic OIDC authentication with Keycloak support：
+
+- **Session cookie**：`HttpOnly access_token` cookie。HTTPS/trusted-forwarded HTTPS 和 direct-host localhost 下持久化；public HTTP sandbox URL 降级为 session cookie
+- **"Keep me signed in"**：登录表单 `remember_me` flag。`SessionCookiePolicy` 持久化 cookie max_age；CSRF cookie 同步过期。小 `HttpOnly` preference cookie 保留用户选择
+- **Logout**：清除所有 auth cookie，不重新发放 CSRF cookie
+
+## AuthorizationProvider 协议 🆕
+
+`packages/harness/deerflow/authz/` — 可插拔授权：
+
+| 模块 | 用途 |
+|------|------|
+| `provider.py` | `AuthorizationProvider` 协议（Phase 0 scaffolding） |
+| `principal.py` | `Principal` 模型 + `build_principal_from_context()`（shared builder） |
+| `adapter.py` | `GuardrailAuthorizationAdapter`（桥接 authz → guardrail） |
+
+**四种 HTTP identity source**：
+1. Browser session（cookie-based JWT）
+2. OIDC（Keycloak callback）
+3. IM channel（internal auth header）
+4. Trusted header（`X-DeerFlow-Owner-User-Id`）
+
+**Principal context propagation**：`GuardrailMiddleware` 将 `user_id`、`authz_attributes`、`is_internal` 注入 `GuardrailRequest`。
+
 ## OAuth（占位）
 
-`app/gateway/routers/auth.py:498` — GitHub 和 Google OAuth 端点声明存在但返回 `501 NOT IMPLEMENTED`。User model 预留了 `oauth_provider` 和 `oauth_id` 字段。
+`app/gateway/routers/auth.py:498` — GitHub 和 Google OAuth 端点声明存在但返回 `501 NOT IMPLEMENTED`。

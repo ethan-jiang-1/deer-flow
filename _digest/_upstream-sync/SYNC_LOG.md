@@ -8,6 +8,23 @@ type: index
 
 ---
 
+## #3 — 2026-07-20（同步）
+
+| 项目 | 值 |
+|------|-----|
+| **操作** | 同步 |
+| **旧锚点** | `4915b5e` |
+| **新锚点** | `cd34a1a5` |
+| **上游新增 commits** | 200 |
+| **harness 变更** | ~450 files, +4,464 / -1,641 lines（memory 重构最大） |
+| **前端变更** | 88 files, +6,235 / -1,098 lines |
+| **config.example.yaml** | +282 / -61 lines |
+| **主要变更领域** | **memory**（pluggable backends + DeerMem 重构 + consolidation + staleness review + tool mode + template externalization，Breaking Changes）、**security**（4 CVE + 全链路 HTML 转义 + prompt injection 中性化 + SkillScan exfil 检测 + security_fail_closed + MindIE breakout 防护）、**middleware**（+5 新：TokenBudget, DelegationLedger, DurableContext, MCPRouting, ToolOutputSynopsis）、**skills**（SkillScan Phase 1 + review quality gate + per-user isolation）、**subagents**（delegation ledger + total cap + step persistence）、**sandbox**（E2B + BoxLite 正式加入 + warm pool）、**auth/authz**（OIDC/SSO + AuthorizationProvider protocol + principal context）、**frontend**（voice dictation + branching + citation panel + composer polish + slash chips）、**Monocle**（agent observability + trace-based tests）、**MCP**（routing hints + auto-promote + per-server timeout）、**Helm chart**（first-class K8s）、**community tools**（GroundRoute, Crawl4AI, Browserless, Brave image_search） |
+| **影响的 digest** | concepts/memory、operations/security、internals/middleware、concepts/skills-tools、concepts/subagent、concepts/sandbox、operations/security/01-auth、internals/configuration、internals/mcp、operations/app-layer、frontend/、operations/deployment、operations/tracing、concepts/community-tools、overview/ |
+| **备注** | 200 commits 指向 2.1.0 里程碑。Memory 系统是从单体到可插拔架构的 breaking change（storage_path 语义变更、config 结构重构、API 返回结构变更）。安全从 guardrail 拦截升级为全链路 defense-in-depth。更新计划见 UPDATE_PLAN_3.md。 |
+
+---
+
 ## #2 — 2026-07-07（同步）
 
 | 项目 | 值 |

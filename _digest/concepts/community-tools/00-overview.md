@@ -1,12 +1,12 @@
 ---
 title: "社区工具集成全景"
-description: "DeerFlow 在 `deerflow/community/` 下集成了 9 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索和沙箱隔离。"
+description: "DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图和沙箱隔离。"
 topics: [tools, community, external-integration]
 ---
 
 # 社区工具集成全景
 
-DeerFlow 在 `deerflow/community/` 下集成了 9 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索和沙箱隔离。
+DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图和沙箱隔离。
 
 ## 集成矩阵
 
@@ -20,7 +20,15 @@ DeerFlow 在 `deerflow/community/` 下集成了 9 个外部工具 provider，覆
 | **Firecrawl** | web_search + web_fetch | config `api_key` | 否 | 否 |
 | **Jina AI** | web_fetch | `JINA_API_KEY`（可选） | **是** | 是 |
 | **DuckDuckGo Image** | image_search | 否 | 否 | 是 |
+| **Brave Image** 🆕 | image_search | `BRAVE_API_KEY` | 否 | 否 |
+| **GroundRoute** 🆕 | web_search | config `api_key` | 否 | 否 |
+| **Crawl4AI** 🆕 | web_fetch | 否 | **是** | 否 |
+| **fastCRW** 🆕 | web_search | config `api_key` | 否 | 否 |
+| **Browserless** 🆕 | web_capture（截图） | config `api_key` | 否 | 否 |
+| **SearXNG** | web_search | 否 | 否 | 否 |
 | **AIO Sandbox** | sandbox | 否 | N/A | 否 |
+| **BoxLite** | sandbox（micro-VM） | 否 | N/A | 否 |
+| **E2B** | sandbox（云端） | `E2B_API_KEY` | N/A | 否 |
 
 ## Tool 装配流程
 

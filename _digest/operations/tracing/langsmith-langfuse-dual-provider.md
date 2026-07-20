@@ -331,3 +331,17 @@ langfuse_tags: ["env:production", "model:claude-sonnet-4-6"]
 | `test_client_langfuse_metadata.py` | `stream()` 同样调用共享 helper，双路径不漂移 |
 
 所有测试通过 `monkeypatch` + `reset_tracing_config()` 模拟，无需真实的外部追踪服务。`test_tracing_factory.py` 甚至用 `types.ModuleType` 构造 fake `langfuse` 模块来验证调用顺序（client 在 handler 之前初始化）。
+
+---
+
+## 🆕 Monocle 可观测性（第三个 Provider）
+
+`packages/harness/deerflow/tracing/monocle.py` — Monocle 是第三个 tracing provider，架构上不同于 LangSmith/Langfuse：
+
+- **不是 LangChain callback**：调用 `monocle_apptrace.setup_monocle_telemetry()` 安装 process-global OTel `TracerProvider`
+- **Init 位置**：Gateway lifespan（`app/gateway/app.py`），**不是** `build_tracing_callbacks()`。不在 embedded `DeerFlowClient` 或 TUI 中自动启动
+- **Config**：`MONOCLE_TRACING` 启用；`MONOCLE_EXPORTERS` 选择 exporter（`file` → `.monocle/`、`console`、`okahu`、`s3`、`blob`、`gcs`）
+- **Coexistence**：与 Langfuse v4（也是 OTel-based）共存 —— 后初始化的库复用已有 global `TracerProvider`
+- **Monocle Test Tools**：`tests/` 中新增 trace-based behavioral tests
+
+DeerFlow 只注入 `workflow_name="deer-flow"`；所有 span attribute 由 Monocle 自身 metamodel 和 auto-instrumentation 产出。

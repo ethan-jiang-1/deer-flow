@@ -46,13 +46,17 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 
 **每一步发生的事情：**
 
-| 阶段 | 触发点 | 谁在干活 |
+| 阶段 | Hook 点 | 参与 middleware（共 33 个中的代表） |
 |------|--------|----------|
-| 调用 LLM 前 | `before_model` | DynamicContext, Summarization, ViewImage, DeferredTools 等 6 个 MW |
+| 调用 LLM 前 | `wrap_model_call` | InputSanitization, ToolOutputBudget, ToolResultSanitization, DynamicContext, SkillActivation, SkillToolPolicy, DurableContext, ViewImage, McpRouting, DeferredToolFilter, SystemMessageCoalescing 等 11 个 MW |
 | 调用 LLM | — | `model.invoke(messages)` → AIMessage (text 或 tool_calls) |
-| LLM 返回后 | `after_model` | DanglingToolCall, Guardrail, LoopDetection, Clarification 等 4 个 MW |
-| 工具执行 | `after_tool` | ToolAuth, ToolResultValidation 2 个 MW |
-| Step 结束 | `after_step` | Title, MemoryWrite 2 个 MW |
+| LLM 返回后 | `after_model` | SubagentLimit, LoopDetection, TokenBudget, TerminalResponse, SafetyFinishReason 等 5 个 MW |
+| Tool 执行前 | `wrap_tool_call` | Guardrail, SandboxAudit, ReadBeforeWrite 等 3 个 MW |
+| Tool 执行后 | `after_tool` | ToolProgress, ToolErrorHandling 等 2 个 MW |
+| Step 开始 | `before_agent` | ThreadData, Uploads, Sandbox, DanglingToolCall, LLMErrorHandling 等 5 个 MW |
+| Step 结束 | `after_agent` | Summarization, TodoList, TokenUsage, Title, Memory, Clarification 等 6 个 MW |
+
+> 完整 33 个 middleware 的 hook 分配见 [middleware/03-catalog.md](../internals/middleware/03-catalog.md)。
 
 **ThreadState** 是贯穿全程的状态对象：`messages` (对话历史)、`sandbox` (沙箱实例)、`artifacts` (产物)、`todos` (计划)、`viewed_images` (图片缓存)。
 
@@ -60,7 +64,7 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 
 #### 挂入关系
 
-Agent Loop 直接调用 Ring 1 的服务（Sandbox.execute、tool invocation、memory read/write、skill 加载），这些调用发生在 middleware 链的不同阶段。Sandbox 在 SandboxMiddleware 中获取，Tools 在 make_lead_agent 时绑定到 model，Memory 在 after_step 阶段入队。
+Agent Loop 直接调用 Ring 1 的服务（Sandbox.execute、tool invocation、memory read/write、skill 加载），这些调用发生在 middleware 链的不同阶段。Sandbox 在 SandboxMiddleware 中获取，Tools 在 make_lead_agent 时绑定到 model，Memory 在 after_agent 阶段入队。
 
 ---
 
@@ -84,7 +88,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 | **Tools** | Graph Construction + Tool Execute | `get_available_tools()` → `create_agent(tools=...)` 绑定 | 编译期同步，运行时 `awrap_tool_call` | [concepts/skills-tools/skill-md-and-tool-assembly.md](../concepts/skills-tools/skill-md-and-tool-assembly.md) |
 | **Memory** | before_agent + after_agent | DynamicContextMiddleware 注入 + MemoryMiddleware 入队 | `abefore_agent` (async) | [concepts/memory/extract-queue-persist-pipeline.md](../concepts/memory/extract-queue-persist-pipeline.md) |
 | **Subagents** | after_model + Tool Execute | SubagentLimitMiddleware 截断 + `task_tool()` 异步协程 | `aafter_model` + async coroutine | [concepts/subagent/dual-threadpool-and-lifecycle.md](../concepts/subagent/dual-threadpool-and-lifecycle.md) |
-| **Sandbox** | Tool Execute (lazy init) | `ensure_sandbox_initialized(runtime)` 包裹每个 sandbox tool | `ensure_sandbox_initialized_async` = `asyncio.to_thread` | [concepts/sandbox/abstract-interface-and-three-impls.md](../concepts/sandbox/abstract-interface-and-three-impls.md) |
+| **Sandbox** | Tool Execute (lazy init) | `ensure_sandbox_initialized(runtime)` 包裹每个 sandbox tool | `ensure_sandbox_initialized_async` = `asyncio.to_thread` | [concepts/sandbox/abstract-interface-and-five-impls.md](../concepts/sandbox/abstract-interface-and-five-impls.md) |
 | **Checkpointer** | 非 middleware | `agent.checkpointer = checkpointer` 直接属性赋值 | LangGraph 内部使用 | [internals/persistence/db-checkpointer-store-backends.md](../internals/persistence/db-checkpointer-store-backends.md) |
 
 #### 挂入关系
@@ -115,7 +119,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 2. 调用 `create_chat_model()` 创建 LLM 实例
 3. 调用 `get_available_tools()` 装配 tool 列表（config + MCP + builtins + ACP agents）
 4. 调用 `apply_prompt_template()` 生成 system prompt（注入 skills、memory、日期、subagent 指令）
-5. 调用 `_build_middlewares()` 构建 29 个 middleware
+5. 调用 `_build_middlewares()` 构建 33 个 middleware
 6. 调用 `create_agent(model, tools, middleware, state_schema, checkpointer)` 返回 CompiledStateGraph
 
 **`make_lead_agent` 是唯一对外暴露的 graph factory**，在 `langgraph.json` 中注册为 `"lead_agent"`。

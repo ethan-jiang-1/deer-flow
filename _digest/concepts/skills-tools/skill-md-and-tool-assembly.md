@@ -149,6 +149,36 @@ LocalSkillStorage.load_skills()
 
 **热加载**：`get_or_new_skill_storage()` 检测 `extensions_config.json` 变化后重建 storage。
 
+## ⚠️ Breaking Change：SKILL.md 即 Package Boundary
+
+**2.1**：含有 `SKILL.md` 的目录现在是 runtime package boundary。该目录内的嵌套 `SKILL.md` 文件被视为 support data，不再注册为独立 skill。不寻常的自定义布局需将独立可加载 skill 移到不含自身 `SKILL.md` 的 namespace 目录下。
+
+## SkillScan 静态分析 🆕
+
+`packages/harness/deerflow/skills/skillscan/` — 加载时对 skill package 做确定性静态扫描：
+
+- **Orchestrator** 协调多个 analyzer 并发分析
+- **Network sink 检测**：识别 `requests`/`httpx` HTTP methods、`urllib` 等外泄路径
+- **Environment access 检测**：识别 `os.environ` 读取（含 `from os import environ` 模式）
+- **分级阻断**：`CRITICAL` 阻断安装，`WARNING` 放行但传给 LLM 扫描器
+- **纯同步**：`scan_archive_preflight()` / `scan_skill_dir()` 可 offload 出 event loop
+- `skill_scan.enabled` kill switch
+
+## Skill Review 质量门禁 🆕
+
+`packages/harness/deerflow/skills/review/` + `skills/public/skill-reviewer/`：
+- **CLI**：`python -m deerflow.skills.review.cli --fail-on error` 用于 CI
+- **内置 tool**：`review_skill_package` — 模型可见的是 compact JSON（tag 中性化），完整 payload 在 `ToolMessage.artifact`
+- **CI 集成**：`.github/workflows/skill-review-ci.yml`
+
+## Per-User Skill 隔离 🆕
+
+Custom skill 按用户隔离存储，`SkillStorage` 按 `(app_config, user_id)` 缓存。Sandbox 挂载用户级 skill 目录。
+
+## `allowed-tools` 修正 🆕
+
+**2.1 修复**：`allowed-tools` 只对 slash-activated 或实际 loaded 的 lead-agent skill 生效。Passive enabled skill 不再意外限制全局 toolset。`task` 需显式声明才能委派 subagent。
+
 ## Per-Agent Skill 控制
 
 Custom agent 的 `config.yaml`：

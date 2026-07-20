@@ -78,9 +78,26 @@ summarization:
 - 有哪些活跃的 task delegation 及其状态
 - 压缩摘要文本
 
+## 手动 Compaction 🆕
+
+自动 summarization 的补充——用户可以通过 API 主动触发压缩：
+
+`POST /api/threads/{id}/compact`
+
+- **复用同一 middleware**：`DeerFlowSummarizationMiddleware`，共享 trigger/keep/model/prompt 配置
+- **写入新 checkpoint**：更新 `messages`（移除旧消息）和 `summary_text`
+- **只 bump 变更的 channel versions**：不做全量 checkpoint 重写
+- **串行化**：与 `/goal` 写入和 run admission 共享 per-thread 锁，防止与 goal 更新或 runs 竞争
+- **Run 进行中时立即返回 409**：防止并发修改 checkpoint（不等待，直接拒绝）
+- **失败返回 500**：不暴露内部错误细节
+
+与自动 summarization 的区别：
+- 自动：在 `before_model` hook 中触发，作为 agent loop 的一环
+- 手动：独立 API 调用，不经过 agent loop，直接操作 checkpoint
+
 ## 与 Sub-agent 的关系
 
-Sub-agent **没有** SummarizationMiddleware。Sub-agent 依赖 `max_turns`（recursion_limit）防止无限增长，通过 `GraphRecursionError` → `MAX_TURNS_REACHED` 捕获。
+🆕 Sub-agent **现在继承** SummarizationMiddleware（`build_subagent_runtime_middlewares` 中附加），与 lead agent 共享同一 `summarization.enabled` 开关和配置。`DurableContextMiddleware` 在 summarization 之前附加，`SystemMessageCoalescingMiddleware` 放在最内层。
 
 ## Memory Flush Hook
 

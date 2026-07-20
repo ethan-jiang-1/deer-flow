@@ -121,11 +121,11 @@ return Command(goto=END)  # 立即结束当前 turn
 
 1. **不改图结构** → 两个核心 node 足够
 2. **不改 state** → `ThreadState` 已包含 sandbox、delegations、artifacts
-3. **加 middleware？** 不需要——SOUL.md 定义行为，29 个内置 middleware 覆盖安全/日志/memory
+3. **加 middleware？** 不需要——SOUL.md 定义行为，33 个内置 middleware 覆盖安全/日志/memory
 4. **用 sub-agent？** 可选——测试执行委派给 `test-runner` sub-agent
 5. **自定义点** → SOUL.md 控制 LLM 行为，`config.yaml` 控制工具集和模型
 
-结论：**大多数情况下你不需要设计 node 或 state**。DeerFlow 的 29 个 middleware 已经覆盖了安全、日志、内存、循环检测。你只需要写 SOUL.md + 配 config.yaml + 可选 sub-agent。
+结论：**大多数情况下你不需要设计 node 或 state**。DeerFlow 的 33 个 middleware 已经覆盖了安全、日志、内存、循环检测。你只需要写 SOUL.md + 配 config.yaml + 可选 sub-agent。
 
 ## 关键源码
 

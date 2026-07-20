@@ -334,21 +334,49 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 
 `try_set_terminal()` 线程安全 first-terminal-wins。
 
-## Turn-Budget Cap（MAX_TURNS_REACHED）🆕
+## Stop Reason：三轴 Guard Cap 🆕
 
-源码：`deerflow/subagents/executor.py:717`
+**2.1 增强**：三个独立轴可以提前终止 subagent run，都通过 additive `stop_reason` 字段（而非新 status enum）暴露原因：
 
-Subagent 的 `max_turns`（general-purpose 默认 150，旧值 100）设到 `recursion_limit`。耗尽时 LangGraph 抛出 `GraphRecursionError`。`_aexecute()` 专门 catch 此异常（在 generic `except` 之前），设置 `MAX_TURNS_REACHED` 状态并**恢复已流式输出的部分结果**。Lead agent 收到带 `subagent_result_brief` + `subagent_error` 的响应，能区分「坏了」和「预算用完了」（旧版一律报 FAILED）。
+| 轴 | Guard | 触发 | 行为 |
+|----|-------|------|------|
+| **Turn** | `recursion_limit` = `max_turns` | 耗尽 turn 预算 | LangGraph 抛 `GraphRecursionError`，`_aexecute` 专门 catch |
+| **Token** | `TokenBudgetMiddleware` | 达到 `subagents.token_budget.max_tokens` | 剥离 tool_calls，强制 `finish_reason="stop"`，自然完成 |
+| **Loop** | `LoopDetectionMiddleware` | 重复相同 tool-call 集合 | 剥离 tool_calls，记录 `loop_capped` |
+
+**为什么 additive 而非新 enum**：可选字段被旧版 frontend/ledger reader 忽略，向后兼容。`SubagentResult.stop_reason` 流经 `task_tool` → lead agent 可见 `Task Succeeded (capped: token_capped)`。
+
+## Delegation Ledger 🆕
+
+源码：`deerflow/agents/middlewares/delegation_ledger.py`
+
+系统维护的委托账本，解决两个问题：
+
+1. **防重复委托**：同一 in-flight task 不会重复委派（按 task description hash 去重）
+2. **Total delegation cap**：`SubagentLimitMiddleware` 同时执行 per-run 总委托数限制（默认 `subagents.max_total_per_run=6`），防止模型通过反复 planning checkpoint 分批绕过并发限制
+
+账本条目持久化在 `ThreadState.delegations`（通过 `DurableContextMiddleware` 捕获），标记 `run_id` 以区分当前 run 和历史 run。只有当前 run 的条目消耗 cap。
 
 ## Step Capture & Persistence 🆕
 
 源码：`deerflow/subagents/step_events.py`
 
-`capture_new_step_messages()` 遍历每个新追加的消息（不只 `messages[-1]`），保留多工具调用的所有 `ToolMessage`。`build_subagent_step()` 截断超大内容（`SUBAGENT_STEP_MAX_CHARS=8192`）。`_SubagentEventBuffer` 批量写入 `RunEventStore`（category=`"subagent"`），前端通过 `list_events?task_id=...` 分页拉取。修复了 issue #3779（多 tool call 只保留最后一个）。
+`capture_new_step_messages()` 遍历每个新追加的消息（不只 `messages[-1]`），保留多工具调用的所有 `ToolMessage`。`build_subagent_step()` 截断超大内容。`_SubagentEventBuffer` **批量写入** `RunEventStore`（`put_batch` 而非逐条 `put`），category=`"subagent"`，前端通过 `list_events?task_id=...` 分页拉取。
 
-## Checkpointer Isolation 🆕
+🆕 **Summarization 收缩处理**：当 summarization 通过 `RemoveMessage(id=REMOVE_ALL_MESSAGES)` 重写消息通道时，`capture_new_step_messages` 检测 `total < processed_count` 并重置 cursor，避免步骤丢失。
 
-Subagent 编译时 `checkpointer=False`——永不继承父 run 的 checkpointer。每次运行独立 `ThreadState`，deferred MCP tool 提升按 subagent run 隔离。源码：`deerflow/subagents/executor.py:433`
+## Subagent Summarization 继承 🆕
+
+Subagent 现在**继承** lead agent 的 summarization 配置：
+- 通过 `build_subagent_runtime_middlewares` 附加 `DeerFlowSummarizationMiddleware`
+- 共享 `summarization.enabled` 开关 + trigger/keep/model/prompt 配置
+- `DurableContextMiddleware` 在 summarization 之前附加，确保压缩后的 context 仍可注入
+- `SystemMessageCoalescingMiddleware` 放在最内层（合并所有 SystemMessage，防 strict backends 拒绝）
+- `skip_memory_flush=True`：subagent 共享 parent `thread_id`，不将内部 turn 写入 lead 的 durable memory
+
+## Checkpointer Isolation
+
+Subagent 编译时 `checkpointer=False`——永不继承父 run 的 checkpointer。每次运行独立 `ThreadState`，deferred MCP tool 提升按 subagent run 隔离。Checkpoint lineage 通过 ContextVar 继承（非显式 coordinate 传递），防止 child AI/tool 帧泄漏到 parent `messages` 流。
 
 ---
 
@@ -356,14 +384,16 @@ Subagent 编译时 `checkpointer=False`——永不继承父 run 的 checkpointe
 
 | 约束 | 值 | 强制位置 |
 |------|-----|----------|
-| 最大并发 | 3 | `MAX_CONCURRENT_SUBAGENTS` + `SubagentLimitMiddleware` |
+| 最大并发 | 3（2-4） | `MAX_CONCURRENT_SUBAGENTS` + `SubagentLimitMiddleware` |
+| 🆕 Per-run 总委托上限 | 6（1-50） | `SubagentLimitMiddleware` + delegation ledger |
 | 不能递归委派 | `subagent_enabled=False` | `task_tool` → `get_available_tools()` |
-| 默认超时 | 30 min | `SubagentConfig.timeout_seconds`, `future.result(timeout)` |
+| 默认超时 | 30 min | `SubagentConfig.timeout_seconds` |
 | 默认 max_turns | 150（general-purpose） | `SubagentConfig.max_turns` |
+| 🆕 Token budget | 1M（summarization on）/ 2M（off） | `TokenBudgetMiddleware`（subagent 专用） |
 | 轮询间隔 | 5s | `task_tool` polling loop |
-| 取消方式 | cooperative | `cancel_event.set()`, 在 `astream` chunk 边界检查 |
 | thinking | 关闭 | `create_chat_model(thinking_enabled=False)` |
 | checkpointer | 隔离（False） | `executor.py:433` |
+| 🆕 Subagent 卡片 | 显示 effective model + token usage | `task_running` event |
 
 ---
 > **See also:** [Lead Agent factory](../lead-agent/factory-and-threadstate.md) · [Middleware: SubagentLimitMiddleware](../../internals/middleware/03-catalog.md) · [Testing sub-agents](../../testing/04-agent-test-patterns.md)

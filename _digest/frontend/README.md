@@ -22,7 +22,7 @@ Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战�
 | **03-state-management.md** | TanStack Query 缓存策略、ThreadState context、用户偏好 localStorage 持久化 |
 | **04-workspace-layout.md** | Drag 面板布局、响应式设计、mobile sidebar 折叠、command palette |
 | **05-subagent-ui.md** | TaskTracker context：task_started → task_running → task_completed 的 UI 状态机 |
-| **06-i18n-and-theming.md** | en-US / zh-CN 国际化、light/dark 主题切换、Tailwind CSS 4 配置 |
+| **06-architecture.md** | 前端技术栈全景：Next.js 16、Turbopack、Tailwind CSS 4、组件树 |
 
 ## 关键问题
 

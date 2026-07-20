@@ -20,7 +20,7 @@ DeerFlow 通过 outbound WebSocket/polling 连接接入 7 个 IM 平台。所有
 | **01-message-bus.md** | MessageBus pub/sub 机制、ChannelManager._dispatch_loop() 核心调度 |
 | **02-stream-strategies.md** | 增量流式 vs 阻塞等待：Feishu AI Card patch、DingTalk streaming card、Slack/Telegram wait 模式 |
 | **03-thread-mapping.md** | Channel → Thread ID 映射持久化、多平台 session 覆盖、命令系统 |
-| **04-platform-deep-dive.md** | 逐平台深入：Feishu (33KB)、WeChat (53KB)、DingTalk (31KB)、Discord (25KB) 的特殊处理 |
+| **05-user-connections.md** 🆕 | 用户拥有的 IM 频道连接：bind code 生命周期、single-active-owner 转移、7 平台差异 |
 
 ## 关键问题
 
@@ -28,7 +28,7 @@ DeerFlow 通过 outbound WebSocket/polling 连接接入 7 个 IM 平台。所有
 - MessageBus 怎么解耦平台接入和消息处理？→ `01-message-bus.md`
 - 为什么 Feishu 用 stream 而 Slack 用 wait？→ `02-stream-strategies.md`
 - 用户在不同平台上的对话怎么映射到 thread？→ `03-thread-mapping.md`
-- WeChat 的 QR 码登录和文件收发怎么处理？→ `04-platform-deep-dive.md`
+- 用户怎么把自己的 IM 账号绑定到 DeerFlow？→ `05-user-connections.md`
 
 ## 源文件索引
 
@@ -50,4 +50,4 @@ DeerFlow 通过 outbound WebSocket/polling 连接接入 7 个 IM 平台。所有
 
 ## 与 integration/ 的关系
 
-`integration/07-im-channels.md` 覆盖了**配置层面**（怎么在 config.yaml 里配飞书/Slack），本 section 覆盖**内部设计**（MessageBus 怎么调度、stream 策略怎么分裂、thread 映射怎么持久化）。两者互补。
+`integration/04-im-channels.md` 覆盖了**配置层面**（怎么在 config.yaml 里配飞书/Slack），本 section 覆盖**内部设计**（MessageBus 怎么调度、stream 策略怎么分裂、thread 映射怎么持久化）。两者互补。

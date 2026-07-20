@@ -191,6 +191,8 @@ def test_agent_completes_within_timeout():
 |------|------|
 | CI workflow | `.github/workflows/backend-unit-tests.yml` |
 | 阻塞 IO workflow | `.github/workflows/backend-blocking-io-tests.yml` |
+| 🆕 Skill review CI | `.github/workflows/skill-review-ci.yml` |
+| 🆕 Nightly build | `.github/workflows/nightly.yaml`（images + Helm chart） |
 | Makefile test 目标 | `backend/Makefile` |
 | conftest 全局 fixture | `backend/tests/conftest.py` |
 | e2e 环境隔离 fixture | `backend/tests/test_client_e2e.py` — `e2e_env` |

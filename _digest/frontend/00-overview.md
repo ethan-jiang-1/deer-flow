@@ -94,6 +94,21 @@ MessageListItem / MessageGroup / SubtaskCard
 DOM (词级 fade-in 动画)
 ```
 
+## 🆕 2.1 新功能
+
+| 功能 | 说明 |
+|------|------|
+| **Voice dictation** | 语音输入（`speech-recognition`） |
+| **Branching** | Assistant turn 分支 + side conversations（quoted follow-up） |
+| **Citation panel** | Citation sources evidence panel |
+| **Workspace change review** | Agent run 的文件变更审查 |
+| **Composer polish** | 输入润色 + prompt-history recall（arrow keys） |
+| **Slash-skill chips** | Slash activation 渲染为 inline chips |
+| **Per-thread drafts** | 恢复每个 thread 的 composer 草稿 |
+| **Thinking duration chip** | "thought for N seconds" 显示 |
+| **About page version** | 显示真实项目版本 |
+| **Regenerate** | 重新生成最新回答 |
+
 ## 状态管理三层
 
 | 层 | 机制 | 数据 |

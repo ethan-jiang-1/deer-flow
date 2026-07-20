@@ -18,7 +18,7 @@ type: index
 | 4 | `concepts/skills-tools/skill-md-and-tool-assembly.md` | 🔴 重写：加 deferred discovery + secrets |
 | 5 | `concepts/skills-tools/` 拆子目录 | 🟡 新增 deferred-discovery.md + request-secrets.md |
 | 6 | `concepts/lead-agent/factory-and-threadstate.md` | 🟡 加 4 个新 ThreadState 字段 |
-| 7 | `concepts/sandbox/abstract-interface-and-three-impls.md` | 🟡 3→5 种实现 |
+| 7 | `concepts/sandbox/abstract-interface-and-five-impls.md` | 🟡 3→5 种实现 |
 | 8 | `concepts/subagent/dual-threadpool-and-lifecycle.md` | 🟡 加 turn-budget cap, step persistence |
 | 9 | `concepts/memory/extract-queue-persist-pipeline.md` | 🟡 加 staleness review, token counting |
 | 10 | `internals/agent-loop/00-loop-anatomy.md` | 🟡 更新数字 |
@@ -92,7 +92,7 @@ type: index
 
 | 文件 | 行动 |
 |------|------|
-| `abstract-interface-and-three-impls.md` | 🟡 从 3 种实现扩展为 5 种（+BoxLite +E2B），添加 warm pool 和 env scrubbing 说明 |
+| `abstract-interface-and-five-impls.md` | 🟡 从 3 种实现扩展为 5 种（+BoxLite +E2B），添加 warm pool 和 env scrubbing 说明 |
 
 ### 5. `concepts/subagent/` — Sub-agent 系统
 

@@ -23,10 +23,10 @@ grep "main HEAD" SYNC.md
 
 # 2. 拉上游，看距离
 git fetch upstream main
-git log 162fb214..upstream/main --oneline
+git log 4915b5e..upstream/main --oneline
 
 # 3. 看改了哪些文件
-git diff --stat 162fb214..upstream/main
+git diff --stat 4915b5e..upstream/main
 
 # 4. 对照 SYNC.md 里的影响表 → 更新对应 digest → 记到 SYNC_LOG.md
 ```

@@ -167,3 +167,30 @@ def sanitize_log_param(value: str) -> str:
 ## 孤儿线程数据迁移
 
 `_migrate_orphaned_threads()` 使用 **游标分页**（每批 500）迭代所有没有 `user_id` 的 LangGraph store 线程，并分配管理员账户。这是旧版本升级路径。
+
+## 🆕 2.1 新增路由
+
+| Router | 端点 | 说明 |
+|--------|------|------|
+| **Features** | `GET /api/features` | Config-gated feature flags（`agents_api.enabled`）供前端门控 |
+| **Console** | `GET /api/console/stats`, `/runs`, `/usage` | 跨 thread 可观测性面板（需 SQL backend） |
+| **Input Polish** | `POST /api/input-polish` | Composer 草稿润色（一次性 LLM，不创建 run） |
+| **Channel Connections** | `GET/POST/DELETE /api/channels/*` | 用户绑定的 IM channel 连接管理 |
+| **OIDC Auth** | `GET/POST /api/auth/oidc/*` | OIDC/SSO callback + session 管理 |
+| **GitHub Webhooks** | `POST /api/webhooks/github` | HMAC 验证的 GitHub event 接收 |
+| **Thread Branches** | `POST /api/threads/{id}/branches` | 从 checkpoint 分支创建新 main thread |
+| **Manual Compaction** | `POST /api/threads/{id}/compact` | 手动上下文压缩 |
+| **Thread Goal** | `GET/PUT/DELETE /api/threads/{id}/goal` | Goal continuation 管理 |
+
+## 🆕 Cache-aware Cost Accounting
+
+Console 的 cost estimation 支持 **cache-aware pricing**：
+
+- `RunJournal` 从 `usage_metadata.input_token_details.cache_read` 提取 prompt-cache hit tokens
+- 存入稀疏 `cache_read_tokens` bucket（按 model name keyed）
+- Cache-hit input tokens 按 `input_cache_hit_per_million` 定价
+- 未配置 `input_cache_hit_per_million` → 退化为 miss price（保守上界）
+- Legacy rows（无 cache 数据）→ 回退到 run-level totals
+- 无定价配置的 model → `cost: null`
+
+这使得 Console `/usage` 的 per-model cost breakdown 能区分缓存命中和未命中的实际成本。

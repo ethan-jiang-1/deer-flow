@@ -59,7 +59,7 @@ _digest/
 | 5 分钟 | `overview/01-system-overview.md` | 四层同心圆架构 + 进程拓扑 |
 | 15 分钟 | + `overview/03-logical-architecture.md` + `overview/06-startup-flow.md` | Agent Loop 怎么跑、启动全流程 |
 | 30 分钟 | + `concepts/lead-agent/` + `concepts/sandbox/` + `concepts/subagent/` | 三大核心抽象 |
-| 60 分钟 | + `concepts/skills-tools/` + `concepts/memory/` + `internals/middleware/03-catalog.md` | 全部核心概念 |
+| 60 分钟 | + `concepts/skills-tools/` + `concepts/memory/` + `internals/middleware/00-overview.md` | 全部核心概念 |
 
 ## 🤖 AI Agent 快速检索
 
@@ -72,7 +72,7 @@ custom middleware → internals/middleware/02-chain-assembly.md + 00-overview.md
 TUI / CLI         → getting-started/06-tui.md
 record replay     → testing/07-record-replay.md
 staleness review  → concepts/memory/extract-queue-persist-pipeline.md
-BoxLite / E2B     → concepts/sandbox/abstract-interface-and-three-impls.md
-deferred MCP      → internals/middleware/03-catalog.md (#22 DeferredToolFilter)
+BoxLite / E2B     → concepts/sandbox/abstract-interface-and-five-impls.md
+deferred MCP      → internals/middleware/03-catalog.md (#25 DeferredToolFilter)
 deferred skills   → concepts/skills-tools/skill-md-and-tool-assembly.md
 ```

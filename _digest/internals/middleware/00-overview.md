@@ -1,12 +1,12 @@
 ---
 title: "Middleware 设计哲学与批判性分析"
-description: "29 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？"
+description: "33 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？"
 topics: [middleware, hooks, interceptor-chain]
 ---
 
 # Middleware 设计哲学与批判性分析
 
-29 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？
+33 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？
 
 ## 入口处思考
 
@@ -28,7 +28,7 @@ topics: [middleware, hooks, interceptor-chain]
 
 ## 是什么
 
-DeerFlow 的 middleware 系统位于 LangGraph agent loop 和 LLM/tool 执行之间。每次 agent step 都要穿过这 29 层：
+DeerFlow 的 middleware 系统位于 LangGraph agent loop 和 LLM/tool 执行之间。每次 agent step 都要穿过这 33 层：
 
 ```
 Agent Loop 一轮 step:
@@ -159,7 +159,7 @@ class RuntimeFeatures:
 
 ### 1. 扁平硬编码位置——没有优先级系统
 
-29 个 middleware 的位置是 `_build_middlewares()` 里的 append 顺序决定的。如果你想让自己的 middleware 插在 GuardrailMiddleware 和 SandboxAuditMiddleware 之间，你必须知道它们的类名并用 `@Next`/`@Prev`。
+33 个 middleware 的位置是 `_build_middlewares()` 里的 append 顺序决定的。如果你想让自己的 middleware 插在 GuardrailMiddleware 和 SandboxAuditMiddleware 之间，你必须知道它们的类名并用 `@Next`/`@Prev`。
 
 Flask 后来也面临同样的问题——Blueprints 的 `before_request` 执行顺序取决于 blueprint 注册顺序，调试起来很痛苦。更成熟的方案是**优先级数字**（如 Django middleware 的 `MIDDLEWARE` 列表里每个元素有明确的序号），或者**阶段分组**（如 `SERVER`, `SECURITY`, `APPLICATION`, `OBSERVABILITY`）。
 
@@ -200,7 +200,7 @@ DeerFlow 的 `@Next`/`@Prev` 部分解决了这个问题，但只要有人动了
 3. `@Next`/`@Prev` 定位 + 冲突检测 + 循环依赖检测说明作者预见到了第三方 middleware 的集成需求
 4. SafetyFinishReason 的排序（利用反向分发获得最先执行权）说明作者有意识地利用执行顺序特性
 
-**但它不够"open"。** Flask 的 middleware 生态系统之所以繁荣，是因为任何人都可以 `pip install flask-xxx` 然后装饰一下就接入。DeerFlow 的 middleware 需要你了解 29 个 middleware 的位置关系、选了正确的 anchor、处理 `@Next`/`@Prev` 的冲突——门槛远高于 Flask。这是一个**内部架构的整洁 > 外部扩展的便利**的选择——对于 ByteDance 的内部项目可能合理，对于开源项目可能限制了社区贡献。
+**但它不够"open"。** Flask 的 middleware 生态系统之所以繁荣，是因为任何人都可以 `pip install flask-xxx` 然后装饰一下就接入。DeerFlow 的 middleware 需要你了解 33 个 middleware 的位置关系、选了正确的 anchor、处理 `@Next`/`@Prev` 的冲突——门槛远高于 Flask。这是一个**内部架构的整洁 > 外部扩展的便利**的选择——对于 ByteDance 的内部项目可能合理，对于开源项目可能限制了社区贡献。
 
 **类比：** 如果 Flask 是自动挡（装饰器随便加，框架自己理顺序），DeerFlow 就是手动挡（`@Next(A)` 挂三档，`@Prev(B)` 挂四档）——更精确、更可控，但需要你知道档位在哪。
 

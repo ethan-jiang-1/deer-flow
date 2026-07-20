@@ -114,7 +114,8 @@ pop_current_app_config()                   # 弹出
 | `tool_search` | `ToolSearchConfig` | 延迟 tool 加载 |
 | `title` | `TitleConfig` | 自动标题生成 |
 | `summarization` | `SummarizationConfig` | 上下文摘要 |
-| `memory` | `MemoryConfig` | 记忆系统 |
+| `memory` | `MemoryConfig` | 🆕 可插拔记忆系统（`manager_class` + `mode` + `backend_config`） |
+| `authz` 🆕 | `AuthorizationConfig` | 可插拔授权 provider（Phase 0 scaffolding） |
 | `agents_api` | `AgentsApiConfig` | 自定义 agent 管理 API |
 | `acp_agents` | `dict[str, ACPAgentConfig]` | ACP 外部 agent |
 | `subagents` | `SubagentsAppConfig` | subagent 运行时 + override |
@@ -140,4 +141,8 @@ pop_current_app_config()                   # 弹出
 | 🆕 `suggestions` | | 自动生成跟进问题建议 |
 
 注：config version 10→19，`checkpointer` 已废弃但后向兼容。
+
+## 🆕 Feature Gating
+
+`GET /api/features` — 运行时特性门控端点。当前暴露 `agents_api.enabled` 供前端条件渲染 UI 组件。模式：config.yaml 定义 flag → Gateway 端点暴露 → 前端 `useQuery` 读取 → UI 条件渲染。新增 flag 只需扩展 `FeaturesResponse` schema，无需改前端路由逻辑。
 

@@ -1,6 +1,6 @@
 ---
 title: "链装配：Middleware 是怎么串起来的"
-description: "两阶段组装：共享基础层 12 个 + Lead-only 层 17 个。理解这个才能把自定 middleware 挂到正确位置。"
+description: "两阶段组装：共享基础层 13 个 + Lead-only 层 20 个。声明式分层构建器 + 严格顺序约束。理解这个才能把自定义 middleware 挂到正确位置。"
 topics: [middleware, hooks, interceptor-chain]
 ---
 
@@ -27,47 +27,54 @@ def build_lead_runtime_middlewares(*, app_config, lazy_init=True) -> list[AgentM
 内部 `_build_runtime_middlewares()` 返回三个拼接层：
 
 ```
-outer_wrappers: [InputSanitization, ToolOutputBudget]
+outer_wrappers: [InputSanitization, ToolOutputBudget, ToolResultSanitization]
     + thread_hooks: [ThreadData, Uploads, Sandbox, Dangling, LLMError, Guardrail(cond), SandboxAudit]
     + tail: [ReadBeforeWrite(cond), ToolProgress(cond), ToolErrorHandling]
 ```
 
-共 12 个。Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含 Uploads 和 Dangling）。
+共 13 个。🆕 `ToolResultSanitization` 位于 `ToolOutputBudget` 之后——先中性化远程内容标签，再做预算截断。**顺序变更**：`ThreadData` 移到 `Uploads` 之前运行。使用**声明式分层构建器**。
+
+Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含 Uploads 和 Dangling）；额外附加 `DurableContextMiddleware` + `SystemMessageCoalescingMiddleware` + guard middlewares（TokenBudget/LoopDetection/SubagentLimit/Summarization）。
 
 ### Phase 2：Lead-only 层（`build_middlewares()`）
 
 文件：`deerflow/agents/lead_agent/agent.py:269`
 
-在上面的 12 个之后，依次追加 17 个：
+在上面的 13 个之后，依次追加 20 个：
 
 ```python
 def build_middlewares(config, ...) -> list[AgentMiddleware]:
     middlewares = build_lead_runtime_middlewares(app_config=..., lazy_init=True)
 
-    # 13-15: 上下文管理
+    # 14-17: 上下文管理
     middlewares.append(DynamicContextMiddleware(...))
     middlewares.append(SkillActivationMiddleware(...))
+    middlewares.append(SkillToolPolicyMiddleware(...))       # 🆕 allowed-tools 执行
     middlewares.append(DurableContextMiddleware(...))
 
-    # 16-20: 可选 + 始终
+    # 18-22: 可选 + 始终
     if summarization.enabled: middlewares.append(SummarizationMiddleware(...))
     if is_plan_mode: middlewares.append(TodoListMiddleware(...))
     if token_usage.enabled: middlewares.append(TokenUsageMiddleware(...))
     middlewares.append(TitleMiddleware(...))
     middlewares.append(MemoryMiddleware(...))
 
-    # 21-26: 可选 + 始终
+    # 23-29: vision + MCP + guard trio
     if model_supports_vision: middlewares.append(ViewImageMiddleware(...))
-    if deferred_setup: middlewares.append(DeferredToolFilterMiddleware(...))
+    if tool_search.enabled and routing_metadata:
+        middlewares.append(McpRoutingMiddleware(...))        # 🆕 auto-promote MCP tools
+    if tool_search.enabled:
+        middlewares.append(DeferredToolFilterMiddleware(...))
     middlewares.append(SystemMessageCoalescingMiddleware(...))
     if subagent_enabled: middlewares.append(SubagentLimitMiddleware(...))
     if loop_detection.enabled: middlewares.append(LoopDetectionMiddleware(...))
     if token_budget.enabled: middlewares.append(TokenBudgetMiddleware(...))
 
-    # 27-29: 尾部
+    # 30-33: 尾部
     if custom_middlewares: middlewares.extend(custom_middlewares)
+    middlewares.append(TerminalResponseMiddleware(...))       # 🆕 空响应恢复
     if safety_finish_reason.enabled: middlewares.append(SafetyFinishReasonMiddleware(...))
-    middlewares.append(ClarificationMiddleware(...))  # 必须最后
+    middlewares.append(ClarificationMiddleware(...))          # 必须最后
     return middlewares
 ```
 
@@ -88,13 +95,16 @@ Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含
 
 ## 与旧版对比
 
-| 维度 | 旧版 (19) | 新版 (29) |
+| 维度 | 旧版 (29) | 新版 (33) |
 |------|----------|----------|
-| 组装函数 | 1 个 (`_build_middlewares`) | 2 个（`build_lead_runtime_middlewares` + `build_middlewares`） |
-| Sub-agent 链 | 独立构建 | 复用共享基础层 |
-| 前置 middleware | 无 | InputSanitization + ToolOutputBudget |
-| 上下文层 | 无 | DynamicContext + SkillActivation + DurableContext |
-| 尾部 middleware | Clarification 最后 | Custom → SafetyFinishReason → Clarification |
+| 组装方式 | 命令式 append | 🆕 声明式分层构建器 |
+| 组装函数 | 2 个 | 2 个（+ Subagent 使用增强版 shared base） |
+| Sub-agent 链 | 缩减版 shared base | 缩减版 + DurableContext + Summarization + guard trio |
+| 前置 middleware | InputSanitization + ToolOutputBudget | + ToolResultSanitization（远程内容中性化） |
+| 上下文层 | DynamicContext + SkillActivation + DurableContext | + SkillToolPolicy（allowed-tools 执行） |
+| MCP 层 | DeferredToolFilter | 🆕 McpRouting（auto-promote）+ DeferredToolFilter |
+| 尾部 middleware | Custom → SafetyFinishReason → Clarification | Custom → 🆕 TerminalResponse → SafetyFinishReason → Clarification |
+| Sub-agent 继承 | 无 summarization | 🆕 继承 Summarization + DurableContext + guard trio |
 
 ---
 > **See also:** [Agent Loop anatomy](../agent-loop/00-loop-anatomy.md) · [Middleware catalog](03-catalog.md) · [Testing custom middleware](../../testing/04-agent-test-patterns.md)

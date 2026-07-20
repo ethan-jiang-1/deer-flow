@@ -17,7 +17,11 @@ type: index
         │
         ├─ 323 commits later...
         │
-        └─ 上游 commit 4915b5e  ← 新锚点（2026-07-07，已同步）
+        └─ 上游 commit 4915b5e  ← 锚点 #2（2026-07-07，已同步）
+        │
+        ├─ 200 commits later...
+        │
+        └─ 上游 commit cd34a1a5  ← 锚点 #3（2026-07-20，已同步）
 ```
 
 ## 核心约定
@@ -35,13 +39,13 @@ ethan  = main + _digest/ + _faq_on_digested/（51 个 commit，186 个文件，�
 
 | 项目 | 值 |
 |------|-----|
-| **`main` HEAD（= 消化基准）** | `4915b5e` |
-| **旧锚点** | `162fb214`（2026-07-04） |
-| **日期** | 2026-07-07 |
-| **上游变更规模** | 323 commits |
-| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #2 |
-| **上游当前 HEAD** | `fd41fdb`（bytedance/deer-flow main） |
-| **我们落后上游** | `162fb214` → `fd41fdb`，[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...main) |
+| **`main` HEAD（= 消化基准）** | `cd34a1a5` |
+| **旧锚点** | `4915b5e`（2026-07-07） |
+| **日期** | 2026-07-20 |
+| **上游变更规模** | 200 commits |
+| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #3 |
+| **上游当前 HEAD** | `cd34a1a5`（bytedance/deer-flow main，已同步） |
+| **累积落后** | `162fb214` → `cd34a1a5`（共 523 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...main) |
 
 ## 未来同步时怎么看
 
@@ -49,9 +53,9 @@ ethan  = main + _digest/ + _faq_on_digested/（51 个 commit，186 个文件，�
 # 1. 拉上游最新到 main
 git checkout main && git pull upstream main
 
-# 2. 看多了什么（162fb214 是旧锚点，upstream/main 是新锚点）
-git log 162fb214..upstream/main --oneline
-git diff --stat 162fb214..upstream/main
+# 2. 看多了什么（4915b5e 是旧锚点，upstream/main 是新锚点）
+git log 4915b5e..upstream/main --oneline
+git diff --stat 4915b5e..upstream/main
 
 # 3. 合并到 ethan
 git checkout ethan && git merge main

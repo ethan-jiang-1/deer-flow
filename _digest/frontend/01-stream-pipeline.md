@@ -100,3 +100,13 @@ Runs 通过 TanStack Query 缓存（`["thread", threadId]`）。每个 run 的�
 1. `additional_kwargs.reasoning_content`（Anthropic 格式）
 2. `content[0].thinking`（Anthropic 网关格式）
 3. 内联 `<think>...</think>` XML 标签，含流式安全的未闭合标签处理
+
+## 🆕 流前预处理：Input Polish
+
+在消息进入 agent loop 之前，composer 提供可选的 LLM 润色：
+
+`POST /api/input-polish` → 一次性 LLM 调用（不创建 LangGraph run、不持久化消息）
+
+- **独立 LLM 路径**：使用 `deerflow.utils.oneshot_llm.run_oneshot_llm`（与 suggestions route 共享），model build + Langfuse metadata + invoke 统一在一处
+- **不修改 thread state**：润色结果只在 composer 中展示，用户可以选择发送原文或润色后的版本
+- **安全**：验证 stripped view of draft（发送给模型的版本与展示的版本一致），保留字面 `<think>` 子串

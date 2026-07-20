@@ -1,37 +1,119 @@
 ---
-title: "记忆系统"
-description: "DeerFlow 提供持久化的用户记忆功能，跨对话保留上下文信息。"
-topics: [memory, persistence, context-injection]
+title: "Memory 系统 — 可插拔后端架构"
+description: "DeerFlow 2.1 的 Memory 系统从单体 DeerMem 重构为可插拔后端架构，支持 middleware 和 tool 双模式，新增 consolidation 和 staleness review。"
+topics: [memory, persistence, context-injection, pluggable-backend, consolidation, staleness]
 ---
 
-# 记忆系统
+# Memory 系统 — 可插拔后端架构
 
-DeerFlow 提供持久化的用户记忆功能，跨对话保留上下文信息。
+> **2.1.0 里程碑 | Breaking Changes**：Memory 从写死的 DeerMem 单体变成 `MemoryManager` ABC + 可插拔后端。只需改一行 `config.yaml` 即可切换后端，DeerFlow 核心代码无需改动。
 
-## 系统组件
+## 架构总览
 
 ```
-MemoryMiddleware (after_step)
-    │  过滤消息 → 用户输入 + 最终 AI 回复
-    │  捕获 user_id via get_effective_user_id()
-    │  入队更新
-    ▼
-MemoryQueue (debounced)
-    │  30s debounce
-    │  per-thread 去重
-    │  批量化处理
-    ▼
-MemoryUpdater (LLM-based)
-    │  调用 LLM 提取事实和上下文更新
-    │  使用 MEMORY_UPDATE_PROMPT
-    │  应用更新到 memory.json
-    ▼
-memory.json
-    per-user 文件存储
-    atomic write (temp file + rename)
+┌─────────────────────────────────────────────────┐
+│                  config.yaml                     │
+│  memory.manager_class: deermem | noop | <custom> │
+│  memory.mode: middleware | tool                  │
+│  memory.backend_config: { ... }                  │
+└─────────────────┬───────────────────────────────┘
+                  │
+┌─────────────────▼───────────────────────────────┐
+│           MemoryManager (ABC — 10 methods)         │
+│  add / add_nowait / get_context / search         │
+│  get_memory / delete_memory / clear_memory       │
+│  import_memory / export_memory / shutdown_flush  │
+└────────┬──────────────────────┬──────────────────┘
+         │                      │
+┌────────▼─────────┐  ┌─────────▼────────┐
+│  DeerMem Backend │  │  Noop Backend    │
+│  (default)       │  │  (template)      │
+│  structured facts│  │  empty impl      │
+│  + JSON storage  │  │  for copying     │
+└──────────────────┘  └──────────────────┘
 ```
 
-## 数据结构
+### 两种运行模式
+
+| 模式 | `memory.mode` | 行为 |
+|------|--------------|------|
+| **Middleware**（默认） | `middleware` | `MemoryMiddleware` 在 `after_agent` 时入队对话 → 后台 debounced LLM 提取 fact → 下次对话时注入 `<memory>` |
+| **Tool**（实验性） | `tool` | 注册 `memory_search`/`add`/`update`/`delete` 工具 → 模型主动决定何时搜索、添加、更新、删除 fact |
+
+两种模式共享 `FileMemoryStorage`、per-user/per-agent 隔离、prompt 注入和 updater 后端。
+
+---
+
+## 可插拔后端架构
+
+### MemoryManager ABC（10 个方法）
+
+`packages/harness/deerflow/agents/memory/manager.py` 定义了后端无关的抽象：
+
+| 类别 | 方法 | 说明 |
+|------|------|------|
+| **Write** | `add(thread_id, messages, agent_name, user_id, trace_id)` | 入队对话，debounced 异步更新 |
+| | `add_nowait(thread_id, messages, agent_name, user_id)` | 立即入队（summarization 前紧急 flush） |
+| **Read** | `get_context(user_id, agent_name, thread_id)` | 返回注入就绪的 memory 文本 |
+| | `search(query, top_k, user_id, agent_name, category)` | 搜索匹配 fact |
+| **Manage** | `get_memory(user_id, agent_name)` | 返回完整 memory document |
+| | `delete_memory(user_id, agent_name)` | 删除整个 bucket |
+| | `clear_memory(user_id, agent_name)` | 清空并返回空 document |
+| | `import_memory(memory_data, user_id, agent_name)` | 导入 memory document |
+| | `export_memory(user_id, agent_name)` | 导出 memory document |
+| **Lifecycle** | `shutdown_flush(timeout)` | Graceful shutdown 时排空 pending updates |
+
+### 后端发现机制
+
+```
+backends/
+├── deermem/          ← 默认后端（structured facts + JSON）
+│   ├── __init__.py   # MANAGER_CLASS = DeerMem
+│   ├── deer_mem.py   # DeerMem(MemoryManager) 实现
+│   └── deermem/      # 自包含子包（可移植到其他 agent）
+│       ├── config.py       # DeerMemConfig
+│       ├── core/
+│       │   ├── storage.py  # FileMemoryStorage
+│       │   ├── queue.py    # debounced update queue
+│       │   ├── updater.py  # LLM-based update + staleness + consolidation
+│       │   ├── llm.py      # LLM 调用封装
+│       │   ├── paths.py    # 路径解析
+│       │   └── prompts/    # 外置 YAML 模板
+│       └── ...
+├── noop/             ← 模板后端（空实现，复制即可开始新后端）
+│   ├── __init__.py   # MANAGER_CLASS = NoopMemoryManager
+│   ├── config.py
+│   └── noop_manager.py
+└── <yourname>/       ← 自定义后端（drop-in）
+```
+
+工厂 `get_memory_manager()` 按 `manager_class` 配置值解析：
+1. 先查注册的短名（`deermem`、`noop`）
+2. 再当 dotted path 解析（`pkg.mod:Cls` 或 `pkg.mod.Cls`）
+3. 都解析不了 → `ValueError`（不会静默 fallback 到错误后端——memory 是持久化状态，错了就是数据完整性 bug）
+
+Host 通过 `backend_config` dict 向后端注入：
+- `storage_path` — 可写状态目录
+- `tracing_callback` — LLM 调用的 Langfuse tracing
+- `should_keep_hidden_message` — 过滤 `hide_from_ui` 消息
+- `host_llm` — 零配置 LLM（`model_name: null` 时用 app default model）
+- `trace_context_manager` — 结构化日志 trace 关联
+
+### Breaking Changes
+
+| 变更 | 旧行为 | 新行为 |
+|------|--------|--------|
+| **Config 结构** | `memory.storage_path`, `memory.max_facts`, ... 平铺在 `memory:` 下 | 迁移到 `memory.backend_config.storage_path` 等，旧字段启动时自动迁移 + warning |
+| **`storage_path` 语义** | FILE 路径（如 `memory.json`） | DIRECTORY 路径；per-user memory 在 `{root}/users/{uid}/memory.json` |
+| **`/memory/config` API** | 返回 DeerMem 平铺字段 | 返回 `{enabled, mode, injection_enabled, manager_class, backend_config}` |
+| **`storage_class` 路径** | `deerflow.agents.memory.storage.FileMemoryStorage` | `deerflow.agents.memory.backends.deermem.deermem.core.storage.FileMemoryStorage` |
+| **`storage_class` 签名** | 无参 `__init__` | 必须接受 `config` 参数 |
+
+---
+
+## DeerMem 后端（默认）
+
+### 数据模型
 
 ```json
 {
@@ -51,6 +133,7 @@ memory.json
       "content": "Prefers Chinese language",
       "category": "preference",
       "confidence": 0.95,
+      "expected_valid_days": 180,
       "createdAt": "2025-01-15T...",
       "source": "conversation"
     }
@@ -67,116 +150,228 @@ memory.json
 | `context` | 上下文 | "在字节工作" |
 | `behavior` | 行为模式 | "经常在晚上使用" |
 | `goal` | 目标 | "想学 Rust" |
+| `correction` | 用户纠正（受保护，永不过期） | "我的名字不是张三" |
+
+### Middleware 模式工作流
+
+```
+MemoryMiddleware (after_agent)
+    │  过滤消息 → 用户输入 + 最终 AI 回复
+    │  捕获 user_id via get_effective_user_id()
+    │  入队: manager.add(thread_id, messages, user_id=..., trace_id=...)
+    ▼
+MemoryQueue (debounced, 30s default)
+    │  30s debounce
+    │  per-thread 去重
+    │  批量化处理
+    ▼
+MemoryUpdater (单次 LLM 调用，包含三阶段)
+    │  Phase 1: Fact extraction（从对话中提取新 fact + userContext 更新）
+    │  Phase 2: Staleness review（检测过期 fact，同一调用内完成）
+    │  Phase 3: Consolidation（合成碎片化 fact，同一调用内完成）
+    ▼
+memory.json
+    per-user 文件存储
+    atomic write (temp file + os.replace)
+```
+
+### Tool 模式工作流
+
+```
+Agent 决定何时调用 memory 工具
+    │
+    ├─ memory_search(query, category, limit)
+    │      → manager.search(query, top_k=limit, ...)
+    │
+    ├─ memory_add(content, category)
+    │      → manager.create_fact(...)  [backend-internal capability]
+    │
+    ├─ memory_update(fact_id, content, category, confidence)
+    │      → manager.update_fact(...)  [backend-internal capability]
+    │
+    └─ memory_delete(fact_id)
+           → manager.delete_fact(...)  [backend-internal capability]
+```
+
+> **注意**：`create_fact`/`update_fact`/`delete_fact` 不在 ABC 上（是 backend-internal capability）。Gateway 通过 `hasattr(manager, "<name>")` 探测，缺失时返回 501。
+
+---
+
+## Memory Consolidation（Fact 碎片合并）
+
+当某个 category 的 fact 数量达到 `consolidation_min_facts`（默认 8），同一次 LLM 调用中自动触发合并：
+
+1. `_select_consolidation_candidates()` 识别碎片化类别（largest first），每周期最多 `consolidation_max_groups_per_cycle`（默认 3）组
+2. LLM 决定合并哪些组，为每组生成一个合成 fact
+3. `_apply_updates` 强制 guardrail：
+   - 源 fact ID 必须存在且组间不重叠
+   - 每组源 fact 数 ≤ `consolidation_max_sources`（默认 8）
+   - 合成 fact 置信度不超过源 fact 最大值
+   - 低于 `fact_confidence_threshold` 的 fact 不写入
+
+```yaml
+memory:
+  backend_config:
+    consolidation_enabled: false       # 开启（默认 false——consolidation 是有损的，源内容不保留，需显式 opt-in）
+    consolidation_min_facts: 8         # 触发合并的最小 fact 数（3-30）
+    consolidation_max_groups_per_cycle: 3  # 每周期最多合并组数（1-10）
+    consolidation_max_sources: 8       # 每组最大源 fact 数（2-20）
+```
+
+---
+
+## Staleness Review（过期清理）
+
+每个 fact 现在有 LLM 分配的 `expected_valid_days`。同一次 LLM 调用内检测过期 fact：
+
+1. `_select_stale_candidates()` 选超过 `expected_valid_days`（fallback `staleness_age_days`，默认 90 天）的 fact
+2. 排除 `staleness_protected_categories`（默认 `["correction"]`）
+3. 候选数 ≥ `staleness_min_candidates`（默认 3）时触发
+4. LLM 按 `valid:Nd` 标注逐条判断：**KEEP**、**REMOVE**、或 **EXTEND**（延长 `extend_by_days` 天）
+5. `_apply_updates` 硬性交叉校验：
+   - **只删除 LLM 建议的 ∩ 实际候选的**
+   - 保护类别和未过期 fact **永不被删除**（即使 LLM 要求）
+   - 上限 `staleness_max_removals_per_cycle`（默认 10），超额保留最低置信度 fact
+   - 被标记删除的 fact 不会被同一周期内的 EXTEND 复活
+   - EXTEND 结果 capped 在 `staleness_max_extension_days`（默认 3650 = 10 年）
+
+### Fact 生命周期
+
+```
+创建 → LLM 分配 expected_valid_days
+         │  clamped at write: min(expected_valid_days, staleness_age_days × staleness_max_lifetime_multiplier)
+         │  默认: 90 × 20 = 1800 days ≈ 5 years (creation cap)
+         │
+    ┌────▼────┐
+    │  Active  │
+    └────┬────┘
+         │ 超过 expected_valid_days 后进入候选池
+         ▼
+    Staleness Review (同一 LLM 调用，不增加 API 开销)
+         │
+         ├─ KEEP    → 保持（不做任何变更）
+         ├─ REMOVE  → 删除（受 per-cycle cap 限制，超过则保留最低置信度）
+         └─ EXTEND  → 延长 expected_valid_days，capped at staleness_max_extension_days
+```
+
+```yaml
+memory:
+  backend_config:
+    staleness_review_enabled: true         # 开启过期清理
+    staleness_age_days: 90                 # 超过此天数才候选（fallback）
+    staleness_min_candidates: 3            # 至少这么多候选才触发
+    staleness_max_removals_per_cycle: 10   # 每次最多删除数
+    staleness_protected_categories: [correction]  # 永不过期类别
+    staleness_max_lifetime_multiplier: 20.0   # 创建时对 expected_valid_days 的倍数上限
+    staleness_max_extension_days: 3650        # EXTEND 后的绝对天数上限
+```
+
+---
+
+## Template Externalization（模板外部化）
+
+Memory prompts 已从代码中抽离为 YAML 模板文件，放在 `backends/deermem/deermem/core/prompts/`：
+
+| 模板文件 | 用途 |
+|---------|------|
+| `fact_extraction.yaml` | 从对话中提取新 fact + context 更新 |
+| `staleness_review.yaml` | 过期 fact 审查 prompt |
+| `consolidation.yaml` | Fact 合并 prompt |
+| `memory_update.chat.yaml` | 组合上述三个阶段的完整 prompt |
+
+---
 
 ## Per-User 隔离
 
 ```
-.deer-flow/users/
-├── {user_id}/
-│   ├── memory.json                    # 通用记忆
-│   └── agents/
-│       └── {agent_name}/
-│           └── memory.json            # Per-agent 记忆（可选）
-└── default/                           # 无 auth 模式
-    └── memory.json
+{storage_path}/                          ← 现在是 DIRECTORY（不再是 .json 文件）
+└── users/
+    ├── {user_id}/
+    │   ├── memory.json                  # 通用记忆
+    │   └── agents/
+    │       └── {agent_name}/
+    │           └── memory.json          # Per-agent 记忆
+    └── default/                         # 无 auth 模式
+        └── memory.json
 ```
 
-- 文件存储路径由 `config.yaml` → `memory.storage_path` 控制
-- 绝对路径 → 不使用 per-user 隔离
-- 相对路径 → 相对于 `{base_dir}/users/{user_id}/`
-- Per-agent memory 通过 `MemoryMiddleware(agent_name=...)` 支持
+- Middleware 模式：`user_id` 在 enqueue 时通过 `get_effective_user_id()` 捕获
+- Tool 模式：`user_id` 从 `ToolRuntime.context` 通过 `resolve_runtime_user_id(runtime)` 解析
+- 自定义 agent 定义也在同一布局下
 
-## 配置参数
+---
 
-```yaml
-memory:
-  enabled: true
-  storage_path: memory.json          # 相对路径 → per-user；绝对路径 → 共享
-  debounce_seconds: 30               # 更新去抖时间
-  model_name: null                   # null = 使用默认模型进行事实提取
-  max_facts: 100                     # 最多存储事实数
-  fact_confidence_threshold: 0.7     # 最低置信度
-  injection_enabled: true            # 是否注入 system prompt
-  max_injection_tokens: 2000         # 注入的最大 token 数
-```
-
-## Memory 注入
-
-当下一次对话开始时，`DynamicContextMiddleware` 将 top 15 facts + user context 注入 system prompt：
-
-```
-<system-reminder>
-  <memory>
-    User Context: ...
-    Recent Facts:
-    - ...
-  </memory>
-</system-reminder>
-```
-
-注入上限 `max_injection_tokens`（默认 2000）。
-
-## 事实去重与原子写入
-
-- **去重**：提取的新 fact 与已有 fact 的 content 比较（trim 前后空格后），重复的不追加
-- **原子写入**：先写 temp file → `os.replace()` 到目标文件 → 使缓存失效
-- **并发安全**：进程内同一用户同一 agent 的读写被 `MemoryQueue` 的去抖机制序列化
-
-## Staleness Review 🆕
-
-同一次 LLM 调用中（不增加 API 开销），检测并清理过期 fact：
-
-1. `_select_stale_candidates()` 选超过 `staleness_age_days`（默认 90 天）的 fact，排除 `staleness_protected_categories`（默认 `["correction"]`）
-2. 候选数 ≥ `staleness_min_candidates`（默认 3）时触发
-3. LLM 逐条判断 KEEP 或 REMOVE
-4. `_apply_updates` 硬性交叉校验：只删除 LLM 建议的 ∩ 实际候选的，保护类别和未过期 fact **永不被删除**
-5. 上限 `staleness_max_removals_per_cycle`（默认 10），超额时保留最低置信度 fact
-
-## Token Counting 🆕
+## Token Counting
 
 两种策略，由 `memory.token_counting` 控制：
 
 | 策略 | 说明 |
 |------|------|
-| `tiktoken`（默认） | `cl100k_base` 精确计数。编码懒加载+缓存。失败后 600s cooldown。网络受限环境可能阻塞首次加载 |
+| `tiktoken`（默认） | `cl100k_base` 精确计数。懒加载+缓存。失败后 600s cooldown。正在加载时并发调用者 fallback 到 char（不阻塞更多线程） |
 | `char` | 零网络依赖。CJK 感知估算：非 CJK `//4`，CJK `//2` |
 
-## Guaranteed Categories 🆕
+---
+
+## Guaranteed Categories
 
 `guaranteed_categories`（默认 `["correction"]`）中的 fact 走独立 token 预算（`guaranteed_token_budget`，默认 500），放在 Facts 块最前面，不被普通 fact 挤出。
 
-## Sync 更新路径修复 🆕
+---
 
-`_do_update_memory_sync` 使用独立 `ThreadPoolExecutor` + `model.invoke()`（同步 HTTP），避免触碰 lead agent 共享的 async httpx 连接池，消除跨 loop 连接复用 bug（issue #2615）。
+## Shutdown Flush
 
-## Upload Stripping 🆕
+`manager.shutdown_flush(timeout)` 在 Gateway graceful shutdown 时排空 pending 更新。每个 pending item 做一次 LLM 调用（不可中断），所以需要 hard timeout。Gateway lifespan 在 channels/scheduler 停止后调用，超时值必须适配 K8s `terminationGracePeriodSeconds`。
 
-`_strip_upload_mentions_from_memory()` 从摘要和 fact 中删除关于上传文件的句子，防止 agent 在后续 session 中搜索不存在的文件。
+---
 
-## 新配置参数
+## Run-Level Memory Identity
+
+每次 Gateway run 带有有效 memory block 时，会对 `<memory>` wrapper 的 HumanMessage.content 取 SHA256 hash，通过 `RunJournal` 记录 `context:memory` event。后续 runs 和 checkpoint-based branches 复用 frozen message 而不重新加载 memory。
+
+---
+
+## 配置速查
 
 ```yaml
 memory:
-  token_counting: tiktoken              # tiktoken | char
-  guaranteed_categories: [correction]   # 保证注入的 fact 类别
-  guaranteed_token_budget: 500          # 保证类别的 token 上限
-  staleness_review_enabled: true        # 开启过期清理
-  staleness_age_days: 90                # 超过此天数才候选
-  staleness_min_candidates: 3           # 至少这么多候选才触发
-  staleness_max_removals_per_cycle: 10  # 每次最多删除数
-  staleness_protected_categories: [correction]  # 永不过期类别
+  enabled: true
+  injection_enabled: true
+  mode: middleware           # middleware | tool
+  manager_class: deermem     # deermem | noop | <custom>
+  shutdown_flush_timeout_seconds: 30
+  backend_config:
+    # ── Storage ──
+    storage_path: ""         # 空 = runtime_home()；DIRECTORY（不是文件！）
+    max_facts: 100
+    fact_confidence_threshold: 0.7
+    max_injection_tokens: 2000
+    # ── Queue ──
+    debounce_seconds: 30
+    # ── Token Counting ──
+    token_counting: tiktoken  # tiktoken | char
+    guaranteed_categories: [correction]
+    guaranteed_token_budget: 500
+    # ── Staleness ──
+    staleness_review_enabled: true
+    staleness_age_days: 90
+    staleness_min_candidates: 3
+    staleness_max_removals_per_cycle: 10
+    staleness_protected_categories: [correction]
+    staleness_max_lifetime_multiplier: 20.0
+    staleness_max_extension_days: 3650
+    # ── Consolidation ──
+    consolidation_enabled: false       # 默认 false（有损操作，需显式 opt-in）
+    consolidation_min_facts: 8
+    consolidation_max_groups_per_cycle: 3
+    consolidation_max_sources: 8
+    # ── Model ──
+    model:
+      model: null            # null = 用 app default model
+      provider: openai
+      api_key: null
+      base_url: null
+      temperature: null
 ```
-
-## 用户隔离迁移
-
-从 legacy 共享布局迁移到 per-user 布局：
-```bash
-PYTHONPATH=. python scripts/migrate_user_isolation.py
-# --dry-run  预览
-# --user-id USER_ID  指定归属用户（默认 default）
-```
-
-Legacy 布局（`{base_dir}/memory.json`）仍作为只读 fallback。
 
 ## API 接口
 
@@ -194,4 +389,4 @@ Legacy 布局（`{base_dir}/memory.json`）仍作为只读 fallback。
 | 状态 | `GET /api/memory/status` |
 
 ---
-> **See also:** [MemoryConfig source](../../../backend/packages/harness/deerflow/config/memory_config.py) · [Testing staleness review](../../testing/08-testing-patterns-reference.md)
+> **See also:** [MemoryConfig source](../../../backend/packages/harness/deerflow/config/memory_config.py) · [MemoryManager ABC](../../../backend/packages/harness/deerflow/agents/memory/manager.py) · [Backend README](../../../backend/packages/harness/deerflow/agents/memory/backends/README.md)

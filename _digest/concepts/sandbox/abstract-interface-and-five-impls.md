@@ -97,11 +97,15 @@ e2b code-interpreter 云端沙箱。多进程发现（metadata 标记）。Outpu
 
 `env_policy.build_sandbox_env()` 在注入请求级密钥前从继承环境剥离敏感变量：
 
-- 通配模式：`*KEY*`、`*SECRET*`、`*TOKEN*`、`*PASSWORD*`、`*CREDENTIAL*`、`*DSN*`
-- 精确名：`DATABASE_URL`、`REDIS_URL`、`GH_PAT`、`GITHUB_PAT` 等连接串
-- Benign 变量（`PATH`、`HOME`、`LANG`）保留
+- 通配模式：`*KEY*`、`*SECRET*`、`*TOKEN*`、`*PASS*`、`*CREDENTIAL*`、`*DSN*`
+- 精确名：`DATABASE_URL`、`REDIS_URL`、`GH_PAT`、`MYSQL_PWD`、`REDISCLI_AUTH`、`PGPASSFILE`、`PGSERVICEFILE`
+- Benign 变量（`PATH`、`HOME`、`LANG`、`VIRTUAL_ENV`）保留
 
 源码：`deerflow/sandbox/env_policy.py`
+
+### 路径安全守卫 🆕
+
+Segment-boundary regex 保护反向路径翻译和输出脱敏——防止路径中包含目标模式的子串被错误匹配。源码：`deerflow/sandbox/path_patterns.py`
 
 ## Sandbox 检测
 

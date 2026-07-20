@@ -141,16 +141,18 @@ metadata:
   name: sandbox-{sandbox_id}-svc
   namespace: deer-flow
 spec:
-  type: NodePort
+  type: ClusterIP          # 🆕 2.1 默认 ClusterIP（旧版 NodePort）
   ports:
   - port: 8080
 ```
+
+> ⚠️ **2.1 变更**：sandbox Service 默认从 `NodePort` 改为 `ClusterIP`——sandbox 仅集群内可达（`http://sandbox-<id>-svc.<ns>.svc.cluster.local`）。如需保留旧行为（外部可达），设 `provisioner.sandboxServiceType: NodePort` + `provisioner.nodeHost`。现有 chart 升级时自动 flip NodePort→ClusterIP。
 
 ### Gateway→Sandbox 通信
 
 Gateway 通过 `DEER_FLOW_SANDBOX_HOST` 环境变量连接 sandbox：
 - LocalContainerBackend: `DEER_FLOW_SANDBOX_HOST=host.docker.internal`
-- RemoteSandboxBackend (K3s): sandbox URL = K3s Node IP + NodePort
+- RemoteSandboxBackend (K3s): sandbox URL = K3s Service DNS（ClusterIP 模式）或 Node IP + NodePort（NodePort 模式）
 
 ### K3s 部署 Checklist
 
@@ -162,3 +164,13 @@ Gateway 通过 `DEER_FLOW_SANDBOX_HOST` 环境变量连接 sandbox：
 - [ ] 评估 `allowPrivilegeEscalation: true` 是否必要
 - [ ] 配置 `DEER_FLOW_INTERNAL_AUTH_TOKEN`（多 worker 必须手动设置）
 - [ ] PostgreSQL 高可用（外部 Postgres 或 Cloud SQL）
+
+## 🆕 First-Class Helm Chart
+
+2.1 引入了正式的 Helm chart（`deer-flow/`），支持 Kubernetes 一键部署：
+
+- **Chart 发布**：GitHub Container Registry `charts/` namespace prefix
+- **Sandbox Service**：默认 `ClusterIP`（仅集群内可达），可选 `NodePort`
+- **Provisioner**：ClusterIP Services + scoped per-skill PVC mounts + 可配置 sandbox container port
+- **Gateway**：Helm chart 中配置 `terminationGracePeriodSeconds`（需大于 `shutdown_flush_timeout_seconds`）
+

@@ -1,6 +1,6 @@
 ---
 title: "MCP 深度解析 — Session Pool、OAuth、缓存"
-description: "- `deerflow/mcp/cache.py` (159 行) — 惰性初始化、mtime 缓存失效"
+description: "- `deerflow/mcp/cache.py` — 惰性初始化、content-signature 缓存失效、routing hints、per-server timeout"
 topics: [mcp, tools, protocol-integration]
 ---
 
@@ -135,9 +135,15 @@ async def get_cached_mcp_tools():
     return _cache
 ```
 
-### mtime 过期检测
+### 缓存失效检测 🆕 2.1 增强
 
-`_is_cache_stale()` 比较 `extensions_config.json` 的 `os.path.getmtime()` 与缓存的 mtime。
+`_is_cache_stale()` 现在比较 resolved config path **和** `(mtime, size, sha256)` content signature（而非仅 mtime）。这解决了：
+
+- 同秒编辑（same-second edits）
+- mtime 不变或倒退（`git checkout`、`cp -p`、backup restore、`tar`/`rsync`、object-store/network mounts）
+- 切换到不同 config file（mtime 相同或更旧）
+
+`config/file_signature.py::get_config_signature()` 是共享 helper——`app_config.py::get_app_config()` 也用它做 runtime-editable config 的热重载检测。
 
 ### 异步安全初始化
 
@@ -175,3 +181,26 @@ async def get_cached_mcp_tools():
 | **HTTP** | `"http"` | 远程 HTTP：`url: https://mcp.example.com/mcp` |
 
 OAuth 支持目前仅用于 `sse` 和 `http` 传输类型。
+
+---
+
+## MCP Routing Hints 🆕
+
+`extensions_config.json` 里的 `mcpServers.<server>.routing` 和 `tools.<name>.routing` 是软偏好元数据，不在 middleware 层硬禁用 tools：
+
+- `routing.mode="prefer"` → 生成 `<mcp_routing_hints>` prompt 引导
+- 当 tool 被 deferred 且有 routing metadata 时，`McpRoutingMiddleware` 自动提升匹配的 deferred schema（before model call）
+- `tool_search.auto_promote_top_k`（默认 3，1-5）控制提升广度
+- Routing hints 只在 `tool_search.enabled=true` 时生效
+
+## Per-Server `tool_call_timeout` 🆕
+
+每个 MCP server 独立超时配置：`mcpServers.<server>.tool_call_timeout`（秒）。覆盖全局默认值。
+
+## Auto-Promote Deferred MCP Tools 🆕
+
+`McpRoutingMiddleware` 在每次 model call 前：
+1. 匹配 latest `HumanMessage` 与 deferred MCP tool 的 routing keywords
+2. 最多提升 `auto_promote_top_k` 个 matching schema
+3. 写入 `ThreadState.promoted`（hash-scoped，per-run）
+4. 永远不执行 tool，只做 schema promotion

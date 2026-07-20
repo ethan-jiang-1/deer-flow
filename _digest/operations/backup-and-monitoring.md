@@ -146,3 +146,12 @@ DeerFlow 没有内置告警。建议：
 - 在 LangFuse 中配置 cost/latency threshold 告警
 - 用 `GET /api/console/stats` 做 cron 健康检查（`active_runs` 持续 > 0 可能是卡住）
 - 配置 `circuit_breaker` 防止 LLM 错误雪崩
+
+## 🆕 Support Bundle Generator
+
+`scripts/support_bundle.py` — 社区支持用的脱敏故障排查包：
+
+- 自动收集配置（密钥脱敏）、日志、系统信息
+- Redacted 输出：secret-key denylist 覆盖（API key、token、password 等）
+- 生成 AI issue draft + 可选 zip
+- `make support-bundle` 一键生成

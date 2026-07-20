@@ -319,19 +319,59 @@ summarization:
   preserve_recent_skill_tokens_per_skill: 5000
 ```
 
-## Memory（用户记忆）
+## Memory（用户记忆）🔄 2.1 重构
 
 ```yaml
 memory:
   enabled: true
-  storage_path: memory.json   # 相对于 backend/ 目录
-  debounce_seconds: 30        # 更新去抖间隔
-  model_name: null
-  max_facts: 100
-  fact_confidence_threshold: 0.7
-  injection_enabled: true     # 是否注入 system prompt
-  max_injection_tokens: 2000
+  injection_enabled: true
+  mode: middleware              # middleware（被动注入）| tool（模型主动调用工具）
+  manager_class: deermem        # deermem | noop | <custom>
+  shutdown_flush_timeout_seconds: 30
+  backend_config:               # 🆕 后端私有配置（替代旧的平铺字段）
+    storage_path: ""            # 空 = runtime_home()；DIRECTORY（不是文件！）
+    max_facts: 100
+    fact_confidence_threshold: 0.7
+    max_injection_tokens: 2000
+    debounce_seconds: 30
+    token_counting: tiktoken    # tiktoken | char
+    guaranteed_categories: [correction]
+    guaranteed_token_budget: 500
+    # Staleness review
+    staleness_review_enabled: true
+    staleness_age_days: 90
+    staleness_min_candidates: 3
+    staleness_max_removals_per_cycle: 10
+    staleness_protected_categories: [correction]
+    staleness_max_lifetime_multiplier: 20.0
+    staleness_max_extension_days: 3650
+    # Consolidation
+    consolidation_enabled: true
+    consolidation_min_facts: 8
+    consolidation_max_groups_per_cycle: 3
+    consolidation_max_sources: 8
+    # LLM
+    model:
+      model: null               # null = app default
+      provider: openai
+      api_key: null
+      base_url: null
+      temperature: null
 ```
+
+> ⚠️ **Breaking Change (2.1)**：旧的平铺字段（`storage_path`, `max_facts`, `debounce_seconds` 等放在 `memory:` 下）已废弃。启动时自动迁移到 `backend_config` 并发出 warning。`storage_path` 从 FILE 路径变为 DIRECTORY 路径。
+
+## AuthZ（授权）🆕
+
+```yaml
+authz:
+  provider:
+    use: null                    # AuthorizationProvider 类路径（Phase 0 scaffolding）
+    config: {}
+  default_role: user
+```
+
+OIDC/SSO 认证见 [operations/security/01-auth.md](../../operations/security/01-auth.md)。
 
 ## Database（数据库/持久化）
 

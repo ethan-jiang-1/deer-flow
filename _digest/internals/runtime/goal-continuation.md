@@ -96,6 +96,10 @@ def latest_visible_assistant_signature(messages):
 
 `goal_thread_lock()` 按 `thread_id` 串行化 goal 读写。`write_thread_goal()` 使用 `expected_checkpoint_id` 乐观锁——如果 checkpoint 在 evaluator 读取和写入之间被其他操作修改（如用户 `/goal clear`），写入被拒绝。
 
+### 🆕 2.1 fix: continuation_count double-bump
+
+`thread_changed_before_continuation` stand-down 路径曾导致 `continuation_count` 被重复递增（一次在 evaluator 循环，一次在 stand-down 路径），使 goal 循环在预期次数的一半就停止。修复确保每次 continuation 只递增一次。
+
 ## 测试覆盖
 
 `test_goal_worker.py`（689 行，13 个测试函数）用 fake evaluator（monkeypatch `evaluate_goal_completion`）覆盖全部状态转换：满足→清除、未满足→续跑、阻塞→stand down、无进展→停止、goal 在评估中被清除、abort 打断、用户消息在评估后被添加。不需要真实 LLM。

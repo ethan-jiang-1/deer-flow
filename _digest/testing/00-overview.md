@@ -1,12 +1,12 @@
 ---
 title: "测试策略全景"
-description: "DeerFlow 有三层测试体系：边界测试（CI 强制执行）、Gateway 一致性测试、E2E + 单元测试。"
+description: "DeerFlow 有三层测试体系：边界测试（CI 强制执行）、Gateway 一致性测试、E2E + 单元测试。🆕 2.1 新增 Monocle Test Tools（trace-based behavioral tests）和 skill review CI。"
 topics: [testing, ci, quality-assurance]
 ---
 
 # 测试策略全景
 
-DeerFlow 有三层测试体系：边界测试（CI 强制执行）、Gateway 一致性测试、E2E + 单元测试。
+DeerFlow 有三层测试体系：边界测试（CI 强制执行）、Gateway 一致性测试、E2E + 单元测试。🆕 2.1 新增 Monocle Test Tools（trace-based behavioral tests）和 skill review CI。
 
 ## 测试金字塔
 

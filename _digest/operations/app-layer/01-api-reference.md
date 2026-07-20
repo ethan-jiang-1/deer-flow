@@ -241,6 +241,28 @@ Thread goal 自动续跑：
 
 支持 7 个 provider：Telegram（deep-link）、Slack、Discord、Feishu、DingTalk、WeChat、WeCom（binding code）。
 
+### Features (`/api/features`) 🆕
+
+`GET /` — 报告 config-gated feature availability（当前 `agents_api.enabled`），供前端 UI 门控。
+
+### Input Polish (`/api/input-polish`) 🆕
+
+`POST /` — 在发送前润色 composer 草稿。一次性 LLM 调用（不创建 LangGraph run、不持久化消息、不修改 thread state）。使用 `input_polish` 配置。
+
+### OIDC/SSO 🆕
+
+- `GET /api/auth/oidc/login` — 发起 OIDC authorization code flow
+- `GET /api/auth/oidc/callback` — 处理 Keycloak/通用 OIDC provider 回调
+- Session cookie 管理 + "keep me signed in" 支持
+
+### Thread Branches 🆕
+
+`POST /api/threads/{id}/branches` — 从指定 assistant turn checkpoint 创建新 main thread 分支。Workspace 文件不做 checkpoint，从 latest turn 分支时 best-effort 复制当前 workspace；从历史 turn 分支时跳过。
+
+### Manual Compaction 🆕
+
+`POST /api/threads/{id}/compact` — 手动将旧上下文压缩为 `summary_text` 并保留最近消息窗口。Run 进行中时阻塞。
+
 ### GitHub Webhooks (`/api/webhooks/github`)
 
 `POST /` — 接收 GitHub App webhook 事件。HMAC 验证（`X-Hub-Signature-256`）。识别事件：`issues`、`issue_comment`、`pull_request`、`pull_request_review` 等。Per-agent binding 支持 `config.yaml` 中声明 `github:` 块。
