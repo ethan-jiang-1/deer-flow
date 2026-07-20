@@ -257,3 +257,26 @@ push_current_app_config(merged)
 | Extensions JSON 热加载 | `extensions_config.py:152-200` `resolve_config_path()` |
 | Gateway 启动时 config 装载 | `gateway/app.py` `lifespan()` |
 | `make config-upgrade`（版本迁移） | `Makefile` `config-upgrade` target |
+
+---
+
+## 版本时间线：这些机制什么时候出现的？
+
+通过 `git blame` 追溯每个关键函数的引入时间：
+
+| 机制 | 引入时间 | 版本 | 引入者 |
+|------|---------|------|--------|
+| `DEER_FLOW_CONFIG_PATH` 环境变量 | 2026-01-14 | **2.0 初始** | Henry Li |
+| `$ENV_VAR` YAML 内递归替换 | 2026-01-14 | **2.0 初始** | Henry Li |
+| `load_dotenv()` 自动加载 `.env` | 2026-01-14 | **2.0 初始** | DanielWalnut |
+| `resolve_config_path()` 三优先级 | 2026-01-14 | **2.0 初始** | Henry Li |
+| `$VAR` missing → `ValueError`（fail-loud） | 2026-02-25 | 2.0.x | JeffJiang |
+| `config_version` 版本检测 + 升级 warning | 2026-03-14 | 2.0.x | DanielWalnut |
+| `get_app_config()` mtime 热加载 | 2026-03-22 | 2.0.x | Gao Mingfei |
+| `push/pop_current_app_config()` ContextVar 栈 | 2026-04-04 | 2.0.x | DanielWalnut |
+| `existing_project_file()` 项目根搜索 | 2026-05-01 | 2.0.x | Nan Gao |
+| **Content-signature 热加载（sha256 替代纯 mtime）** | **2026-06-17** | **🆕 2.1** | Huixin615 |
+
+**结论：绝大多数灵活性机制是 2.0 就有的，不是 2.1 的新东西。** 2.1 只做了一件事——把热加载检测从纯 mtime 升级为 `(mtime, size, sha256)` content signature，解决了 `git checkout`、`cp -p`、网络挂载等场景下 mtime 不可靠的问题。
+
+换句话说：**DeerFlow 从一开始就考虑了配置路径切换和环境变量注入**，灵活性设计是 2.0 的架构决策，不是后来打的补丁。这跟你印象中"死在一个文件上"的感觉不一样——可能是因为文档没把这些机制讲清楚。实际上 `DEER_FLOW_CONFIG_PATH` 从第一天就在代码里。
