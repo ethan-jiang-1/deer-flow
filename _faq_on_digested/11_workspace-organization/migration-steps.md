@@ -1,122 +1,121 @@
-# 从零搭建：新建一个干净 repo
+# 执行记录：V2 从零搭建（已建成，258 测试通过）
 
-> **这是参考手册，不是已执行的步骤。** 本 FAQ 只记录方案，不会动任何仓库。动手时按此执行，先备份。
->
-> 目标 repo 名字先用 `deerflow-research/` 占位，你定夺后全局替换。
+> **这是实际执行过的记录，不是待办计划。** V2（`~/ai_deerflow_deep_research_v2`）已建成并验证。下面的步骤是真实操作 + 过程中踩的坑，将来重建/复现时照此执行。
 
-## Phase 0：清单——从哪个旧仓搬什么
+## 最终目标结构（已达成）
 
-| 内容 | 从哪搬 | 去向 |
-|------|--------|------|
-| 你的应用代码 | `ai_deerflow_deep_research/deep_research_harness/` | `harness/` |
-| 设计规格 | `ai_deerflow_deep_research/openspec/` | `openspec/` |
-| 技能 | `ai_deerflow_deep_research/skills/` | `skills/` |
-| 任务 | `ai_deerflow_deep_research/_backlog/` | `_backlog/` |
-| 笔记 | `deer-flow/_digest/` + `_faq_on_digested/`（**最新版**） | `reference/_digest/` + `reference/_faq_on_digested/` |
-| 运行时 | `ai_deerflow_deep_research/backend/`（对应 4915b5e） | **不搬文件，改用 submodule** |
+```
+~/ai_deerflow_deep_research_v2/
+├── deep_research_harness/   ★ 你的应用（deep research runtime，src/deerflow_deep_research）
+├── deerflow/                submodule → ethan-jiang-1/deer-flow @ ethan（框架 + 笔记 _digest/_faq）
+├── openspec/                设计规格（openspec CLI 1.7.0）
+├── _backlog/                任务账本
+├── profiles/                应用配置档（normal/development/test/demo 的 config.yaml）
+├── .claude/skills/          grillme 技能集（24 个）
+├── .agents/skills/          Codex 技能（约定不同）
+├── .codex/                  openspec 的 Codex 技能
+├── .cursor/ + .trae/        openspec opsx 命令
+├── .vscode/                 settings + launch
+├── AGENTS.md / CLAUDE.md / README.md   应用是主角的地图
+├── CONTEXT.md / CONTEXT-MAP.md
+├── config.yaml / .env       （本地运行配置，gitignore，不进仓库）
+└── skills-lock.json         （技能锁，供 npx skills update）
+```
 
-> 旧仓全部保持原样当参考，一个都不删。
+## 关键决策（用户拍板）
 
-## Phase 1：建仓 + 加 submodule
+| 决策 | 值 | 原因 |
+|------|-----|------|
+| submodule 源 | **自己的 ethan 分支**（不是 bytedance 上游） | ethan 含框架 + 笔记 `_digest`/`_faq`，一次带齐 |
+| 钉的 commit | ethan HEAD `9ef471e9` | harness 当前跑通的基座 |
+| harness 目录名 | **`deep_research_harness`**（原名，不改） | 内部文档/Makefile/AGENTS 全引用这个名字 |
+| 笔记位置 | **在 submodule 里**（`deerflow/_digest`） | 本就在 ethan 上，不另搞 wiki |
+| openspec + grillme | 装进 V2 | 开发所需的两个工具链 |
 
+## 执行步骤
+
+### Phase 0：仓库 scaffold
 ```bash
-mkdir deerflow-research && cd deerflow-research
+mkdir ~/ai_deerflow_deep_research_v2 && cd ~/ai_deerflow_deep_research_v2
 git init
-
-# 加 deer-flow 为 submodule，钉在你现在跑得通的版本（4915b5e）
-git submodule add https://github.com/bytedance/deer-flow.git deerflow
-cd deerflow && git checkout 4915b5e && cd ..
-# 写清钉的版本，方便将来换
-echo "deerflow pinned @ 4915b5e (harness 当前跑通的版本)" >> deerflow/README 2>/dev/null || true
+# origin → ethan-jiang-1/ai_deerflow_deep_research_v2（已有 Initial commit + Python .gitignore + README）
 ```
 
-**【验证点】** `ls deerflow/backend/packages/harness` 存在；`git submodule status` 显示钉在 4915b5e。
-
-> 为什么钉 4915b5e 而不是 e5c62cab：你的 harness 现在 editable 装的就是这份（5 个代表文件比对一致）。钉它 = 行为零变化。将来想升级到 e5c62cab 是另一次有意动作。
-
-## Phase 2：搬入你的内容
-
+### Phase 1：加 submodule（ethan 分支）
 ```bash
-# 你的应用代码 → harness/
-cp -r ../ai_deerflow_deep_research/deep_research_harness ./harness
-# 删掉 harness 里带过来的 venv / 缓存（不该进 git）
-rm -rf harness/.venv harness/.pytest_cache harness/.ruff_cache harness/src_fake
-
-# 规格 / 技能 / 任务
-cp -r ../ai_deerflow_deep_research/openspec ./openspec
-cp -r ../ai_deerflow_deep_research/skills ./skills
-cp -r ../ai_deerflow_deep_research/_backlog ./_backlog
-
-# 笔记（取最新版，来自 deer-flow 而非过期的 wiki）
-mkdir -p reference
-cp -r ../deer-flow/_digest ./reference/_digest
-cp -r ../deer-flow/_faq_on_digested ./reference/_faq_on_digested
-
-# 笔记里写明版本差
-cat > reference/README.md <<'EOF'
-本 reference 是对 DeerFlow 的研究笔记。
-- 笔记锚点：e5c62cab（digest sync #4）
-- 运行时：deerflow/ submodule @ 4915b5e
-- 两者差一个大版本，已知、暂不对齐。
-EOF
+git submodule add git@github.com:ethan-jiang-1/deer-flow.git deerflow
+cd deerflow && git fetch origin ethan && git checkout 9ef471e9   # ethan HEAD
+cd .. && git add deerflow
 ```
 
-## Phase 3：接线——让 harness 照跑
-
-关键：**复刻现在的 editable 机制，只是路径换到 submodule**。
-
+### Phase 2：搬应用内容（复制，V1 保持原样当参考）
 ```bash
-cd harness
-uv sync          # 或 python -m venv .venv && .venv/bin/pip install -e .
-# 把 deerflow-harness editable 装到 submodule 源码上：
-#   方案 A：直接装
-.venv/bin/pip install -e ../deerflow/backend/packages/harness
-#   方案 B：pyproject 里写路径依赖，让 uv 自己解析
-#   dependencies = ["deerflow-harness @ file://../deerflow/backend/packages/harness", ...]
+V1=~/ai_deerflow_deep_research
+# 应用代码 → deep_research_harness/（保持原名！排除 venv/缓存）
+rsync -a --exclude '.venv' --exclude '.pytest_cache' --exclude '.ruff_cache' \
+  --exclude '.reports' --exclude '.deep-research-demo-runs' --exclude '__pycache__' \
+  "$V1/deep_research_harness/" "$V2/deep_research_harness/"
+# 规格 / 任务 / 上下文
+cp -r "$V1/openspec" "$V2/openspec"
+cp -r "$V1/_backlog" "$V2/_backlog"
+cp "$V1/CONTEXT.md" "$V1/CONTEXT-MAP.md" "$V2/"
 ```
 
-**【验证点】import 必须指向 submodule：**
+### Phase 3：装 openspec + grillme
 ```bash
+openspec --version    # 全局 CLI 1.7.0，V1 的 openspec/ 直接搬来即用
+# grillme：复制 promoted 技能（engineering + productivity）到项目 .claude/skills/
+rsync -a ~/grillme-skills/skills/engineering/ ~/grillme-skills/skills/productivity/ "$V2/.claude/skills/"
+```
+
+### Phase 4：运行时接线（关键）
+```bash
+cd "$V2/deep_research_harness"
+# 把 pyproject 里 [tool.uv.sources] 的框架路径从旧 vendored 改成 submodule：
+#   deerflow-harness = { path = "../deerflow/backend/packages/harness", editable = true }
+uv lock                      # 重新生成锁（229 包）
+uv sync --extra operations --extra demo-tui
+# 验证 import 指向 submodule 内：
 .venv/bin/python -c "import deerflow; print(deerflow.__file__)"
-# → 期望输出 deerflow-research/deerflow/backend/packages/harness/deerflow/__init__.py
+#   → .../v2/deerflow/backend/packages/harness/deerflow/__init__.py
+.venv/bin/python -m pytest tests/unit tests/domain -q    # → 258 passed
 ```
 
-**【验证点】跑通一次：**
+### Phase 5：写 agent 地图 + 拷工具配置
 ```bash
-.venv/bin/python -m pytest tests/ -x -q     # 或你惯用的 demo/run 命令
+# AGENTS.md/CLAUDE.md/README（应用是主角，deerflow 只 leverage 不改）
+# 工具配置：VSCode / Codex / Cursor / Trae / openspec 技能
+cp -r "$V1/.vscode" "$V1/.agents" "$V1/.codex" "$V1/.cursor" "$V1/.trae" "$V2/"
+cp "$V1/skills-lock.json" "$V2/"
 ```
 
-如果 harness 需要 gateway：在 `deerflow/backend` 里 `uv sync && uv run uvicorn app.gateway.app:app`，再把启动命令收进 `scripts/`。
-
-## Phase 4：写 AGENTS.md + README（防迷糊的临门一脚）
-
+### Phase 6：运行配置
 ```bash
-# AGENTS.md 全文见 answer.md 的模板；README 一句话 + 怎么跑
-cat > README.md <<'EOF'
-# deerflow-research
-
-跑在 DeerFlow 之上的 deep research runtime。根目录刻意很小：
-- harness/   ← 你的应用
-- deerflow/  ← 锁定的外部依赖（submodule @ 4915b5e），别动
-- reference/ ← DeerFlow 研究笔记，只读
-EOF
+cp "$V1/config.yaml" "$V2/config.yaml"   # 主模板（profiles 系统从这里复制）
+cp "$V1/.env" "$V2/.env"                 # 密钥（config 里 $DEEPSEEK_API_KEY 解析）
+# .gitignore 忽略 config.yaml / config.yaml.bak（和 V1 一致，本地配置不进仓库）
 ```
 
-**【验证点】agent 视角**：删掉你的记忆重新开一个 session，读 AGENTS.md 后让它"总结这个 repo"，它应该三句话内说出"重点在 harness、deerflow 是依赖、reference 是笔记"——而不是去数框架文件。
+## 执行中踩的坑（都纠正了）
 
-## Phase 5：收尾核对
+| 坑 | 发生 | 修正 |
+|----|------|------|
+| **harness 目录名改成了 `harness/`** | 内部文档全引用 `deep_research_harness/`，对不齐 | `git mv harness deep_research_harness` 改回原名 |
+| **把框架 `skills/` 当应用拷了** | V1 根 `skills/` 是框架技能子集（还缺 skill-reviewer） | 删除；框架技能随 submodule 走 |
+| **`.codex/` 误判为空** | `find -maxdepth 2` 没扫到深层，其实有 6 个 openspec 技能 | 补拷 |
+| **`config.yaml` 放哪** | 靠 `local_profiles.py` 第 201 行确认：根 `config.yaml` 是主模板 | 放 V2 根 + gitignore |
+| **笔记放 `reference/`**（旧计划设想） | 实际笔记在 submodule 的 `_digest` 里 | 不另建 reference/ |
 
-| 检查 | 期望 |
-|------|------|
-| 根目录 `ls` | 只有 AGENTS/README/deerflow/harness/openspec/skills/_backlog/reference/scripts |
-| `git submodule status` | deerflow @ 4915b5e |
-| harness `import deerflow` | 指向 submodule 内，不是仓库外 |
-| harness 测试 / demo | 跑通（行为与现在一致） |
-| 笔记 | 在 `reference/`，来自最新版（非过期 wiki） |
-| 旧仓 | 全部原样保留，当参考 |
+## 验证（已完成）
 
-## 风险与注意
+- `import deerflow` → V2 内 submodule ✓
+- `import deerflow_deep_research` → 应用包 ✓
+- `pytest tests/unit tests/domain` → **258 passed** ✓
+- 根目录 `ls` → 只有应用 + 配置层，无框架文件 ✓
 
-- **submodule 换机器**：`git clone --recurse-submodules` 才能带上 deerflow；忘了会缺运行时。在 README 写明这一步。
-- **版本差是刻意的**：运行时 4915b5e ≠ 笔记 e5c62cab，已在 `reference/README.md` 记录。将来升级 = 换 submodule commit + 重跑测试，一次有意动作。
-- **不要从过期 wiki 搬笔记**：`deer-flow/_digest`（ethan 分支）才是 sync #4 后的最新版。
+## 未来维护
+
+- **submodule 更新**：ethan 前进后，`git -C deerflow pull origin ethan && git submodule update`（V2 记录的指针也要更新）。
+- **技能更新**：`.claude/skills/` 是复制方式（方式二）→ 手动 `npx skills@latest update`；想自动跟上游可改 symlink 方式（方式三）。
+- **配置**：换场景用 `cd deep_research_harness && make profile-dev PROFILE=demo` 等 profiles 命令。
+- **换机器**：`git clone --recurse-submodules` + 重建 `.env`/`config.yaml`（本地不提交）。
