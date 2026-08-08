@@ -52,6 +52,10 @@ echo "scan files" | deerflow --json | while read line; do process "$line"; done
 - **流式渲染**：60ms flush 间隔，100ms spinner
 - **键盘**：`Ctrl+C` 中断/退出，`Ctrl+L` 重绘，`Ctrl+U` 清空输入
 - **Web UI 可见**：TUI session 写入 `threads_meta` 表，在 Web UI 左侧栏显示
+- **🆕 Transparent background**：`--tui-transparent` / `DEER_FLOW_TUI_TRANSPARENT` 使用终端默认背景（默认 solid 主题）
+- **🆕 `/clear`**：清空显示（不切换 thread）；run 进行中时本地重置命令（`/new`、`/clear`）被阻止
+- **🆕 Recursion limit**：`--recursion-limit` 可覆盖 agent recursion limit（#4615）
+- **🆕 `/help`**：从命令注册表派生帮助文本（#4327）
 
 源码：`deerflow/tui/`（14 个文件），`pyproject.toml [project.scripts]`
 

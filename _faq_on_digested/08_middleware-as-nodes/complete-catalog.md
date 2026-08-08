@@ -1,4 +1,4 @@
-# DeerFlow 全部 33 个 Middleware 一览（2.1.0）
+# DeerFlow 全部 35 个 Middleware 一览（2.1.0，sync #4）
 
 ## 怎么读这张表
 
@@ -32,7 +32,7 @@
 
 ---
 
-## Lead-only 层（仅主 agent 加载，20 个）
+## Lead-only 层（仅主 agent 加载，22 个）
 
 | # | Middleware | Hook | 一句话 | 可选？ |
 |---|-----------|------|--------|--------|
@@ -53,9 +53,11 @@
 | 28 | **LoopDetectionMiddleware** | `after_model` | 检测重复工具调用模式。🆕 窗口化 frequency counter——长 run 不误触发 | ✅ `loop_detection.enabled` |
 | 29 | **TokenBudgetMiddleware** | `after_model` | 强制 token 预算上限，跨 lead + subagent 共享 | ✅ `token_budget.enabled` |
 | 30 | **Custom middlewares 槽位** | 任意 | 你的自定义 middleware 插在这里 | ✅ 传了才有 |
-| 31 | **TerminalResponseMiddleware** 🆕 | `after_model` | 空 terminal AIMessage 恢复：注入 hidden recovery prompt 并重试一次 | ❌ |
-| 32 | **SafetyFinishReasonMiddleware** | `after_model` | 检测模型安全拦截（`finish_reason=content_filter`），阻止工具执行 | ✅ `safety_finish_reason.enabled` |
-| 33 | **ClarificationMiddleware** | `after_agent` | 拦截 `ask_clarification`，`Command(goto=END)` 中断。RunJournal 做 root-run final reconciliation | ❌ |
+| 31 | **ConfiguredExtensionMiddleware** 🆕 | 任意 | config 声明的 `AgentMiddleware` 类路径（`module.path:ClassName`），经 reflection 解析。**可信 operator 配置** | ✅ `extensions.middlewares` 有配置 |
+| 32 | **TerminalResponseMiddleware** | `after_model` | 空 terminal AIMessage 恢复：注入 hidden recovery prompt 并重试一次 | ❌ |
+| 33 | **ModelLengthFinishReasonMiddleware** 🆕 | `after_model` | provider 长度截断（`finish_reason=length`/`MAX_TOKENS`/`max_tokens`）的终态 assistant 响应标记 `stop_reason=model_length_capped`，保留原文 | ❌ |
+| 34 | **SafetyFinishReasonMiddleware** | `after_model` | 检测模型安全拦截（`finish_reason=content_filter`），阻止工具执行 | ✅ `safety_finish_reason.enabled` |
+| 35 | **ClarificationMiddleware** | `after_agent` | 拦截 `ask_clarification`，`Command(goto=END)` 中断。RunJournal 做 root-run final reconciliation | ❌ |
 
 ---
 
@@ -74,12 +76,12 @@
 4, 5, 6, 7, 8（共 5 个）
 
 ### `after_model`（每次 LLM 调用后执行——反向顺序！）
-27, 28, 29, 31, 32（共 5 个）
+27, 28, 29, 32, 33, 34（共 6 个）
 
 ### `after_agent`（每次 step 结束后执行）
-18, 19, 20, 21, 22, 33（共 6 个）
+18, 19, 20, 21, 22, 35（共 6 个）
 
-> **after_model 和 after_agent 是两类不同的 hook 点。** `after_model` 在 LangChain 的反向链上执行（后加的 middleware 先执行），`after_agent` 在 step 结束时按正向顺序执行。ClarificationMiddleware（#33，after_agent 的最后）通过 `Command(goto=END)` 中断整个 graph。
+> **after_model 和 after_agent 是两类不同的 hook 点。** `after_model` 在 LangChain 的反向链上执行（后加的 middleware 先执行），`after_agent` 在 step 结束时按正向顺序执行。ClarificationMiddleware（#35，after_agent 的最后）通过 `Command(goto=END)` 中断整个 graph。ConfiguredExtension（#31）是任意 hook 的透明包装，行为取决于被加载的类。
 
 ---
 
@@ -87,9 +89,9 @@
 
 | 变化 | 详情 |
 |------|------|
-| **Middleware 总数** | 29 → 33 |
+| **Middleware 总数** | 29 → 33（sync #3）；**33 → 35（sync #4：+ConfiguredExtension, +ModelLengthFinishReason）** |
 | **共享基础层** | 12 → 13（+ToolResultSanitizationMiddleware） |
-| **Lead-only 层** | 17 → 20（+SkillToolPolicyMiddleware, +McpRoutingMiddleware, +TerminalResponseMiddleware） |
+| **Lead-only 层** | 17 → 20（sync #3）；**20 → 22（sync #4：+ConfiguredExtension #31, +ModelLengthFinishReason #33）** |
 | **Hook 重构** | `after_model` 拆分：部分移到 `after_agent`（Summarization、Memory、Clarification 等），部分留在 `after_model`（guard trio） |
 | **Guardrail 增强** | GuardrailRequest 新增 `thread_id`、`user_id`、`is_subagent`、`authz_attributes` |
 | **LoopDetection 增强** | 窗口化 frequency counter——长 run 不误触发 |

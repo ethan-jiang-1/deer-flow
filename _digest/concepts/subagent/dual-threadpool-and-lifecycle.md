@@ -58,6 +58,33 @@ system prompt 还教 LLM 何时用 `task`、并发限制（max 3）、分批策�
 
 ---
 
+## Benefit-based Routing Policy 🆕
+
+**2.1（同步 #4，`fix(agent): route subagents by net benefit (#4384)`）**：启用 subagent 后，委派是**优化手段**，不是对复杂度的默认回应。
+
+Lead prompt 默认**直接执行**，只在以下情况允许 `task`：
+- **并行延迟收益** — 多个独立任务并行
+- **专家能力收益** — 某个 subagent 类型（如 bash）明显更专业
+- **上下文隔离收益** — 需要隔离大上下文
+
+**硬性否决**（veto）：
+- 任务间有**输出依赖**（B 需要 A 的结果）
+- 任务间**可变状态重叠**（都改同一文件）
+- 并行 scope 必须独立且不重叠
+
+当强制并发上限为 1 时，prompt 会移除并行/多批收益指引，只允许专家或隔离收益。
+
+路由策略在 `lead_agent/prompt.py`、`task` tool 描述、两个内置角色描述间保持一致（回归测试：`test_subagent_routing_prompt.py`）。
+
+## User-Scoped Skills + Callback 隔离 🆕
+
+**同步 #4 两项 subagent 加固**：
+
+1. **User-scoped skills**（`fix(subagents): load user-scoped skills (#4356)`）：subagent 通过 `get_or_new_user_skill_storage(user_id)` 解析配置的 skills（用 parent runtime identity），保持 custom-skill shadowing 与 lead agent 一致，而不是只读全局 catalog
+2. **Callback 隔离**（`fix(subagents): isolate callbacks and activate skills lazily (#4497)`）：sync 委派和 `execute_async()` 把 ambient ContextVars 复制进持久 subagent loop（checkpoint lineage、user identity、tracing、tags、metadata、namespaced stream handler）；只移除标记了 `deerflow_loop_bound` 的 handler（`RunJournal` 携带该标记，因为持有 parent-loop tasks 和 SQL store/pool）——避免 `Future attached to a different loop` 和重复 token 记账
+
+---
+
 ## 完整生命周期时序图
 
 ![Subagent Lifecycle](../../internals/agent-loop/figures/subagent-lifecycle.svg)

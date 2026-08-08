@@ -1,6 +1,6 @@
 ---
 title: "DeerFlow Built-in Tools 全量目录"
-description: "DeerFlow 共有 **17 个唯一 tool name**（17 个 function call），其中 7 个沙箱工具通过 `config.yaml` → `resolve_variable()` 动态加载（默认配置标配），7 个在"
+description: "DeerFlow 共有 **18 个唯一 tool name**（18 个 function call），其中 7 个沙箱工具通过 `config.yaml` → `resolve_variable()` 动态加载（默认配置标配），8 个在"
 type: index
 ---
 
@@ -10,13 +10,13 @@ type: index
 
 ## 总览
 
-DeerFlow 共有 **17 个唯一 tool name**（17 个 function call），其中 7 个沙箱工具通过 `config.yaml` → `resolve_variable()` 动态加载（默认配置标配），7 个在 `get_available_tools()` 的条件分支中硬编码（`tools/tools.py`），2 个在 `make_lead_agent()` 中按角色追加（`agent.py`），另有 1 个（`write_todos`）由 LangChain Middleware 注入。
+DeerFlow 共有 **18 个唯一 tool name**（18 个 function call），其中 7 个沙箱工具通过 `config.yaml` → `resolve_variable()` 动态加载（默认配置标配），8 个在 `get_available_tools()` 的条件分支中硬编码（`tools/tools.py`），2 个在 `make_lead_agent()` 中按角色追加（`agent.py`），另有 1 个（`write_todos`）由 LangChain Middleware 注入。
 
 分 6 个类别，每类一个详文：
 
 | 类别 | 数量 | 工具 | 详文 |
 |------|------|------|------|
-| 运行时控制 | 3 | `present_files`, `ask_clarification`, `view_image` | [A-runtime-control.md](A-runtime-control.md) |
+| 运行时控制 | 4 | `present_files`, `ask_clarification`, `view_image`, `list_uploaded_files` 🆕 | [A-runtime-control.md](A-runtime-control.md) |
 | 沙箱/文件系统 | 7 | `bash`, `ls`, `read_file`, `write_file`, `str_replace`, `glob`, `grep` | [B-sandbox-filesystem.md](B-sandbox-filesystem.md) |
 | Agent 定义管理 | 3 | `setup_agent`, `update_agent`, `skill_manage` | [C-agent-lifecycle.md](C-agent-lifecycle.md) |
 | 任务委派/工具发现 | 2 | `task`, `tool_search` | [D-task-toolsearch.md](D-task-toolsearch.md) |

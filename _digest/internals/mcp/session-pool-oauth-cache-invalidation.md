@@ -197,6 +197,10 @@ OAuth 支持目前仅用于 `sse` 和 `http` 传输类型。
 
 每个 MCP server 独立超时配置：`mcpServers.<server>.tool_call_timeout`（秒）。覆盖全局默认值。
 
+## Per-Server `tool_name_prefix` 🆕
+
+**同步 #4（`feat: support per-server MCP tool name prefixes (#4624)`）**：`mcpServers.<server>.tool_name_prefix` 默认 `true`，保留碰撞安全的 `<server_name>_` 前缀。工具已自带稳定 namespace 的 server 可设 `false`；discovery 时按该 server 的 flag 调用 `load_mcp_tools`。来源路由（routing/session-pool 包装）基于生产 server 和 transport，不看可见工具名是否带 server 前缀。
+
 ## Auto-Promote Deferred MCP Tools 🆕
 
 `McpRoutingMiddleware` 在每次 model call 前：

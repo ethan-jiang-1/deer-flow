@@ -155,3 +155,33 @@ _ALLOWED_IMAGE_VIRTUAL_ROOTS = (
 ### 错误处理
 
 所有错误都返回带 `tool_call_id` 的 ToolMessage，包含具体原因（文件不存在/格式不支持/过大/路径不允许等）。
+
+---
+
+## list_uploaded_files 🆕
+
+**源码**: `packages/harness/deerflow/tools/builtins/list_uploaded_files_tool.py:188`
+**加载条件**: 始终（`get_available_tools()`，`include_upload_tool` 默认 True，`tools.py:98`）
+**Tool Name**: `list_uploaded_files`
+
+### 用途
+
+让 agent **按需发现历史上传文件**（之前轮次上传的）。与 `<current_uploads>`（只列当前 run 新增上传）互补——本工具**排除当前 run 上传的文件**。
+
+### 参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `include_outline` | `bool \| list[str]` | 是否返回文档大纲/预览（`.md`-convertible 文件）。`False`（默认）只返回文件名+大小+路径；`True` 全部；`list[str]` 指定文件 |
+| `max_results` | `int` | 最大返回数（默认 20，max 100） |
+
+### LLM 使用场景
+
+- 用户提到之前上传的文件但没指名（"分析我之前上传的那些 PDF"）
+- agent 需要检查当前 thread 有哪些文件可用
+
+### 实现要点
+
+- `_resolve_thread_id()` 从 runtime context → RunnableConfig → `get_config()` 三级解析 thread_id
+- `_resolve_user_id()` 用 `resolve_runtime_user_id()` 解析用户（与其它工具一致）
+- 返回 dict：`{"files": [...]}`；无 runtime context / 找不到 thread 时返回空列表 + message

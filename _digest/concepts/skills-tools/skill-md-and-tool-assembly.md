@@ -160,6 +160,7 @@ LocalSkillStorage.load_skills()
 - **Orchestrator** 协调多个 analyzer 并发分析
 - **Network sink 检测**：识别 `requests`/`httpx` HTTP methods、`urllib` 等外泄路径
 - **Environment access 检测**：识别 `os.environ` 读取（含 `from os import environ` 模式）
+- **Subprocess shell 检测**：`os.system`/`os.popen`/`subprocess` 调用 `shell=True` 视为外泄路径；`shell=` 非字面量（变量/表达式/`**kwargs`）**fail-closed** 视为 shell=True（`_call_shell_may_be_true`，同步 #4 加固）
 - **分级阻断**：`CRITICAL` 阻断安装，`WARNING` 放行但传给 LLM 扫描器
 - **纯同步**：`scan_archive_preflight()` / `scan_skill_dir()` 可 offload 出 event loop
 - `skill_scan.enabled` kill switch

@@ -18,7 +18,7 @@
 
 **"middleware 在 DeerFlow 里到底是什么角色？"**
 
-Middleware 是 DeerFlow 的**业务逻辑插件系统**。LangChain 提供了 middleware 的抽象接口（`AgentMiddleware`），DeerFlow 写了 33 个具体实现——负责总结、标题、记忆、错误处理、安全检查等等。每个 middleware 通过覆写 hook 方法，把自己的逻辑"注入"到 agent 循环的正确位置。
+Middleware 是 DeerFlow 的**业务逻辑插件系统**。LangChain 提供了 middleware 的抽象接口（`AgentMiddleware`），DeerFlow 写了 35 个具体实现——负责总结、标题、记忆、错误处理、安全检查等等。每个 middleware 通过覆写 hook 方法，把自己的逻辑"注入"到 agent 循环的正确位置。
 
 ---
 
@@ -46,7 +46,7 @@ class AgentMiddleware:
 
 ### 3. DeerFlow Middleware（具体业务逻辑）
 
-DeerFlow 写的 33 个类，每个都继承 `AgentMiddleware`，覆写自己需要的 hook。比如 `TitleMiddleware` 只覆写 `after_agent`，`LLMErrorHandlingMiddleware` 只覆写 `wrap_model_call`。
+DeerFlow 写的 35 个类，每个都继承 `AgentMiddleware`，覆写自己需要的 hook。比如 `TitleMiddleware` 只覆写 `after_agent`，`LLMErrorHandlingMiddleware` 只覆写 `wrap_model_call`。
 
 **关键关系：**
 
@@ -176,7 +176,7 @@ for m in middleware:
 
 ## DeerFlow 实际上有多少 node？
 
-DeerFlow 有 33 个 middleware（`agent.py` L269-405），但不是每个都覆写了所有 4 个 hook。实际情况：
+DeerFlow 有 35 个 middleware（`agent.py` L269-405），但不是每个都覆写了所有 4 个 hook。实际情况：
 
 - 大部分 middleware 只覆写 `after_model` → 每个产生 1 个 node
 - 少数覆写 `before_agent`（如 `UploadsMiddleware`、`SandboxMiddleware`）
@@ -261,7 +261,7 @@ def jump_edge(state: dict[str, Any]) -> str:
 
 ## 从你的场景出发：哪几个 middleware 最值得读？
 
-你的场景是**构建 agentic workflow**——让 agent 自动执行多步骤任务。DeerFlow 33 个 middleware 你不用全看，下面按"你最可能涉足的"挑 7 个，用它们反复强化你对 middleware 的理解。
+你的场景是**构建 agentic workflow**——让 agent 自动执行多步骤任务。DeerFlow 35 个 middleware 你不用全看，下面按"你最可能涉足的"挑 7 个，用它们反复强化你对 middleware 的理解。
 
 ### 必读 1：`ToolErrorHandlingMiddleware`（共享基础层第 12 个）
 
@@ -358,8 +358,8 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 - `langchain/agents/factory.py`：middleware node 创建 L1372-1453，关键节点定义 L1455-1481，before_model 边 L1578-1597，after_model 反向边 L1600-1614，after_agent 反向边 L1617-1639，`_add_middleware_edge` L1819-1864
 - `langchain/agents/middleware/types.py`：`AgentMiddleware` 抽象类定义
-- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L269-405，展示 33 个 middleware 的完整列表和添加顺序
+- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L269-405，展示 35 个 middleware 的完整列表和添加顺序
 
 ## 补充文件
 
-- [complete-catalog.md](complete-catalog.md) —— **完整 33 个 middleware 一览表**（按顺序、按 hook 类型、按使用频率分类）
+- [complete-catalog.md](complete-catalog.md) —— **完整 35 个 middleware 一览表**（按顺序、按 hook 类型、按使用频率分类）

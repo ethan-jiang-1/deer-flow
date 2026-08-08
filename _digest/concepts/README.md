@@ -23,5 +23,5 @@ DeerFlow 的六大核心抽象。理解这些就理解了 DeerFlow。
 
 | 目录 | 内容 |
 |------|------|
-| `builtin-tools/` | 17 个内置工具（6 类：运行时控制、沙箱文件、Agent 生命周期、task/tool_search、ACP、Plan Mode） |
+| `builtin-tools/` | 18 个内置工具（6 类：运行时控制、沙箱文件、Agent 生命周期、task/tool_search、ACP、Plan Mode） |
 | `community-tools/` | 15+ 个第三方集成（搜索、抓取、图片搜索、截图、沙箱） |
