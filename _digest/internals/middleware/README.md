@@ -1,12 +1,12 @@
 ---
 title: "Agent Middleware 体系"
-description: "LangGraph agent loop 和 LLM/tool 执行之间的中间层。33 个 middleware，6 种 hook 点，控制着 agent 的每一次 model 调用和 tool 执行。"
+description: "LangGraph agent loop 和 LLM/tool 执行之间的中间层。35 个 middleware，6 种 hook 点，控制着 agent 的每一次 model 调用和 tool 执行。"
 type: index
 ---
 
 # Agent Middleware 体系
 
-LangGraph agent loop 和 LLM/tool 执行之间的中间层。33 个 middleware，6 种 hook 点，控制着 agent 的每一次 model 调用和 tool 执行。
+LangGraph agent loop 和 LLM/tool 执行之间的中间层。35 个 middleware，6 种 hook 点，控制着 agent 的每一次 model 调用和 tool 执行。
 
 **回答的核心问题**：middleware 是认真设计的还是随意堆砌的？6 种 hook 分别在什么时候触发？洋葱链怎么 compose？我怎么加一个自己的 middleware？跟 Claude Code Hooks 有什么异同？
 
@@ -19,7 +19,7 @@ LangGraph agent loop 和 LLM/tool 执行之间的中间层。33 个 middleware�
 | **00-overview.md** | 设计哲学、Flask 对比、漂亮 vs 愚蠢的批判性分析、入口处思考 |
 | **01-hooks-and-flow.md** | 6 种 hook 点详解、正向/反向执行顺序、洋葱组合、graph node vs inline |
 | **02-chain-assembly.md** | 两条装配路径、RuntimeFeatures、@Next/@Prev 定位、config 驱动 |
-| **03-catalog.md** | 33 个 middleware 完整清单，按 hook 点分组 |
+| **03-catalog.md** | 35 个 middleware 完整清单，按 hook 点分组 |
 | **04-claude-code-comparison.md** | 与 Claude Code Hooks 的全面对比：概念映射、设计哲学、互相借鉴 |
 
 ## 关键问题

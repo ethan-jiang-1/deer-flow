@@ -43,7 +43,7 @@ IT 治理视角的文档**整合**了以下目录的内容，不重复叙述细�
 | [security/02-sandbox-isolation.md](../security/02-sandbox-isolation.md) | [02-sandbox-governance.md](02-sandbox-governance.md) |
 | [security/03-guardrail.md](../security/03-guardrail.md) | [03-policy-enforcement.md](03-policy-enforcement.md) |
 | [security/04-trust-boundary.md](../security/04-trust-boundary.md) | [00-overview.md](00-overview.md) (defense-in-depth) |
-| [concepts/sandbox/abstract-interface-and-five-impls.md](../../concepts/sandbox/abstract-interface-and-five-impls.md) | [02-sandbox-governance.md](02-sandbox-governance.md) |
+| [concepts/sandbox/abstract-interface-and-six-impls.md](../../concepts/sandbox/abstract-interface-and-six-impls.md) | [02-sandbox-governance.md](02-sandbox-governance.md) |
 | [architecture/10-persistence.md](../../internals/persistence/db-checkpointer-store-backends.md) | [04-audit-observability.md](04-audit-observability.md) |
 | [configuration/00-overview.md](../../getting-started/00-config-overview.md) | [05-compliance-lifecycle.md](05-compliance-lifecycle.md) |
 | [middleware/03-catalog.md](../../internals/middleware/03-catalog.md) | 各主题文档引用 |

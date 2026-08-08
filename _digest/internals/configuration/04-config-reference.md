@@ -33,7 +33,7 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 ## 配置版本
 
 ```yaml
-config_version: 19
+config_version: 33
 ```
 
 用于检测配置过期。改 schema 时上游会升这个数字。`make config-upgrade` 把新字段合并到已有 `config.yaml`。
@@ -230,6 +230,28 @@ sandbox:
   provisioner_url: http://provisioner:8002
 ```
 
+### Tenki 沙箱（云端 Micro-VM）🆕
+
+```yaml
+sandbox:
+  use: deerflow.community.tenki:TenkiSandboxProvider
+  api_key: $TENKI_API_KEY     # 或 TENKI_AUTH_TOKEN 环境变量
+  base_url: https://tenki.cloud
+  # image: my-base-image
+  # project_id: proj_...
+  # workspace_id: ws_...
+  # cpu_cores: 2
+  # memory_mb: 2048
+  replicas: 3                 # active + warm microVM 上限
+  idle_timeout: 600           # warm microVM 闲置终止；0 禁用
+  max_duration: 14400         # 沙箱生命周期（默认 4h）
+  # sticky: false
+  # home_dir: /home/tenki
+  # environment: { ... }
+```
+
+Tenki 云 micro-VM（第 6 个沙箱 provider）。SDK 同步调用，懒加载（`deerflow-harness[tenki]` extra）。详见 [concepts/sandbox/abstract-interface-and-six-impls.md](../../concepts/sandbox/abstract-interface-and-six-impls.md)。
+
 ## Subagents（子 Agent）
 
 ```yaml
@@ -326,7 +348,7 @@ memory:
   enabled: true
   injection_enabled: true
   mode: middleware              # middleware（被动注入）| tool（模型主动调用工具）
-  manager_class: deermem        # deermem | noop | <custom>
+  manager_class: deermem        # deermem | mem0 | noop | openviking | <custom>
   shutdown_flush_timeout_seconds: 30
   backend_config:               # 🆕 后端私有配置（替代旧的平铺字段）
     storage_path: ""            # 空 = runtime_home()；DIRECTORY（不是文件！）
@@ -361,17 +383,29 @@ memory:
 
 > ⚠️ **Breaking Change (2.1)**：旧的平铺字段（`storage_path`, `max_facts`, `debounce_seconds` 等放在 `memory:` 下）已废弃。启动时自动迁移到 `backend_config` 并发出 warning。`storage_path` 从 FILE 路径变为 DIRECTORY 路径。
 
-## AuthZ（授权）🆕
+## Authorization（授权）🆕
 
 ```yaml
-authz:
+authorization:
+  enabled: false                    # 默认关闭（向后兼容）
+  fail_closed: true                 # provider 异常/未知身份 → deny
+  default_role: user                # user_role 为 None 时回退
   provider:
-    use: null                    # AuthorizationProvider 类路径（Phase 0 scaffolding）
-    config: {}
-  default_role: user
+    use: deerflow.authz.rbac:RbacAuthorizationProvider
+    config:
+      roles:
+        admin:
+          tools: {allow: "*"}
+          routes: {allow: "*"}
+        user:
+          tools: {allow: "*", deny: ["update_agent"]}
+          routes: {allow: "*"}
+        guest:
+          tools: {allow: ["web_search", "read_file"]}
+          routes: {allow: ["threads:read", "runs:read"]}
 ```
 
-OIDC/SSO 认证见 [operations/security/01-auth.md](../../operations/security/01-auth.md)。
+可插拔鉴权（AuthorizationProvider + 内置 RBAC）详见 [operations/security/01-auth.md](../../operations/security/01-auth.md)。配置可热更新。
 
 ## Database（数据库/持久化）
 

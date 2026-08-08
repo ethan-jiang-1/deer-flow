@@ -134,7 +134,7 @@ runs:create · runs:read · runs:cancel
 - `@require_auth` — 验证已认证（独立于 AuthMiddleware，可直接用于路由）
 - `@require_permission("runs:cancel")` — 检查特定权限 + `owner_check`（验证 thread 归属）+ `require_existing`（对不存在返回 404 而非 403）
 
-**当前状态：** 所有 authenticated 用户获得全部 6 个权限（`authz.py:144`）。role-based 细粒度还未实现。
+**默认状态：** 所有 authenticated 用户获得全部 6 个权限。**当 `authorization.enabled: true` 时**，路由权限改由 `authz.py::resolve_route_permissions()` 委托给 AuthorizationProvider（见下节），`threads:*`/`runs:*` 作为 `resource="route"` 请求求值，决策按 `authorization.fail_closed` 处理。
 
 ---
 
@@ -146,15 +146,83 @@ runs:create · runs:read · runs:cancel
 - **"Keep me signed in"**：登录表单 `remember_me` flag。`SessionCookiePolicy` 持久化 cookie max_age；CSRF cookie 同步过期。小 `HttpOnly` preference cookie 保留用户选择
 - **Logout**：清除所有 auth cookie，不重新发放 CSRF cookie
 
-## AuthorizationProvider 协议 🆕
+## AuthorizationProvider — 可插拔鉴权（已落地）🆕
 
-`packages/harness/deerflow/authz/` — 可插拔授权：
+`packages/harness/deerflow/authz/` 与 `guardrails/` 平级（非子模块）。核心设计：**一个 policy、两层执行**。
 
-| 模块 | 用途 |
+| 模块 | 职责 |
 |------|------|
-| `provider.py` | `AuthorizationProvider` 协议（Phase 0 scaffolding） |
-| `principal.py` | `Principal` 模型 + `build_principal_from_context()`（shared builder） |
-| `adapter.py` | `GuardrailAuthorizationAdapter`（桥接 authz → guardrail） |
+| `provider.py` | `AuthorizationProvider` Protocol + 数据类（`Principal`, `AuthzRequest`, `AuthzDecision`, `AuthzReason`） |
+| `rbac.py` | `RbacAuthorizationProvider` — 内置 RBAC provider |
+| `adapter.py` | `GuardrailAuthorizationAdapter` — 把 provider 适配为 `GuardrailProvider` 协议 |
+| `principal.py` | `build_principal_from_context()` — 唯一 Principal 构造器（Layer 1/2 共用） |
+| `enforcement.py` | `filter_tools_by_authorization()` — Layer 1 共享过滤函数 |
+| `tool_filter.py` | `apply_tool_authorization()` — Layer 1 便利包装（解析 provider + 构建 Principal + 过滤） |
+| `runtime.py` | `resolve_authorization_provider()` — 唯一 provider 工厂入口 |
+
+### 两层执行架构
+
+```
+Layer 1（组装时能力过滤）
+  agent 构建阶段：apply_tool_authorization() → filter_resources(principal, "tool", candidates)
+  → 角色无权使用的工具永不绑定、模型看不到、tool_search 也推不回（fail-closed）
+  → 接入点：lead agent（agent.py bootstrap + default）、subagent（executor.py）、embedded client（client.py）
+
+Layer 2（运行时执行拦截）
+  middleware chain 中 LLMErrorHandlingMiddleware 之后：
+  GuardrailMiddleware(GuardrailAuthorizationAdapter(provider))  ← authorization 外层
+  GuardrailMiddleware(explicit_guardrail_provider)               ← guardrail 内层
+  → 捕获动态资源 / 参数级限制
+```
+
+### AuthorizationProvider 协议（`provider.py:85`）
+
+```python
+@runtime_checkable
+class AuthorizationProvider(Protocol):
+    name: str
+    def authorize(self, request: AuthzRequest) -> AuthzDecision: ...
+    async def aauthorize(self, request: AuthzRequest) -> AuthzDecision: ...
+    def filter_resources(self, principal, resource_type, candidates: list[str]) -> list[str]: ...
+```
+
+- `filter_resources` 是**必需方法**（非可选默认）——用于 Layer 1 批量可见性过滤
+- `resource`/`action`/`target` 是自由字符串（非枚举），新资源类型无需 schema 变更
+- Provider 通过 `resolve_variable()` class-path 加载（与 model/tool/sandbox/guardrail 同机制）
+
+### 内置 RBAC provider（`rbac.py`）
+
+- **deny 永远优先于 allow**（包括 allow 为 `"*"`/`True`）
+- 未知/缺失角色抛 `ValueError`（不返回 allow），由 `fail_closed` 决定最终行为
+- 资源类型显式映射：`"tool"→"tools"`、`"model"→"models"`、`"skill"→"skills"`、`"route"→"routes"`
+- 策略构造时全量校验并编译为不可变结构（`frozenset`/`_ALL` sentinel），请求路径 O(1) membership
+- 不区分 `action` 维度；`allow` 缺失 = 等同 `"*"`（deny 仍生效）；未知 policy key（如 typo）构造期拒绝
+
+### 配置（`config.yaml`）
+
+```yaml
+authorization:
+  enabled: false                    # 默认关闭（向后兼容：所有已认证用户获得全部权限）
+  fail_closed: true                 # provider 异常/未知身份 → deny
+  default_role: user                # user_role 为 None 时回退（内置 RBAC 需要此角色）
+  provider:
+    use: deerflow.authz.rbac:RbacAuthorizationProvider
+    config:
+      roles:
+        admin:
+          tools: {allow: "*"}
+          routes: {allow: "*"}
+        user:
+          tools: {allow: "*", deny: ["update_agent"]}
+          routes: {allow: "*"}
+        guest:
+          tools: {allow: ["web_search", "read_file"]}
+          routes: {allow: ["threads:read", "runs:read"]}
+```
+
+配置可热更新（`AuthorizationConfig` 不在 `STARTUP_ONLY_FIELDS`）。
+
+### Principal 与身份链路
 
 **四种 HTTP identity source**：
 1. Browser session（cookie-based JWT）
@@ -162,7 +230,7 @@ runs:create · runs:read · runs:cancel
 3. IM channel（internal auth header）
 4. Trusted header（`X-DeerFlow-Owner-User-Id`）
 
-**Principal context propagation**：`GuardrailMiddleware` 将 `user_id`、`authz_attributes`、`is_internal` 注入 `GuardrailRequest`。
+`is_internal` 只来自服务端 `request.state.auth_source`，客户端提交的 `is_internal`/`authz_attributes`/`channel_user_id` 被清除（`_SERVER_OWNED_AUTHZ_CONTEXT_KEYS`）。`build_principal_from_context` 是唯一 Principal 构造器，Layer 1/2 共用。
 
 ## OAuth（占位）
 

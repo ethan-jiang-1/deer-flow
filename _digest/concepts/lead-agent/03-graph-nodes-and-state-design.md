@@ -125,7 +125,7 @@ return Command(goto=END)  # 立即结束当前 turn
 4. **用 sub-agent？** 可选——测试执行委派给 `test-runner` sub-agent
 5. **自定义点** → SOUL.md 控制 LLM 行为，`config.yaml` 控制工具集和模型
 
-结论：**大多数情况下你不需要设计 node 或 state**。DeerFlow 的 33 个 middleware 已经覆盖了安全、日志、内存、循环检测。你只需要写 SOUL.md + 配 config.yaml + 可选 sub-agent。
+结论：**大多数情况下你不需要设计 node 或 state**。DeerFlow 的 35 个 middleware 已经覆盖了安全、日志、内存、循环检测。你只需要写 SOUL.md + 配 config.yaml + 可选 sub-agent。
 
 ## 关键源码
 

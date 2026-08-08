@@ -1,14 +1,14 @@
 ---
 title: "沙箱隔离"
-description: "五种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。"
+description: "六种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。"
 topics: [security, auth, isolation-defense]
 ---
 
 # 沙箱隔离
 
-五种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。
+六种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。
 
-> **交叉引用：** Sandbox ABC 抽象 + 五种实现架构见 [concepts/sandbox/abstract-interface-and-five-impls.md](../../concepts/sandbox/abstract-interface-and-five-impls.md)。IT 治理视角（策略执行、审计可观测性）见 [it-ops/02-sandbox-governance.md](../it-ops/02-sandbox-governance.md)。
+> **交叉引用：** Sandbox ABC 抽象 + 六种实现架构见 [concepts/sandbox/abstract-interface-and-six-impls.md](../../concepts/sandbox/abstract-interface-and-six-impls.md)。IT 治理视角（策略执行、审计可观测性）见 [it-ops/02-sandbox-governance.md](../it-ops/02-sandbox-governance.md)。
 
 ## 挂入方式
 

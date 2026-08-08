@@ -49,6 +49,17 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock  # DooD
 ```
 
+## 🆕 新增部署组件（同步 #4）
+
+| 组件 | 位置 | 用途 |
+|------|------|------|
+| **Lark CLI broker** | `docker/lark-cli-broker/` | Pattern B 凭据 broker sidecar（`serve` 模式跑在 loopback `:8788`；`install-shim` 模式写 shim 到 emptyDir）。设 `LARK_CLI_BROKER_IMAGE` 启用 |
+| **Lark CLI init** | `docker/lark-cli-init/` | Pattern A init-container（`build-runtime.sh` 准备 Linux amd64/arm64 二进制写入共享 emptyDir）。设 `LARK_CLI_INIT_IMAGE` 启用 |
+| **OpenViking compose** | `docker-compose.openviking.yaml` | OpenViking memory 后端（HTTP）部署模板 |
+| **Dev compose** | `docker-compose-dev.yaml` | 开发环境 compose（与 prod 分开） |
+
+> 这两个镜像配合 provisioner 使用：`docker/provisioner/app.py` 提供 `/api/capabilities` 探针，让 Gateway 判断 `lark-cli` 在 chat 时是否真的可用（`sandbox_runtime_mode: none | gateway-download | init-container | broker`）。
+
 ## 网络配置
 
 所有服务在一个 Docker network 内通信：

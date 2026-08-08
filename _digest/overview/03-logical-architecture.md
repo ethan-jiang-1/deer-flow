@@ -22,7 +22,7 @@ topics: [architecture, system-overview]
 
 ---
 
-## Middleware Chain（33 个中间件，按执行序）
+## Middleware Chain（35 个中间件，按执行序）
 
 完整目录见 [internals/middleware/03-catalog.md](../internals/middleware/03-catalog.md)。
 

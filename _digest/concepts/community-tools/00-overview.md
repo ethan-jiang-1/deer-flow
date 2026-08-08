@@ -26,9 +26,13 @@ DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，�
 | **fastCRW** 🆕 | web_search | config `api_key` | 否 | 否 |
 | **Browserless** 🆕 | web_capture（截图） | config `api_key` | 否 | 否 |
 | **SearXNG** | web_search | 否 | 否 | 否 |
+| **Browser Automation** 🆕 | browser（Playwright agentic） | 否 | N/A | 否 |
 | **AIO Sandbox** | sandbox | 否 | N/A | 否 |
 | **BoxLite** | sandbox（micro-VM） | 否 | N/A | 否 |
 | **E2B** | sandbox（云端） | `E2B_API_KEY` | N/A | 否 |
+| **Tenki** 🆕 | sandbox（云端 micro-VM） | `TENKI_API_KEY` | N/A | 否 |
+
+> **Browser Automation**（`group: browser`）：Playwright agentic 浏览器控制（`browser_navigate`/`browser_snapshot`/`browser_click`/`browser_type`/`browser_get_text`/`browser_back`/`browser_screenshot`/`browser_close`）。进程内私有 loop-affine Playwright event-loop 线程；每步返回带稳定 `[ref]` 索引的页面快照；URL SSRF 过滤；可选 `cd backend && uv sync --extra browser && uv run playwright install chromium`。`GATEWAY_WORKERS > 1` 时禁止启用（无 thread affinity）。
 
 ## Tool 装配流程
 
@@ -98,7 +102,9 @@ config.yaml:                                          ┐
 | `community/firecrawl/` | `tools.py` |
 | `community/jina_ai/` | `jina_client.py`, `tools.py` |
 | `community/image_search/` | `__init__.py`, `tools.py` |
-| `community/aio_sandbox/` | `__init__.py`, `aio_sandbox.py`, `aio_sandbox_provider.py`, `backend.py`, `local_backend.py`, `remote_backend.py`, `sandbox_info.py` |
+| `community/aio_sandbox/` | `__init__.py`, `aio_sandbox.py`, `aio_sandbox_provider.py`, `backend.py`, `local_backend.py`, `remote_backend.py`, `sandbox_info.py`, `ownership/`（跨实例租约） |
+| `community/browser_automation/` | `__init__.py`, `session.py`, `tools.py` |
+| `community/tenki/` | `__init__.py`, `provider.py`, `sandbox.py` |
 | Tool 装配 | `tools/tools.py` → `get_available_tools()` |
 | Async 包装 | `tools/sync.py` → `make_sync_tool_wrapper()` |
 | Readability 提取 | `utils/readability.py` → `ReadabilityExtractor` |

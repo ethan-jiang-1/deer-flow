@@ -8,9 +8,9 @@ topics: [governance, compliance, audit]
 
 Agent 执行 bash 命令、读写文件时，能碰到什么？不能碰到什么？这是 IT 管理者最关心的问题——"一段 prompt 能不能搞出 `rm -rf /`？"
 
-> **交叉引用：** 五种沙箱的隔离级别 + 提权/网络/seccomp 对比见 [security/02-sandbox-isolation.md](../security/02-sandbox-isolation.md)。
+> **交叉引用：** 六种沙箱的隔离级别 + 提权/网络/seccomp 对比见 [security/02-sandbox-isolation.md](../security/02-sandbox-isolation.md)。
 
-## 五种沙箱模式
+## 六种沙箱模式
 
 | 模式 | `sandbox.use` | 隔离级别 | 适用场景 |
 |------|--------------|---------|---------|

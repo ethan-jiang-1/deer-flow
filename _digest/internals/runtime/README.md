@@ -73,9 +73,9 @@ sequenceDiagram
 
 | 文件 | 行数 | 职责 |
 |------|------|------|
-| `runs/manager.py` | 655 | RunManager — 运行 CRUD、状态机、多任务策略、SQLite 事务保护、孤儿协调 |
-| `runs/worker.py` | 606 | run_agent() — 后台图执行、流式发布、Langfuse 注入、checkpoint 回滚 |
-| `journal.py` | 572 | RunJournal — LangChain 回调处理器、token 累计（按 lead/subagent/middleware 分桶）、消息去重、进度刷盘 |
+| `runs/manager.py` | 2254 | RunManager — 运行 CRUD、状态机、多任务策略、SQLite 事务保护、孤儿协调、multi-worker lease |
+| `runs/worker.py` | 2359 | run_agent() — 后台图执行、流式发布、Langfuse 注入、checkpoint 回滚、delivery receipt、workspace 快照 |
+| `journal.py` | 982 | RunJournal — LangChain 回调处理器、token 累计（按 lead/subagent/middleware 分桶）、消息去重、进度刷盘、delivery receipt |
 | `serialization.py` | 79 | serialize() — 规范序列化，支持 values/messages/custom 三种模式 |
 | `converters.py` | 137 | LangChain → OpenAI Chat Completions 格式转换 |
 | `stream_bridge/base.py` | 73 | StreamBridge ABC — publish/subscribe/cleanup 协议、心跳/结束哨兵 |
@@ -87,6 +87,7 @@ sequenceDiagram
 | `store/async_provider.py` | 115 | LangGraph async store 工厂（匹配 checkpointer 后端） |
 | `goal.py` | 522 | 🆕 Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker |
 | `goal-continuation.md` | — | 🆕 开发者文档：Goal 续跑循环完整说明 |
+| `05-run-ownership-and-rollback.md` | — | 🆕 Multi-worker ownership / rollback / delivery receipt 完整说明 |
 
 ### 关键设计决策
 

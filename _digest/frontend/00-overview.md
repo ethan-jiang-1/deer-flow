@@ -109,6 +109,20 @@ DOM (词级 fade-in 动画)
 | **About page version** | 显示真实项目版本 |
 | **Regenerate** | 重新生成最新回答 |
 
+### 🆕 同步 #4 新增（e5c62cab）
+
+| 功能 | 说明 |
+|------|------|
+| **Browser Live** | 浏览器会话实时画面推送到 Custom Agent 聊天（JPEG 帧 + WebSocket） |
+| **Edit & rerun** | 编辑最新用户轮次并重跑（`edit-regenerate` 协议） |
+| **Inline artifact editing** | 文本 artifact 面板内直接编辑（原子替换 + SHA 校验） |
+| **Real-time context usage** | 实时显示上下文窗口用量百分比 |
+| **Clarification 表单** | human-input card 结构化表单字段（`fields` v2 协议） |
+| **Chat replies during clarification** | 澄清等待期间允许继续发消息 |
+| **Pin recent chats** | 固定最近会话 |
+| **Per-agent model settings** | 每个 custom agent 独立的 model/生成参数 |
+| **Suggestions count** | 配置 follow-up 建议数量 |
+
 ## 状态管理三层
 
 | 层 | 机制 | 数据 |

@@ -72,7 +72,7 @@ custom middleware → internals/middleware/02-chain-assembly.md + 00-overview.md
 TUI / CLI         → getting-started/06-tui.md
 record replay     → testing/07-record-replay.md
 staleness review  → concepts/memory/extract-queue-persist-pipeline.md
-BoxLite / E2B     → concepts/sandbox/abstract-interface-and-five-impls.md
+BoxLite / E2B     → concepts/sandbox/abstract-interface-and-six-impls.md
 deferred MCP      → internals/middleware/03-catalog.md (#25 DeferredToolFilter)
 deferred skills   → concepts/skills-tools/skill-md-and-tool-assembly.md
 ```

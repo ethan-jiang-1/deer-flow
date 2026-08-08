@@ -1,12 +1,12 @@
 ---
 title: "Middleware 完整目录"
-description: "33 个 middleware，按 hook 点分组。每个条目：文件位置、触发点、位置编号、用途、配置项、非显而易见的细节。"
+description: "35 个 middleware，按 hook 点分组。每个条目：文件位置、触发点、位置编号、用途、配置项、非显而易见的细节。"
 topics: [middleware, hooks, interceptor-chain]
 ---
 
 # Middleware 完整目录
 
-33 个 middleware，分两阶段组装。来源：`build_lead_runtime_middlewares()`（前 13 个）+ `build_middlewares()`（后 20 个）。
+35 个 middleware，分两阶段组装。来源：`build_lead_runtime_middlewares()`（前 13 个）+ `build_middlewares()`（后 22 个）。
 
 ## 共享基础层（1-13，Lead 和 Sub-agent 共用）
 
@@ -47,15 +47,18 @@ topics: [middleware, hooks, interceptor-chain]
 | 28 | **LoopDetectionMiddleware** | `loop_detection_middleware.py` | `loop_detection.enabled` | 检测重复 tool-call 循环。🆕 窗口化 frequency counter——长 run 不误触发 |
 | 29 | **TokenBudgetMiddleware** | `token_budget_middleware.py` | `token_budget.enabled` | Per-run token 限制，跨 lead + subagent 共享。warn 注入警告，hard-stop 强制作答 |
 | 30 | **Custom middlewares** | (caller-supplied) | 传入 `custom_middlewares=[]` | 用户注入的自定义中间件 |
-| 31 | **TerminalResponseMiddleware** | `terminal_response_middleware.py` | 始终 | 🆕 空 terminal AIMessage 恢复：注入 hidden recovery prompt 并重试一次。二次空响应替换为 error fallback |
-| 32 | **SafetyFinishReasonMiddleware** | `safety_finish_reason_middleware.py` | `safety_finish_reason.enabled` | 检测 provider 安全终止（`finish_reason=content_filter`），清除被污染的 tool_calls |
-| 33 | **ClarificationMiddleware** | `clarification_middleware.py` | 始终（必须最后） | 拦截 `ask_clarification`，`Command(goto=END)` 中断。RunJournal 做 root-run final reconciliation |
+| 31 | **ConfiguredExtensionMiddleware** | `configured_extensions.py` | `extensions.middlewares` 有配置 | 🆕 从 config 加载零参数 `AgentMiddleware` 类路径（`module.path:ClassName`），经 `reflection.resolve_class` 解析，失败时 loud fail。**可信 operator 配置**——middleware 路径会实例化任意代码 |
+| 32 | **TerminalResponseMiddleware** | `terminal_response_middleware.py` | 始终 | 空 terminal AIMessage 恢复：注入 hidden recovery prompt 并重试一次。二次空响应替换为 error fallback |
+| 33 | **ModelLengthFinishReasonMiddleware** | `model_length_finish_reason_middleware.py` | 始终 | 🆕 provider 长度截断（`finish_reason=length` / `MAX_TOKENS` / `stop_reason=max_tokens`）的终态 assistant 响应标记 `stop_reason=model_length_capped`。保留原文、不重解析 XML 式 tool call、无视 tool-call intent 或无可见内容的消息 |
+| 34 | **SafetyFinishReasonMiddleware** | `safety_finish_reason_middleware.py` | `safety_finish_reason.enabled` | 检测 provider 安全终止（`finish_reason=content_filter`），清除被污染的 tool_calls |
+| 35 | **ClarificationMiddleware** | `clarification_middleware.py` | 始终（必须最后） | 拦截 `ask_clarification`，`Command(goto=END)` 中断。RunJournal 做 root-run final reconciliation |
 
 ## 相比旧版的变化
 
 | 变化 | 详情 |
 |------|------|
-| **新增 4 个** | ToolResultSanitization（#3）、SkillToolPolicy（#16）、McpRouting（#24）、TerminalResponse（#31） |
+| **新增 4 个（同步 #3）** | ToolResultSanitization（#3）、SkillToolPolicy（#16）、McpRouting（#24）、TerminalResponse |
+| **新增 2 个（同步 #4）** | ConfiguredExtension（#31）、ModelLengthFinishReason（#33） |
 | **增强 5 个** | Guardrail（authz context）、Dangling（malformed id 恢复）、SubagentLimit（delegation ledger + total cap）、LoopDetection（窗口化 counter）、SkillActivation（每 run 只激活一次） |
 | **顺序变更** | ThreadData 移到 Uploads 之前（#4→#5）；新增 ToolResultSanitization 插入 #3 位置 |
 | **Declarative layered builder** | Middleware 组装改用声明式分层构建器 |
@@ -65,11 +68,13 @@ topics: [middleware, hooks, interceptor-chain]
 | Hook | 参与 middleware |
 |------|---------------|
 | `wrap_model_call` (before LLM) | 1, 2, 3, 14, 15, 16, 17, 23, 24, 25, 26 |
-| `after_model` | 27, 28, 29, 31, 32 |
+| `after_model` | 27, 28, 29, 32, 33, 34 |
 | `wrap_tool_call` (before tool) | 9, 10, 11 |
 | `after_tool` | 12, 13 |
 | `before_agent` | 4, 5, 6, 7, 8 |
-| `after_agent` | 18, 19, 20, 21, 22, 33 |
+| `after_agent` | 18, 19, 20, 21, 22, 35 |
+
+> ConfiguredExtension（#31）是任意 hook 的透明包装——它实例化 config 声明的 middleware，钩子行为取决于被加载的类。
 
 ## 辅助模块（非 middleware，但被 middleware 使用）
 
@@ -81,3 +86,4 @@ topics: [middleware, hooks, interceptor-chain]
 | `tool_output_synopsis.py` | 🆕 超大 tool output 的结构化摘要生成 |
 | `_bounded_dict.py` | LoopDetection 窗口化 counter 的有界字典 |
 | `safety_termination_detectors.py` | SafetyFinishReason 的终止检测器 |
+| `model_length_termination_detectors.py` | 🆕 ModelLengthFinishReason 的 provider 终止检测器（`default_detectors()`） |

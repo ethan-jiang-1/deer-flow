@@ -7,7 +7,7 @@
 | 文件 | 所属 | 内容 |
 |------|------|------|
 | `concentric-rings.svg` | 01-logical | 四层同心圆总览：Access → Gateway → Harness → Core |
-| `agent-loop.svg` | 01-logical | Agent Loop 核心循环：系统 prompt → LLM → tool → results，含 33 个中间件完整列表 |
+| `agent-loop.svg` | 01-logical | Agent Loop 核心循环：系统 prompt → LLM → tool → results，含 35 个中间件完整列表 |
 | `skills-loading.svg` | 01-logical | Skills 加载链：SKILL.md → load_skills → prompt 注入 → LLM 选择 |
 | `subagent-delegation.svg` | 01-logical | Sub-agent 委派模型：Lead Agent → Executor → 3 并行 subagent → 聚合 |
 | `sandbox-paths.svg` | 01-logical | 虚拟路径映射表 + 多层安全防护机制 |
