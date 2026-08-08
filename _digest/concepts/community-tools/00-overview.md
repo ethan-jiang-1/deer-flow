@@ -32,7 +32,7 @@ DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，�
 | **E2B** | sandbox（云端） | `E2B_API_KEY` | N/A | 否 |
 | **Tenki** 🆕 | sandbox（云端 micro-VM） | `TENKI_API_KEY` | N/A | 否 |
 
-> **Browser Automation**（`group: browser`）：Playwright agentic 浏览器控制（`browser_navigate`/`browser_snapshot`/`browser_click`/`browser_type`/`browser_get_text`/`browser_back`/`browser_screenshot`/`browser_close`）。进程内私有 loop-affine Playwright event-loop 线程；每步返回带稳定 `[ref]` 索引的页面快照；URL SSRF 过滤；可选 `cd backend && uv sync --extra browser && uv run playwright install chromium`。`GATEWAY_WORKERS > 1` 时禁止启用（无 thread affinity）。
+> **Browser Automation**（`group: browser`）：Playwright agentic 浏览器控制（`browser_navigate`/`browser_snapshot`/`browser_click`/`browser_type`/`browser_get_text`/`browser_back`/`browser_screenshot`/`browser_close`）。进程内私有 loop-affine Playwright event-loop 线程；每步返回带稳定 `[ref]` 索引的页面快照；URL SSRF 过滤；可选 `cd backend && uv sync --extra browser && uv run playwright install chromium`。`GATEWAY_WORKERS > 1` 时禁止启用（无 thread affinity）。→ 深挖见 [06-browser-automation.md](06-browser-automation.md)。
 
 ## Tool 装配流程
 

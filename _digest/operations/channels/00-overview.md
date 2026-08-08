@@ -79,7 +79,7 @@ DeerFlow 的 IM 通道使用两种完全不同的 Agent 响应策略：
 
 ## Buzz 频道（Nostr）🆕
 
-Buzz 是基于 **Nostr 协议**（NIP-01/NIP-42）的 IM 通道，通过 WebSocket 接入一个 Buzz relay，让 DeerFlow 成为 relay 上某个 workspace 的成员。需要 `buzz` 依赖 extra。
+Buzz 是基于 **Nostr 协议**（NIP-01/NIP-42）的 IM 通道，通过 WebSocket 接入一个 Buzz relay，让 DeerFlow 成为 relay 上某个 workspace 的成员。需要 `buzz` 依赖 extra。→ 深挖见 [06-buzz.md](06-buzz.md)。
 
 - **入站**：一条 NIP-42 认证的 WebSocket，三类订阅：(a) `buzz-discovery`（kind-39000，发现所属频道列表）；(b) `buzz-membership`（kind-44100/44101，实时成员变动）；(c) 每频道一个 `buzz-chat-<uuid>`（kind-9，`#h:[uuid]` 限定——relay 只把事件推给 channel-scoped 订阅）
 - **门控**：pubkey allowlist（deny-by-default）+ mention/DM/thread-follow 三重闸门；`/connect <code>` 绑定在闸门前

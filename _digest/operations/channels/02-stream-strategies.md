@@ -17,7 +17,7 @@ STREAMING_CHANNELS = {
 }
 ```
 
-## Strategy A: 增量流式（Feishu、WeCom、DingTalk Card）
+## Strategy A: 增量流式（Feishu、WeCom、DingTalk Card、**Buzz**）
 
 ### 执行流
 
@@ -78,6 +78,11 @@ async def _handle_streaming_chat(self, msg, thread_id, params):
 - 创建 interactive card → 通过 `PUT /v1.0/card/streaming` 推送更新
 - Card 创建或 streaming API 失败时 → fallback 到 `sampleMarkdown`
 
+**Buzz（Nostr）🆕：**
+- 首条 kind-9 聊天事件，流式更新用 **kind-40003 原地编辑**（`e` tag 指向目标事件）——每条更新都是不可变公开 Nostr 事件
+- 内容按 UTF-8 字节分块（`EDIT_MAX_BYTES=60000`，relay 64KB 编辑帽的余量）
+- `send()` 拒绝发布带 `<memory>`/`<durable_context_data>`/`<system-reminder>` 隐藏包装的文本——Buzz 上泄露是永久的（原始事件留在 relay 上）。详见 [06-buzz.md](06-buzz.md)
+
 ## Strategy B: 阻塞等待（Slack、Telegram、Discord、WeChat、DingTalk non-Card）
 
 ### 执行流
@@ -133,6 +138,6 @@ async def _handle_chat(self, msg, thread_id, params):
 | **用户感知** | 看到 Agent "思考过程" | 只看到最终结果 |
 | **平台要求** | 消息可编辑/替换 | 消息只需发送 |
 | **代码复杂度** | 较高（累积、节流、补丁） | 较低（一次性发送） |
-| **适用平台** | 飞书、WeCom、钉钉 | Slack、Telegram、Discord、微信 |
+| **适用平台** | 飞书、WeCom、钉钉、Buzz（Nostr）🆕 | Slack、Telegram、Discord、微信 |
 
 阻塞等待在 Agent 执行 30 秒以上的任务时用户体验差——用户无法区分 "Agent 在思考" 和 "系统挂了"。增量流式通过持续更新让用户感知到 Agent 的进展。

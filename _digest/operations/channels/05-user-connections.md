@@ -61,6 +61,8 @@ topics: [channels, im, user-connections, oauth]
 | **WeChat** | `/connect <code>` | 同上 |
 | **WeCom** | `/connect <code>` | 同上 |
 
+**Buzz 不在连接模型里**（sync #4）：Buzz 的 run 策略声明 `requires_bound_identity=False`——身份闸门是 adapter 层（pubkey allowlist）而非绑定身份，所以不走 `/connect <code>` 流程。详见 [06-buzz.md](06-buzz.md)。
+
 所有 provider 都复用现有的 channel workers——不需要额外的 public IP、OAuth callback URL 或 webhook route。
 
 ### 连接后

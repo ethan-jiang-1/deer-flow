@@ -176,7 +176,7 @@ for m in middleware:
 
 ## DeerFlow 实际上有多少 node？
 
-DeerFlow 有 35 个 middleware（`agent.py` L269-405），但不是每个都覆写了所有 4 个 hook。实际情况：
+DeerFlow 有 35 个 middleware（`agent.py` `build_middlewares()` L373-617），但不是每个都覆写了所有 4 个 hook。实际情况：
 
 - 大部分 middleware 只覆写 `after_model` → 每个产生 1 个 node
 - 少数覆写 `before_agent`（如 `UploadsMiddleware`、`SandboxMiddleware`）
@@ -358,7 +358,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 - `langchain/agents/factory.py`：middleware node 创建 L1372-1453，关键节点定义 L1455-1481，before_model 边 L1578-1597，after_model 反向边 L1600-1614，after_agent 反向边 L1617-1639，`_add_middleware_edge` L1819-1864
 - `langchain/agents/middleware/types.py`：`AgentMiddleware` 抽象类定义
-- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L269-405，展示 35 个 middleware 的完整列表和添加顺序
+- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L373-617，展示 35 个 middleware 的完整列表和添加顺序
 
 ## 补充文件
 

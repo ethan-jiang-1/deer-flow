@@ -197,3 +197,7 @@ journal.record_middleware(
 - 内容截断到 2000 字符
 
 这确保 UI 显示的"最后一条 AI 消息"是主 agent 对用户说的最后一句话。
+
+## 交付回执（delivery receipt）→ 见 05
+
+sync #4 中 `RunJournal` 为终态 `run.delivery` 事件记录非空 artifact 更新（每个工具 `Command` 一次，`run_inline=True` 只做内存簿记/调度异步写）。完整语义（`produced_paths` / `presented_paths` / `matched_paths` / 验证降级）在 [05-run-ownership-and-rollback.md](05-run-ownership-and-rollback.md)。

@@ -514,4 +514,4 @@ DeerFlow 处理"反问用户"的机制。当模型调用 `ask_clarification` 工
 - `langchain/agents/factory.py`：`model_node` L1296-1314, `_execute_model_sync` L1269-1294, `_get_bound_model` L1140-1267, `_handle_model_output` L1036-1138, `_build_commands` L177-216, `model_to_tools` L1695-1753, `tools_to_model` L1783-1816
 - `langgraph/prebuilt/tool_node.py`：`ToolNode.__init__` L620-784, `_func` L791-824, `_run_one` L1012-1065, `_execute_tool_sync` L920-1010, `_parse_input` L1222-1264
 - `langchain/agents/middleware/types.py`：`AgentState.jump_to` L350-355, `JumpTo` L69
-- `deerflow/agents/lead_agent/agent.py`：`_make_lead_agent` L437-603, `build_middlewares` L269-405
+- `deerflow/agents/lead_agent/agent.py`：`_make_lead_agent` L671-929, `build_middlewares` L373-617

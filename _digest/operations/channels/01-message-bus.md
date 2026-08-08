@@ -26,7 +26,7 @@ class MessageBus:
         return await self._inbound_queue.get()  # 阻塞等待
 ```
 
-所有 7 个 channel 向同一个队列推送——`ChannelManager._dispatch_loop()` 在队列另一侧阻塞等待。
+所有 8 个 channel（+Buzz）向同一个队列推送——`ChannelManager._dispatch_loop()` 在队列另一侧阻塞等待。
 
 ### Outbound 方向（Dispatcher → Channel）
 
