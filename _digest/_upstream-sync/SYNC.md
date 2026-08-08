@@ -22,6 +22,10 @@ type: index
         ├─ 200 commits later...
         │
         └─ 上游 commit cd34a1a5  ← 锚点 #3（2026-07-20，已同步）
+        │
+        ├─ 234 commits later...
+        │
+        └─ 上游 commit e5c62cab  ← 锚点 #4（2026-08-08，本次同步）
 ```
 
 ## 核心约定
@@ -39,13 +43,13 @@ ethan  = main + _digest/ + _faq_on_digested/（51 个 commit，186 个文件，�
 
 | 项目 | 值 |
 |------|-----|
-| **`main` HEAD（= 消化基准）** | `cd34a1a5` |
-| **旧锚点** | `4915b5e`（2026-07-07） |
-| **日期** | 2026-07-20 |
-| **上游变更规模** | 200 commits |
-| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #3 |
-| **上游当前 HEAD** | `cd34a1a5`（bytedance/deer-flow main，已同步） |
-| **累积落后** | `162fb214` → `cd34a1a5`（共 523 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...main) |
+| **`main` HEAD（= 消化基准）** | `e5c62cab` |
+| **旧锚点** | `cd34a1a5`（2026-07-20） |
+| **日期** | 2026-08-08 |
+| **上游变更规模** | 234 commits |
+| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #4 |
+| **上游当前 HEAD** | `e5c62cab`（bytedance/deer-flow main，已同步） |
+| **累积落后** | `162fb214` → `e5c62cab`（共 757 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...main) |
 
 ## 未来同步时怎么看
 

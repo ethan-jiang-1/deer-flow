@@ -25,6 +25,23 @@ type: index
 
 ---
 
+## #4 — 2026-08-08（同步）
+
+| 项目 | 值 |
+|------|-----|
+| **操作** | 同步 |
+| **旧锚点** | `cd34a1a5` |
+| **新锚点** | `e5c62cab` |
+| **上游新增 commits** | 234 |
+| **变更规模** | 931 files, +141,080 / -9,322 lines |
+| **时间跨度** | 2026-07-20 → 2026-08-07 |
+| **提交构成** | 142 fix / 46 feat / 11 build / 6 perf / 4 test / 3 docs |
+| **主要变更领域** | **sandbox**（E2B/AIO provider 大改 + orphan reconciliation + 新 **Tenki** provider）、**memory**（新 **OpenViking** backend + storage.py 重构 + markdown 存储）、**channels**（新 **Buzz** 频道 + Nostr + **Lark CLI/broker** 集成）、**runtime**（worker 重构 + multi-worker run ownership + rollback）、**authz**（pluggable authorization 落地，新 `authz/` 子包 + RFC）、**persistence**（storage rewrite 计划）、**community**（新 **browser_automation** 工具）、**workspace_changes**（全新子系统）、**frontend**（257 files 大改） |
+| **影响的 digest** | concepts/sandbox、concepts/memory、concepts/community-tools、operations/channels、operations/integration、internals/runtime、operations/security/01-auth、internals/configuration、concepts/skills-tools、concepts/builtin-tools、frontend/、operations/deployment、getting-started/06-tui、operations/security/03-guardrail、concepts/subagent |
+| **备注** | 以修复为主（142 fix），无 #3 那样的 breaking 重构，但新增 **6 个全新子系统**：Buzz 频道、Lark CLI、OpenViking memory backend、Tenki sandbox、Browser Automation、Workspace Changes。E2B/AIO sandbox 的代码量最大（+4000+ 行）。更新计划见 UPDATE_PLAN_4.md。 |
+
+---
+
 ## #2 — 2026-07-07（同步）
 
 | 项目 | 值 |
