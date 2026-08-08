@@ -41,6 +41,8 @@ _faq_on_digested/
 | 7 | Agent 图两个固定 Node | [07_graph-nodes/](07_graph-nodes/) |
 | 8 | Middleware 就是 Node | [08_middleware-as-nodes/](08_middleware-as-nodes/) |
 | 9 | 扩展 ThreadState | [09_custom-state-and-reducers/](09_custom-state-and-reducers/) |
+| 10 | 配置灵活性 | [10_config-flexibility/](10_config-flexibility/) |
+| 11 | 研究/开发工作区组织（三仓分层） | [11_workspace-organization/](11_workspace-organization/) |
 
 ## 配方（Recipe）
 
