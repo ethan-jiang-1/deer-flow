@@ -18,6 +18,7 @@ type: index
 | 🛠️ 看怎么实际开发 | `_faq_on_digested/cli-and-sdd/` | CLI 实验、SDD 协作、subagent 编排、Step-by-Step |
 | 🔬 深入内部机制 | [internals/](internals/) | Agent Loop、Middleware Chain、Model Layer、Config、Runtime |
 | 🧪 测试策略和方法 | [testing/](testing/) | 测试金字塔、FakeToolCallingModel、CI 门禁、Agent 测试最佳实践 |
+| 🔭 诊断和观察 | [observability/](observability/) | 日志 + trace_id 关联、RunEvent 事件流、追踪、Console API、调试工具箱、上线清单 |
 | 🚀 部署和运维 | [operations/](operations/) | 安全、部署、追踪、IM 通道、IT 治理、API 参考 |
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程 |
@@ -33,6 +34,7 @@ _digest/
 ├── concepts/                # 核心概念详解
 ├── internals/               # 内部机制深入
 ├── testing/                 # 测试策略 + 实践
+├── observability/           # 诊断与观察（日志 / 事件流 / 追踪 / 控制台 / 调试）
 ├── operations/              # 安全、部署、运维
 └── frontend/                # 前端架构
 ```
@@ -71,6 +73,10 @@ goal continuation → internals/runtime/goal-continuation.md
 custom middleware → internals/middleware/02-chain-assembly.md + 00-overview.md
 TUI / CLI         → getting-started/06-tui.md
 record replay     → testing/07-record-replay.md
+trace_id / 日志关联 → observability/01-logging-and-trace-context.md
+run 事件回放       → observability/02-run-events-and-journal.md
+Console / 成本     → observability/04-console-and-cost.md
+上线清单 / 告警     → observability/07-production-checklist.md
 staleness review  → concepts/memory/extract-queue-persist-pipeline.md
 BoxLite / E2B     → concepts/sandbox/abstract-interface-and-six-impls.md
 deferred MCP      → internals/middleware/03-catalog.md (#25 DeferredToolFilter)
