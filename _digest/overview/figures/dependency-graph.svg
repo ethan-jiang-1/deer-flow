@@ -51,7 +51,7 @@
   <!-- ===== config/ ===== -->
   <rect x="100" y="372" width="600" height="52" rx="8" fill="#F3E5F5" stroke="#AB47BC" stroke-width="2"/>
   <text x="400" y="394" text-anchor="middle" font-size="11" font-weight="700" fill="#6A1B9A">config/ — 配置与路径系统</text>
-  <text x="400" y="411" text-anchor="middle" font-size="8" fill="#7B1FA2">app_config.py (AppConfig, 26 sections) · sandbox_config · model_config · skills_config</text>
+  <text x="400" y="411" text-anchor="middle" font-size="8" fill="#7B1FA2">app_config.py (AppConfig, 35 sections) · sandbox_config · model_config · skills_config</text>
   <text x="400" y="424" text-anchor="middle" font-size="7" fill="#CE93D8">extensions_config · subagents_config · memory_config · paths.py · runtime_paths.py · 20+ models</text>
 
   <!-- Three arrows down from config -->

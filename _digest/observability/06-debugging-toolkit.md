@@ -6,7 +6,7 @@ topics: [debugging, error-handling, loop-detection, circuit-breaker, rollback]
 
 # 诊断工具箱
 
-这些手段分两类：**自动扛住**（错误分类重试、断路器、loop 检测），和**出事后回滚/取证**（checkpoint 回滚、run 事件、support bundle）。深潜见 [internals/agent-loop/04](../agent-loop/../agent-loop/04-error-handling-and-debugging.md) 和 [internals/runtime/](../runtime/)。
+这些手段分两类：**自动扛住**（错误分类重试、断路器、loop 检测），和**出事后回滚/取证**（checkpoint 回滚、run 事件、support bundle）。深潜见 [internals/agent-loop/04](../internals/agent-loop/04-error-handling-and-debugging.md) 和 [internals/runtime/](../internals/runtime/)。
 
 ## 自动扛住
 

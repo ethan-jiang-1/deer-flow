@@ -6,7 +6,7 @@ topics: [production, observability, checklist, alerting]
 
 # 生产上线清单
 
-DeerFlow 给的是观测**原料**，不是现成的聚合仪表盘和告警。这份清单是"上线前把原料接上、上线后知道去哪看"的最小集。安全硬化另见 [operations/security/](../security/)。
+DeerFlow 给的是观测**原料**，不是现成的聚合仪表盘和告警。这份清单是"上线前把原料接上、上线后知道去哪看"的最小集。安全硬化另见 [operations/security/](../operations/security/)。
 
 ## 上线前必开
 

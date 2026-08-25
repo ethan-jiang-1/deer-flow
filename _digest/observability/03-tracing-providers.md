@@ -6,7 +6,7 @@ topics: [tracing, observability, langsmith, langfuse, monocle]
 
 # 追踪三 Provider 综述
 
-三个 provider 的结构性差异比表面大——前两个是"callback 挂 graph 根"，第三个是"process-global 自动插桩"。深潜细节见 [operations/tracing/](../tracing/)，这里给决策用的全景。
+三个 provider 的结构性差异比表面大——前两个是"callback 挂 graph 根"，第三个是"process-global 自动插桩"。深潜细节见 [operations/tracing/](../operations/tracing/)，这里给决策用的全景。
 
 | 维度 | LangSmith | Langfuse | Monocle |
 |------|-----------|----------|---------|
