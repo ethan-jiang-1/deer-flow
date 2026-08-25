@@ -1,14 +1,14 @@
 ---
 title: "沙箱隔离"
-description: "六种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。"
+description: "七种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。"
 topics: [security, auth, isolation-defense]
 ---
 
 # 沙箱隔离
 
-六种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。
+七种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。
 
-> **交叉引用：** Sandbox ABC 抽象 + 六种实现架构见 [concepts/sandbox/abstract-interface-and-six-impls.md](../../concepts/sandbox/abstract-interface-and-six-impls.md)。IT 治理视角（策略执行、审计可观测性）见 [it-ops/02-sandbox-governance.md](../it-ops/02-sandbox-governance.md)。
+> **交叉引用：** Sandbox ABC 抽象 + 七种实现架构见 [concepts/sandbox/abstract-interface-and-seven-impls.md](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。IT 治理视角（策略执行、审计可观测性）见 [it-ops/02-sandbox-governance.md](../it-ops/02-sandbox-governance.md)。
 
 ## 挂入方式
 
@@ -44,6 +44,8 @@ Agent Loop 每轮 step 开始
 
 1. **检查 state 缓存** — `runtime.state.get("sandbox")` 非 None？→ `provider.get(sandbox_id)` 直接复用，跳过 acquire
 2. **没有缓存** → `provider.acquire(agent_id, thread_id)` → 存 `runtime.state["sandbox"] = sandbox_id`
+
+> 🆕 **sandbox:execute 授权**：在 `provider.acquire` 之前，`ensure_sandbox_initialized` / `ensure_sandbox_initialized_async` 调用 `authorize_sandbox_execution`（`authz/sandbox_authz.py`）做 `authorize(principal, "sandbox", "execute", target="*")` 检查。deny 抛 `SandboxAuthorizationError`，经工具错误处理转成友好 ToolMessage（"sandbox execution is not permitted for your role"）；复用路径跳过重复检查；`authorization.enabled: false` 或无 `config.yaml` 时是 no-op。详见 [concepts/sandbox/abstract-interface-and-seven-impls.md](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。
 
 **Provider 单例** — `get_sandbox_provider()` 返回全局唯一的 provider 实例，创建一次后缓存在模块级变量。三种 provider 的 acquire 差异：
 

@@ -172,7 +172,7 @@ def sanitize_log_param(value: str) -> str:
 
 | Router | 端点 | 说明 |
 |--------|------|------|
-| **Features** | `GET /api/features` | Config-gated feature flags（`agents_api.enabled`）供前端门控 |
+| **Features** | `GET /api/features` | Config-gated feature flags（`agents_api`/`browser_control`/`mcp_tasks`/`subagent_batches`）供前端门控 |
 | **Console** | `GET /api/console/stats`, `/runs`, `/usage` | 跨 thread 可观测性面板（需 SQL backend） |
 | **Input Polish** | `POST /api/input-polish` | Composer 草稿润色（一次性 LLM，不创建 run） |
 | **Channel Connections** | `GET/POST/DELETE /api/channels/*` | 用户绑定的 IM channel 连接管理 |
@@ -181,6 +181,9 @@ def sanitize_log_param(value: str) -> str:
 | **Thread Branches** | `POST /api/threads/{id}/branches` | 从 checkpoint 分支创建新 main thread |
 | **Manual Compaction** | `POST /api/threads/{id}/compact` | 手动上下文压缩 |
 | **Thread Goal** | `GET/PUT/DELETE /api/threads/{id}/goal` | Goal continuation 管理 |
+| **Subagents** | `GET/POST /api/subagents`，`PUT/DELETE /api/subagents/{name}` | 托管 subagent 目录 + admin 管理（managed-worker CRUD） |
+| **Subagent Batches** | `GET /api/threads/{id}/subagent-batches[/{batch_id}...]` | 持久化原生 subagent 批进度/控制（pause/resume/cancel/retry、`results.jsonl` 导出） |
+| **MCP Tasks** | `GET /api/threads/{id}/mcp-tasks[/{task_id}]`，`POST /{task_id}/cancel` | 长时 MCP 持久化任务的 owner-scoped 只读视图 + 取消 |
 
 ## 🆕 Cache-aware Cost Accounting
 
@@ -194,3 +197,16 @@ Console 的 cost estimation 支持 **cache-aware pricing**：
 - 无定价配置的 model → `cost: null`
 
 这使得 Console `/usage` 的 per-model cost breakdown 能区分缓存命中和未命中的实际成本。
+
+## 🆕 Gateway contribution points（打包扩展接线）
+
+`create_app()` 是打包扩展唯一的 Gateway 接线点（`app/gateway/app.py:740-886`），加载模型见 [../../internals/harness-hooks/09-packaged-extensions.md](../../internals/harness-hooks/09-packaged-extensions.md)：
+
+1. **加载一次**：`get_app_config().plugins` 解析配置的 plugin 列表（config.yaml 缺失/损坏是配置失败，不是扩展失败，不套 fail-open guard）→ `load_extensions(configured_plugins)`。`required: true` 的扩展失败时 `ExtensionLoadError` 直接中止启动；可选扩展 fail-open。
+2. **两个暴露面**：结果同时存入进程级单例 `set_loaded_extensions()` 和 `app.state.extensions`；`app.state.extension_diagnostics` 是规范 live 诊断列表（`record_runtime_diagnostics()`）。
+3. **Principal resolver**：`create_app()` 在 `AuthMiddleware` 之后、贡献路由 mount 之前，把一个 `_resolve_extension_principal(request)` 装到 `app.state`（key = `EXTENSION_PRINCIPAL_RESOLVER_KEY`）。它把 `request.state.user` **投影**成中性 `ExtensionPrincipal`（user_id / is_admin / is_internal / roles），而不是把 host 的 `AuthContext` 句柄交给扩展。
+4. **贡献路由最后 mount**：`include_contributed_routers(app, loaded_extensions)`（`deerflow/extensions/gateway.py`）在所有 host 路由（含 `/health`、条件路由）之后执行，host 处理器总是赢；确定阴影被原子拒绝。FastAPI 按注册顺序分发，所以“最后 mount”就是优先级保证。
+5. **Service 生命周期**：`start_services` 在持久化引擎 + session factory 就绪后按注册顺序启动，`stop_services` 在 run/subagent drain 之后、store/checkpointer/engine teardown 之前逆序停止（每个 stop 独立有界超时）。
+6. **通知 loop**：Gateway 注册一个 canonical extension-notification loop，await 的 lifecycle 钩子与 async system 观察都派发到它；同步 system 回调 fire-and-forget 提交。shutdown 先停止接受 detached 观察，再 memory flush，最后等 in-flight run/subagent drain 才 reset loop。
+
+配套 feature flag：`GET /api/features` 现在上报 `mcp_tasks`（`app.state.mcp_tasks_available`，startup-scoped）与 `subagent_batches`（`repository_available` 与 `worker_running` 分离，worker 停了不隐藏历史/导出），供前端门控。

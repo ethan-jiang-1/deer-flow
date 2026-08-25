@@ -27,6 +27,7 @@ topics: [channels, im, buzz, nostr, nip-01, nip-42, bip-340, dedupe]
 | `app/channels/buzz_nostr.py` | ~200 | 纯 NIP-01 工具：bech32、事件签名/验证（BIP-340） |
 | `app/channels/buzz_run_policy.py` | 12 | run 策略注册（import side-effect） |
 | `app/channels/dedupe_store.py` | 277 | 入站去重存储（Memory/Postgres，issue #4120） |
+| `app/channels/buzz_seen_events.py` | 207 | 连接层 seen-id 持久去重（`BuzzSeenEventStore`，issue #4888） |
 
 ## Nostr 协议层（`buzz_nostr.py`）
 
@@ -94,6 +95,19 @@ manager 层的入站去重（`_inbound_dedupe_key` = `(channel, workspace_id, ch
 - **fail-open**：任何 DB 错误 log + 视为 allow——存储故障绝不丢 webhook / 对 provider 返回 5xx。
 - **`make_inbound_dedupe_store()` 解析**：`auto`（默认）→ 应用 DB 是 Postgres 就用共享 store，否则内存 store；多 worker / 多 replica 却只能用内存时发 **WARNING**（跨 pod 去重缺口显式化为 misconfiguration 而非静默）。
 
+## Seen-Event 持久去重（`buzz_seen_events.py`，issue #4888）
+
+manager 层 `dedupe_store` 是**进程内 + 10 分钟 TTL**，补不了「重连/重启后重放」的缺口：resubscribe 的 `since` 是最后处理事件的 `created_at`，而 NIP-01 的 `since` 是**闭区间**，所以每次重连至少重投那一条 watermark 事件——重连距上一条消息超过 10 分钟（或任何一次 Gateway 重启）就会重新回答旧消息。`BuzzSeenEventStore` 在连接层关掉这个缺口：
+
+- **按频道持久化「已完整处理事件」的 id**（JSON 存 `{base_dir}/channels/`，原子写），`_handle_chat_event` 在 `/connect` 分支**之前**丢弃重投 id——否则一条重放的 `/connect` 会被误答成 "code invalid or expired"。
+- **只按精确 event id 匹配，绝不按时间戳**：真正的新事件（哪怕 author 选了一秒内的、或有时钟偏差的 `created_at`）总有新 id，永远不会被跳过——保住连接层「fail toward replay」的不变量。
+- **只记录完整处理过的事件**（与 watermark 规则镜像）：被闸门 drop 的、或 publish 失败的事件保持可重放。
+- **双向 fail-open**：读不了的 store 当空载入（代价是至多一次重放回复，即旧行为）；写失败 log + 下次 flush 重试（代价是重放，永不漏）。
+- **有界**：每频道 `MAX_IDS_PER_CHANNEL=512`、频道数 `MAX_CHANNELS=512`（LRU 驱逐）。重启保护因此也是每频道最新 512 条 id——relay 默认 backlog 若更深，超出的尾部仍会重放；真遇到更深的 backlog 需调大该常量。
+- **写合并（coalescing）**：`record()` 标脏后每 `FLUSH_DELAY_SECONDS=1.0` 在事件循环上排一次 flush，重连 backlog 突发只付一次 O(store) 文件写而非每条一次；无运行循环的同步调用方（测试/工具）立即写，`BuzzChannel.stop()` 显式 flush 干净关停。窗口内崩溃只损失重放、不损失跳过。
+- **原子替换 + temp 清理**：`_save()` 用同目录 tempfile + `Path.replace()`（与 `ChannelStore` 对齐）；失败时 unlink temp，避免持久写不进去时累积 `*.tmp`。
+- **线程模型**：单事件循环假设（变更在 `_handle_chat_event`，flush 经 `call_later` 同循环），无锁安全；另加 off-loop 用户必须先加锁。`path=None` = memory-only（测试/工具无文件副作用）；真实部署由 `ChannelService` 注入 `seen_event_store_path`（同 `channel_store` 的接线方式）。
+
 ## Outbound：不可变事件 + 原地编辑
 
 - 首条 kind-9 聊天事件；流式更新用 **kind-40003 原地编辑**（`e` tag 指向目标事件）。每条流式更新都是不可变公开事件。
@@ -123,6 +137,7 @@ CHANNEL_RUN_POLICY["buzz"] = ChannelRunPolicy(serialize_thread_runs=True, requir
 | 签名验证 choke point | `buzz.py:handle_relay_frame` → `buzz_nostr.py:verify_event` |
 | 出站编辑 | `buzz.py:send` / `_edit_or_repost` / `_chunk_text` |
 | 去重存储 | `dedupe_store.py` 全部 |
+| seen-id 持久去重 | `buzz_seen_events.py` 全部（`BuzzSeenEventStore`）+ `buzz.py:_handle_chat_event` 接入点 + `service.py` 注入 `seen_event_store_path` |
 | run 策略 | `buzz_run_policy.py`（注册为 import side-effect，`manager.py` 导入） |
 
 ## 相关

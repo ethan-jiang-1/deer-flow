@@ -42,6 +42,24 @@ type: index
 
 ---
 
+## #5 — 2026-08-25（同步）
+
+| 项目 | 值 |
+|------|-----|
+| **操作** | 同步 |
+| **旧锚点** | `e5c62cab` |
+| **新锚点** | `431892e1` |
+| **上游新增 commits** | 108 |
+| **变更规模** | 601 files, +66,827 / -4,637 lines |
+| **时间跨度** | 2026-08-08 → 2026-08-25 |
+| **提交构成** | 22 feat / 65 fix / 1 perf / 9 docs / 4 build / 3 test |
+| **config** | config_version 33 → **36**（config.example.yaml +244/-33，extensions_config.example.json +25） |
+| **主要变更领域** | **subagents**（unified capacity + durable batch execution + managed subagents + delegation scopes + isolated date-only context）、**MCP**（durable task 完整落地：task_tool_caller + tasks/driver+ordinary+runtime + persistence/migrations 0011-0013 + gateway router + 通知/chat UI + per-user credential injection + interceptors + OpenViking tools）、**sandbox**（新 **OpenSandbox** provider，第 7 实现 + sandbox:execute 授权落地）、**memory**（新 **Honcho** 后端，第 5 个 + hybrid fact eviction）、**extensions**（packaged 管理：CLI + gateway contribution points + extension-api 5 个新模块 + 参考示例包）、**tool receipts**（确定性模型可见收据 ledger，RFC #4651 layer 1，middleware 35→36）、**threads**（branched conversations）、**knowledge**（新 **RAGFlow** 只读检索）、**MiniMax Code**（原生 ACP agent）、**scheduler**（recursion_limit 可配置 + busy 入队 + 多实例恢复）、**frontend**（68 files：分支会话树 + subagent batches + background tasks） |
+| **影响的 digest** | concepts/subagent、internals/mcp、concepts/sandbox、operations/security、concepts/memory、concepts/community-tools、internals/middleware、internals/harness-hooks、operations/app-layer、internals/runtime、internals/configuration、getting-started、operations/channels、operations/scheduler、concepts/builtin-tools、frontend |
+| **备注** | 无 breaking 重构，以 fix 为主（65 fix）+ 六个方向能力落地。最大新增：MCP durable task 子系统、subagent batch 子系统、extensions packaged 管理、OpenSandbox、Honcho、RAGFlow。更新计划见 UPDATE_PLAN_5.md。 |
+
+---
+
 ## #2 — 2026-07-07（同步）
 
 | 项目 | 值 |

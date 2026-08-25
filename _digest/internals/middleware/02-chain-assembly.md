@@ -1,6 +1,6 @@
 ---
 title: "链装配：Middleware 是怎么串起来的"
-description: "两阶段组装：共享基础层 13 个 + Lead-only 层 20 个。声明式分层构建器 + 严格顺序约束。理解这个才能把自定义 middleware 挂到正确位置。"
+description: "两阶段组装：共享基础层 14 个 + Lead-only 层 22 个。声明式分层构建器 + 严格顺序约束。理解这个才能把自定义 middleware 挂到正确位置。"
 topics: [middleware, hooks, interceptor-chain]
 ---
 
@@ -29,10 +29,10 @@ def build_lead_runtime_middlewares(*, app_config, lazy_init=True) -> list[AgentM
 ```
 outer_wrappers: [InputSanitization, ToolOutputBudget, ToolResultSanitization]
     + thread_hooks: [ThreadData, Uploads, Sandbox, Dangling, LLMError, Guardrail(cond), SandboxAudit]
-    + tail: [ReadBeforeWrite(cond), ToolProgress(cond), ToolErrorHandling]
+    + tail: [ToolReceipt(cond), ReadBeforeWrite(cond), ToolProgress(cond), ToolErrorHandling]
 ```
 
-共 13 个。🆕 `ToolResultSanitization` 位于 `ToolOutputBudget` 之后——先中性化远程内容标签，再做预算截断。**顺序变更**：`ThreadData` 移到 `Uploads` 之前运行。使用**声明式分层构建器**。
+共 14 个。🆕 `ToolResultSanitization` 位于 `ToolOutputBudget` 之后——先中性化远程内容标签，再做预算截断。🆕 `ToolReceipt`（同步 #5，`verification.receipts_enabled` 默认开）是**最外层 `wrap_tool_call`**，排在 Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress 之外，防止短路/重建结果漏记账。**顺序变更**：`ThreadData` 移到 `Uploads` 之前运行。使用**声明式分层构建器**。
 
 Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含 Uploads 和 Dangling）；额外附加 `DurableContextMiddleware` + `SystemMessageCoalescingMiddleware` + guard middlewares（TokenBudget/LoopDetection/SubagentLimit/Summarization）。
 
@@ -40,26 +40,26 @@ Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含
 
 文件：`deerflow/agents/lead_agent/agent.py:269`
 
-在上面的 13 个之后，依次追加 20 个：
+在上面的 14 个之后，依次追加 22 个：
 
 ```python
 def build_middlewares(config, ...) -> list[AgentMiddleware]:
     middlewares = build_lead_runtime_middlewares(app_config=..., lazy_init=True)
 
-    # 14-17: 上下文管理
+    # 15-18: 上下文管理
     middlewares.append(DynamicContextMiddleware(...))
     middlewares.append(SkillActivationMiddleware(...))
     middlewares.append(SkillToolPolicyMiddleware(...))       # 🆕 allowed-tools 执行
     middlewares.append(DurableContextMiddleware(...))
 
-    # 18-22: 可选 + 始终
+    # 19-23: 可选 + 始终
     if summarization.enabled: middlewares.append(SummarizationMiddleware(...))
     if is_plan_mode: middlewares.append(TodoListMiddleware(...))
     if token_usage.enabled: middlewares.append(TokenUsageMiddleware(...))
     middlewares.append(TitleMiddleware(...))
     middlewares.append(MemoryMiddleware(...))
 
-    # 23-29: vision + MCP + guard trio
+    # 24-30: vision + MCP + guard trio
     if model_supports_vision: middlewares.append(ViewImageMiddleware(...))
     if tool_search.enabled and routing_metadata:
         middlewares.append(McpRoutingMiddleware(...))        # 🆕 auto-promote MCP tools
@@ -70,7 +70,7 @@ def build_middlewares(config, ...) -> list[AgentMiddleware]:
     if loop_detection.enabled: middlewares.append(LoopDetectionMiddleware(...))
     if token_budget.enabled: middlewares.append(TokenBudgetMiddleware(...))
 
-    # 30-33: 尾部
+    # 31-36: 尾部
     if custom_middlewares: middlewares.extend(custom_middlewares)
     middlewares.append(TerminalResponseMiddleware(...))       # 🆕 空响应恢复
     if safety_finish_reason.enabled: middlewares.append(SafetyFinishReasonMiddleware(...))
@@ -95,7 +95,7 @@ Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含
 
 ## 与旧版对比
 
-| 维度 | 旧版 (29) | 新版 (33) |
+| 维度 | 旧版 (29) | 新版 (36) |
 |------|----------|----------|
 | 组装方式 | 命令式 append | 🆕 声明式分层构建器 |
 | 组装函数 | 2 个 | 2 个（+ Subagent 使用增强版 shared base） |

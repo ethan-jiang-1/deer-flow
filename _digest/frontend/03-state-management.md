@@ -24,6 +24,13 @@ DeerFlow 前端使用三层状态架构：服务端状态（TanStack Query）、
 | `useMemory()` | `["memory"]` | 后端 API |
 | `useSkills()` | `["skills"]` | 后端 API |
 | `useMCPConfig()` | `["mcp", "config"]` | 后端 API |
+| `useSubagentBatches(threadId)` | `["subagent-batches", threadId]` | REST API（活跃时 2s 轮询，否则 15s） |
+| `useSubagentBatchItems(...)` | `[..., batchId, "items"]` | REST API 无限分页（页 100，仅首页轮询） |
+| `useBackgroundTasks(threadId)` | `["background-tasks", threadId]` | REST API（活跃时 3s 轮询，否则 15s） |
+
+### 分支会话树投影（同步 #5）
+
+`useThreads` 返回的线程是平铺分页的；`recent-chat-list.tsx` 通过 `core/threads/thread-branch-tree.ts::flattenThreadBranches()` 把它们投影成**安全的视觉 lineage**，再交给虚拟列表渲染（`└─`/`├─` 缩进 stem + 父标题 aria-label）。投影只信任已加载的、同 pin 分区的 parent——缺失/畸形/跨 pin/自环/成环的 parent 一律保持顶层，所以局部分页或坏 metadata 不会藏起会话。
 
 ### 变更
 

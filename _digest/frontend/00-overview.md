@@ -51,13 +51,15 @@ frontend/src/
 │   └── theme-provider.tsx  # next-themes 包装
 ├── core/                   # 业务逻辑（无 JSX）
 │   ├── api/                # LangGraph Client 单例 + CSRF fetcher
-│   ├── threads/             # useThreadStream, useThreadHistory, types
+│   ├── threads/             # useThreadStream, useThreadHistory, types, thread-branch-tree（分支 lineage）
 │   ├── messages/            # getMessageGroups, content extraction, usage
 │   ├── streamdown/          # remark/rehype 插件配置
 │   ├── rehype/              # 自定义 rehype 插件（词级动画）
 │   ├── settings/            # localStorage 偏好 (useSyncExternalStore)
 │   ├── i18n/                # 国际化 (React context + 服务端检测)
 │   ├── tasks/               # Subtask 状态管理 (React context)
+│   ├── subagent-batches/    # 🆕 持久化 subagent 批量执行（查询/控制/JSONL 导出）
+│   ├── background-tasks/    # 🆕 MCP 持久化后台任务（查询/取消/详情）
 │   ├── artifacts/           # Artifact 内容加载 + 预览
 │   ├── uploads/             # 文件上传管线
 │   ├── memory/              # 用户记忆 API
@@ -122,6 +124,15 @@ DOM (词级 fade-in 动画)
 | **Pin recent chats** | 固定最近会话 |
 | **Per-agent model settings** | 每个 custom agent 独立的 model/生成参数 |
 | **Suggestions count** | 配置 follow-up 建议数量 |
+
+### 🆕 同步 #5 新增（431892e1）
+
+| 功能 | 说明 |
+|------|------|
+| **分支会话树** | Recent chats 用 `thread-branch-tree.ts` 投影分支 lineage，`└─`/`├─` 缩进 + 父标题，坏 parent 保持顶层 |
+| **Subagent 批量执行 UI** | `core/subagent-batches/` + `ThreadSubagentBatches`：进度轮询、pause/resume/cancel、retry、JSONL 导出、只读历史模式 |
+| **后台任务** | `core/background-tasks/` + `ThreadBackgroundTasks`：MCP 持久化任务列表/详情/取消，capability 门控 |
+| **Model-load error banner** | `model-load-error-banner.tsx` 观察共享 `useModels` 查询（不主动启动），失败时显示带 Retry 的 alert |
 
 ## 状态管理三层
 

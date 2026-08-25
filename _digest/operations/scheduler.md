@@ -15,13 +15,16 @@ topics: [scheduler, cron, automation, background-tasks]
 ```yaml
 scheduler:
   enabled: false              # 主开关（默认关闭）
+  multi_instance: false       # 多实例 lease 感知恢复（需 Postgres + run_ownership.heartbeat_enabled + run_events.backend=db）
   poll_interval_seconds: 5    # 轮询间隔 (1-300)
   lease_seconds: 120          # 租约有效期 (5-3600)
-  max_concurrent_runs: 3      # 全局并发上限 (1-32)
+  max_concurrent_runs: 3      # 全局并发上限 (1-32)，含 manual triggers，经 Postgres advisory lock 共享
+  queue_timeout_seconds: 3600 # 排队等待超时 (60-604800)
   min_once_delay_seconds: 60  # 一次性任务最小延迟 (1-86400)
+  recursion_limit: 1000       # 调度 run 的 LangGraph recursion_limit（dispatch 时读取，clamp 到 max_recursion_limit）
 ```
 
-**重启生效**：所有 scheduler 字段都在 `STARTUP_ONLY_FIELDS` 中注册。API 端点（CRUD）不受 `enabled` 影响——关闭时仅轮询停止。
+**重启生效**：除 `recursion_limit` 外，所有 scheduler 字段都在 `STARTUP_ONLY_FIELDS` 中注册。`recursion_limit` 是段内唯一例外——它在每次 dispatch 时经 `_resolve_scheduler_recursion_limit()` 从 `get_app_config()` 读取（`gateway/services.py`），所以改 YAML 后**下一个调度 run 立即生效，无需重启 poller**；超 `max_recursion_limit` 会被 clamp 并记 WARNING，config 加载失败则回退到默认 1000。API 端点（CRUD）不受 `enabled` 影响——关闭时仅轮询停止。
 
 ## 快速使用
 
@@ -83,22 +86,40 @@ Scheduler 启动的 run 自动设置 `non_interactive=True`，移除 `ask_clarif
 ## 生命周期
 
 ```
+调度 occurrence（每个任务最多一个非终态）:
+  claim_due_tasks → create(queued) → claim_queued_run(launching) → launch → running → success/failed/interrupted
+
 once 任务:
-  created → enabled → [等待 next_run_at] → running → completed/failed/cancelled
+  created → enabled → [等待 next_run_at] → queued → launching → running → completed/failed/cancelled
 
 cron 任务:
-  created → enabled → running → enabled → running → ... (无限循环)
+  created → enabled → queued → launching → running → enabled → ... (无限循环)
                     ↕
                   paused
 ```
 
 启动协调（Gateway lifespan）：
-- `mark_stale_active_runs()`：将 `queued`/`running` 的 run 行标记为 `interrupted`
-- `cancel_stuck_once_tasks()`：将租约已清除但从未收到完成钩子的 `once` 任务标记为 `cancelled`
+- `mark_stale_active_runs()`：单实例模式下将 `queued`/`running` 的 run 行标记为 `interrupted`，并 `cancel_stuck_once_tasks()` 清理停在 `running` 但从未收到完成钩子的 `once` 任务
+- `multi_instance: true` 时改用 `_reconcile_active_state()`：按租约宽限（`run_ownership.grace_seconds`）回收过期 launch claim、原子接管过期 run lease、fence 掉 stale launch 写入，不盲目打断其它实例仍活跃的 run
 
-## 重叠策略
+## 重叠策略（busy 入队）
 
-MVP 仅支持 `skip`：任务已有活跃 run 时跳过本次触发。Cron 任务跳过并进阶 `next_run_at`；once 任务跳过即标记 `failed`。手动触发返回 HTTP 409。
+任务已有活跃 run 时**不再跳过**，而是把本次触发持久化为 `queued` 队列行（`645ca08f`）：
+
+- 每个任务最多一个非终态 occurrence（`queued`/`launching`/`running`），由唯一索引 `uq_scheduled_task_run_active` 保证。
+- `queued` 持久化、跨重启存活；`launching` 是短租约 fence 的 claim，是唯一可调用正常 Gateway launch 路径的状态；`running` 关联 durable run。每次 occurrence 还携带稳定 run-admission 幂等 key，恢复的 launch 重试复用同一个 durable run。
+- 重复触发 coalesce 到同一个活跃行；同线程 FIFO：更早的 `queued`/`launching`/`running` 行都算 blocker。
+- `scheduler.queue_timeout_seconds`（默认 3600s）bound 持久等待：超时把 occurrence 标 `failed` 并进阶 `next_run_at`，防止立刻无限 requeue。
+- `reuse_thread` 触发 `ConflictError` 时把 `launching` 移回 `queued`；非冲突 launch 错误成为终态 `failed`。
+- 等待行**不占用** `max_concurrent_runs`；只有原子队列 claim（`claim_queued_run`）才执行全局预算。
+- 手动触发：失败不消耗任务的 scheduled future（`once` 任务 `run_at` 还在未来时不会被翻成 `failed`）；pause 可原子取消已 `queued` 行，但手动触发在 pause 下仍可排队运行。
+
+## 全局并发预算
+
+`max_concurrent_runs` 是**全局共享**上限，覆盖 `launching`/`running` 行（`1dd6ba1a` + `645ca08f`）：
+
+- admission 与执行容量分离：到期 occurrence 即使所有执行槽都忙也会先持久化，`claim_queued_run()` 在数据库锁下应用全局预算（Postgres 用 advisory lock 使多实例共享同一 cap）。
+- **manual triggers 同样受限**：手动触发走同一 admission + claim 路径，预算满时返回 `outcome="queued"`（HTTP 200 `triggered:true`），run 排队而非立即启动——不再能绕过全局上限。
 
 ## 调试
 
@@ -108,7 +129,9 @@ MVP 仅支持 `skip`：任务已有活跃 run 时跳过本次触发。Cron 任�
 | 任务不触发 | `status` 是否为 `enabled`（非 `paused`/`completed`） |
 | 任务不触发 | `next_run_at <= now` 且 `lease_expires_at` 为空或已过期 |
 | 任务卡在 running | 租约过期→下次轮询回收；租约有效→worker 正在执行 |
-| 全局不调度 | `count_active_runs() >= max_concurrent_runs` 已满 |
+| 全局不调度 | `count_active_runs() >= max_concurrent_runs` 已满（多实例下经 advisory lock 共享同一 cap） |
+| 任务卡在 queued | 预算已满在等槽；或 `queue_timeout_seconds` 内无槽→超时标 `failed` |
+| 多实例误判 stale | 确认 `multi_instance: true` 且满足 Postgres + heartbeat + db 事件存储前置条件，否则启动拒绝 |
 
 ## API 端点
 
@@ -134,7 +157,7 @@ MVP 仅支持 `skip`：任务已有活跃 run 时跳过本次触发。Cron 任�
 | ORM | `deerflow/persistence/scheduled_tasks/` + `scheduled_task_runs/` |
 | Service | `app/scheduler/service.py` |
 | Router | `app/gateway/routers/scheduled_tasks.py` |
-| Migration | `persistence/migrations/versions/0003_scheduled_tasks.py` |
+| Migration | `persistence/migrations/versions/0003_scheduled_tasks.py`、`0015_scheduled_task_enqueue.py` |
 | Frontend | `frontend/src/core/scheduled-tasks/cron.ts` |
 
-测试：9 个测试文件覆盖 ORM、repository、claim、调度、服务层、路由、Gateway 生命周期。
+测试：13 个 `test_scheduled_task*` 文件覆盖 ORM、repository、claim、调度、服务层、路由、Gateway 生命周期，其中 `test_scheduled_task_queue.py`（新增）与 `test_migration_0015_scheduled_task_enqueue.py` 专测 busy 入队/队列预算/租约 fence。

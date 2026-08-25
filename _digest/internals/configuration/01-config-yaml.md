@@ -6,7 +6,7 @@ topics: [configuration, hot-reload, yaml-config]
 
 # AppConfig — config.yaml 内部机制
 
-`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:84`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 ~35 个顶层 section。
+`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:192`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 35 个顶层 section（含 `config_version`；`plugins:` 打包扩展由 operator 手工添加，不在 example 中）。
 
 ## from_file() 8 步流水线
 
@@ -28,7 +28,7 @@ topics: [configuration, hot-reload, yaml-config]
 `_check_config_version()` (`app_config.py:226`) 从 `config.yaml` 读 `config_version`（整数，缺省 = 0），然后在上 5 级目录找 `config.example.yaml`，取其 `config_version`。用户版本 < example 版本时，发出 warning：
 
 ```
-Your config.yaml (version 5) is outdated — the latest version is 19.
+Your config.yaml (version 33) is outdated — the latest version is 36.
 Run `make config-upgrade` to merge new fields into your config.
 ```
 
@@ -99,7 +99,7 @@ pop_current_app_config()                   # 弹出
 
 ---
 
-## ~35 Section 速览
+## 35 Section 速览
 
 | Section | 类型 | 作用 |
 |---------|------|------|
@@ -114,11 +114,14 @@ pop_current_app_config()                   # 弹出
 | `tool_search` | `ToolSearchConfig` | 延迟 tool 加载 |
 | `title` | `TitleConfig` | 自动标题生成 |
 | `summarization` | `SummarizationConfig` | 上下文摘要 |
-| `memory` | `MemoryConfig` | 🆕 可插拔记忆系统（`manager_class` + `mode` + `backend_config`） |
+| `memory` | `MemoryConfig` | 🆕 可插拔记忆系统（`manager_class` + `mode` + `backend_config`），5 个后端：`deermem`/`mem0`/`noop`/`openviking`/`honcho` |
 | `authz` 🆕 | `AuthorizationConfig` | 可插拔授权 provider（Phase 0 scaffolding） |
 | `agents_api` | `AgentsApiConfig` | 自定义 agent 管理 API |
 | `acp_agents` | `dict[str, ACPAgentConfig]` | ACP 外部 agent |
 | `subagents` | `SubagentsAppConfig` | subagent 运行时 + override |
+| 🆕 `subagent_runtime` | `SubagentRuntimeConfig` | 进程级准入容量（`max_running`/`max_queued`/`admission_policy`），普通与 batch subagent 共享，**重启生效** |
+| 🆕 `subagent_batches` | `SubagentBatchesConfig` | 持久化原生 subagent 批调度/lease/恢复，默认关闭，**重启生效** |
+| 🆕 `verification` | `VerificationConfig` | tool 结果确定性收据（receipts）+ 可选 judge，可热更新 |
 | `guardrails` | `GuardrailsConfig` | tool 执行前授权 |
 | `circuit_breaker` | `CircuitBreakerConfig` | LLM 断路器 |
 | `loop_detection` | `LoopDetectionConfig` | 循环 tool call 检测 |
@@ -128,6 +131,7 @@ pop_current_app_config()                   # 弹出
 | `checkpointer` | `CheckpointerConfig` | ⚠️ **已废弃**，改用 `database` |
 | `stream_bridge` | `StreamBridgeConfig` | SSE bridge 后端（memory / redis） |
 | `extensions` | `ExtensionsConfig` | MCP + skills 状态（从 JSON 合并） |
+| 🆕 `plugins` | `list[ExtensionSpec]` | 打包的 Python 扩展入口点（`module.path:install`），启动时按序加载，**重启生效** |
 | `config_version` | int（extra） | 配置版本号（vs config.example.yaml） |
 | 🆕 `logging.enhance` | | 请求 trace correlation（X-Trace-Id） |
 | 🆕 `token_budget` | | Per-run token 限制（warn + hard_stop 阈值） |
@@ -135,14 +139,15 @@ pop_current_app_config()                   # 弹出
 | 🆕 `tool_output` | | 超大 tool 结果磁盘持久化 + 截断 |
 | 🆕 `tool_progress` | | Tool 停滞检测状态机 |
 | 🆕 `read_before_write` | | 写文件前必须 read_file（默认 on） |
-| 🆕 `scheduler` | | 后台 cron + 一次性任务调度 |
+| 🆕 `scheduler` | | 后台 cron + 一次性任务调度；`recursion_limit` 例外：每次 dispatch 时读取，改 YAML 下一个 run 生效 |
+| 🆕 `mcp_tasks` | `McpTasksConfig` | 长时 MCP 任务持久化 + 后台轮询，**重启生效** |
 | 🆕 `channel_connections` | | 用户拥有的 IM 频道绑定 |
 | 🆕 `auth.oidc` | | OIDC SSO（Keycloak/Google/Azure/Okta） |
 | 🆕 `suggestions` | | 自动生成跟进问题建议 |
 
-注：config version 10→19，`checkpointer` 已废弃但后向兼容。
+注：当前 `config_version` = **36**；`checkpointer` 已废弃但后向兼容（统一由 `database` 接管）。
 
 ## 🆕 Feature Gating
 
-`GET /api/features` — 运行时特性门控端点。当前暴露 `agents_api.enabled` 供前端条件渲染 UI 组件。模式：config.yaml 定义 flag → Gateway 端点暴露 → 前端 `useQuery` 读取 → UI 条件渲染。新增 flag 只需扩展 `FeaturesResponse` schema，无需改前端路由逻辑。
+`GET /api/features` — 运行时特性门控端点。当前暴露 `agents_api.enabled`、`browser_control.available`、`mcp_tasks`（`app.state.mcp_tasks_available`）、`subagent_batches`（`repository_available` / `worker_running` / `max_running`）供前端条件渲染 UI 组件。模式：config.yaml 定义 flag → Gateway 端点暴露 → 前端 `useQuery` 读取 → UI 条件渲染。新增 flag 只需扩展 `FeaturesResponse` schema，无需改前端路由逻辑。
 

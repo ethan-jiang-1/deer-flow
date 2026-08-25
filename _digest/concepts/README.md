@@ -13,7 +13,7 @@ DeerFlow 的六大核心抽象。理解这些就理解了 DeerFlow。
 | 目录 | 内容 |
 |------|------|
 | `lead-agent/` | Lead Agent 工厂函数 + ThreadState 结构 |
-| `sandbox/` | Sandbox 抽象接口 + 六种实现（Local/Docker/K8s/BoxLite/E2B/Tenki） |
+| `sandbox/` | Sandbox 抽象接口 + 七种实现（Local/Docker/K8s/BoxLite/E2B/Tenki/OpenSandbox） |
 | `subagent/` | Sub-agent 系统：双线程池 + 完整生命周期 |
 | `memory/` | 🆕 Memory 系统：可插拔后端（deermem/mem0/noop/openviking）+ consolidation + staleness review |
 | `skills-tools/` | 🆕 Skills 系统（SKILL.md）+ SkillScan + deferred discovery + review gate |

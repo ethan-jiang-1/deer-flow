@@ -36,6 +36,7 @@ DeerFlow 没有文件系统 watcher（inotify/watchdog），也不依赖 WebSock
 6. **[05-guardrail-plugin.md](05-guardrail-plugin.md)** — `GuardrailProvider` Protocol 协议栈、`fail_closed` 策略、动态加载
 7. **[06-mcp-interceptors.md](06-mcp-interceptors.md)** — MCP 拦截器链、OAuth 注入、`extensions_config.json` 的 Gateway 写回 + LangGraph 读取管道
 8. **[08-agent-self-modification.md](08-agent-self-modification.md)** — `update_agent_tool` / `setup_agent_tool`：agent 在对话中原子更新自己的 SOUL.md/config.yaml
+9. **[09-packaged-extensions.md](09-packaged-extensions.md)** — 打包扩展子系统：7 类贡献点（middleware / task lifecycle / system-model observer / gateway service / router / assembly / compaction）、`deerflow extensions` CLI、manager 事务与锁、信任边界、extension-api 契约
 
 ---
 
@@ -85,7 +86,7 @@ DeerFlow 没有文件系统 watcher（inotify/watchdog），也不依赖 WebSock
 
 - `middleware/01-hooks-and-flow.md` — Agent 生命周期的 6 个 hook 点，这里是**面向中间件开发者**的详细 API。本目录 04 篇提供**面向用户**的视角：怎么把自己的 middleware 挂上去、怎么控制位置、怎么开关。
 - `middleware/02-chain-assembly.md` — 链装配的 `@Next`/`@Prev` 定位系统。本目录 04 篇覆盖同样的机制但从 `extra_middleware` 注入和 `RuntimeFeatures` 的角度。
-- `middleware/03-catalog.md` — 35 个 middleware 的逐个目录。本目录 04 篇提供架构层面的"怎么加第 20 个"。
+- `middleware/03-catalog.md` — 36 个 middleware 的逐个目录。本目录 04 篇提供架构层面的"怎么加第 20 个"。
 
 ## 关键设计原则
 

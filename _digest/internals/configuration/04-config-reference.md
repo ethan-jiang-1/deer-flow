@@ -33,7 +33,7 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 ## 配置版本
 
 ```yaml
-config_version: 33
+config_version: 36
 ```
 
 用于检测配置过期。改 schema 时上游会升这个数字。`make config-upgrade` 把新字段合并到已有 `config.yaml`。
@@ -250,7 +250,7 @@ sandbox:
   # environment: { ... }
 ```
 
-Tenki 云 micro-VM（第 6 个沙箱 provider）。SDK 同步调用，懒加载（`deerflow-harness[tenki]` extra）。详见 [concepts/sandbox/abstract-interface-and-six-impls.md](../../concepts/sandbox/abstract-interface-and-six-impls.md)。
+Tenki 云 micro-VM（第 6 个沙箱 provider）。SDK 同步调用，懒加载（`deerflow-harness[tenki]` extra）。详见 [concepts/sandbox/abstract-interface-and-seven-impls.md](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。
 
 ## Subagents（子 Agent）
 
@@ -277,6 +277,37 @@ subagents:
       max_turns: 80
       timeout_seconds: 600
 ```
+
+### subagent_runtime（进程级准入容量）🆕
+
+```yaml
+subagent_runtime:
+  max_running: 3               # 进程内同时执行的 subagent 上限
+  max_queued: 64               # 异步等待队列上限（排队不占执行线程）
+  admission_policy: queue      # queue | reject（满员时排队或拒绝）
+  queue_timeout_seconds: 300   # 排队超时
+```
+
+普通 `task` 调用与 durable batch **共享**这份进程级容量。字段为 restart-required（Gateway lifespan 启动时捕获）。
+
+### subagent_batches（持久化原生 subagent 批）🆕
+
+```yaml
+subagent_batches:
+  enabled: false               # 默认关闭：开启会显著增加模型用量，且需要 database.backend sqlite/postgres
+  poll_interval_seconds: 1
+  lease_seconds: 120
+  max_items_per_batch: 5000
+  default_max_live_items: 100
+  max_live_items_per_batch: 1000
+  default_max_running_items: 3
+  max_running_items_per_batch: 64
+  max_attempts: 3
+  max_result_chars: 100000
+  result_preview_max_chars: 2000
+```
+
+三个上限刻意分离：`total`（一批持久化的全部 item）、`live`（同一时刻 pending/queued/running 的准入量）、`running`（一批里真正占执行槽的 item）。字段为 restart-required。
 
 ## ACP Agents（外部 Agent 协议）
 
@@ -348,7 +379,7 @@ memory:
   enabled: true
   injection_enabled: true
   mode: middleware              # middleware（被动注入）| tool（模型主动调用工具）
-  manager_class: deermem        # deermem | mem0 | noop | openviking | <custom>
+  manager_class: deermem        # deermem | mem0 | noop | openviking | honcho | <custom>
   shutdown_flush_timeout_seconds: 30
   backend_config:               # 🆕 后端私有配置（替代旧的平铺字段）
     storage_path: ""            # 空 = runtime_home()；DIRECTORY（不是文件！）
@@ -382,6 +413,26 @@ memory:
 ```
 
 > ⚠️ **Breaking Change (2.1)**：旧的平铺字段（`storage_path`, `max_facts`, `debounce_seconds` 等放在 `memory:` 下）已废弃。启动时自动迁移到 `backend_config` 并发出 warning。`storage_path` 从 FILE 路径变为 DIRECTORY 路径。
+
+### Honcho（第 5 个 memory 后端）🆕
+
+`manager_class: honcho` 走远程 HTTP adapter，用 Honcho 服务端 deriver 构建 user-model 记忆表示，**无本地 LLM 调用**（区别于 deermem 的本地提取）。每个 user id 一个隔离 workspace：
+
+```yaml
+memory:
+  enabled: true
+  manager_class: honcho
+  mode: middleware        # middleware（被动注入）| tool（模型主动调用 memory_search）
+  backend_config:
+    base_url: http://localhost:8000
+    # api_key: $HONCHO_API_KEY          # hosted Honcho；plain-http + api_key 需 allow_insecure_http: true
+    workspace_prefix: deerflow-u-       # 每个 user id 一个隔离 workspace
+    # workspace_overrides: {}           # 特定 user id → 自定义 workspace
+    # user_peer_overrides: {}           # 特定 user id → 自定义 peer 名
+    assistant_peer: deerflow
+```
+
+后端注册表位于 `deerflow/agents/memory/backends/`（`deermem`/`honcho`/`mem0`/`noop`/`openviking`），每个子目录暴露 `MANAGER_CLASS`。`manager_class` 可以是这些注册名之一，也可以是一个 `MemoryManager` 子类的 dotted import path。
 
 ## Authorization（授权）🆕
 
@@ -492,6 +543,51 @@ circuit_breaker:
 
 详见 [../integration/07-im-channels.md](../../operations/integration/04-im-channels.md)。
 
+## Verification（tool 结果确定性收据）🆕
+
+```yaml
+verification:
+  receipts_enabled: true                # 把确定性收据盖章到 tool 结果并注入模型上下文
+  receipts_render_mode: "delegation_only"  # 只在处理 subagent 结果时渲染 lead-chain ledger
+  judge_enabled: false                  # 验收标准 judge，默认关闭（保留给 acceptance-criteria review）
+  judge_model_name: null
+```
+
+收据让最终报告能引用实际执行过的动作。`receipts_render_mode=delegation_only` 下，subagent chain 始终渲染，lead 链只在处理 subagent 结果时渲染。
+
+## Scheduler（后台定时任务）🆕
+
+```yaml
+scheduler:
+  enabled: false               # 后台 poller 主开关
+  multi_instance: false        # 跨 Gateway 实例的 lease 感知恢复（需共享 Postgres + run ownership + db run_events）
+  poll_interval_seconds: 5
+  lease_seconds: 120           # claim lease；崩溃进程的任务此后可被回收
+  max_concurrent_runs: 3       # 全局 launching/running 上限（multi-instance 下为共享 global cap）
+  queue_timeout_seconds: 3600
+  min_once_delay_seconds: 60
+  recursion_limit: 1000        # 定时 run 的 LangGraph super-step 上限（匹配 web UI，被 max_recursion_limit 钳制）
+```
+
+poller 字段（`enabled`/`multi_instance`/`poll_interval_seconds`/`lease_seconds`/`max_concurrent_runs`/`min_once_delay_seconds`）为 restart-required。**例外**：`recursion_limit` 在每次 dispatch 时从 `get_app_config()` 读取，改 YAML 后下一个定时 run 即生效，无需重启 poller。
+
+## mcp_tasks（长时 MCP 任务持久化）🆕
+
+```yaml
+mcp_tasks:
+  enabled: false               # 后台状态 poller 主开关
+  poll_interval_seconds: 5
+  lease_seconds: 120
+  max_concurrent_polls: 8
+  max_poll_backoff_seconds: 300
+  input_required_poll_interval_seconds: 60
+  tracking_degraded_after_errors: 3
+  max_result_bytes: 65536
+  result_preview_max_chars: 2000
+```
+
+持久化运行时承载普通 MCP submit/status/cancel 工具集；`task_toolsets` 按 server 在 `extensions_config.json` 里配置。所有字段 restart-required（Gateway lifespan 启动时捕获）。
+
 ---
 
 ## 配置热加载备忘
@@ -503,9 +599,10 @@ circuit_breaker:
 | title | run_events |
 | memory | stream_bridge |
 | subagents | sandbox.use |
-| tools | log_level |
-| agent system prompt | channels 凭证 |
-| guardrails | |
+| verification | log_level |
+| tools | channels 凭证 |
+| agent system prompt | scheduler.*（`recursion_limit` 除外） |
+| guardrails | mcp_tasks / subagent_runtime / subagent_batches / plugins |
 
 ---
 

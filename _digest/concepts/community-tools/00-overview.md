@@ -1,12 +1,12 @@
 ---
 title: "社区工具集成全景"
-description: "DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图和沙箱隔离。"
+description: "DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图、知识库检索（RAGFlow）和沙箱隔离。"
 topics: [tools, community, external-integration]
 ---
 
 # 社区工具集成全景
 
-DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图和沙箱隔离。
+DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图、知识库检索（RAGFlow）和沙箱隔离。
 
 ## 集成矩阵
 
@@ -26,6 +26,7 @@ DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，�
 | **fastCRW** 🆕 | web_search | config `api_key` | 否 | 否 |
 | **Browserless** 🆕 | web_capture（截图） | config `api_key` | 否 | 否 |
 | **SearXNG** | web_search | 否 | 否 | 否 |
+| **RAGFlow** 🆕 | knowledge retrieval（知识库检索，只读） | `RAGFLOW_API_KEY` | **是** | 否 |
 | **Browser Automation** 🆕 | browser（Playwright agentic） | 否 | N/A | 否 |
 | **AIO Sandbox** | sandbox | 否 | N/A | 否 |
 | **BoxLite** | sandbox（micro-VM） | 否 | N/A | 否 |
@@ -33,6 +34,8 @@ DeerFlow 在 `deerflow/community/` 下集成了 15+ 个外部工具 provider，�
 | **Tenki** 🆕 | sandbox（云端 micro-VM） | `TENKI_API_KEY` | N/A | 否 |
 
 > **Browser Automation**（`group: browser`）：Playwright agentic 浏览器控制（`browser_navigate`/`browser_snapshot`/`browser_click`/`browser_type`/`browser_get_text`/`browser_back`/`browser_screenshot`/`browser_close`）。进程内私有 loop-affine Playwright event-loop 线程；每步返回带稳定 `[ref]` 索引的页面快照；URL SSRF 过滤；可选 `cd backend && uv sync --extra browser && uv run playwright install chromium`。`GATEWAY_WORKERS > 1` 时禁止启用（无 thread affinity）。→ 深挖见 [06-browser-automation.md](06-browser-automation.md)。
+
+> **RAGFlow**（`group: knowledge`）：只读知识库检索，唯一工具 `knowledge_search`。operator 通过 `datasets` 白名单限定作用域（省略 = 搜 tenant 可见全部）；dataset 按 `embedding_model` 分组、最多 4 组并行检索、按 rank 交错合并；结果格式化成带 `[N]` 引用编号的紧凑文本；dataset ID 永不进模型。纯 `httpx` 实现，无三方 SDK。→ 深挖见 [07-ragflow.md](07-ragflow.md)。
 
 ## Tool 装配流程
 
@@ -88,6 +91,11 @@ config.yaml:                                          ┐
 需要 image search?
 ├─ 免费 → DDG Image Search
 └─ 付费/中文场景 → InfoQuest Image Search (需 INFOQUEST_API_KEY)
+
+需要检索私有知识库（RAG，非公开互联网）?
+└─ RAGFlow → knowledge_search（只读，需 RAGFLOW_API_KEY + dataset 白名单）
+   （注意：与内置 memory 检索不同——RAGFlow 接的是 operator 建好的领域知识库，
+     memory 记的是从对话里提取的 per-user fact。见 07-ragflow.md）
 ```
 
 ## 源码索引
@@ -104,6 +112,7 @@ config.yaml:                                          ┐
 | `community/image_search/` | `__init__.py`, `tools.py` |
 | `community/aio_sandbox/` | `__init__.py`, `aio_sandbox.py`, `aio_sandbox_provider.py`, `backend.py`, `local_backend.py`, `remote_backend.py`, `sandbox_info.py`, `ownership/`（跨实例租约） |
 | `community/browser_automation/` | `__init__.py`, `session.py`, `tools.py` |
+| `community/ragflow/` | `__init__.py`, `client.py`, `formatting.py`, `tools.py` |
 | `community/tenki/` | `__init__.py`, `provider.py`, `sandbox.py` |
 | Tool 装配 | `tools/tools.py` → `get_available_tools()` |
 | Async 包装 | `tools/sync.py` → `make_sync_tool_wrapper()` |

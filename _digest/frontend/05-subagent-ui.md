@@ -151,3 +151,50 @@ Subtask 状态通过 SSE 的 `custom` 事件流更新：
 - **Token 用量：** Subagent 的 token 消耗在流式结束时通过后端 `SubagentTokenCollector` 合并回父消息的 `token_usage_attribution`
 - **Artifact：** Subagent 产出的文件通过 tool call 的 `present_files` 注册到 `ArtifactsContext`
 - **Todo：** Subagent 完成可以通过 `write_todos` tool 更新共享的 todo 列表
+
+## Subagent 批量执行 UI（同步 #5）
+
+与上面的单次 `task`（实时 TaskTracker）不同，`batch_task` 是**持久化批量**执行：一次提交大量独立 item，进度走 TanStack Query 轮询而非 SSE。源码 `frontend/src/core/subagent-batches/` + `components/workspace/thread-subagent-batches.tsx`。
+
+### 数据模型（`core/subagent-batches/types.ts`）
+
+```typescript
+SubagentBatch   // { id, title, subagent_type, status: queued|running|paused|completed|failed|cancelled,
+                //   total_items, max_live_items, max_running_items, max_attempts, counts, ... }
+SubagentBatchItem // { id, batch_id, item_key, position, status: pending|queued|leased|running|succeeded|failed|cancelled,
+                  //   attempt, model_name, result_preview, result_truncated, error, token_usage, ... }
+```
+
+`subagentBatchProgress()` 把 completed item 数归一化成有界百分比（`Math.min(100, ...)`）后才交给 UI 原语。
+
+### Hooks（`core/subagent-batches/hooks.ts`）
+
+| Hook | Query Key | 行为 |
+|------|-----------|------|
+| `useSubagentBatches(threadId)` | `["subagent-batches", threadId]` | 列表（limit 20）；有活跃 batch 时 2s 轮询，否则 15s |
+| `useSubagentBatchItems(threadId, batchId)` | `[...batches, batchId, "items"]` | 无限分页（页大小 100）；**只在已加载 ≤1 页时 3s 轮询**，load-more 后停自动 fan-out |
+| `useControlSubagentBatch` | mutation | `pause`/`resume`/`cancel` → 失效列表查询 |
+| `useRetrySubagentBatchItem` | mutation | 重试单个失败 item → 失效列表 + items 查询 |
+
+### 能力门控与读模式
+
+`/api/features` 分开报告 **SQL repository 可用性** 与 **startup worker 状态**（`subagent_batches` 相关 capability）：
+
+- 有 worker → 在 default 与 Custom Agent 聊天页都显示触发入口；
+- 无 worker 但有 durable 历史 → 线程以**只读模式**展示历史 + JSONL 导出，worker 依赖的变更（pause/resume/cancel/retry）禁用；
+- 既无 worker 也无历史 → 隐藏触发入口。
+
+面板渲染有界进度 + 增量分页 item 预览；完整结果仅经 JSONL 导出，**不把完整结果集注入 chat state**，也不从 prompt 文本推断 batch mode。
+
+### API（`core/subagent-batches/api.ts`）
+
+`GET /api/threads/{id}/subagent-batches`、`GET .../{batchId}/items`、`POST .../{batchId}/{pause|resume|cancel}`、`POST .../{batchId}/items/{itemId}/retry`。
+
+## 后台任务 UI（MCP 持久化任务，同步 #5）
+
+与 subagent batch 并列的另一个「线程级后台工作」入口：`frontend/src/core/background-tasks/` + `components/workspace/thread-background-tasks.tsx`。它管理当前线程的 durable MCP 任务（`list_background_tasks` / `cancel_background_task` 的 UI 面）：
+
+- **门控**：header 触发入口对新/mock/static-demo 线程隐藏，且仅在 `/api/features` 报告 startup 作用域的 `mcp_tasks` capability 时才显示；capability 不可用（默认关闭 / memory 后端）时列表查询禁用，绝不轮询一个无法服务的端点。
+- **轮询**：列出至多 20 条本地任务；任一任务活跃时 3s 轮询，否则 15s；只在用户展开卡片时才拉取有界详情。
+- **展开视图**：展示 result/preview、artifact 元数据、input 请求、最近一次 poll/通知投递/取消错误，**不暴露持久化的远程 handle**。已请求取消的任务在 status 仍活跃时保持 "Cancelling…"；远程取消持续失败时卡片仍可展开并显示尝试次数 + 最近有界错误。
+- **通知投递失败**：暴露有界错误与尝试次数；可重试的失败走后端 backoff，永久拒绝或耗尽 5 次预算则显示为 stopped（而非暗示继续重试）。

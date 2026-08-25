@@ -78,7 +78,7 @@ run 事件回放       → observability/02-run-events-and-journal.md
 Console / 成本     → observability/04-console-and-cost.md
 上线清单 / 告警     → observability/07-production-checklist.md
 staleness review  → concepts/memory/extract-queue-persist-pipeline.md
-BoxLite / E2B     → concepts/sandbox/abstract-interface-and-six-impls.md
+BoxLite / E2B     → concepts/sandbox/abstract-interface-and-seven-impls.md
 deferred MCP      → internals/middleware/03-catalog.md (#25 DeferredToolFilter)
 deferred skills   → concepts/skills-tools/skill-md-and-tool-assembly.md
 ```

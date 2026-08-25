@@ -19,4 +19,4 @@ type: index
 | `configuration/` | 配置系统：config.yaml 全字段参考、extensions_config.json、动态加载 |
 | `runtime/` | 自建运行时：RunManager、StreamBridge、Serialization、RunJournal |
 | `persistence/` | 持久化：DB/Checkpointer/Store 三后端（SQLite/Postgres/Memory） |
-| `mcp/` | MCP 深度：Session Pool、OAuth、缓存失效 |
+| `mcp/` | MCP 深度：Session Pool、OAuth、缓存失效、按用户凭据、Durable Task |

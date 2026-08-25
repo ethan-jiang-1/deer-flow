@@ -192,3 +192,20 @@ if result.decision == "block":
 ### prompt 缓存刷新
 
 所有修改操作后都调用 `refresh_skills_system_prompt_cache_async()`，确保下一个 turn system prompt 中的技能列表是最新的。
+
+---
+
+## 不属于本类：新增的执行类 builtin 工具（同步 #5）
+
+> **分类说明**：本文件只收录「Agent 定义管理」（改 SOUL.md / config.yaml / skills）。上游新增的 `batch_task_tool.py` 与 `background_tasks_tool.py` 是**执行编排**工具，不属于本类——批量工具是 `task`（subagent 委派）的持久化扩展（见 [`D-task-toolsearch.md`](D-task-toolsearch.md)），后台任务工具属于 MCP 持久化任务子系统（见 [`../../internals/mcp/`](../../internals/mcp/README.md)）。此处仅做最小交叉引用，不展开重复文档。
+
+### `batch_task` / `batch_status` / `cancel_batch`（`tools/builtins/batch_task_tool.py`）
+
+- **加载条件**：仅当启动时安装了 SQL 后端的 durable batch submitter（`config.yaml → subagent_batches.enabled: true` + SQL 数据库）时加入；结果走 owner 作用域的 API/JSONL 导出，不塞回 lead context。
+- **用途**：显式 durable batch 模式——一次性提交大量**彼此独立、幂等/只读**的 native-subagent item（`title` + `items[key,prompt]` + `subagent_type`，可选 `max_live_items`/`max_running_items`），立即返回 batch id，跨 Gateway 重启存活；`batch_status` 读紧凑进度快照，`cancel_batch` 取消 pending+running。
+- **可用性**：submitter 未安装时返回 `"Durable subagent batches are unavailable..."` error。
+
+### `list_background_tasks` / `cancel_background_task`（`tools/builtins/background_tasks_tool.py`）
+
+- **加载条件**：仅当进程内 MCP task submitter 已安装（`mcp_tasks.enabled` + SQL 持久化）时加入。
+- **用途**：自然语言管理当前线程的 durable MCP 后台任务——`list_background_tasks(active_only?)` 列出至多 50 条本地任务（含是否请求取消），`cancel_background_task(task?)` 按任务名/id 取消一个活跃任务；**永不暴露远程 task handle**，取消持久化后立即返回，远程调用与重试由后台服务负责。

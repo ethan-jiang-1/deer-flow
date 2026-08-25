@@ -1,6 +1,6 @@
 ---
 title: "沙箱系统"
-description: "DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 6 种实现（Local/AIO/Provisioner/BoxLite/E2B/Tenki）。"
+description: "DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 7 种实现（Local/AIO/Provisioner/BoxLite/E2B/Tenki/OpenSandbox）。"
 topics: [sandbox, isolation, filesystem]
 ---
 
@@ -8,7 +8,7 @@ topics: [sandbox, isolation, filesystem]
 
 DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。
 
-> **交叉引用：** 六种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../../operations/security/02-sandbox-isolation.md)。
+> **交叉引用：** 七种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../../operations/security/02-sandbox-isolation.md)。
 
 ## 抽象接口
 
@@ -48,7 +48,7 @@ class SandboxProvider:
 
 `get_sandbox_provider()` 有构造竞态保护：双线程同时 cold-start 时，loser 的 provider 调 `shutdown()` 避免泄漏（issue #3721）。
 
-## 六种实现
+## 七种实现
 
 所有实现共享 `WarmPoolLifecycleMixin`（`community/warm_pool_lifecycle.py`），提供 idle timeout、replicas 软上限、过期 warm entry 回收。AIO 把 active-idle 清理留在 provider 内，只把 warm-pool 过期委托给共享 mixin。
 
@@ -141,6 +141,35 @@ Tenki 云 micro-VM（tenki.cloud），与 BoxLite（本地微 VM）平行的**�
 - 终端 session 错误（`SessionTerminatedError` 等 + `ConnectionError`/`BrokenPipeError`/`EOFError`）经 `_invalidate_sandbox` 驱逐死微 VM
 - 跨进程孤儿对账是 follow-up（目前单进程 warm pool）
 
+### 7. OpenSandboxProvider（云端沙箱）🆕
+
+```yaml
+sandbox:
+  use: deerflow.community.opensandbox:OpenSandboxProvider
+  image: python:3.11           # 默认
+  api_key: $OPEN_SANDBOX_API_KEY   # 或 OPEN_SANDBOX_API_KEY 环境变量
+  domain: localhost:8080           # 或 OPEN_SANDBOX_DOMAIN 环境变量
+  protocol: http
+  request_timeout: 30
+  ready_timeout: 30
+  use_server_proxy: false          # Gateway 连得到管理服务但连不到沙箱 execd 时启用
+  sandbox_timeout: 14400           # 远端生命周期（默认 4h）；0 = 仅显式清理（禁用 renew）
+  bash_command_timeout: 600        # 默认命令超时
+  replicas: 3                      # active+warm 上限
+  idle_timeout: 600                # warm 秒数；0 禁用回收
+  environment: { PYTHONUNBUFFERED: "1" }   # $VAR 从 Gateway 进程环境解析
+```
+
+[OpenSandbox](https://github.com/opensandbox-group/OpenSandbox) 云端沙箱，经**同步** Python SDK 实现 `Sandbox`/`SandboxProvider` 契约。隔离模型为**远程云沙箱**：命令走 `execd` 端点、文件走原生 filesystem API，全在远端执行，host 不共享进程/文件系统（与 E2B 同级）。SDK 是可选依赖（`deerflow-harness[opensandbox]`，`opensandbox>=0.1.15,<0.2.0`），`_import_sdk()` 只在选中该 provider 时懒加载。`api_key`/`domain` 可省略（走环境变量）；配置了远程 HTTP 域会 warn 建议 HTTPS。
+
+- 沙箱 ID 确定性派生 `sha256(user_id:thread_id)[:16]`；释放入 in-process warm pool，仅同 scope 经 `ping()`（跑 `true`）健康检查后复用
+- 每个 remote 持有**独立 SDK 连接 transport**（`_new_connection_config` 每 remote 一份 base config，`SandboxSync.create()` 派生 transport、`destroy()` 关闭），避免活沙箱继承另一个沙箱的 transport
+- 操作前 `renew(sandbox_timeout)`；命令用 `bash_command_timeout`，需要时延长 renew horizon；per-remote `_operation_lock` 序列化操作，防止短文件操作缩短长命令 horizon
+- 文件传输走 OpenSandbox 原生 filesystem API；append 是 read-modify-write（SDK 0.1.x 无 append 原语）。`list_dir`/`glob`/`grep` shell out 到 portable `find`/`grep`，共享 `deerflow.sandbox.search` 解析层
+- 路径必须绝对且无 `..`（`_resolve_path`）；artifact 下载额外限定在 `/mnt/user-data`（`_resolve_download_path`）
+- 终端失败（command 路径 404/410、`SandboxUnhealthyException`、broken transport `BrokenPipeError`/`ConnectionError`/`EOFError`）经 `_invalidate_sandbox` 驱逐死 client，下次 acquire 冷启动；file-path 404 仍为普通缺文件错误
+- `reset()` 把 active 客户 park 入 warm pool 交由 detached provider 清理；`shutdown()` 销毁 active + warm remote。跨进程发现/ownership 尚未实现（单进程 warm pool，follow-up）
+
 ### 环境变量擦洗
 
 `env_policy.build_sandbox_env()` 在注入请求级密钥前从继承环境剥离敏感变量：
@@ -175,6 +204,17 @@ E2B 侧是独立的远程对账线程（见上文 #5）。测试：`test_sandbox
 - **lazy_init（默认）**：延迟到首次 tool call 才 `ensure_sandbox_initialized` 获取沙箱，而非 agent 启动时
 - **fork-restored 保护**：`after_agent`/`aafter_agent` 用 `unwrap_sandbox()` 检测 `Overwrite` 包装（delta checkpoint 模式下 fork 恢复的 sandbox channel 值可能被包裹）。fork-restored 的沙箱只属于 parent thread，**不释放**，避免 evict parent 的 warm sandbox
 - **wrap_tool_call**：检测 lazy init 后 sandbox_id 的新增，通过 `Command(update=...)` 持久化进 graph state（否则 LangGraph reducer 不会自动拾取 runtime.state 的本地修改）
+
+## sandbox:execute 授权 🆕
+
+每次沙箱获取都经过 `authorize_sandbox_execution`（`deerflow/authz/sandbox_authz.py`）——在 `provider.acquire` 之前做一次二进制 `authorize(principal, "sandbox", "execute", target="*")` 检查：
+
+- **单一获取入口，无法绕过**：gate 落在 `ensure_sandbox_initialized` / `ensure_sandbox_initialized_async`（`tools.py`）和 `SandboxMiddleware.before_agent` / `abefore_agent`（`middleware.py`），无论哪个 sandbox 工具触发都一样；复用路径（state 已有 sandbox）跳过重复检查
+- **deny → 友好 ToolMessage**：`SandboxAuthorizationError`（`sandbox/exceptions.py`）向上穿过工具执行，agent 的工具错误处理把它转成 `"sandbox execution is not permitted for your role"` 而不是让 run 崩掉（RFC §9）。eager 路径（`before_agent`）捕获 deny 后跳过获取，把拒绝推迟到首个触碰沙箱的工具调用，两条路径语义一致
+- **fail_closed / fail_open**：provider 错误（`authorize()` 与 provider 解析）遵循 `authorization.fail_closed`；无 `config.yaml` 或 `authorization.enabled: false` 时 gate 是 no-op（`safe_app_config` 容忍缺失配置）
+- **target 是哨兵 `*`**（"沙箱整体"）——沙箱是单一共享资源，不是 tools/models/skills 那样的命名目录；RBAC `allow: ["*"]` / `allow: true` 放行，`allow: []` / `allow: false` 拒绝
+- 与 `apply_tool_authorization`（`tool_filter.py`）、`_authorize_model_name`（`lead_agent/agent.py`）共享同一 Principal/provider 身份来源
+- 测试：`tests/test_sandbox_authorization.py`
 
 ## Sandbox 检测
 

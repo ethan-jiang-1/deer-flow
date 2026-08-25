@@ -1,7 +1,7 @@
 ---
 title: "Memory 系统 — 可插拔后端架构"
-description: "DeerFlow 2.1 的 Memory 系统从单体 DeerMem 重构为可插拔后端架构，支持 middleware 和 tool 双模式，新增 consolidation 和 staleness review。"
-topics: [memory, persistence, context-injection, pluggable-backend, consolidation, staleness]
+description: "DeerFlow 2.1 的 Memory 系统从单体 DeerMem 重构为可插拔后端架构，支持 middleware 和 tool 双模式、5 个可插拔后端（deermem/mem0/noop/openviking/honcho），新增 consolidation、staleness review 和 hybrid fact eviction。"
+topics: [memory, persistence, context-injection, pluggable-backend, consolidation, staleness, honcho, eviction]
 ---
 
 # Memory 系统 — 可插拔后端架构
@@ -13,7 +13,7 @@ topics: [memory, persistence, context-injection, pluggable-backend, consolidatio
 ```
 ┌─────────────────────────────────────────────────┐
 │                  config.yaml                     │
-│  memory.manager_class: deermem|mem0|noop|openviking │
+│  memory.manager_class: deermem|mem0|noop|openviking|honcho │
 │  memory.mode: middleware | tool                  │
 │  memory.backend_config: { ... }                  │
 └─────────────────┬───────────────────────────────┘
@@ -23,14 +23,14 @@ topics: [memory, persistence, context-injection, pluggable-backend, consolidatio
 │  add / add_nowait / get_context / search         │
 │  get_memory / delete_memory / clear_memory       │
 │  import_memory / export_memory / shutdown_flush  │
-└───────┬────────────┬────────────┬──────────┬─────┘
-        │            │            │          │
-┌───────▼────┐ ┌─────▼────┐ ┌─────▼────┐ ┌────▼────────┐
-│  DeerMem   │ │ mem0     │ │  Noop    │ │ OpenViking  │
-│  (default) │ │ 平台 API │ │ (template)│ │ 远程语义检索│
-│  JSON+MD   │ │ 客户端   │ │ 空实现    │ │ middleware  │
-│  Markdown  │ │          │ │ 复制用    │ │ only        │
-└────────────┘ └──────────┘ └──────────┘ └─────────────┘
+└───────┬────────────┬────────────┬──────────┬──────────┬─────┘
+        │            │            │          │          │
+┌───────▼────┐ ┌─────▼────┐ ┌─────▼────┐ ┌────▼────┐ ┌───▼─────┐
+│  DeerMem   │ │ mem0     │ │  Noop    │ │OpenViking│ │ Honcho  │
+│  (default) │ │ 平台 API │ │ (template)│ │ 远程语义 │ │ 用户模型 │
+│  JSON+MD   │ │ 客户端   │ │ 空实现    │ │ 检索     │ │ 记忆提供 │
+│  Markdown  │ │          │ │ 复制用    │ │ midw only│ │ 方 #1898 │
+└────────────┘ └──────────┘ └──────────┘ └──────────┘ └─────────┘
 ```
 
 ### 两种运行模式
@@ -40,7 +40,7 @@ topics: [memory, persistence, context-injection, pluggable-backend, consolidatio
 | **Middleware**（默认） | `middleware` | `MemoryMiddleware` 在 `after_agent` 时入队对话 → 后台 debounced LLM 提取 fact → 下次对话时注入 `<memory>` |
 | **Tool**（实验性） | `tool` | 注册 `memory_search`/`add`/`update`/`delete` 工具 → 模型主动决定何时搜索、添加、更新、删除 fact |
 
-两种模式共享 prompt 注入和 updater 后端（DeerMem 特有的是 `FileMemoryStorage` + per-user/per-agent 隔离）。OpenViking 远程后端**只支持 middleware 模式**。
+两种模式共享 prompt 注入和 updater 后端（DeerMem 特有的是 `FileMemoryStorage` + per-user/per-agent 隔离）。OpenViking 远程后端**只支持 middleware 模式**。Honcho 远程后端支持两种模式（tool 模式下保留被动写入并提供 `search`，无 fact CRUD）。
 
 ---
 
@@ -76,6 +76,7 @@ backends/
 │       │   ├── storage.py  # FileMemoryStorage（v2: fact 存 Markdown）
 │       │   ├── queue.py    # debounced update queue
 │       │   ├── updater.py  # LLM-based update + staleness + consolidation
+│       │   ├── eviction.py # 容量驱逐策略（confidence / hybrid-v1）
 │       │   ├── llm.py      # LLM 调用封装
 │       │   ├── paths.py    # 路径解析
 │       │   └── prompts/    # 外置 YAML 模板
@@ -92,12 +93,17 @@ backends/
 │   ├── config.py     # OpenVikingConfig
 │   ├── openviking_manager.py
 │   └── session.py    # thread ↔ Session 确定性映射
+├── honcho/           ← 🆕 Honcho user-model 记忆提供方（远程 HTTP v3）
+│   ├── __init__.py   # MANAGER_CLASS = HonchoMemoryManager
+│   ├── client.py     # 最小同步 Honcho v3 HTTP 客户端（httpx）
+│   ├── config.py     # HonchoConfig
+│   └── honcho_manager.py
 └── <yourname>/       ← 自定义后端（drop-in）
 ```
 
 工厂 `get_memory_manager()` 按 `manager_class` 配置值解析：
 1. `_scan_backends()` 扫描 `backends/` 子目录，每个子包的 `__init__.py` 暴露 `MANAGER_CLASS` 属性即注册（目录名 = 后端短名）
-2. 先查注册的短名（`deermem`、`mem0`、`noop`、`openviking`）
+2. 先查注册的短名（`deermem`、`mem0`、`noop`、`openviking`、`honcho`）
 3. 再当 dotted path 解析（`pkg.mod:Cls` 或 `pkg.mod.Cls`）
 4. 都解析不了 → `ValueError`（不会静默 fallback 到错误后端——memory 是持久化状态，错了就是数据完整性 bug）
 
@@ -261,6 +267,51 @@ mem0 平台 API 客户端。**默认要求 HTTPS `base_url`**（请求携带 API
 
 ---
 
+## Honcho 后端（user-model 记忆提供方）🆕
+
+```yaml
+memory:
+  manager_class: honcho
+  mode: middleware              # 也支持 tool 模式（实现 search，无 fact CRUD）
+  backend_config:
+    base_url: http://localhost:8000   # 自托管 Honcho v3；hosted 用 https
+    # api_key: $HONCHO_API_KEY        # hosted Honcho；明文 HTTP + api_key 需 allow_insecure_http: true
+    workspace_prefix: deerflow-u-     # 每个 user 一个隔离 workspace
+    # workspace_overrides: {}         # 按 raw user_id 精确映射到自定义 workspace
+    # user_peer_overrides: {}         # 按 raw user_id 映射到自定义 peer 名
+    assistant_peer: deerflow          # AI 消息写入的 peer
+    timeout_seconds: 10.0
+    connect_timeout_seconds: 3.0
+    message_char_limit: 8000          # add() 单条消息截断上限
+    max_injection_chars: 6000         # get_context() 注入文本截断上限
+    allow_insecure_http: false        # 明文 HTTP + api_key 需显式 true
+    failure_policy:
+      read: fail_open                 # fail_open | fail_closed
+```
+
+Honcho 是 RFC #1898 里的 **user 维度记忆提供方**：专管长期用户建模、偏好、跨会话 working representation，与面向 project/task 的后端互补。本后端是**远程 HTTP 适配器**（`honcho/client.py` 用裸 `httpx` 打 Honcho v3 REST API，peer/session 服务端 get-or-create，所有调用幂等；后续可换官方 `honcho-ai` SDK，路线同 OpenViking 的 custom-HTTP → 官方适配器）。
+
+- **零 LLM 调用**：ingestion 只是写明文消息，Honcho 服务端自带的 deriver 异步做 fact 提取与 representation 构建，DeerFlow 侧不发任何 LLM 请求（`honcho_manager.py:1-8`）
+- **多用户隔离（fail closed）**：每个操作按 `user_id` 解析 workspace——`workspace_overrides` 精确匹配，否则 `workspace_prefix + _stable_id(user_id)`。`_stable_id` = `sanitize_id(raw)[:48]` + `-` + 8 位 SHA-256 后缀：因为 `sanitize_id` 会把连续非法字符折叠成一个 `-`（`"user.name@x"` 与 `"user-name@x"` 都折叠成 `"user-name-x"`），裸清洗结果有碰撞风险；哈希后缀让默认派生路径碰撞抵抗。`workspace_overrides`/`user_peer_overrides` 按**未清洗的 raw key** 匹配；共享同一 workspace 的用户共享一个 search 索引（`search` 无 peer filter）。缺失 `user_id` fail closed：写变 no-op、读返回空，绝不落到共享 fallback workspace
+- **写入（`add`）**：`human` → `user_peer`、`ai`/`AIMessageChunk` → `assistant_peer`，每条截断到 `message_char_limit`；session id = `df-` + `_stable_id(thread_id)`（避免 `"t.1"`/`"t-1"` 这类裸清洗会合并的 thread 碰撞）
+- **读取**：`get_context()` 返回 `working_representation`（`max_conclusions=25`）截断到 `max_injection_chars`；`search()` 走 Honcho 的 workspace 级 `/search`；`get_memory()` 返回 DeerMem 形状最小视图（`facts: []` + `user.workContext.summary` = representation）
+- **failure_policy.read**：默认 `fail_open`（log + 空结果）；`fail_closed` 把召回失败包装成 `MemoryManagerError` 抛出（`_read_or_fallback` 门，镜像 mem0）。写失败只 log 不抛
+- **异步 offload**：`aadd`/`aget_context`/`asearch` 通过 `asyncio.to_thread` 把同步 httpx IO 移出事件循环
+- **配置校验（fail fast，构造期）**：`timeout_seconds`/`connect_timeout_seconds` 必须有限且 >0；`message_char_limit`/`max_injection_chars` 必须 >0（`text[:n]` 的 n≤0 是空串或负切片，不是长度上限）；`api_key` 走明文 HTTP 而未开 `allow_insecure_http` 直接报错（`config.py:53-73`）
+
+**模式支持**：middleware（默认）与 tool 都支持。`supports_search=True`；Honcho 无 fact CRUD（`create_fact`/`update_fact`/`delete_fact` 不支持），故 `requires_passive_writes_in_tool_mode=True`——tool 模式下仍保留 `MemoryMiddleware → add()` 的被动写入喂 deriver，`search()` 提供 tool 模式期望的 query 检索（`honcho_manager.py:97-104`，与 mem0 相同理由）。
+
+**与其他后端定位差异**：
+
+| 后端 | 记忆维度 | LLM 位置 | fact CRUD | 模式 |
+|------|---------|---------|-----------|------|
+| **DeerMem**（默认） | project/task + user，本地 | DeerFlow 侧 updater LLM | 完整（含 staleness/consolidation） | middleware + tool |
+| **mem0** | 平台托管 | 平台侧（stateless HTTP，无队列/缓存） | 无（保留被动写入） | middleware + tool |
+| **OpenViking** | 语义检索（远程） | 平台侧 SDK | 无 | middleware only |
+| **Honcho** | **user 模型（远程）** | **服务端 deriver** | **无** | **middleware + tool** |
+
+---
+
 ## Storage v2 架构（DeerMem）🆕
 
 `storage.py` 从 ~196 行重构到 ~1549 行。关键新增：
@@ -350,6 +401,59 @@ memory:
 
 ---
 
+## Hybrid Fact Eviction（hybrid-v1 事实驱逐）🆕
+
+DeerMem 的容量驱逐集中在 `deermem/core/eviction.py`，一个纯函数、确定性、可解释的策略层。`select_facts_for_capacity()` 在 fact 快照超 `max_facts` 时挑选保留/驱逐哪些 fact，**不修改快照**，只返回决策。两种策略：
+
+| 策略 | 评分 | 说明 |
+|------|------|------|
+| `confidence`（默认） | 只用 `confidence` | 精确保留历史 ranking |
+| `hybrid-v1`（opt-in） | 0.65×confidence + 0.25×confirmationFreshness + 0.10×accessHeat | 三个有界信号加权 |
+
+### 三个有界信号（均 clamp 到 [0,1]）
+
+| 分量 | 计算 | 关键参数 |
+|------|------|---------|
+| `confidence` | fact 的 `confidence`（缺省 0.5） | — |
+| `confirmationFreshness` | 显式确认的新鲜度：`lastConfirmedAt` 的指数半衰期衰减 `2^(-elapsed/half_life)`；无 `lastConfirmedAt` 时退回 `createdAt` 并**减半**（创建比显式确认证据弱） | `eviction_confirmation_half_life_days`（90） |
+| `accessHeat` | 查询访问热度：`accessHeat` 侧车按访问半衰期衰减后 `log1p(heat)/log(9)` 归一化 | `eviction_access_half_life_days`（30） |
+
+权重默认 0.65/0.25/0.10，**必须求和 = 1.0**（`config.py:323-325` 校验，违反即构造期 `ValueError`）。
+
+### Correction 保留槽
+
+`hybrid-v1` 在 `max_facts` 内预留 `min(eviction_correction_reserved_max, ceil(max_facts × eviction_correction_reserved_fraction))` 个槽给 `category == "correction"` 的 fact（默认 10% / 最多 10），使存储上限与 guaranteed correction 注入对齐。**只预留实际存在的最少 correction 数**，未用槽立即回到普通竞争（`eviction.py:210-217`）。
+
+### 决策流程
+
+1. 每个 fact 算分 → `FactEvictionScore{value, components}`（`components` 保留三分量，可解释）
+2. `len(facts) <= max_facts` 时直接全保留（不驱逐）
+3. 否则按 `(-score, 原始 index)` 稳定排序，先锁 correction 槽，再按排名取满 `max_facts`
+4. 返回 `FactEvictionDecision{kept, evicted, scores, policy, reserved_correction_slots}`；`evicted` 是**仅元数据**记录（id/category/score/components），不落原文
+
+### 元数据采集与 shadow mode
+
+- 确认/访问元数据**仅在 `hybrid-v1` 或 shadow 模式激活时收集**。`accessHeat` 侧车只由 `DeerMem.search()` 命中的 fact 递增（`get_context()` 从不递增），侧车放在 agent 的 `.metadata/` 目录，不污染 canonical Markdown 的时间戳/revision；`confidence` 策略的容量选择不读侧车
+- `lastConfirmedAt`/`confirmationCount` 只被 `_apply_updates` 更新，且需**确定性消息处理同时检测到 reinforcement**：批量级检测（当前抽取批次最后 6 条过滤消息中匹配到 human 消息）+ LLM 提供的 fact ID 绑定；重复抽取、prompt injection、单纯 search 都不算确认
+- `fact_eviction_shadow_enabled: true` 时，`confidence` 策略照常执行，同时算 hybrid 分数并把它与 confidence-only 的分歧写进仅元数据的驱逐审计（`eviction_audit_max_entries` 上限）
+
+```yaml
+memory:
+  backend_config:
+    fact_eviction_policy: confidence        # confidence | hybrid-v1
+    fact_eviction_shadow_enabled: false
+    eviction_confidence_weight: 0.65        # 三权重之和必须 = 1.0
+    eviction_confirmation_weight: 0.25
+    eviction_access_weight: 0.10
+    eviction_confirmation_half_life_days: 90
+    eviction_access_half_life_days: 30
+    eviction_correction_reserved_fraction: 0.10
+    eviction_correction_reserved_max: 10
+    eviction_audit_max_entries: 200
+```
+
+---
+
 ## Template Externalization（模板外部化）
 
 Memory prompts 已从代码中抽离为 YAML 模板文件，放在 `backends/deermem/deermem/core/prompts/`：
@@ -422,13 +526,24 @@ memory:
   enabled: true
   injection_enabled: true
   mode: middleware           # middleware | tool
-  manager_class: deermem     # deermem | mem0 | noop | openviking | <custom>
+  manager_class: deermem     # deermem | mem0 | noop | openviking | honcho | <custom>
   shutdown_flush_timeout_seconds: 30
   backend_config:
     # ── Storage ──
     storage_path: ""         # 空 = runtime_home()；DIRECTORY（不是文件！）
     max_facts: 100
     fact_confidence_threshold: 0.7
+    # ── Eviction（hybrid-v1 事实驱逐）──
+    fact_eviction_policy: confidence      # confidence | hybrid-v1
+    fact_eviction_shadow_enabled: false
+    eviction_confidence_weight: 0.65      # 三权重之和必须 = 1.0
+    eviction_confirmation_weight: 0.25
+    eviction_access_weight: 0.10
+    eviction_confirmation_half_life_days: 90
+    eviction_access_half_life_days: 30
+    eviction_correction_reserved_fraction: 0.10
+    eviction_correction_reserved_max: 10
+    eviction_audit_max_entries: 200
     max_injection_tokens: 2000
     # ── Queue ──
     debounce_seconds: 30

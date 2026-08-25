@@ -12,7 +12,7 @@ DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、�
 
 | 问题 | 答案 |
 |------|------|
-| **几个配置文件？** | 两个 — `config.yaml`（AppConfig，26 section）+ `extensions_config.json`（MCP servers + skills state） |
+| **几个配置文件？** | 两个 — `config.yaml`（AppConfig，35 个顶层 section，含 `plugins:` 打包扩展）+ `extensions_config.json`（MCP servers + skills state） |
 | **改 config.yaml 要重启吗？** | 分两半 — database/sandbox/channels 等基础设施字段要重启，model/tool/memory/prompt 等策略字段实时生效 |
 | **env var 怎么解析？** | `$VAR` → `os.getenv()`。AppConfig 严格模式（缺了就报错），ExtensionsConfig 宽松模式（缺了存空串） |
 | **配置优先级？** | 显式传参 > 环境变量 > 项目根目录 > legacy backend/ |
@@ -41,12 +41,17 @@ DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、�
 | 指定 skills 目录在哪、沙箱里挂到哪个路径 | `config.yaml` | `skills.path` / `skills.container_path` |
 | **接外部 MCP server（GitHub、Postgres、自建服务...）** | `extensions_config.json` | `mcpServers.<name>` |
 | **开关某个 skill（关掉不需要的、打开自定义的）** | `extensions_config.json` | `skills.<name>.enabled` |
+| **装第三方 Python 扩展（middleware / service / router 等）** | `config.yaml` | `plugins:`（`make extension-install` 托管写入，重启生效） |
 
 **为什么 MCP 和 skill 开关单独放一个文件？**
 
 因为这两样是**用户最频繁动态调整的东西** — 你今天接个 GitHub MCP，明天关了某个 skill，后天换个 Postgres 连接。这些操作有专门的 API（`PUT /api/mcp/config`、`PUT /api/skills/{name}`），改了立即生效不用重启。
 
 而 `config.yaml` 的绝大部分内容**没有 API 可以改** — 你只能编辑文件，然后靠热加载（或重启）生效。它是"基础设施"，不经常变。
+
+### 打包扩展：第三条边（也在 config.yaml）
+
+打包 Python 扩展（`plugins:` 列表）是刻意**不在** `extensions_config.json` 里的第三种东西：那一行 `module.path:install` 会在 Gateway 启动时被 import，属于代码执行边界，只能留在 operator 控制的 `config.yaml`（生产里 `:ro` 挂载），由 `make extension-install` / `deerflow extensions install` 托管写入并**重启生效**。详见 [../internals/harness-hooks/09-packaged-extensions.md](../internals/harness-hooks/09-packaged-extensions.md)。
 
 ### 唯一有重叠的地方：Skills
 

@@ -109,7 +109,7 @@ Agent 空闲 10 分钟 → idle eviction → docker stop
 
 多 Gateway 实例共享同一容器后端时，用可插拔租约存储协调容器归属（`aio_sandbox/ownership/`，`sandbox.ownership.type: memory | redis`）。**逐沙箱 `fcntl.flock` 守卫已被它替代并删除**——旧文件锁只覆盖同主机，Redis 让协调真正跨实例。
 
-核心语义（完整设计见 [six-impls.md](../sandbox/abstract-interface-and-six-impls.md) 的 Ownership 节）：
+核心语义（完整设计见 [six-impls.md](../sandbox/abstract-interface-and-seven-impls.md) 的 Ownership 节）：
 
 | 概念 | 说明 |
 |------|------|
@@ -193,6 +193,6 @@ K3s 模式提供了 Local/Docker 所没有的资源限制（CPU/Mem）和 Pod �
 
 ## 相关
 
-- Ownership store 完整设计（`own:`/`del:` 租约、renew 语义、孤儿对账）→ [concepts/sandbox/abstract-interface-and-six-impls.md](../sandbox/abstract-interface-and-six-impls.md)
-- 6 种沙箱实现对比 → [concepts/sandbox/abstract-interface-and-six-impls.md](../sandbox/abstract-interface-and-six-impls.md)
+- Ownership store 完整设计（`own:`/`del:` 租约、renew 语义、孤儿对账）→ [concepts/sandbox/abstract-interface-and-seven-impls.md](../sandbox/abstract-interface-and-seven-impls.md)
+- 7 种沙箱实现对比 → [concepts/sandbox/abstract-interface-and-seven-impls.md](../sandbox/abstract-interface-and-seven-impls.md)
 - 沙箱安全隔离（seccomp/提权/网络）→ [operations/security/02-sandbox-isolation.md](../../operations/security/02-sandbox-isolation.md)

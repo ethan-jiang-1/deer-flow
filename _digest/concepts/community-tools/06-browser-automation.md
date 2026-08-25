@@ -125,4 +125,4 @@ cd backend && uv sync --extra browser && uv run playwright install chromium
 - 装配 / 集成矩阵 / 选型 → [`00-overview.md`](00-overview.md)
 - 如何添加新 provider（同目录约定）→ [`05-how-to-add-provider.md`](05-how-to-add-provider.md)
 - workspace-changes 对浏览器帧的排除 → [`../../concepts/workspace-changes.md`](../../concepts/workspace-changes.md)
-- BoxLite 的同类私有 loop 模式 → [`../../concepts/sandbox/abstract-interface-and-six-impls.md`](../../concepts/sandbox/abstract-interface-and-six-impls.md)
+- BoxLite 的同类私有 loop 模式 → [`../../concepts/sandbox/abstract-interface-and-seven-impls.md`](../../concepts/sandbox/abstract-interface-and-seven-impls.md)

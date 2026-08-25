@@ -30,6 +30,14 @@ topics: [tools, builtin, sandbox-tools]
 ```yaml
 # config.yaml
 acp_agents:
+  mcode:
+    # MiniMax Code 原生说 ACP，无需任何 adapter 包。
+    # 安装：npm install --global @minimax-ai/code，然后 mcode login
+    command: mcode
+    args: ["acp"]
+    description: "MiniMax Code for implementation, refactoring, debugging, and repository tasks"
+    # auto_approve_permissions: false  # 仅对需要 mcode 改文件/跑命令的可信任务开启
+    # timeout_seconds: 1800            # 超时 abort + kill 子进程（默认 30 分钟）
   claude:
     command: npx
     args:
@@ -47,6 +55,8 @@ acp_agents:
     # env:           # 可选，环境变量（$VAR 引用宿主机变量）
     #   OPENAI_API_KEY: $OPENAI_API_KEY
 ```
+
+> **MiniMax Code（`mcode`）是原生 ACP agent**（上游 #4846）：`command: mcode` + `args: ["acp"]` 直接说 ACP，不需要像 Claude Code / Codex 那样再套一个 ACP adapter 包。Gateway 进程必须在 `PATH` 上有**已认证**的 `mcode`（`npm install --global @minimax-ai/code` + `mcode login`；Docker 部署要在 Gateway 容器/镜像里装好并认证）。
 
 ### 执行流程
 
@@ -105,6 +115,13 @@ mcp_servers = _build_acp_mcp_servers()
 当 ACP 命令在 PATH 上找不到时，根据 command 名给出具体建议：
 
 ```
+# mcode 找不到（agent == "mcode"）
+"Error invoking ACP agent 'mcode': Command 'mcode' was not found on PATH.
+ Install it with `npm install --global @minimax-ai/code`, run `mcode login`,
+ and restart DeerFlow so it inherits the updated PATH.
+ If the Gateway runs in Docker, ensure `mcode` is installed and authenticated
+ inside the Gateway container/image."
+
 # codex-acp 找不到，但 codex 在 PATH 上
 "Error invoking ACP agent 'codex': Command 'codex-acp' was not found on PATH.
  The installed `codex` CLI does not speak ACP directly.
@@ -131,4 +148,6 @@ description = (
 ### 注意事项
 
 - ACP launcher 必须是真正的 ACP 适配器，普通的 `codex` 二进制不兼容
+- **MiniMax Code（`mcode`）例外**：`command: mcode` + `args: ["acp"]` 原生说 ACP，无需 adapter；Gateway 进程需有已认证的 `mcode`
+- `_CollectingClient.session_update()` 只收集 `session_update == "agent_message_chunk"` 的 `TextContentBlock` 文本——thought chunk 保持内部，**不**拼进返回给模型的 tool 结果
 - 使用 per-thread workspace，给外部 Agent 的 prompt 应该是自包含的任务描述，不要引用 `/mnt/user-data` 路径

@@ -77,5 +77,25 @@ verification · stage · satisfied
 
 `workspace_changes/` 子系统（见 [P3 digest](../../concepts/workspace-changes.md)）：worker 在 run 前/后对 thread 的 `workspace` + `outputs` 目录做快照扫描（`asyncio.to_thread` offload），有变化时写 `workspace_changes` event（category `workspace`）。文本 diff 限大小；二进制/大文件/敏感路径只持久化 metadata。
 
+## Thread 分支与 run 历史归属（同步 #5）
+
+两个新能力落在「thread/run 身份」这条线上，与 ownership 一样都是为了让**跨 worker / 跨事件页 / 跨重启**时归属仍然精确。
+
+### 分支会话区分（`943d148e`，distinguish branched conversations）
+
+`POST /api/threads/{id}/branches`（`gateway/routers/threads.py`）从已完成的 assistant turn 派生新主线程。此前分支与主线在「最近会话」里难以区分；现在：
+
+- **标题序号**：分支继承源线程 display_name 并追加 ` (2)`、` (3)` …（`_default_branch_title` + `_next_branch_title_sequence`，非分支源从 2 起，分支源递增）；显式改名不被覆盖。序号存 metadata `branch_title_sequence`，兄弟间跳过已占用标题避免冲突。
+- **分支元数据**（thread_meta）：`deerflow_branch: true` + `branch_parent_thread_id` + `branch_parent_checkpoint_id` + `branch_parent_message_id` + `branch_created_at`，使前端能重建 lineage。
+- **前端 lineage**：`frontend/src/core/threads/thread-branch-tree.ts::flattenThreadBranches()` 把加载到的平铺线程页投影成安全的视觉树——只有**已加载的、同 pin 分区**的 parent 才能拥有 child，缺失/畸形/跨 pin/自环/成环的 parent 都保持顶层，局部分页或坏 metadata 不会藏起会话；`recent-chat-list.tsx` 用 `└─`/`├─` 缩进 stem 渲染分支层级与父标题。
+
+### 精确历史归属（`e8410ceb`，preserve exact history attribution）
+
+AI 消息的 `run_id` 归属过去在事件分页边界外会丢。修复围绕 `RunEventStore.find_latest_ai_message_run_ids()`（`runtime/events/store/base.py`）：
+
+- **complete-or-error 契约**：默认实现反向按 1000 行分页走 `list_messages()`，保留首页 high-watermark 经排他 `before_seq` 游标推进，整页无安全推进 `seq` 时**抛错**而非静默漏；JSONL store 覆盖为一次完整 thread-log 读（避免每页重扫每个 run 文件）；memory/db 走有界路径。`normalize_message_ids()` / `match_ai_message_run_id()` 为公共 helper。
+- **Gateway 迁移**：`POST /api/threads/{id}/history` 用它把 legacy AI 消息补上 `run_id`（写回 `run_message_ids` metadata 缓存）。穷举 miss 保留 human-boundary fallback；不完整 lookup **移除**未证明的合成 id（宁可不完整，不可确定性错误）。metadata-only write-on-read 缓存存 `run_message_ids` + 所需 `run_durations`——有 duration 不等于证明归属。写前必须拿 `checkpoint_write` reservation，再**重审计** + 批量 reload 所需 run 行才持久化。
+- **终局 fence**：worker 保持 durable run 行在最终 duration checkpoint 写之前仍 active，使 peer 迁移无法在 terminalization 期间进入（`runtime/runs/worker.py`）。
+
 ---
 > **See also:** [01-run-manager.md](01-run-manager.md)（RunManager/RunStore 契约）· [04-journal.md](04-journal.md)（RunJournal）· [concepts/workspace-changes.md](../../concepts/workspace-changes.md)
