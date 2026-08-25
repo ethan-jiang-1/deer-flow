@@ -18,6 +18,7 @@ import asyncio
 import importlib
 import sys
 import threading
+import time
 from datetime import datetime
 from importlib.metadata import version as package_version
 from pathlib import Path
@@ -28,6 +29,7 @@ import pytest
 from packaging.version import Version
 
 from deerflow.skills.types import Skill
+from deerflow.subagents.capacity import SubagentCapacityRejected
 
 # Module names that need to be mocked to break circular imports
 _MOCKED_MODULE_NAMES = [
@@ -860,6 +862,35 @@ class TestAsyncExecutionPath:
         assert result.error is None
         assert result.started_at is not None
         assert result.completed_at is not None
+
+    @pytest.mark.anyio
+    async def test_aexecute_marks_capacity_rejection_as_admission_failure(self, classes, base_config):
+        SubagentExecutor = classes["SubagentExecutor"]
+        SubagentStatus = classes["SubagentStatus"]
+
+        class RejectingSlot:
+            async def __aenter__(self):
+                raise SubagentCapacityRejected("Process-wide subagent capacity is full")
+
+            async def __aexit__(self, exc_type, exc, traceback):
+                return False
+
+        class RejectingCapacity:
+            def slot(self):
+                return RejectingSlot()
+
+        executor = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="test-thread",
+            execution_capacity=RejectingCapacity(),
+        )
+
+        result = await executor._aexecute("Do something")
+
+        assert result.status == SubagentStatus.FAILED
+        assert result.admission_failure is True
+        assert "capacity is full" in result.error
 
     @pytest.mark.anyio
     async def test_aexecute_marks_structured_llm_error_fallback_as_failed(self, classes, base_config, mock_agent, msg):
@@ -2305,10 +2336,10 @@ class TestCooperativeCancellation:
         SubagentResult = classes["SubagentResult"]
         SubagentStatus = classes["SubagentStatus"]
 
-        def run_inline(fn, *args, **kwargs):
+        def run_coroutine(context, coroutine_factory):
             future = concurrent.futures.Future()
             try:
-                future.set_result(fn(*args, **kwargs))
+                future.set_result(context.run(lambda: asyncio.run(coroutine_factory())))
             except Exception as exc:
                 future.set_exception(exc)
             return future
@@ -2332,7 +2363,7 @@ class TestCooperativeCancellation:
         )
 
         with (
-            patch.object(executor_module._scheduler_pool, "submit", side_effect=run_inline),
+            patch.object(executor_module, "_submit_to_isolated_loop_in_context", side_effect=run_coroutine),
             patch.object(executor, "_aexecute", side_effect=fake_aexecute),
             patch.object(executor, "execute", side_effect=AssertionError("execute() should not be called by execute_async")),
         ):
@@ -2343,6 +2374,72 @@ class TestCooperativeCancellation:
         assert result.status == SubagentStatus.COMPLETED
         assert result.result == "done: Task"
         assert result.error is None
+
+    def test_execute_async_isolates_duplicate_external_task_ids(self, executor_module, classes, base_config):
+        """Concurrent runs must not share registry entries when provider IDs collide."""
+        import concurrent.futures
+
+        SubagentExecutor = classes["SubagentExecutor"]
+        SubagentStatus = classes["SubagentStatus"]
+
+        def run_coroutine(context, coroutine_factory):
+            future = concurrent.futures.Future()
+            try:
+                future.set_result(context.run(lambda: asyncio.run(coroutine_factory())))
+            except Exception as exc:
+                future.set_exception(exc)
+            return future
+
+        async def complete_a(_task, result_holder=None):
+            result_holder.status = SubagentStatus.COMPLETED
+            result_holder.result = "done-a"
+            result_holder.completed_at = datetime.now()
+            return result_holder
+
+        async def complete_b(_task, result_holder=None):
+            result_holder.status = SubagentStatus.COMPLETED
+            result_holder.result = "done-b"
+            result_holder.completed_at = datetime.now()
+            return result_holder
+
+        executor_a = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="thread-a",
+            trace_id="trace-a",
+        )
+        executor_b = SubagentExecutor(
+            config=base_config,
+            tools=[],
+            thread_id="thread-b",
+            trace_id="trace-b",
+        )
+
+        with (
+            patch.object(executor_module, "_submit_to_isolated_loop_in_context", side_effect=run_coroutine),
+            patch.object(executor_a, "_aexecute", side_effect=complete_a),
+            patch.object(executor_b, "_aexecute", side_effect=complete_b),
+        ):
+            execution_a = executor_a.execute_async("Task A", task_id="same-provider-tool-call-id")
+            execution_b = executor_b.execute_async("Task B", task_id="same-provider-tool-call-id")
+
+            assert execution_a != execution_b
+            assert executor_module._background_tasks[execution_a].trace_id == "trace-a"
+            assert executor_module._background_tasks[execution_b].trace_id == "trace-b"
+
+        assert executor_module._background_tasks[execution_a].result == "done-a"
+        assert executor_module._background_tasks[execution_b].result == "done-b"
+
+        result_a = executor_module._background_tasks[execution_a]
+        result_b = executor_module._background_tasks[execution_b]
+        executor_module.request_cancel_background_task(execution_a)
+        assert result_a.cancel_event.is_set()
+        assert not result_b.cancel_event.is_set()
+
+        executor_module.cleanup_background_task(execution_a)
+        assert execution_a not in executor_module._background_tasks
+        assert executor_module._background_tasks[execution_b] is result_b
+        executor_module.cleanup_background_task(execution_b)
 
     def test_execute_async_propagates_user_context_to_isolated_loop(self, executor_module, classes, base_config):
         """Regression: background subagent execution must keep request user context."""
@@ -2371,19 +2468,24 @@ class TestCooperativeCancellation:
             trace_id="test-trace",
         )
 
-        scheduler = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        def run_coroutine(context, coroutine_factory):
+            future = concurrent.futures.Future()
+            try:
+                future.set_result(context.run(lambda: asyncio.run(coroutine_factory())))
+            except Exception as exc:
+                future.set_exception(exc)
+            return future
+
         token = set_current_user(SimpleNamespace(id="alice"))
         try:
             with (
-                patch.object(executor_module, "_scheduler_pool", scheduler),
+                patch.object(executor_module, "_submit_to_isolated_loop_in_context", side_effect=run_coroutine),
                 patch.object(executor, "_aexecute", side_effect=fake_aexecute),
                 patch.object(executor, "execute", side_effect=AssertionError("execute() should not be called by execute_async")),
             ):
                 task_id = executor.execute_async("Task")
-                executor_module._scheduler_pool.shutdown(wait=True)
         finally:
             reset_current_user(token)
-            scheduler.shutdown(wait=False, cancel_futures=True)
 
         result = executor_module._background_tasks.get(task_id)
         assert result is not None
@@ -2421,7 +2523,14 @@ class TestCooperativeCancellation:
             trace_id="test-trace",
         )
 
-        scheduler = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        def run_coroutine(context, coroutine_factory):
+            future = concurrent.futures.Future()
+            try:
+                future.set_result(context.run(lambda: asyncio.run(coroutine_factory())))
+            except Exception as exc:
+                future.set_exception(exc)
+            return future
+
         token = var_child_runnable_config.set(
             {
                 "callbacks": [parent_callback, stream_callback],
@@ -2433,14 +2542,12 @@ class TestCooperativeCancellation:
         )
         try:
             with (
-                patch.object(executor_module, "_scheduler_pool", scheduler),
+                patch.object(executor_module, "_submit_to_isolated_loop_in_context", side_effect=run_coroutine),
                 patch.object(executor, "_aexecute", side_effect=fake_aexecute),
             ):
                 executor.execute_async("Task")
-                scheduler.shutdown(wait=True)
         finally:
             var_child_runnable_config.reset(token)
-            scheduler.shutdown(wait=False, cancel_futures=True)
 
         assert child_callback in observed["callbacks"]
         assert parent_callback not in observed["callbacks"]
@@ -2495,7 +2602,6 @@ class TestCooperativeCancellation:
 
         # Synchronisation primitives
         execute_entered = threading.Event()  # signals that _aexecute() has started
-        run_task_done = threading.Event()  # signals that run_task() has finished
 
         # A blocking _aexecute() replacement so we control the timing exactly.
         async def blocking_aexecute(task, result_holder=None):
@@ -2509,19 +2615,7 @@ class TestCooperativeCancellation:
             trace_id="test-trace",
         )
 
-        # Wrap _scheduler_pool.submit so we know when run_task finishes
-        original_scheduler_submit = executor_module._scheduler_pool.submit
-
-        def tracked_submit(fn, *args, **kwargs):
-            def wrapper():
-                try:
-                    fn(*args, **kwargs)
-                finally:
-                    run_task_done.set()
-
-            return original_scheduler_submit(wrapper)
-
-        with patch.object(executor, "_aexecute", side_effect=blocking_aexecute), patch.object(executor_module._scheduler_pool, "submit", tracked_submit):
+        with patch.object(executor, "_aexecute", side_effect=blocking_aexecute):
             task_id = executor.execute_async("Task")
 
             # Wait until _aexecute() is entered on the persistent loop.
@@ -2534,9 +2628,10 @@ class TestCooperativeCancellation:
                 executor_module._background_tasks[task_id].error = "Cancelled by user"
                 executor_module._background_tasks[task_id].completed_at = datetime.now()
 
-            # Wait for run_task to finish — the FuturesTimeoutError handler has
-            # now executed and (should have) left CANCELLED intact.
-            assert run_task_done.wait(timeout=5), "run_task() did not finish"
+            deadline = time.monotonic() + 5
+            while task_id in executor_module._background_futures and time.monotonic() < deadline:
+                time.sleep(0.01)
+            assert task_id not in executor_module._background_futures, "background coroutine did not finish"
 
         result = executor_module._background_tasks.get(task_id)
         assert result is not None
