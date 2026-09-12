@@ -331,8 +331,9 @@ batch_task() → SubagentBatchService.submit()（校验 + create_batch 持久化
 - **幂等**：`(user_id, submission_key)` 唯一约束防重复提交；`submission_key = {run_id or thread_id}:{tool_call_id}`
 - **结果有界**：`max_result_chars`(100k) 截断、`result_preview_max_chars`(2k) 预览、`token_usage`/`model_name`/`stop_reason` 落库
 - **取消**：`cancel_batch` 立即 terminalize 所有非终态 item 并清租约，fence 掉 stale worker 完成写入
+- 🆕 **验收清单（#5289）**：`batch_task` 每个 item 可带 `acceptance_criteria`，提交前经 `normalize_acceptance_criteria` 归一（空→null，20 条 × 500 字符）再持久化；migration `0021_batch_acceptance` 给 `subagent_batch_items` 加 `acceptance_criteria`/`acceptance_verdict` 两列（JSON, nullable）。completed item 由 `subagents/batch_acceptance.py` 复用同一 `acceptance_checks` 跑清单——无父 tool runtime，owner-scoped 线程路径 + `authorize_sandbox_execution_async` + `acquire_sandbox_client_lease(owner_prefix="batch-acceptance")` 客户端租约（检查期间续期 item 租约，取消时 blocking reads 先排空再释放）；admission 与检查共享 `parse_file_criterion`（含 file 判定的条件才需要 sandbox）。可空 verdict 独立于执行状态存活于 repository 查询与 JSONL 导出；无标准/检查器报错/legacy 行没有 verdict，**不等于默许通过**；failed 执行不检查，验收从不改自动重试策略
 
-**配置（`config.yaml -> subagent_batches`，startup-only，默认 `enabled: false`）**：`poll_interval_seconds`(1.0)、`lease_seconds`(120)、`max_items_per_batch`(5000)、`default_max_live_items`(100)/`max_live_items_per_batch`(1000)、`default_max_running_items`(3)/`max_running_items_per_batch`(64)、`max_attempts`(3)、`max_result_chars`(100000)、`result_preview_max_chars`(2000)。`enabled: true` 而 SQL 后端缺失会在 Gateway 启动时报错。源码：`deerflow/config/subagent_batches_config.py`、`deerflow/subagents/batch_service.py`、`deerflow/persistence/subagent_batches/{model,sql}.py`、迁移 `0016_subagent_batches.py`。
+**配置（`config.yaml -> subagent_batches`，startup-only，默认 `enabled: false`）**：`poll_interval_seconds`(1.0)、`lease_seconds`(120)、`max_items_per_batch`(5000)、`default_max_live_items`(100)/`max_live_items_per_batch`(1000)、`default_max_running_items`(3)/`max_running_items_per_batch`(64)、`max_attempts`(3)、`max_result_chars`(100000)、`result_preview_max_chars`(2000)。`enabled: true` 而 SQL 后端缺失会在 Gateway 启动时报错。源码：`deerflow/config/subagent_batches_config.py`、`deerflow/subagents/batch_service.py`、`deerflow/persistence/subagent_batches/{model,sql}.py`、迁移 `0016_subagent_batches.py` + `0021_batch_acceptance.py`。
 
 ### Gateway REST API（`app/gateway/routers/subagent_batches.py`）
 
@@ -400,6 +401,8 @@ batch_task() → SubagentBatchService.submit()（校验 + create_batch 持久化
 ## 背景任务 ID 隔离 🆕
 
 **同步 #5（`fix(subagents): isolate background tasks from reused tool call IDs (#4758)`）**：`execute_async()` 生成服务端唯一 `execution_id`(uuid4) 作为 `SubagentResult.task_id` 与 `_background_tasks`/`_background_futures` 的 registry key；provider `tool_call_id` 存入 `external_task_id` 仅作关联（ToolMessage、`task_*` SSE、持久化 lifecycle 事件、前端卡片、`ExtensionData.scope_id`）。provider ID 跨 parent run 不唯一，因此**绝不能**成为 registry 所有权 key；scheduler 闭包持有自己的 `SubagentResult` 而非通过可变 registry 重新解析所有权。终止 token 用量从 message state 归属，`subagent_token_usage_attributed=true` 保证幂等（不重复记账）。
+
+🆕 **同步 #6（#5069 poller 退出清理）**：task-tool 轮询循环意外退出时，registry 清理通过公开的 `run_on_isolated_subagent_loop()`（executor）**钉在持久隔离 loop 上**——`asyncio.run()` 退出会取消 caller-loop 任务，caller-loop 的 `create_task` 在执行前就被取消，钉到持久 loop 才能存活。反方向的最终 usage 报告由 `_schedule_deferred_subagent_cleanup` 在 unwind 时捕获父 run 的 loop，用 `call_soon_threadsafe` 送回（journal 的 token 累加器是无锁 read-modify-write 字段，绝不能从持久 loop 或 worker 线程写）；deferred cleaner 只捕获 usage recorder + ids + 捕获的 loop（绝不捕获整个 `runtime`，否则强引用的清理任务会 pin 住 journal/event store 整个 poll 预算窗口）；父 loop 已关闭（同步 `asyncio.run` 收尾）时报告按设计丢弃并 info 记录。
 
 ---
 
@@ -535,6 +538,64 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 
 账本条目持久化在 `ThreadState.delegations`（通过 `DurableContextMiddleware` 捕获），标记 `run_id` 以区分当前 run 和历史 run。只有当前 run 的条目消耗 cap。
 
+🆕 **同步 #6（RFC #4651 layer 2）**：completed 结果的 `additional_kwargs` 现在携带两份**建议性**校验 verdict（读取侧结构校验、Gateway 剥离 caller 伪造值），随 delegation 条目持久化并在账本渲染：
+
+- `subagent_receipt_citations` — 收据引用校验（见下节），渲染为 `citations:` 段
+- `subagent_acceptance_verdict` — 确定性验收清单（见下节），渲染为 `acceptance:` 段 + 未满足条件的 gap 列表
+
+即使 summarization 压缩掉原始 tool-call/result 消息（#5287），durable-context 的账本渲染仍会重新校验持久化 verdict 并显示 `acceptance:` 段与 actionable gaps——"completed 只代表执行结束，不是任务验收；保留有用工作、修复剩余缺口" 的指引在压缩后依然可见。
+
+## 报告契约与收据引用验证（RFC #4651 Layer 2）🆕
+
+**同步 #6**：#5 的 layer 1 tool receipts 升级为可验证——subagent 报告必须引用收据 ID，父侧用代码校验引用真实性。
+
+**Prompt 层（`subagents/report_contract.py`）**：`SubagentExecutor._build_initial_state` 向每个 subagent（builtin 与 custom 一视同仁）合并后的 SystemMessage 追加 `build_report_contract_section(receipts_enabled=...)`：行动断言必须引用 Tool receipts ledger 的 `[rN tool_name]`，交付物必须带可验证 handle（绝对路径/URL/记录 ID/HTTP 状态），显式报告失败。citation 条款跟随 `verification.receipts_enabled`，citation 示例由单一 owner 的 `format_citation`/`receipt_id` 生成——prompt 文案与校验器不会漂移。
+
+**Lead 供给的验收标准走不可信通道**：`task` 工具新增 `acceptance_criteria` 参数，经 `normalize_acceptance_criteria`（strip、上限 20 条 × 500 字符、逐条 `neutralize_untrusted_tags`，转义膨胀后再次截断）后，由 executor 以 `render_acceptance_criteria_block(...)` 追加到任务 HumanMessage——与委托 prompt 同源（model-supplied），由 `InputSanitizationMiddleware` 转义并边界框定。subagent 的 SystemMessage **永不**携带标准文本，只有框架自有的 `build_acceptance_criteria_system_note(...)` 指针（说明列表位置与权威顺序）——标准内的自然语言注入拿不到 system 通道优先级。
+
+**引用校验（`agents/middlewares/receipt_verification.py`，纯函数、无 IO）**：`task_tool` 在 completed 分支用 `verify_receipt_citations(report, harvested_receipts)` 交叉核对每条 `[rN]` 引用：
+
+- id 不在当轮 harvest 的 ledger → `unknown`；receipt status 非 success 或 anchor 工具名不匹配 → `failed`
+- **词汇分层刻意区分**：汇总布尔叫 `citation_resolved`（建议性执行证据），强正面词留给未来的 runtime 硬门，模型不会把执行证据当成任务验收
+- **零引用启发**：completed 报告做了行动断言却零引用 → UNVERIFIED 弱负信号。判定用英文动词表 + CJK 动词表（中文无词边界，英文表不会命中，直接匹配 `创建|写入|执行|…`）+ 带扩展名路径模式；另有安全网——harvest 到非空 ledger 且报告 ≥240 字符仍零引用即 UNVERIFIED
+- verdict 渲染进 delegation ledger 的 `citations:` 段（`N resolved, N failed, N unknown — execution evidence only, does not validate claim correctness`）
+- 引用按"当轮可见 ledger 快照"解析而非压缩后重新编号的 tool-message 尾巴——receipt 中间件保留严格连续的原始 id 区间，summarization 丢消息后引用仍可解析；id 数字有界，超长 id 视为畸形输入忽略
+
+## 验收清单：确定性 acceptance checks（RFC #4651 PR4，#5109）🆕
+
+`subagents/acceptance_checks.py` 在 `task` 工具的 completed 分支用**代码**检查 lead 供给的 `acceptance_criteria`（`asyncio.to_thread` 卸载、failure-isolated；阻塞 IO 由 `tests/blocking_io/test_task_tool_acceptance_checklist.py` 把关）。可判定的叶子：
+
+| 形式 | 检查方式 |
+|------|---------|
+| `file:<path> exists` / `non-empty` | 经 `read_current_file_content` 读共享线程 workspace（先归一化 `/mnt/user-data/...` 虚拟前缀与 workspace 相对拼写）；远程 provider 的 `"Error: ..."` 返回串归一为失败；UnicodeDecodeError 视为二进制交付物（PDF/图片）存在且非空 |
+| `file_written:<path>` | 同上 + 有界单字节 open 探测（mode-000 文件 stat 正常但 open 抛 EACCES——stat 元数据不等于读回） |
+| `tests_passed:<command>` | 锚定 executor `_harvest_bash_executions` 收录的 bash 执行（最新匹配优先），要求 status=success（优先解析输出内 `Exit Code: N` / `Command exited with code N` 真实退出码标记，而非 meta status）+ 输出尾部的测试摘要形状；匹配是 shell-结构/可执行身份/有序参数子序列/env 赋值感知的，任何不可证明的情形降级 UNVERIFIED |
+
+关键语义：
+
+- **读是有界的**：先 `os.stat`（本地，host-bash 禁用时无需 shell）或远程 fresh `env -i` shell 的 metadata-only `stat`/`realpath` 探测建立大小；超过 `_FILE_CONTENT_READ_CAP_BYTES` 的叶子只答 size，`file_written` 加一次单字节 open 探测；无法建立大小 → UNVERIFIED，绝不无界 fallback 读（`stat` 不开内容，FIFO 不会阻塞父进程）
+- **containment 规范化**：文件 realpath 必须留在 mount root realpath 之下（e2b/Tenki 默认把 `/mnt/user-data` 实现为指向 home 的符号链接），final-component 符号链接直接拒绝；本地 scope 判定用 realpath——workspace 符号链接进 uploads 无法用上传内容满足 scoped leaf
+- **无法判定的叶子一律 UNVERIFIED，绝不悄悄 pass**（范围外路径、未知措辞、截断证据均如此）
+- verdict 写 `additional_kwargs.subagent_acceptance_verdict`（status_contract v2 附加元数据，读取侧 `validate_acceptance_verdict`），流向 delegation ledger 的 `acceptance:` 段 + 追加到结果文本的模型可见清单段
+
+**Windows 路径可移植性（#5162）**：路径判定 host 无关、裸 `..` 直接 fail closed。Drive/UNC 绝对路径经 `ntpath` 归一化保持类别且不能越根；drive-relative、依赖 shell 的 provider/PSDrive、Windows 上的 POSIX-rooted `cd` 判为不可证明；pytest node ID 与 POSIX 路径保持大小写敏感；歧义尾点/空格、8.3 短名、跨卷 ID、跨家族对、无 shell 证据时的反斜杠/`%VAR%`/`^`/Bash 花括号/波浪号/PowerShell splatting 等全部 fail closed。
+
+## Parent Context Snapshot（opt-in）🆕
+
+**同步 #6（`feat(subagents): add opt-in parent context snapshots (#5367)`）**：`task` 工具新增 `context_mode: "isolated" | "snapshot"` 参数（默认 isolated）。`snapshot` 由 `subagents/context_snapshot.py` 在 dispatch 前把父会话的 retained 消息 + summary 序列化成**不可变、纯数据**的 `ParentContextSnapshot`（frozen dataclass，`content_json`），executor `_build_initial_state` 把它作为一条名为 `parent_context_snapshot` 的后台 HumanMessage 插在当前任务之前（当相关需求或失败尝试散落在父对话里时选用）。
+
+边界设计：
+
+- 只带真实用户消息 + AI/Tool 历史（隐藏 framework HumanMessage、runtime state、artifacts、消息元数据一概不过界）；文本过 `neutralize_untrusted_tags`；media 保留为 input block 供 vision/audio 子模型使用，provider reasoning/signature 与 tool-use block 刻意排除，tool calls 渲染为惰性文本——不会把父 tool 协议帧重放进子 receipts、step 事件、skill policy 或 turn 预算
+- 配套框架自有 `SNAPSHOT_SYSTEM_NOTE`：历史指令不能覆盖 system 指令与工具限制；历史 tool 调用与收据 ID 属于父，不是你完成任务的证据；快照不接收之后的父消息
+- 代价由 caller 承担（输入 token），不做额外截断；子链自己的 summarization 正常压缩
+
+## 历史上传发现（list_uploaded_files）🆕
+
+**同步 #6（`feat(subagents): enable historical upload discovery (#5170)`）**：subagent 的 `list_uploaded_files` 工具从线程 uploads 目录发现**历史**上传（按 mtime 降序，支持 query/扩展名过滤、可选 outline），排除当前 run 的 `uploaded_files` 与 `.upload-*.part` staging 文件，并跳过同 stem 非 .md 兄弟存在的转换产物 .md。
+
+上传态边界（fail-closed）：普通 `task` 在 dispatch 时快照父 `ThreadState.uploaded_files`（显式空列表合法且必须保留——意味着本 run 把所有上传都视为历史），deep-copy 跨隔离 loop 播种进子 fresh state，之后 `list_uploaded_files` 才进入正常 tool-policy 过滤；缺失/畸形 state 时工具直接禁用。durable `batch_task` 刻意保持禁用：延迟/恢复的 item 没有合法的父 run 上传边界。
+
 ## Step Capture & Persistence 🆕
 
 源码：`deerflow/subagents/step_events.py`
@@ -574,6 +635,9 @@ Subagent 编译时 `checkpointer=False`——永不继承父 run 的 checkpointe
 | thinking | 关闭 | `create_chat_model(thinking_enabled=False)` |
 | checkpointer | 隔离（False） | `executor.py` |
 | 🆕 batch 上限 | 见 `subagent_batches` 配置 | `SubagentBatchService` + SQL repository |
+| 🆕 验收标准上限 | 20 条 × 500 字符（neutralize 后再截断） | `report_contract.normalize_acceptance_criteria` |
+| 🆕 收据引用 / 验收 verdict | 建议性证据（`citation_resolved`），非硬门 | `receipt_verification.py` / `acceptance_checks.py` |
+| 🆕 context_mode | `isolated`（默认）/ `snapshot` | `task` 工具参数 |
 | 🆕 Subagent 卡片 | 显示 effective model + token usage | `task_running` event |
 
 ---

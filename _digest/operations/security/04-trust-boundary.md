@@ -24,6 +24,8 @@ Browser / IM / Internal
 │  AuthMiddleware                                              │
 │  ├─ 公开路径？→ 放行 (/health, /docs, /api/v1/auth/login..)  │
 │  ├─ Internal Token？→ 合成内部用户，跳过 JWT/CSRF              │
+│  ├─ Bearer PAT？→ digest 校验 + scope 交集 + 默认拒绝路由策略  │
+│  │   └─ 无效 Bearer → 硬 401，不回退 cookie                    │
 │  ├─ JWT decode → DB user lookup → token_version 校验          │
 │  └─ 设置 request.state.user + ContextVar                      │
 │                                                              │
@@ -114,7 +116,7 @@ Browser / IM / Internal
 
 | # | 保护层 | 位置 | 拦截产物 | 失效后果 |
 |---|--------|------|---------|---------|
-| 1 | JWT 认证 | `auth_middleware.py:75` | 无凭据请求 | 任意人调 API |
+| 1 | JWT 认证（cookie）/ PAT Bearer | `auth_middleware.py:75` | 无凭据/无效凭据请求 | 任意人调 API |
 | 2 | CSRF | `csrf_middleware.py:180` | 跨站伪造 | 其他站点以用户身份操作 |
 | 3 | Internal Token | `internal_auth.py:32` | 未授权内部调用 | 未授权组件间通信 |
 | 4 | 输入校验 | `services.py:79` / `routers/auth.py:41` | 格式错误/弱密码 | SQL注入(ORM防护)/弱凭据 |
@@ -126,7 +128,7 @@ Browser / IM / Internal
 | 10 | 输出截断 | `tools.py` 多处 | 超大输出 | OOM/context 爆炸 |
 | 11 | 输出脱敏 | `tools.py:541` | host 路径泄露 | 内部目录结构外泄 |
 | 12 | 沙箱进程隔离 | `sandbox/` | 容器/Pod 逃逸 | host 被控制 |
-| 13 | 登录限流 | `routers/auth.py:149` | 暴力破解 | 弱密码被猜出 |
+| 13 | 登录限流 | `routers/auth.py:181` | 暴力破解 | 弱密码被猜出 |
 | 14 | 循环检测 | `loop_detection_middleware` | 死循环 tool call | 资源耗尽 |
 
 ## 信任边界
@@ -140,3 +142,5 @@ IM:       信任边界在平台 webhook 签名 → 然后走 Internal 路径 →
 ```
 
 **IM channel 是最弱的边界** — 所有 IM 用户共享 `"default"` user_id，无法区分是哪个 IM 用户发了消息。对于需要 per-user 隔离的生产部署，这需要额外改造。
+
+**PAT 是最窄的凭据边界** — 以属主用户身份运行，但受双重约束：scope 与属主 effective permissions 求交集（只能收窄），叠加默认拒绝的路由策略（`auth/pat.py::_PAT_ROUTE_RULES`）——策略外路由（memory 删除、agent 创建、凭据切换、channel 配置、PAT 自管理）即使全 scope token 也 403。PAT 管理/改密码还额外要求 session 认证来源。

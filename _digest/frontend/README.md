@@ -16,11 +16,11 @@ Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战�
 
 | 文件 | 内容 |
 |------|------|
-| **00-overview.md** | 全景：技术栈、目录结构、组件树、数据流图 |
+| **00-overview.md** | 全景：技术栈、目录结构、组件树、数据流图、历次同步新功能 |
 | **01-stream-pipeline.md** | SSE → React 管线：`useThreadStream` hook、LangGraph stream_mode 映射、增量渲染 |
-| **02-message-rendering.md** | streamdown 流式 markdown、thinking block 折叠、tool call 卡片、artifact 预览 |
-| **03-state-management.md** | TanStack Query 缓存策略、ThreadState context、用户偏好 localStorage 持久化 |
-| **04-workspace-layout.md** | Drag 面板布局、响应式设计、mobile sidebar 折叠、command palette |
+| **02-message-rendering.md** | streamdown 流式 markdown、thinking block 折叠、tool call 卡片（+ debug 详情面板）、会话大纲导航、artifact 预览（+ CSV/TSV 表格、独立查看窗口） |
+| **03-state-management.md** | TanStack Query 缓存策略（projects、分页 run history、归档/项目移动 mutation）、权限门控、ThreadState context、用户偏好 localStorage 持久化 |
+| **04-workspace-layout.md** | Drag 面板布局、Projects 项目工作区、thread 列表虚拟化、响应式设计、mobile sidebar 折叠、command palette |
 | **05-subagent-ui.md** | TaskTracker context：task_started → task_running → task_completed 的 UI 状态机；+ 持久化 subagent 批量执行 UI、后台任务 UI |
 | **06-architecture.md** | 前端技术栈全景：Next.js 16、Tailwind CSS 4、组件树；🆕 Webpack dev 默认（`DEER_FLOW_DEV_BUNDLER` 覆盖）与新 core 模块索引 |
 
@@ -45,6 +45,9 @@ Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战�
 | 工作区容器 | `frontend/src/components/workspace/workspace-container.tsx` |
 | 输入框 | `frontend/src/components/workspace/input-box.tsx` |
 | 消息列表 | `frontend/src/components/workspace/messages/` |
+| 项目工作区 | `frontend/src/core/projects/` + `frontend/src/app/workspace/projects/[id]/` |
+| 定时任务 | `frontend/src/core/scheduled-tasks/` |
+| Artifact 查看器 | `frontend/src/core/artifacts/`（含 delimited-preview、viewer） |
 | Subagent 追踪 | `frontend/src/core/tasks/` |
 | 设置存储 | `frontend/src/core/settings/store.ts` |
 | 国际化 | `frontend/src/core/i18n/` |

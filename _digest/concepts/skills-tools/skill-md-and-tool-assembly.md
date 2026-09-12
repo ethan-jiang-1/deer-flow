@@ -45,7 +45,7 @@ YAML frontmatter：
 | `name` | 唯一标识 |
 | `description` | 简述，LLM 选择 skill 时依赖此字段 |
 | `license` | 许可证 |
-| `allowed-tools` | 工具白名单（可选） |
+| `allowed-tools` | 工具白名单（可选）。标量形式支持可移植拼写（`Bash`/`Read`/`Write`/`Edit`/`Glob`/`Grep`/`WebFetch`/`WebSearch` 映射到 `bash`/`read_file`/`write_file`/`str_replace`/`glob`/`grep`/`web_fetch`/`web_search`），未知名保持原样；分词器保留引号与括号模式（含空格/转义括号）内部完整，未闭合引号或括号直接报错（#4984） |
 | `required-secrets` | 🆕 字符串或 `{name, optional}` 列表——skill 需要的请求级密钥 |
 | `secrets-autonomous` | 🆕 `true`（默认）= agent 自主加载时绑定密钥；`false` = 仅显式 `/skill-name` 激活时绑定 |
 
@@ -110,7 +110,7 @@ describe_skill 工具
 `SkillActivationMiddleware` 检测用户消息中的 `/skill-name task` 语法：
 
 1. `parse_slash_skill_reference()` 解析严格格式
-2. 拒绝保留命令（`/new`、`/help`、`/bootstrap`、`/status`、`/models`、`/memory`、`/goal`）
+2. 拒绝保留命令（`/new`、`/help`、`/bootstrap`、`/status`、`/models`、`/memory`、`/goal`、`/agent`——最后者为 🆕）
 3. 解析到的 skill 必须已启用且在 agent 白名单内
 4. 注入 `SKILL.md` body 为隐藏 HumanMessage（`hide_from_ui: True`），插入到触发消息之前
 5. 记录审计事件 `middleware:skill_activation`（name、category、path、content_hash——不含 body）
@@ -144,7 +144,8 @@ LocalSkillStorage.load_skills()
     │  (在 asyncio.to_thread 中运行，避免阻塞 event loop)
     │  递归扫描 skills/{public,custom} 寻找 SKILL.md
     │
-    ├── 解析 YAML frontmatter（包含 required-secrets）
+    ├── 解析 YAML frontmatter（包含 required-secrets；一律以 encoding="utf-8" 读取，
+    │   不依赖平台 locale，无效 UTF-8 按解析错误处理，#4995）
     ├── 读取 extensions_config.json 的启用状态
     └── 返回 List[Skill]
 ```
@@ -191,12 +192,33 @@ Portable Agent Skills 的标量语法是空白分隔、允许带括号命令模�
 - **纯同步**：`scan_archive_preflight()` / `scan_skill_dir()` 可 offload 出 event loop
 - `skill_scan.enabled` kill switch
 
+## Custom Skill 导出（revision 绑定预览）🆕
+
+`deerflow/skills/export.py` + `app/gateway/skill_export.py`（+ `backend/scripts/benchmark/skill_export.py` 基准）——把用户 custom skill 打包为 `.skill` zip 下载，快照绝不激活或执行 skill：
+
+- **两步 API**：`GET /api/skills/custom/{name}/export-manifest`（预览：文件清单、requirements、warnings/blockers、revision）→ `GET /api/skills/custom/{name}/export?expected_revision=...`（下载；revision 是文件树内容哈希，与预览不一致返回 409 `skill_changed`，需刷新后重试）
+- **只捕获 `storage.get_custom_skill_dir(name)`**，无 public/legacy 回退；捕获与复核都在 `skill_projection_read_lock` 下（与存储变更同一把锁），导出不重建 projection
+- **有界且可取消**：≤4096 条目、单文件 64 MiB、总量/zip 100 MiB、路径 1024 字节、深度 32、60s deadline；拒绝符号链接/特殊文件而非跟踪
+- **敏感文件拦截**：`.env`、`.npmrc`、`id_rsa`、`credentials.json`、`.git` 等入 blockers；导出是原始文件快照，不是 secret 审计
+- **Gateway 侧**：每进程 2 个导出槽位（跨用户共享，占满返回 429 `skill_export_busy`），传输空闲超时 120s，客户端断连与服务器取消分开处理
+- 前端配套 `skill-export-dialog.tsx`（见 frontend digest）
+- 测试：`tests/test_skill_export.py`、`tests/blocking_io/test_skill_export.py`（fd 目录遍历不可用的平台上 capture 套件跳过，#5372）
+
+## 本地 .skill 归档上传安装 🆕
+
+除线程内 `POST /api/skills/install` 外，新增 `POST /api/skills/install/upload`：admin-only multipart，直接上传本地 `.skill` 归档安装到当前用户 custom 目录。授权先于解析；上限 100 MiB 文件 + 1 MiB multipart 框架开销（#5039）。nginx/Helm Ingress 的 `proxy-body-size: 101m` 与 `proxy-request-buffering: off` 只作用于该上传路由，`scripts/check_chart_skill_upload_size.sh` 在 CI 中断言渲染后的 Helm 配置不被回退。
+
+## Skill 开关不再持久化展开后的密钥 🆕
+
+**修复（#5357）**：此前 Gateway skill toggle 与 `DeerFlowClient.update_skill` 经 `ExtensionsConfig.from_file()` 读 `extensions_config.json`，会把 `"$GITHUB_TOKEN"` 之类的引用展开成明文环境值（未设置则展开为空串并永久丢失）再整体写回。现在所有写入方走 raw 读改写：`read_raw_extensions_config()`（读磁盘原始 JSON）→ `set_raw_skill_enabled()`（只改目标条目）→ `validate_raw_extensions_config()`（按运行时加载方式校验候选）→ 原子写；`update_mcp_config` 的非 `mcpServers` 键同样修复。
+
 ## Skill Review 质量门禁 🆕
 
 `packages/harness/deerflow/skills/review/` + `skills/public/skill-reviewer/`：
-- **CLI**：`python -m deerflow.skills.review.cli --fail-on error` 用于 CI
+- **CLI**：`python -m deerflow.skills.review.cli --fail-on error --fail-on-incomplete` 用于 CI
 - **内置 tool**：`review_skill_package` — 模型可见的是 compact JSON（tag 中性化），完整 payload 在 `ToolMessage.artifact`
 - **CI 集成**：`.github/workflows/skill-review-ci.yml`
+- **Waiver manifest 🆕（#5143）**：`.github/skill-review-waivers.v1.json` + schema `contracts/skill_review/waiver_manifest.v1.schema.json`，由 `scripts/skill_review_waivers.py` 解析、`scripts/review_changed_public_skills.py` 在 CI 中执行。每条 waiver 精确匹配一个 finding（package 需 `skills/public/` 前缀 + `rule_id`/`path`/`line`/`evidence`），携带被审文件的 `file_sha256`（`sha256:...`）与 `expires_on` 日期，上限 256 条；`preapproved_file_sha256s`（≤8 个）可预授权未来文件哈希，仅当 manifest 变更合入可信 base 后生效——所以依赖 waiver 需两次合并：先合 manifest，再合 skill 改动，随后把消费过的哈希提升为 `file_sha256`。waiver 只能豁免 error 级 finding（blocker 永不可豁免），且在 CI 输出中保持可见。
 
 ## Per-User Skill 隔离 🆕
 
@@ -206,12 +228,16 @@ Custom skill 按用户隔离存储，`SkillStorage` 按 `(app_config, user_id)` 
 
 **2.1 修复**：`allowed-tools` 只对 slash-activated 或实际 loaded 的 lead-agent skill 生效。Passive enabled skill 不再意外限制全局 toolset。`task` 需显式声明才能委派 subagent。
 
+**分词加固（#4984）**：可移植标量形式按状态机分词——引号内、转义字符、括号模式内的空格不切分；未闭合引号/未闭合括号/多余右括号直接报错（fail-closed），而非静默截断模式。
+
 ## Per-Agent Skill 控制
 
 Custom agent 的 `config.yaml`：
 ```yaml
 skills: ["deep-research"]   # null=全部, []=禁用, ["a"]=指定
 ```
+
+**Sandbox 文件系统层强制（#5077）**：lead custom Agent 的显式 `skills` 列表（含 `[]`）现在落到 sandbox projection——线程级视图 `threads/{thread_id}/skills_view/{public,custom,legacy,integrations}` 只物化「已启用 ∩ 白名单」的 skill，`skills=None` 保持共享零拷贝挂载直到该线程用过显式策略。策略重建先撤销全部旧类别再挂新策略，拒绝绝对符号链接和解析到包外的相对符号链接；视图内篡改通过源/视图元数据树摘要校验在下一次 acquire 时修复。subagent 的 `skills` 字段仍只限定发现与激活（并发委派的 subagent 共享 lead 线程 sandbox）。
 
 ---
 

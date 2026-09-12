@@ -85,9 +85,56 @@ sequenceDiagram
 | `runs/schemas.py` | 30 | RunStatus、DisconnectMode 枚举 |
 | `runs/naming.py` | ~30 | 根运行名解析 |
 | `store/async_provider.py` | 115 | LangGraph async store 工厂（匹配 checkpointer 后端） |
-| `goal.py` | 522 | 🆕 Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker |
-| `goal-continuation.md` | — | 🆕 开发者文档：Goal 续跑循环完整说明 |
-| `05-run-ownership-and-rollback.md` | — | 🆕 Multi-worker ownership / rollback / delivery receipt 完整说明 |
+| `goal.py` | 522 | Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker |
+| `goal-continuation.md` | — | 开发者文档：Goal 续跑循环完整说明 |
+| `05-run-ownership-and-rollback.md` | — | Multi-worker ownership / rollback / delivery receipt 完整说明 |
+| `keyed_lock.py` | 147 | 🆕 按键串行化锁表 — `AsyncKeyedLockTable`（asyncio，按 loop 分桶）+ `KeyedLockTable`（线程版），waiter-aware 空闲条目回收 |
+| `events/message_identity.py` | 60 | 🆕 消息稳定身份规则的后端半边 — ToolMessage 按 `tool_call_id`、human 的 `X`/`X__user` 副本折叠为同一身份 |
+| `events/message_seq.py` | 52 | 🆕 REST 读路径（GET state / POST history）批量盖 `deerflow_seq` 章 — 流式 values 帧的 request-scoped 对应物 |
+| `task-continuity.md` | — | 🆕 任务连续性子系统文档：task notes + compacted history recall（见下方同步 #6） |
+
+### 同步 #6（ce635b7d）：线程生命周期、幂等与事件循环卫生
+
+#### 1. Thread incarnations（expand-phase 存储，#5216）
+
+迁移 `0019_thread_incarnations` 给 `threads_meta` 加可空 `incarnation`、`mcp_tasks` 加可空 `thread_incarnation`（均 VARCHAR(32)，无 server default）——**纯 expand 步骤，本阶段无任何运行时行为消费这两列**。新 thread 行写入随机 32 字符 incarnation；内存变更按 thread 串行化，覆写继承现有 incarnation，删除重建才有新值。迁移链细节：该 revision 复用回滚底线 binary 已审计的 revision id，按 `down_revision` 链在 `0021_batch_acceptance` 之后（Alembic 按 down_revision 而非数字前缀排序）；DDL 前先对两表做 preflight（拒绝窄型/NOT NULL/带默认值的既有列）。
+
+**回滚安全性（#5219）**：0020 回滚底线 binary 把且仅把 incarnation revision 视为前向兼容——反射确认自身 ORM schema 后允许 stamp 存在；0021 接受列同样可空可省略。原有 0018+incarnation 形状的库走 [docs/database-forward-revision-recovery.md](../../../docs/database-forward-revision-recovery.md) 离线恢复。线程生命周期不变量（branch/regenerate 的 checkpoint lineage、settled checkpoint 规则）见 `backend/docs/THREAD_LIFECYCLE.md`。
+
+#### 2. 幂等 thread runs（#5258）
+
+Thread 级 run 创建端点（`POST /{thread_id}/runs`、`/stream`、`/wait`）接受可选 `Idempotency-Key` header。Gateway 用认证 owner + thread_id 对 key 做哈希后才进 RunManager 的进程级持久化索引（不透传外部裸 key）；三个端点共享同一 scoped key。重放命中时：stored `input`/`assistant_id` 与重试不同 → 409；`/wait` 返回持久化 `status`/`error` 而非序列化当前 checkpoint（head 可能已被后续 run 推进）；创建端点重放终态记录且流已消失时发 SSE `gap`（`recovery: reload_durable_state`）。`Idempotency-Key` 为空白字符串 422。测试：`backend/tests/test_thread_run_idempotency.py`（793 行，issue #5257 契约）。
+
+#### 3. 分页 run history（#5283）+ 早期用户消息丢失修复（#4696）
+
+- **keyset 分页**：`GET /api/threads/{thread_id}/runs/page` 返回 `{data, has_more, next_before_created_at, next_before_run_id}`，`limit` 1–200（默认 50），`before_created_at` + `before_run_id` 必须成对传入（422），newest-first。`RunManager.list_by_thread()` 与 `RunStore` 底层增加游标参数。
+- **#4696（分页与压缩重叠时早期用户消息消失/跳动）**：根因是 checkpoint 不携带自己在 feed 中的位置，压缩救回的早期 turn 在客户端已加载的分页窗口之外无法定位。修复 = `deerflow_seq` 盖章（见 `events/message_identity.py` / `events/message_seq.py` 文件索引）：流式 `values` 帧由 worker 的 `_MessageSeqStamper` 盖章，REST 读（`GET /threads/{id}/state`、`POST /threads/{id}/history`）由 `stamp_messages_with_seq()` 一次批量查询解决；身份规则两端（后端 `message_identity()` / 前端 `hooks.ts::messageIdentity`）必须保持同步，错配是静默降级不报错。
+
+#### 4. Checkpoint retention 契约（#5051 / #5255）
+
+`backend/docs/checkpoint-retention-contract.md`（**draft**，#4189 item 3）：LangGraph checkpoint 是 per-thread parent chain，branch/regenerate 与显式 resume 都依赖链完整——按表大小/时间删行会**静默**破坏这些功能（`CheckpointLineageIntegrityError`）。契约划定：
+
+- **保护集**（不可删，除非有明确补偿）：显式 resume 目标、branch 祖先链（含最老可 branch 消息之前的 checkpoint）、pending writes（是未提交状态不是垃圾）、被 fork 过的 duration-only 链节点（删除需 graft 到祖父）、每线程最新可 resume 状态。
+- **可证安全删除**（测试钉住）：无子节点的叶子 sibling branch、未被 fork 的尾部 duration-only 叶子。
+- **删除机制**：blob 可达性必须从**幸存 checkpoint 的整 thread 遍历**计算（duration-only checkpoint 是父 head 的完整拷贝、共享 blob 行——按被删行自身 `channel_versions` 删 blob 会毁掉线程最新状态）；证明不安全就不得上线。
+- 测量先行：#5051 Postgres 存储增长测量 + #5255 删除契约测试与增长基线（`scripts/benchmark/checkpoint/bench_channels.py` / `bench_production.py`，`backend/tests/test_checkpoint_retention_contract.py`）。
+
+#### 5. 事件循环卫生与内存边界
+
+| commit | 内容 |
+|--------|------|
+| `#5217` | Agent 构造移出事件循环（`gateway/services.py`），blocking-io 套件 `test_agent_factory_construction.py` 钉住 |
+| `#5224` | 异步入口点的 tool 装配移出循环（`utils/assembly_io.py` 共享 offload 辅助），`keyed_lock.py` 服务于 per-key 串行化 |
+| `#5335` | 确定性 executor 饥饿回归测试 |
+| `#5112` | 终态 run 后 Gateway 内存有界化：worker teardown guard 显式断开 `astream` 迭代器与图作用域引用、清理 `__pregel_runtime` 等运行时 context、合并式全量 cyclic GC（≤每 10s 一次，走默认 executor） |
+
+`runtime/keyed_lock.py`（147 行）：`AsyncKeyedLockTable` 供 asyncio 调用方——每条目带 participants 计数（持有人 + 排队者），**先计数再 await**，保证新调用方无法绕过已排队的 waiter 另建第二把锁；`asyncio.Lock` 一旦竞争就有 loop 亲和性，所以表按 event loop 分桶（`WeakKeyDictionary`），guard 锁只保护注册表、临界区绝不持有它；最后一个参与者离开时回收空闲条目。`KeyedLockTable` 是 worker 线程侧的同构对应物。
+
+#### 6. 压缩/摘要修复
+
+- **#5248**：compaction summary 保留 assistant/tool 历史（不再只剩人类消息），摘要素材完整。
+- **#4901**：summarization fraction 触发器导致 agent build 崩溃的修复。
+- **#5249**：嵌入客户端 `DeerFlowClient` 的 `values` 事件暴露 `summary_text`（含空摘要/reset 转发）。
 
 ### 🆕 sync #6（431892e1..769589e8）要点
 

@@ -21,11 +21,11 @@ DeerFlow 有两个独立的 middleware 装配入口：
 | | Lead Agent（生产路径） | SDK（`create_deerflow_agent`） |
 |---|---|---|
 | 入口 | Gateway 的 `make_lead_agent()` | `factory.py:create_deerflow_agent()` |
-| 数量 | 33 个（全量） | ~10 个（精简） |
+| 数量 | 37 个（全量） | ~10 个（精简） |
 | 配置源 | `config.yaml` 各 section | `RuntimeFeatures` dataclass |
 | 用户注入 | `extra_middleware` 参数 | `extra_middleware` 参数 |
 
-Lead Agent 多了 5 个生产级 middleware：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）。
+Lead Agent 另有这 5 个生产级 middleware（SDK 精简路径不装配，全量清单见 [catalog](../middleware/03-catalog.md)）：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）。
 
 ## 用户挂自己的 middleware 的 3 种方式
 

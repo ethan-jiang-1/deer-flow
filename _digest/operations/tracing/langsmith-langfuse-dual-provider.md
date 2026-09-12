@@ -236,6 +236,7 @@ Langfuse v4 `CallbackHandler._parse_langfuse_trace_attributes()` 从 `RunnableCo
 | `langfuse_user_id` | User（Users 页面） | `get_effective_user_id()` | `"default"`（无认证时） |
 | `langfuse_trace_name` | Trace name | `assistant_id` / `agent_name` | `"lead-agent"` |
 | `langfuse_tags` | Tags | `env:<ENV>` + `model:<NAME>` | 省略（无 tags 时不设键） |
+| `deerflow_trace_id` | 非保留自定义 metadata（关联日志 / `X-Trace-Id`） | `deerflow.trace_context` 当前请求 trace id | 无——恒写入、不受配置门控（见 [trace-ids-and-audit-events.md](trace-ids-and-audit-events.md)） |
 
 ### build_langfuse_trace_metadata()
 

@@ -71,6 +71,13 @@ topics: [channels, im, user-connections, oauth]
 - 原始 IM 用户 ID 变为 `channel_user_id`（通过 runtime context 传递，暴露为 sandbox 环境变量 `DEERFLOW_CHANNEL_USER_ID`）
 - Inbound 消息携带 `connection_id` + `owner_user_id` + `workspace_id`
 
+### Lark/Feishu 凭据切换不丢密钥（#4820）
+
+Lark CLI 托管集成的 per-user 凭据切换（`POST /api/integrations/lark/config/credentials`）是原子操作：
+
+- 先用官方 CLI 的 live tenant-token 探针**校验**新 `app_id`/`app_secret`，校验通过才落盘——切换失败时**恢复先前的凭据树**，已有的 app secret 与 OAuth tokens 原样保留
+- 切换成功才撤销（revoke/remove）旧 OAuth tokens；配置与授权流共享 server 签发的 per-user generation（存于凭据锁下），被拒绝的直接切换不动 generation，过期的完成请求返回 409
+
 ## API
 
 | 操作 | Endpoint |

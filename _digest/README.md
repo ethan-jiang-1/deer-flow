@@ -21,6 +21,7 @@ type: index
 | 🔭 诊断和观察 | [observability/](observability/) | 日志 + trace_id 关联、RunEvent 事件流、追踪、Console API、调试工具箱、上线清单 |
 | 🚀 部署和运维 | [operations/](operations/) | 安全、部署、追踪、IM 通道、IT 治理、API 参考 |
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
+| 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化 |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程 |
 
 ## 目录结构
@@ -36,7 +37,8 @@ _digest/
 ├── testing/                 # 测试策略 + 实践
 ├── observability/           # 诊断与观察（日志 / 事件流 / 追踪 / 控制台 / 调试）
 ├── operations/              # 安全、部署、运维
-└── frontend/                # 前端架构
+├── frontend/                # 前端架构
+└── harness-engineering/     # harness 工程质量评估（coding agent 视角）
 ```
 
 ## 文件命名约定

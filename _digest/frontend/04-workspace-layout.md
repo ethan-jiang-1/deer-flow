@@ -84,6 +84,7 @@ ResizablePanelGroup (direction="horizontal")
 ┌──────────────────────────────────┐
 │ Sticky Header (backdrop-blur)    │
 │ ├─ ThreadTitle                   │
+│ ├─ ThreadArchiveStatus (归档徽标 + 恢复按钮) │
 │ ├─ TokenUsageIndicator           │
 │ ├─ ExportTrigger                 │
 │ └─ ArtifactTrigger               │
@@ -103,6 +104,23 @@ ResizablePanelGroup (direction="horizontal")
 │ --container-width-md             │
 └──────────────────────────────────┘
 ```
+
+## Projects — 项目工作区（同步 #6）
+
+项目是 thread 之上的新组织维度：thread 通过 `metadata.deerflow_project_id` 归属项目，chat 在项目作用域内创建。
+
+| 组件 | 路径 | 职责 |
+|------|------|------|
+| 侧边栏项目分组 | `components/workspace/projects-section.tsx` | 可折叠项目组，每组内用 `flattenThreadBranches` 投影成员 thread（与 flat 模式共用 `ThreadSidebarItem`）；标签行提供 **group/flat 显示切换**与新建项目对话框 |
+| 项目详情页 | `app/workspace/projects/[id]/page.tsx` | header（归档徽标 / New Chat）+ `ProjectThreadsSection`（无限分页成员列表）+ 设置区（重命名/归档/恢复/删除确认对话框）；404 有专门 not-found 态 |
+| 移动菜单 | `components/workspace/move-to-project-menu.tsx` | thread 行菜单里把会话移入/移出项目，基于 `projectIdOfThread` 显示当前位置 |
+| 作用域新建 | `/workspace/chats/new?project=…` | 聊天页的 project pre-create 在 composer `onPrepareThread` 中先执行——goal 端点会自行物化缺失的 thread 行，未分配行会让幂等 create 返回无项目归属的 thread |
+
+项目详情页的 "New Chat" 链接为 `/workspace/chats/new?project={id}`（未归档项目才显示）。
+
+## Thread 列表虚拟化（同步 #6）
+
+`thread-list-virtualizer.tsx`（`@tanstack/react-virtual`）：侧边栏行、`/workspace/chats` 行、项目页行共用一个最小行模型（只需稳定 `thread_id`），**≥ 60 行才启用虚拟化**；`recent-chat-list.tsx` 用 IntersectionObserver 哨兵触发 `useInfiniteThreads.fetchNextPage()` 无限滚动。列表刷新需用 `calculateScrollMargin` 补偿 root/scroll parent 偏移。
 
 ## Command Palette
 

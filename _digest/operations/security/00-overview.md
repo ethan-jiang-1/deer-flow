@@ -14,10 +14,10 @@ topics: [security, auth, isolation-defense]
 |------|------|
 | **纵深多少层？** | 粗粒度 7 层 / 细粒度 14 层。详见 [04-trust-boundary.md](04-trust-boundary.md) 逐层代码定位 |
 | **七种沙箱差多少？** | Local(零隔离) → Docker(容器,但 seccomp=unconfined) → K3s(Pod,有资源限制但 allowPrivilegeEscalation) |
-| **三种认证方式的区别？** | Browser(JWT+CSRF) → Internal(共享 token,跳过全部检查) → IM Channel(已有签名+内部 token) |
+| **四种凭据方式的区别？** | Browser(JWT+CSRF) → PAT(Bearer `dfp_`，scope 收窄+默认拒绝路由) → Internal(共享 token,跳过全部检查) → IM Channel(已有签名+内部 token) |
 | **Guardrail 拦截什么？** | 可插拔的 tool_call 执行前授权检查；内置 AllowlistProvider；默认 fail-closed |
 | **哪些命令会被审计拒绝？** | `rm -rf /`、`dd if=`、`mkfs`、base64 管道执行、fork bomb 等 ~20 种高危模式 |
-| **最大的安全短板？** | OAuth 未实现；权限全放行；Docker seccomp=unconfined；K3s 无 NetworkPolicy；登录限流单进程 |
+| **最大的安全短板？** | 权限全放行；Docker seccomp=unconfined；K3s 无 NetworkPolicy；登录限流单进程 |
 
 ---
 
@@ -39,13 +39,14 @@ topics: [security, auth, isolation-defense]
 
 ---
 
-## 三条认证路径
+## 认证凭据路径
 
 ![Auth Flow](figures/auth-flow.svg)
 
 | 路径 | 认证方式 | 用户标识 | 适用场景 |
 |------|---------|---------|---------|
 | **Browser** | JWT cookie + CSRF double-submit | 登录用户 ID | Web UI |
+| **PAT** 🆕 | `Authorization: Bearer dfp_...`（SHA-256 摘要存储，scope ∩ effective permissions + 默认拒绝路由策略） | 属主用户 ID | 脚本 / CI 程序化 API |
 | **Internal** | `X-DeerFlow-Internal-Token` | `"default"` | 组件间调用 |
 | **IM Channel** | 平台签名 + Internal Token + CSRF | `"default"` | 飞书/Slack/Telegram |
 
@@ -73,10 +74,9 @@ Internal 路径的 `DEER_FLOW_INTERNAL_AUTH_TOKEN` 在模块加载时自动生�
 
 ## 已知主要缺陷
 
-- **OAuth 未实现** — GitHub/Google 端点声明但返回 501
-- **权限全放行** — 6 个权限定义但所有 authenticated user 都获得全部
+- **权限全放行** — 9 个权限定义但所有 authenticated user 都获得全部（authorization 默认 disabled；Phase 4 已把 effective permissions 贯通到 /auth/me 与前端 UI 门控，强制点仍在 Gateway）
 - **Docker seccomp 显式禁用** — `--security-opt seccomp=unconfined` 移除 ~44 个系统调用过滤
 - **K3s 允许提权** — `allow_privilege_escalation: true`，setuid 程序可用
 - **SandboxAudit 只覆盖 bash** — read_file/write_file/str_replace 无高危内容检测
-- **登录限流仅进程内** — 多 worker 共享同一 IP 可绕过 5 次限制
-- **无 egress 防火墙** — 任何沙箱模式的 Agent 都能自由访问外网
+- **登录限流仅进程内** — 多 worker 共享同一 IP 可绕过默认 5 次限制（参数已可配 `auth.local.max_login_attempts`/`lockout_seconds`，但仍是 per-worker dict）
+- **无 egress 防火墙** — 任何沙箱模式的 Agent 都能自由访问外网（受控出口审批制见 sandbox 章节）

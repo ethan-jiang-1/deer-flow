@@ -270,3 +270,51 @@ Thread goal 自动续跑：
 ### Scheduled Tasks
 
 CRUD on scheduled task 定义（cron 或一次性），含 lease/status 列和执行追踪。
+
+### Projects (`/api/projects`) 🆕
+
+项目工作区 CRUD（Phase 1 仅组织维度）。详见 [00-overview.md](00-overview.md) 的 Projects 一节。
+
+| 方法 | 路径 | 说明 | 认证 |
+|------|------|------|------|
+| `POST` | `/api/projects` | 创建项目（name 1–128 字符） | `projects:write` |
+| `GET` | `/api/projects?status=active\|archived` | 列出项目 | `projects:read` |
+| `GET` | `/api/projects/{id}` | 读取项目 | `projects:read` |
+| `PATCH` | `/api/projects/{id}` | 部分更新（name/instructions/presentation） | `projects:write` |
+| `POST` | `/api/projects/{id}/archive` | 归档 | `projects:write` |
+| `POST` | `/api/projects/{id}/restore` | 恢复 | `projects:write` |
+| `DELETE` | `/api/projects/{id}` | 删除 | `projects:delete` |
+| `GET` | `/api/projects/{id}/threads?limit&offset` | 项目成员线程（仅未归档，元数据 secrets 脱敏） | `projects:read` + `threads:read` |
+
+缺失或他人的项目一律 404（fail closed，防枚举）。
+
+### Threads 组织性端点 🆕
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `PATCH` | `/api/threads/{id}` | metadata 合并；`deerflow_archived` 布尔键做归档/恢复（非布尔 422），组织性 PATCH 不 bump `updated_at` |
+| `POST` | `/api/threads/{id}/move` | 移入/移出项目（`project_id: str \| null`，null = 未归属） |
+| `POST` | `/api/threads/search` | 新增三态过滤：`archived`（缺省含全部 / `false` 含 legacy 未归档）与 `project_id`（缺省不过滤 / 显式 null=仅未归属 / 字符串=成员）；`limit`(≤1000)/`offset` 分页 |
+
+### Runs 历史与归档 🆕
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/threads/{id}/runs/page?limit&before_created_at&before_run_id` | newest-first keyset 运行历史页 `{data, has_more, next_before_created_at, next_before_run_id}`；两个游标字段必须成对出现 |
+| `GET` | `/api/threads/{id}/runs/{rid}/artifacts/archive` | 交付 manifest（`file_count`，来自 run 的 `run.delivery` 事件） |
+| `POST` | `/api/threads/{id}/runs/{rid}/artifacts/archive` | 下载 run 产出 ZIP（≤50 文件 / 50MiB 每文件 / 100MiB 总量 / 60s 构建 deadline；并发构建上限 4，满时 429） |
+
+两个 archive 端点都要求 run 已结束（未结束 409）且带 owner 检查。
+
+### Skill 导出 🆕
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/skills/custom/{name}/export-manifest` | 预览 manifest（revision 绑定；文件/目录/字节、requirements、warnings/blockers） |
+| `GET` | `/api/skills/custom/{name}/export` | 下载 `.skill` ZIP（`revision` 校验防 TOCTOU；每进程全用户 2 个导出槽，满时 429；120s idle 超时中止传输） |
+
+### 幂等与认证语义 🆕
+
+- Thread-scoped run 创建端点（`POST /api/threads/{id}/runs[/stream|/wait]`）接受 `Idempotency-Key` 头：同键复用返回原 run（input/assistant_id 不一致 → 409）
+- `POST /api/runs/stream|/wait`（stateless）强制 `runs:create` 权限；可选 body `thread_id` 做 owner 检查
+- `GET /api/threads/{id}/runs/{rid}/stream` 对 `action` 参数 405——取消动作仅 POST 支持，GET join 是只读观察

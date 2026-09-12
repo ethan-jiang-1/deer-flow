@@ -220,6 +220,8 @@ Skill archive / directory
 
 **策略**：名称-based allowlist——只有这些已知的远程内容 tool 被中性化。Local tool（bash/read_file）输出不受影响（信任 sandbox 内的内容）。
 
+**🆕 MCP 结果纳入同一信任边界（#4839）**：MCP 来源的 tool（以 `deerflow_mcp` metadata 标签识别，`deerflow.tools.mcp_metadata.is_mcp_tool`）的结果也经过同一个 `neutralize_untrusted_tags`——MCP server 一律按第三方远程代码对待，结果默认 untrusted，与工具叫什么名字无关。对 MCP 做名字启发式（匹配 fetch/search 等子串）被有意避免：那会同时误伤合法的*本地*工具输出（如 `file_search` 结果）。
+
 ---
 
 ## 第 7 道防线：全链路 Output HTML Escaping 🆕
@@ -259,6 +261,14 @@ Skill archive / directory
 - **精确名**：`DATABASE_URL`、`REDIS_URL`、`GH_PAT`、`MYSQL_PWD`、`REDISCLI_AUTH`、`PGPASSFILE`、`PGSERVICEFILE`
 - Benign 变量（`PATH`、`HOME`、`LANG`、`VIRTUAL_ENV`）保留
 
+### 🆕 MCP 凭据的 header 值合法性拒绝（#5066）
+
+`mcp/headers.py::illegal_header_value_reason`：解析为 HTTP header 值会失败的凭据（换行、首尾空白、非 ASCII）一律**拒绝执行该 tool call**，与 `on_missing` 设置无关。理由：h11 在换行/首尾空白场景会把**完整值**渲染进异常消息，而 `ToolErrorHandlingMiddleware` 会把 tool 错误复制进 model 可见消息——不拦就会把 secret 落进 prompt、checkpoint 和 trace（httpx 对非 ASCII 的报错较早、只点名字符）。覆盖三条凭据来源：`user_auth`（per-user）、`headers_from_context`（per-request）、OAuth token；拒绝消息不回显凭据值。
+
+### 🆕 Skill toggle 不再持久化 resolved secrets（#5357）
+
+Gateway skill toggle（及其他 runtime 写方）改为 **raw 读-合并-写**（`read_raw_extensions_config` / `set_raw_skill_enabled` + `validate_raw_extensions_config` 后写回），绝不把 `ExtensionsConfig` 模型序列化回盘——模型加载时 `$VAR` 占位符已被解析成明文 secrets，序列化会同时把明文写入 `extensions_config.json` 并永久抹掉 `$VAR` 引用。
+
 ---
 
 ## 补充防线
@@ -271,9 +281,22 @@ Skill archive 解压时拒绝 zip 成员名中的冒号（`:`）——防止 NTF
 
 `safe_extract_skill_archive()` 限制 archive 条目数，防止 zip bomb。
 
+### 🆕 Custom Agent 技能 allowlist 的 sandbox 层强制（#5077）
+
+`skills/projection.py`：声明了显式 `skills` allowlist（含 `[]`）的 lead custom agent，其 sandbox 挂载的是 enable 公开/用户可见技能 ∩ allowlist 的**线程级投影**（`users/{user_id}/threads/{thread_id}/skills_view/...`），而非共享零拷贝挂载——被策略排除的技能包在文件系统层就不可见，不只是提示词层面的约束。重建时按 manifest 签名先撤销旧分类再加新策略，投影副本拒绝绝对 symlink 与解析到包外的相对 symlink（防止被允许的包链接回被排除的源）；文件拷贝进视图使 sandbox 内写入无法污染规范 skill inode。subagent 的技能列表仍只约束发现与激活（并发的 subagent 共享 lead 线程 sandbox）。
+
+### 🆕 Artifact 服务安全：主动内容强制附件 + PUT outputs 封锁
+
+- **XML/HTML 附件化（#5353）**：`gateway/routers/artifacts.py` 的 `ACTIVE_CONTENT_MIME_TYPES`（`text/html`、`application/xhtml+xml`、`image/svg+xml`、`text/xml`、`application/xml`、`text/xsl`，外加任意 `+xml` 子类型——XHTML/SVG 都算）与 `.skill` 成员一律以 `Content-Disposition: attachment` 下发，即使浏览器同源打开也无法内联执行脚本，堵住"用户上传 HTML/SVG artifact → 同源 XSS"路径
+- **PUT 封锁在 outputs 内（#5321）**：artifact 编辑路由的路径先过 `normalize_outputs_virtual_path`（先折叠 `..` 再做前缀检查），再由 `resolve_outputs_confined_path` 对**解析后的 host 路径**复检 resolved outputs root（与 IM 频道附件投递共享同一条规则）——percent-encoded `..` 或攻击者在 `outputs/` 预埋的 symlink 都不能把编辑重定向到同级 `uploads/` 文件；原子替换保留既有 POSIX 权限处理。该规则与并发安全共用 `reserve_artifact_write`（artifact_write 线程操作预留）
+
 ### ReadBeforeWriteMiddleware
 
 `read_before_write.enabled`（默认 on）：`write_file` 和 `str_replace` 必须先 `read_file` 取得内容 hash mark，防止并发编辑冲突和未经检查的覆写。
+
+**🆕 Blocked payload elision（#5329）**：`elide_blocked_payloads`（默认 true）+ `elide_min_chars`（默认 2000 字符，按 Python 字符数计）把被 gate 阻断调用的死参数（`write_file.content`、`str_replace.old_str/new_str`）在 **model-bound request** 中替换为短占位符——blocked 调用从未执行、重读后必然重发，原 payload 只会在后续每轮模型调用里白白占用上下文。**只改请求副本**：state、Receipts、run journal 保留原始参数。
+
+跨 provider 的重写必须经共享辅助 `agents/middlewares/tool_call_args.py::rewrite_messages_tool_call_args`：一条 AIMessage 的参数在**最多四个 surface** 上各有一份——`tool_calls` 结构化列表、`additional_kwargs["tool_calls"]` 原始 provider payload、content blocks（Anthropic `tool_use` 的 `input`+`partial_json`、OpenAI Responses `function_call` 按 `call_id` 匹配）、`tool_call_chunks`——只改一个 surface 会漏（`langchain_openai` 的 Responses 输入构造器甚至优先读 content block 的 `extras.arguments`）。重写命中时还会丢弃 `resp_` response id，使 OpenAI `use_previous_response_id` 回退为全量重放重写后的历史（服务端存储的旧对话无法编辑，续链会把原始参数带回来）。
 
 ---
 
@@ -281,7 +304,7 @@ Skill archive 解压时拒绝 zip 成员名中的冒号（`:`）——防止 NTF
 
 | 缺口 | 说明 |
 |------|------|
-| **ToolResultSanitization 仅 name-based** | MCP 远程内容 tool 注册为其他名称时（如 `fetch_url`）不被覆盖 |
+| **ToolResultSanitization 不清洗本地 tool 输出** | 有意为之（信任 sandbox 内容）；MCP 结果已通过 `deerflow_mcp` 标签纳入覆盖（#4839），残余缺口仅剩 extension/社区工具若既非首方网络工具又非 MCP 来源 |
 | **Output 层无主动内容扫描** | `SafetyFinishReasonMiddleware` 只在 provider 返回 `content_filter` 时反应——不主动扫描 agent 输出中的 PII/密钥 |
 | **审计日志非结构化** | SandboxAudit 的日志是 `logger.info()` 文本，不是结构化 JSON |
 | **SkillScan 是 best-effort** | 静态分析不能捕获所有动态行为；obfuscated 代码可以绕过 |
@@ -301,7 +324,12 @@ guardrails:
       allowed_tools: [bash, ls, read_file, write_file]
 
 # Input sanitization（默认 on，middleware 链内置）
-# Tool result sanitization（默认 on，middleware 链内置）
+# Tool result sanitization（默认 on，middleware 链内置；首方网络工具按名 + MCP 工具按 deerflow_mcp 标签）
+
+read_before_write:
+  enabled: true
+  elide_blocked_payloads: true   # 🆕 blocked 调用的死参数在 model-bound request 中替换为占位符
+  elide_min_chars: 2000          # 只 elide ≥2000 字符的 payload 字段（字符数，非 token）
 
 skill_scan:
   enabled: true                   # 🆕 SkillScan 开关

@@ -295,7 +295,8 @@ Honcho 是 RFC #1898 里的 **user 维度记忆提供方**：专管长期用户�
 - **多用户隔离（fail closed）**：每个操作按 `user_id` 解析 workspace——`workspace_overrides` 精确匹配，否则 `workspace_prefix + _stable_id(user_id)`。`_stable_id` = `sanitize_id(raw)[:48]` + `-` + 8 位 SHA-256 后缀：因为 `sanitize_id` 会把连续非法字符折叠成一个 `-`（`"user.name@x"` 与 `"user-name@x"` 都折叠成 `"user-name-x"`），裸清洗结果有碰撞风险；哈希后缀让默认派生路径碰撞抵抗。`workspace_overrides`/`user_peer_overrides` 按**未清洗的 raw key** 匹配；共享同一 workspace 的用户共享一个 search 索引（`search` 无 peer filter）。缺失 `user_id` fail closed：写变 no-op、读返回空，绝不落到共享 fallback workspace
 - **写入（`add`）**：`human` → `user_peer`、`ai`/`AIMessageChunk` → `assistant_peer`，每条截断到 `message_char_limit`；session id = `df-` + `_stable_id(thread_id)`（避免 `"t.1"`/`"t-1"` 这类裸清洗会合并的 thread 碰撞）
 - **读取**：`get_context()` 返回 `working_representation`（`max_conclusions=25`）截断到 `max_injection_chars`；`search()` 走 Honcho 的 workspace 级 `/search`；`get_memory()` 返回 DeerMem 形状最小视图（`facts: []` + `user.workContext.summary` = representation）
-- **failure_policy.read**：默认 `fail_open`（log + 空结果）；`fail_closed` 把召回失败包装成 `MemoryManagerError` 抛出（`_read_or_fallback` 门，镜像 mem0）。写失败只 log 不抛
+- **failure_policy.read**：默认 `fail_open`（log + 空结果）；`fail_closed` 把召回失败包装成 `MemoryManagerError` 抛出（`_read_or_fallback` 门，镜像 mem0）。写失败只 log 不抛。**同步 #6（#4726）**：failure policy 从"文档约定"变为"逐后端强制"——manager 层统一收口读失败路径（含超时处理移出饱和 executor），mem0/openviking/deermem 各自补齐策略行为测试（`test_memory_manager_interface.py` +135 行）
+- **Agent 删除即取消缓冲提取（#5123，同步 #6）**：agent 被删除或 clear 时，排队中的 extraction 不再跑完——`manager.py` + deermem `queue.py` 增加按 agent 取消入口（`test_memory_cancel_by_agent.py`），避免已删 agent 继续消耗后台提取资源
 - **异步 offload**：`aadd`/`aget_context`/`asearch` 通过 `asyncio.to_thread` 把同步 httpx IO 移出事件循环
 - **配置校验（fail fast，构造期）**：`timeout_seconds`/`connect_timeout_seconds` 必须有限且 >0；`message_char_limit`/`max_injection_chars` 必须 >0（`text[:n]` 的 n≤0 是空串或负切片，不是长度上限）；`api_key` 走明文 HTTP 而未开 `allow_insecure_http` 直接报错（`config.py:53-73`）
 

@@ -16,7 +16,7 @@ DeerFlow 暴露了哪些挂载点？怎么把自定义的东西挂上去？
 
 | 文件 | 内容 |
 |------|------|
-| **01-config-yaml.md** | AppConfig 深挖：35 section、from_file() 8 步流水线、config_version 升级、🆕 memory 重构、feature gating |
+| **01-config-yaml.md** | AppConfig 深挖：36 section、from_file() 8 步流水线、config_version 升级、🆕 memory 重构、feature gating |
 | **02-extensions-json.md** | MCP + Skills 配置：MCP server config、OAuth token、MCP tools 缓存、skills 状态 |
 | **03-dynamic-loading.md** | resolve_variable 原理：动态 import + type check、model factory、extra="allow" 透传、thinking 跨 provider |
 | **04-config-reference.md** | 完整字段级配置手册：每个 section 的 YAML schema、默认值、🆕 memory.backend_config、authz |

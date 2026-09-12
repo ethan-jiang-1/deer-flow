@@ -35,11 +35,15 @@ DeerFlow 通过 8 个 IM 平台通道（Feishu/Lark、DingTalk、Slack、Telegra
 │   ├─ Inbound: single asyncio.Queue[InboundMessage]      │
 │   └─ Outbound: async callback registry                  │
 ├─────────────────────────────────────────────────────────┤
-│ ChannelManager (manager.py — ~1500 行)                   │
+│ ChannelManager (manager.py — ~2800 行)                   │
 │   ├─ _dispatch_loop() — semaphore(5) + 去重检查         │
 │   ├─ _handle_chat() — 核心路由                          │
+│   ├─ /agent 命令 — 会话级 Custom Agent 选择 🆕          │
 │   ├─ _accumulate_stream_text() — allowlist 累积         │
-│   └─ _resolve_run_params() — 4 层 config merge         │
+│   └─ _resolve_run_params() — 4 层 config merge          │
+├─────────────────────────────────────────────────────────┤
+│ Inbound Attachments (sandbox_files.py) 🆕                │
+│   └─ 非挂载沙箱附件同步：非释放沙箱 client lease         │
 ├─────────────────────────────────────────────────────────┤
 │ ChannelStore (store.py)                                  │
 │   └─ JSON file: channel+chat_id → thread_id 映射        │
@@ -125,23 +129,26 @@ Shutdown:
 
 | 文件 | 行数 | 职责 |
 |------|------|------|
-| `app/channels/base.py` | 131 | `Channel` 抽象基类 |
-| `app/channels/message_bus.py` | 173 | `MessageBus` pub/sub |
-| `app/channels/manager.py` | 1024 | `ChannelManager` 核心调度 |
-| `app/channels/store.py` | 154 | 文件持久化 Channel↔Thread 映射 |
-| `app/channels/service.py` | 232 | `ChannelService` 生命周期 |
-| `app/channels/commands.py` | 21 | 已知命令集 |
-| `app/channels/feishu.py` | 698 | 飞书/Lark |
-| `app/channels/slack.py` | 264 | Slack |
-| `app/channels/telegram.py` | 317 | Telegram |
-| `app/channels/dingtalk.py` | 740 | 钉钉 |
-| `app/channels/discord.py` | 553 | Discord |
-| `app/channels/wecom.py` | 398 | 企业微信 |
-| `app/channels/wechat.py` | 1370 | 微信 |
-| `app/channels/buzz.py` | 1413 | 🆕 Buzz（Nostr relay，NIP-42 认证） |
-| `app/channels/buzz_nostr.py` | 202 | 🆕 NIP-01 事件签名/验证（BIP-340 Schnorr） |
+| `app/channels/base.py` | 393 | `Channel` 抽象基类 |
+| `app/channels/message_bus.py` | 359 | `MessageBus` pub/sub |
+| `app/channels/manager.py` | 2786 | `ChannelManager` 核心调度 |
+| `app/channels/store.py` | 157 | 文件持久化 Channel↔Thread 映射（读写全部在 `_lock` 内） |
+| `app/channels/service.py` | 588 | `ChannelService` 生命周期 |
+| `app/channels/commands.py` | 90 | 已知命令集（含 `/agent`、`/goal`） |
+| `app/channels/run_policy.py` | 118 | `ChannelRunPolicy` 注册表（per-channel 流式/串行/fire-and-forget 策略） |
+| `app/channels/sandbox_files.py` | 43 | 🆕 入站附件→沙箱同步（非释放沙箱 client lease，防并行 run 关闭共享 client） |
+| `app/channels/feishu.py` | 1244 | 飞书/Lark |
+| `app/channels/slack.py` | 475 | Slack |
+| `app/channels/telegram.py` | 992 | Telegram |
+| `app/channels/dingtalk.py` | 1129 | 钉钉 |
+| `app/channels/discord.py` | 858 | Discord |
+| `app/channels/wecom.py` | 619 | 企业微信（出站 20480 UTF-8 字节协议上限 🆕） |
+| `app/channels/wechat.py` | 1479 | 微信 |
+| `app/channels/buzz.py` | 1472 | 🆕 Buzz（Nostr relay，NIP-42 认证） |
+| `app/channels/buzz_nostr.py` | 201 | 🆕 NIP-01 事件签名/验证（BIP-340 Schnorr） |
 | `app/channels/buzz_run_policy.py` | 12 | 🆕 Buzz run 策略（serialize_thread_runs） |
-| `app/channels/dedupe_store.py` | 277 | 🆕 入站消息去重存储（Memory/Postgres 两级） |
+| `app/channels/buzz_seen_events.py` | 385 | 🆕 连接层 seen-id 持久去重（`BuzzSeenEventStore`，事件循环外读写） |
+| `app/channels/dedupe_store.py` | 276 | 🆕 入站消息去重存储（Memory/Postgres 两级） |
 | `deerflow/integrations/lark_cli.py` | 1724 | 🆕 Lark CLI 托管集成安装器（27 个 lark-* 技能包） |
 | `deerflow/integrations/lark_broker.py` | 457 | 🆕 Pattern B 凭据 broker（沙箱侧 sidecar） |
 | `app/gateway/routers/channels.py` | — | Channel 状态/重启 API |

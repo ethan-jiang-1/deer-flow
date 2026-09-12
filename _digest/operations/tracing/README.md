@@ -11,6 +11,7 @@ type: index
 | 文件 | 内容 |
 |------|------|
 | [langsmith-langfuse-dual-provider.md](langsmith-langfuse-dual-provider.md) | 全景：两层附着策略、LangSmith/Langfuse 双 provider、工厂模式、Langfuse v4 合约、元数据注入、配置、环境标签 |
+| [trace-ids-and-audit-events.md](trace-ids-and-audit-events.md) | 请求级 `X-Trace-Id` 无条件签发、非 HTTP 入口点绑定、loop detection / deferred tool promotion 审计事件持久化 |
 
 ## 关键设计决策
 
@@ -18,12 +19,15 @@ type: index
 - **`inject_langfuse_metadata()` 双路径共享** — Gateway worker 和嵌入式 client 走同一个 helper，防止漂移
 - **调用者覆盖优先** — `setdefault` 确保前端设置的 `langfuse_session_id` 不被覆盖
 - **LangSmith-only 零影响** — `build_langfuse_trace_metadata()` 在 Langfuse 未启用时返回 `{}`
+- **trace id 无条件签发（#5119）** — `X-Trace-Id` 不受任何配置门控；`logging.enhance.enabled` 只管日志输出，ContextVar 是唯一源，其余载体都是派生输出
+- **审计事件只记元数据** — `middleware:loop_detection` / `middleware:tool_promotion` 经 RunJournal 落 run event store，不含工具参数或消息内容，失败绝不打断 agent run
 
 ## 测试覆盖
 
 | 测试文件 | 覆盖范围 |
 |---------|---------|
 | `test_tracing_factory.py` | factory — provider 检测、异常传播、空 provider 返回 `[]` |
-| `test_tracing_metadata.py` | metadata — 所有字段映射、空值回退、tags 生成 |
+| `test_tracing_metadata.py` | metadata — 所有字段映射、空值回退、tags 生成、`deerflow_trace_id` 恒写入 |
 | `test_worker_langfuse_metadata.py` | worker 注入 — `inject_langfuse_metadata` 在 `run_agent()` 中正确合并 |
 | `test_client_langfuse_metadata.py` | client 注入 — `DeerFlowClient.stream()` 同样调用共享 helper |
+| `test_trace_middleware.py` / `test_trace_entry_points.py` / `test_worker_trace_binding.py` | 请求 trace id — HTTP 中间件、三个非 HTTP 入口绑定、worker 盖章与调用方回声拒绝 |

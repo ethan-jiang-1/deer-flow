@@ -64,6 +64,10 @@ jobs:
 - **两段式合并流程**：waiver 生效需要 manifest 变更先落到 trusted base——即先合 manifest，再合 skill 变更，之后在一次 follow-up cleanup 中把消费掉的哈希从 `preapproved_file_sha256s` 提升为 `file_sha256`。直接在同一次 PR 里同时改 waiver 和 skill 是不会生效的。
 - waiver 条目在 CI 输出中保持可见（不静默吞掉）。
 
+**并行分片（#5137，同步 #6）**：unit tests 按 **4 个 shard** 跑（`matrix: shard: [1,2,3,4]`），分片不是随便均分——`make test-shard` 按 `backend/.test_durations` 里记录的**真实耗时**平衡各 shard（fail-fast 关闭，某个 shard 挂了仍完整报告该 shard 的测试）。
+
+**沙箱镜像冒烟（同步 #6 新增）**：`sandbox-image-smoke.yml` + `sandbox-network-proxy-image.yaml` 两个 workflow 把沙箱镜像的构建/拉起纳入 CI 验证。
+
 ## 为你的 DeerFlow 应用搭 CI
 
 ### 最小可用的 workflow
@@ -219,9 +223,10 @@ def test_agent_completes_within_timeout():
 
 | 内容 | 位置 |
 |------|------|
-| CI workflow | `.github/workflows/backend-unit-tests.yml` |
+| CI workflow | `.github/workflows/backend-unit-tests.yml`（4 shard 并行，`.test_durations` 平衡） |
 | 阻塞 IO workflow | `.github/workflows/backend-blocking-io-tests.yml` |
 | 🆕 Skill review CI | `.github/workflows/skill-review-ci.yml` |
+| 🆕 沙箱镜像验证 | `.github/workflows/sandbox-image-smoke.yml` + `sandbox-network-proxy-image.yaml` |
 | 🆕 Nightly build | `.github/workflows/nightly.yaml`（images + Helm chart） |
 | Makefile test 目标 | `backend/Makefile` |
 | conftest 全局 fixture | `backend/tests/conftest.py` |

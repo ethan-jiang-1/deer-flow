@@ -73,6 +73,7 @@ async def _handle_streaming_chat(self, msg, thread_id, params):
 - 使用 `reply_stream()` WebSocket 命令 → 向同一个 `stream_id` 推送文本
 - `is_final` 控制流是否结束
 - 如果 thread 追踪丢失 → fallback 到 `send_message()`
+- **20480 UTF-8 字节协议上限**（#5148）：WeCom bot 协议对消息内容按**字节**（非字符）封顶（`_WECOM_MAX_CONTENT_BYTES`）。流式回复按字符边界裁剪并附加截断标记——一条 stream 携带整个回复，不能中途换流；主动推送拆成**最多 10 条顺序 markdown 消息**，剩余尾部裁剪 + 标记终止。每聊天的发送锁把整个拆分批次端到端串行化（manager worker 并发运行，否则两个长推送到同一聊天会交错分块）；锁按引用计数回收，注册表不随 Gateway 生命周期增长
 
 **DingTalk（钉钉）AI Card 模式：**
 - 创建 interactive card → 通过 `PUT /v1.0/card/streaming` 推送更新
@@ -126,7 +127,7 @@ async def _handle_chat(self, msg, thread_id, params):
 
 - **Slack：** 在 thread 内回复，markdown → Slack mrkdwn 格式转换
 - **Telegram：** 回复消息（threaded reply），长消息自动分割
-- **Discord：** 在 Discord thread 内回复，2000 字符处自动分割
+- **Discord：** 在 Discord thread 内回复，2000 字符处自动分割；**出站跨 loop await 有界**（#5227）——所有出站调用（`send`/`send_file`/频道解析）经 `_run_on_discord_loop` 调度到 Discord 客户端线程的 loop，普通发送 30s（`DISCORD_OUTBOUND_TIMEOUT_SECONDS`）、文件上传 120s（`DISCORD_UPLOAD_TIMEOUT_SECONDS`，无尺寸上限的 payload 要给慢上行 + 429 retry-after 留余量）；loop 缺失或未运行时立即 `RuntimeError` 快速失败——死客户端变成一条有日志的发送失败，而不是永久挂死的 ChannelManager worker；`is_running` 报告客户端线程存活（与 Feishu 相同），让 `ensure_channel_ready` 能在 `_run_client()` 因致命错误退出后重启频道
 - **WeChat：** 直接发送消息 + 文件上传
 
 ## 策略对比

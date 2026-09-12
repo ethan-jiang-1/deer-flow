@@ -28,7 +28,7 @@ topics: [middleware, hooks, interceptor-chain]
 
 ## 是什么
 
-DeerFlow 的 middleware 系统位于 LangGraph agent loop 和 LLM/tool 执行之间。每次 agent step 都要穿过这 36 层：
+DeerFlow 的 middleware 系统位于 LangGraph agent loop 和 LLM/tool 执行之间。每次 agent step 都要穿过这 37 层：
 
 ```
 Agent Loop 一轮 step:

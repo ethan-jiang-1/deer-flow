@@ -10,11 +10,14 @@ topics: [gateway, api, rest]
 
 - `app/gateway/app.py` — FastAPI 应用 + lifespan
 - `app/gateway/deps.py` — 依赖注入
+- `app/gateway/health.py` — `/health`（liveness）与 `/health/ready`（数据库就绪探针）🆕
 - `app/gateway/auth_middleware.py` — JWT 认证中间件
 - `app/gateway/csrf_middleware.py` — CSRF 双重提交 Cookie 模式
 - `app/gateway/internal_auth.py` — 内部服务认证
 - `app/gateway/authz.py` — 基于角色的权限装饰器
 - `app/gateway/services.py` — 后台服务编排
+- `app/gateway/artifact_archive.py` — run 产出 ZIP 归档（fail-closed 构建）🆕
+- `app/gateway/skill_export.py` — 自定义 Skill 导出 worker 与流式响应 🆕
 
 ## 认证流程
 
@@ -227,3 +230,59 @@ Console 的 cost estimation 支持 **cache-aware pricing**：
 6. **通知 loop**：Gateway 注册一个 canonical extension-notification loop，await 的 lifecycle 钩子与 async system 观察都派发到它；同步 system 回调 fire-and-forget 提交。shutdown 先停止接受 detached 观察，再 memory flush，最后等 in-flight run/subagent drain 才 reset loop。
 
 配套 feature flag：`GET /api/features` 现在上报 `mcp_tasks`（`app.state.mcp_tasks_available`，startup-scoped）与 `subagent_batches`（`repository_available` 与 `worker_running` 分离，worker 停了不隐藏历史/导出），供前端门控。
+
+## 🆕 `/health/ready` 数据库就绪探针
+
+`app/gateway/health.py`（#5166）— `GET /health` 保持纯 liveness 信号（进程活着即 200）；`GET /health/ready` 额外并发探测 Gateway 实际依赖的**两个**持久化后端：
+
+| 探针 | 目标 |
+|------|------|
+| `database` | `database:` 背后的 ORM engine（应用仓储），`SELECT 1` |
+| `checkpointer` | 生效的 LangGraph checkpointer/Store 后端（legacy `checkpointer:` 段优先，否则从 `database:` 派生；memory/sqlite/postgres） |
+
+- 单端点 deadline **3s**（`_READINESS_DEADLINE_SECONDS`）覆盖两个并发探针（健康响应耗时不叠加），单探针 **2s**（`_PROBE_TIMEOUT_SECONDS`）；任一 `unreachable` → **503 `degraded`**，否则 200 `ready`
+- checkpointer 配置从 **startup 快照**解析（`app.state.checkpointer_config`，`resolve_checkpointer_config` 镜像 runtime 的选择）——探测热重载后的配置可能查到运行进程根本没在用的后端；解析失败 **fail closed** 为 `unreachable` 而非 `not_configured`
+- `backend=memory` 与进程内 SQLite（`:memory:`/`mode=memory`）→ `not_configured`（无外部可探）；SQLite 磁盘库用 `mode=rw` **非创建**打开——缺失的库文件报 unreachable，探针绝不重建它
+- `/health/ready` 经 `/health` 前缀公开无认证 → 所有开连接的探针经 per-event-loop `asyncio.Lock`（`_PROBE_GATES`，WeakKeyDictionary）**串行化**，并发探针/攻击者无法打开无限个新 PostgreSQL 连接；等待者仍被端点 deadline 甩掉
+
+## 🆕 Projects（项目工作区）
+
+`app/gateway/routers/projects.py`（#5265）+ `deerflow/persistence/projects/` + migrations `0019_projects` / `0020_threads_meta_project_id` — 在 thread 之上引入"项目"组织维度（Phase 1 仅组织，无文档/回收站）：
+
+- **Thread→project 归属只在三个入口写入**：thread 创建（`POST /api/threads` 带服务端校验的 `project_id`，`ProjectNotAssignableError` → 404 fail closed，缺失/他人/已归档项目不可区分）、分支创建（新行继承源 thread 的 project；归档/已删项目**降级为未归属**而非失败）、显式移动（`POST /api/threads/{id}/move`，组织性操作，历史/run state/文件全不动）；run admission 从不改归属
+- `deerflow_project_id` 是 `threads_meta.project_id` 列的 server-reserved **只读**暴露键，客户端写入被剥离
+- `/api/projects` CRUD + `POST /{id}/archive|restore` + `GET /{id}/threads`（分页，且只列**未归档**成员——与侧边栏 `archived: false` 一致，归档 chat 只能从全局 Archived 标签回来）
+- thread `/search` 支持三态 project 过滤（键缺省=不过滤；**显式 null=仅未归属**；字符串=该 project 成员）与 `archived` 三态过滤
+
+## 🆕 Thread 归档与运行历史分页
+
+- **归档/恢复**（#5236）：`PATCH /api/threads/{id}` 的 metadata `deerflow_archived` 布尔键（server-reserved，非布尔 422）；pin/unpin、archive/restore 属于组织性 PATCH，**不 bump `updated_at`**（与会话活跃度契约分离）
+- **Keyset 运行历史**（#5283）：`GET /api/threads/{id}/runs/page` — newest-first 游标分页 `{data, has_more, next_before_created_at, next_before_run_id}`；两个游标字段必须成对提供，否则 422
+
+## 🆕 Artifact 归档 ZIP 下载
+
+`app/gateway/artifact_archive.py`（#5117）+ `POST /api/threads/{id}/runs/{rid}/artifacts/archive`（`GET` 同路径返回 `file_count` manifest）— 把一次**已结束** run 的 `present_files` 产出打成 ZIP：
+
+- **Fail-closed 成员校验**：仅 `/mnt/user-data/outputs/` 下常规文件；拒绝符号链接/junction、`..`/空段、Windows 保留设备名与非法字符、控制字符（白名单 U+200C/U+200D）、`.artifact-edit-` 临时前缀、中间 `.skill` 目录段；NFC+casefold 冲突检测
+- **边界**：≤50 文件 / 单文件 50MiB / 总量 100MiB / 条目名 1KiB / 构建 60s deadline（超时 503）；Gateway 侧 `Semaphore(4)` 限并发构建（满时 429）
+- **TOCTOU 防御**：`O_NOFOLLOW|O_NONBLOCK` 打开 + 拷贝前后 fstat 身份复验（dev/ino/nlink/size/mtime）+ 全量 SHA-256 复核 + 逐路径组件 lstat 复验；路径清单来自 run 的 `run.delivery` 事件，run 未结束 409
+
+## 🆕 Skill 导出路由
+
+`app/gateway/skill_export.py`（#5332）+ `GET /api/skills/custom/{name}/export-manifest`（revision 绑定的预览 manifest：文件/目录/字节计数、requirements、warnings/blockers）与 `GET /api/skills/custom/{name}/export`（下载 `.skill` ZIP）：
+
+- 每进程**全用户共享 2 个导出槽**（`BoundedSemaphore(2)`，满时 429 `skill_export_busy`）；lease 与结果同进同退，失败路径 drain 后释放
+- **取消安全**：文件 IO worker 用 `asyncio.shield` + drain 反复吸收取消——取消 asyncio future 不会停掉 IO worker，重复取消绝不空放槽位或关闭仍在用的文件
+- 传输侧 `SkillExportResponse`：120s **idle** 超时（每次 transport 成功 accept 后重排，慢但健康的客户端能完成）；超时按 `ClientDisconnect` 中止——不报成功、不给部分 ZIP 补 JSON
+
+## 🆕 运行幂等与 SSE join 语义
+
+- **幂等 thread runs**（#5258）：thread-scoped 创建端点（`/runs`、`/runs/stream`、`/runs/wait`）接受 `Idempotency-Key` 头；Gateway 把调用方键与 owner+thread_id 一起哈希后进进程级索引（外部裸键绝不能直接进索引）。同键复用但 input/assistant_id 不同 → 409；复用的 `/wait` 返回持久 `status`/`error`（绝不序列化可能已被后续 run 推进的最新 checkpoint）；创建端点复用终态记录且流已消失时发 SSE `gap`/`stream_replay_gap`（`recovery: reload_durable_state`）——观察者 join 仍发 `end`。Stateless `/api/runs/*` 不在此契约内（无显式 thread 的请求会先建临时 thread）
+- **GET stream join 只读**（#5092）：`GET /{id}/runs/{rid}/stream` 对 `action` 参数 **405**（SameSite=Lax 下跨站顶层安全导航仍带 session cookie，必须在所有权检查之前拒绝状态变更）；`GET join` 与无 action 的 stream 均为只读观察（`apply_on_disconnect=False`）——观察者断开绝不触发创建者的 cancel-on-disconnect。观察者断连语义由 `tests/test_sse_observer_disconnect.py` 钉住
+- **Stateless 端点强制 run-create 授权**（#5030）：`POST /api/runs/stream|/wait` 要求 `runs:create`，可选 body `thread_id` 做 owner 检查
+- **事件分页之外的精确 history 归因**（#4953）：`POST /threads/{id}/history` 对 duration 元数据缺失/legacy 的 AI 消息，经 `find_latest_ai_message_run_ids`（事件存储上有界窗口回溯分页）把 message id 精确归因到 run_id，并以后台任务把精确归因与 duration 写回 checkpoint（read-on-read 迁移，含"无事件"负缓存条目避免重复扫描）；精确查找失败时降级为**移除**综合 run_id（响应不完整优于确定性错误）
+
+## 🆕 扩展原地升级与配置中间件构造参数
+
+- **扩展原地升级保留私有配置**（#5347）：`deerflow extensions upgrade SOURCE` = `install(replace=True)` —— staging 目录 + rename 原子替换受管源码快照（失败恢复现场），并保留该扩展在 `plugins:` 里的私有 `config` 与 enabled 状态（`preserve_enabled=True`）
+- **配置声明的中间件支持构造 kwargs**（#5312）：`extensions.middlewares` 条目可以是 `module.path:ClassName` 字符串（保持零参构造）或 `{class, kwargs}` 对象；kwargs 必须是 JSON 类型（YAML 日期/时间戳强转为 ISO 字符串以对齐 JSON，拒绝 NaN 等非 JSON 值），未知字段与空 class path 在**配置校验期**失败，构造错误仍在 agent 创建时失败
