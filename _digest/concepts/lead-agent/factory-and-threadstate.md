@@ -106,6 +106,13 @@ tools = get_available_tools(
 4. Subagent tool (`task`)
 5. ACP agents (`invoke_acp_agent`)
 
+🆕 条件追加的工具（v2.1.0-rc0）：
+- **Project shelf tools**：仅当 run 的 runtime context 带有 admission 钉住的 `PROJECT_CONTEXT_KEY` 时才注册（§10.11）——非项目 run 不支付这些工具的 schema token，也看不到它们；项目 run 即使 instructions 和 shelf 都为空也保留。工具在调用时读同一个 pinned key，缺失即 fail closed
+- **Memory tools**：受 `memory_enabled` 控制——custom agent 现在可以整体禁用 memory 读写（`skip_memory_flush=not memory_enabled`）
+- **Task continuity tools**：`task_continuity.enabled` 开启时追加（opt-in 任务笔记 + 压缩历史召回，见 `docs/task-continuity.md`）
+
+工具名冲突的追加策略统一为 `_append_named_tools_without_conflicts`：只跳过同名工具，不会因为一个重名而丢掉同批次其他工具。
+
 ### 6. 生成 System Prompt
 
 ```python
@@ -153,6 +160,39 @@ graph = create_agent(
 - 加载 Agent 的 `config.yaml` 覆盖默认配置
 - 额外的内置工具：`update_agent`（Agent 自我更新 SOUL.md + config.yaml）
 - 受 `allowed-tools` policy 限制的工具集
+- 🆕 display name 支持 Unicode（如中文 Agent 名）；目录名仍走 `AGENT_NAME_PATTERN` 文件系统安全校验，两者分离
+- 🆕 可通过 agent 配置整体禁用 memory（读写都关，见上文 `memory_enabled`）
+
+---
+
+## 🆕 Projects 上下文注入（v2.1.0-rc0）
+
+**核心设计**：run admission 时**一次异步解析**钉住项目快照，之后全部是纯渲染——无数据库/文件系统 I/O，无历史比对。
+
+```
+resolve_project_context(thread_store, project_repo, thread_id, document_repo)
+  → 一次一致性读：threads_meta.project_id + project 行 + 有界 shelf 快照
+    （active 文档数 + 前 shelf_index_max_entries+1 行，updated_at DESC）
+  → 钉到 runtime context 的 PROJECT_CONTEXT_KEY 下
+```
+
+**关键语义**：
+
+| 语义 | 说明 |
+|------|------|
+| **latest-only** | 每次 run 渲染当次钉住的快照；旧 run 的 `<project>` 内容不进持久历史，下次 run 直接渲染新快照 |
+| **transient message** | 渲染出的 `<project>`（+非空时的 `<documents>` 索引）是一条带 `deerflow_project_context` marker 的临时 user message，**只骑在 model request 上**，从不写入 `state["messages"]` 或 checkpoint |
+| **防误删** | 识别 project message 不能只靠 ID 前缀——必须 marker + provenance 双重匹配，用户消息绝不会被移除 |
+| **pinned 身份 vs live 数据** | 快照钉住"哪个项目"；shelf 工具调用时查 **live 行**。run 中途文档被删会得到 "no longer on the shelf" 错误而非过期内容 |
+| **上下文事件** | 渲染时记录 `project_context_revision` / `project_shelf_revision`（渲染块的 sha256 指纹） |
+
+**渲染边界**（config `projects:` 段）：instructions 超限写入时即 422 拒绝（从不截断）；`<documents>` 索引受 `shelf_index_max_entries`（默认 50）和 `shelf_index_max_bytes`（默认 4096，CJK 文档名下通常先于条目数触顶）双界。
+
+**注入位置**：由 DynamicContextMiddleware 在 model request 组装时插入（与 `<memory>` 块同层；prompt.md 明确告诉模型：request 中的 `<project>` 块是唯一生效来源，历史里提到的旧项目设置一律忽略）。
+
+**架构归档**：`archived/` 状态的项目成员仍保留 instructions 注入和只读 shelf 访问。
+
+> 完整设计文档：`docs/superpowers/specs/2026-09-12-projects-mvp-phase2-design.md`（606 行）。Gateway 侧 routers / trash 见 operations/app-layer。
 
 ---
 
@@ -172,7 +212,36 @@ class ThreadState(AgentState):
     skill_context: list[SkillEntry]      # 已加载 skill 引用（merge_skill_context）
     summary_text: str | None             # summarization 产出的压缩文本（LastValue）
     promoted: PromotedTools | None       # deferred MCP tool 提升记录（merge_promoted）
+    # 🆕 v2.1.0-rc0 新增：
+    task_notes: dict | None              # 任务笔记（TaskNotesChannel 自定义 reducer，opt-in task_continuity）
+    task_history: dict | None            # 压缩历史召回记录（NotRequired）
 ```
+
+### DelegationEntry 🆕 验收字段（RFC #4651）
+
+```python
+class DelegationEntry(TypedDict):
+    ...
+    stop_reason: NotRequired[str]          # turn_capped / loop_capped（此前已有）
+    receipt_verdict: NotRequired[dict]     # 🆕 PR2：父方 receipt 引用核查结论（建议性证据），task 写回时盖章
+    acceptance_verdict: NotRequired[dict]  # 🆕 PR4：确定性验收清单结论（同 provenance）
+    created_at: str
+```
+
+旧历史没有这两个字段（NotRequired）。详见 [concepts/subagent/](../subagent/)。
+
+### ViewedImageData 🆕
+
+```python
+class ViewedImageData(TypedDict):
+    mime_type: str
+    size: int
+    actual_path: str
+    sha256: str                            # 🆕 校验宿主同步副本与上次查看的字节一致
+    source_sandbox_id: NotRequired[str]    # 🆕 字节来自哪个 sandbox
+```
+
+图片字节仍按需读取（不进 checkpoint），但现在可以从"大小+SHA-256 都匹配的宿主同步副本"读取，sandbox 重建后不失效。
 
 ### 自定义 Reducers
 

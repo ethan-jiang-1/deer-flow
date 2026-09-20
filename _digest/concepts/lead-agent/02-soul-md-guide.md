@@ -10,6 +10,8 @@ topics: [agent, soul, prompt-engineering, custom-agent]
 
 自定义 Agent 的人格文件。存储在 `.deer-flow/users/{uid}/agents/{name}/SOUL.md`，通过 `load_agent_soul()` 加载并注入到 `<soul>` XML 标签中，成为系统 prompt 的一部分。纯 Markdown，无 YAML frontmatter。
 
+> 🆕 v2.1.0-rc0：Agent **display name 支持 Unicode**（中文等名称可直接用作展示名）；`{name}` 目录名仍须匹配文件系统安全的 `AGENT_NAME_PATTERN`，两者分离。另外 agent 配置可整体**禁用 memory**（不读不写、不 flush）。
+
 ## 模板
 
 ```markdown
