@@ -35,14 +35,22 @@ frontend/src/
 │   ├── workspace/
 │   │   ├── layout.tsx      # WorkspaceLayout (auth gate)
 │   │   ├── workspace-content.tsx  # QueryClient + Sidebar + Toaster
-│   │   └── chats/[thread_id]/
-│   │       ├── page.tsx    # ChatPage — 核心页面
-│   │       └── providers.tsx  # Subtasks + Artifacts + PromptInput providers
+│   │   ├── chats/[thread_id]/
+│   │   │   ├── page.tsx    # ChatPage — 核心页面
+│   │   │   └── providers.tsx  # Subtasks + Artifacts + PromptInput providers
+│   │   ├── capabilities/page.tsx  # 🆕 Capability Center（skill/plugin/MCP 管理）
+│   │   ├── projects/[id]/page.tsx # 🆕 项目详情（threads + documents 双 tab）
+│   │   ├── trash/page.tsx  # 🆕 回收站（projects/trash 恢复与彻底删除）
+│   │   └── scheduled-tasks/page.tsx # 🆕 增加 run 历史分页浏览
 ├── components/
 │   ├── workspace/          # 工作区 UI
 │   │   ├── chats/          # ChatBox, useThreadChat
-│   │   ├── messages/       # MessageList, MessageListItem, MessageGroup
-│   │   ├── artifacts/      # Artifact 预览面板
+│   │   ├── messages/       # MessageList, MessageListItem, MessageGroup, 🆕 conversation-outline, tool-call-details
+│   │   ├── artifacts/      # 🆕 重构后的 Artifact 预览（file-preview / table-preview / standalone viewer）
+│   │   ├── projects/       # 🆕 项目 documents/threads section
+│   │   ├── capabilities/   # 🆕 Capability Center：skill-gallery, plugin-gallery, mcp-plugin-manager, skill-export-dialog
+│   │   ├── trash/          # 🆕 trash-view 回收站
+│   │   ├── conversation-references/ # 🆕 composer 会话引用（picker / chip / 按钮）
 │   │   ├── input-box.tsx   # 输入框 (mode/model/reasoning-effort 选择器)
 │   │   ├── workspace-sidebar.tsx
 │   │   └── command-palette.tsx
@@ -52,6 +60,10 @@ frontend/src/
 ├── core/                   # 业务逻辑（无 JSX）
 │   ├── api/                # LangGraph Client 单例 + CSRF fetcher
 │   ├── threads/             # useThreadStream, useThreadHistory, types, thread-branch-tree（分支 lineage）
+│   │                        # 🆕 message-order.ts（deerflow_seq 可信排序）+ stream-state.ts（渲染态 patch 合并）
+│   ├── projects/            # 🆕 Projects 客户端（api/hooks/types + composer-attach 跨路由附件交接）
+│   ├── trash/               # 🆕 回收站 api/hooks（分页列表 / restore / purge / empty）
+│   ├── conversation-references/ # 🆕 会话引用 metadata（display-only，权限在 Gateway）
 │   ├── messages/            # getMessageGroups, content extraction, usage
 │   ├── streamdown/          # remark/rehype 插件配置
 │   ├── rehype/              # 自定义 rehype 插件（词级动画）
@@ -63,9 +75,11 @@ frontend/src/
 │   ├── artifacts/           # Artifact 内容加载 + 预览
 │   ├── uploads/             # 文件上传管线
 │   ├── memory/              # 用户记忆 API
-│   ├── models/              # 可用模型列表
-│   ├── skills/              # Skill 安装管理
-│   └── mcp/                 # MCP 集成
+│   ├── models/              # 可用模型列表 + 🆕 favorites-store（按 user 隔离的模型收藏）
+│   ├── skills/              # Skill 安装管理 + 🆕 export.ts（skill 包导出）
+│   ├── settings/            # localStorage 偏好 (useSyncExternalStore)
+│   │                        # 🆕 user-preferences.ts + preferences-sync.ts（账号偏好跨浏览器同步）
+│   └── mcp/                 # MCP 集成 + 🆕 parse.ts（粘贴 mcpServers 定义的严格解析）
 └── styles/
     └── globals.css          # Tailwind v4 @import + CSS 变量 + 自定义动画
 ```
@@ -83,7 +97,7 @@ useStream<AgentThreadState> (LangGraph SDK React)
       │ thread.messages[], thread.values, thread.isLoading
       ▼
 useThreadStream() [core/threads/hooks.ts]
-      │ mergeMessages(history, stream, optimistic)
+      │ mergeMessages → core/threads/message-order.ts 🆕（deerflow_seq 可信排序）
       │ pendingUsageMessages (token 计数)
       │ onCustomEvent → subtask 更新, error toast
       ▼
@@ -133,6 +147,21 @@ DOM (词级 fade-in 动画)
 | **Subagent 批量执行 UI** | `core/subagent-batches/` + `ThreadSubagentBatches`：进度轮询、pause/resume/cancel、retry、JSONL 导出、只读历史模式 |
 | **后台任务** | `core/background-tasks/` + `ThreadBackgroundTasks`：MCP 持久化任务列表/详情/取消，capability 门控 |
 | **Model-load error banner** | `model-load-error-banner.tsx` 观察共享 `useModels` 查询（不主动启动），失败时显示带 Retry 的 alert |
+
+### 🆕 同步 #6 新增（769589e8，v2.1.0-rc0）
+
+| 功能 | 说明 |
+|------|------|
+| **Capability Center** | 能力管理迁出 Settings（`/workspace/capabilities`，#5468）：skill-gallery / plugin-gallery / mcp-plugin-manager / skill-export-dialog；`settings/skill-settings-page`、`tool-settings-page` 删除，`integrations-settings-page` 迁移为 `capabilities/lark-plugin-settings` |
+| **Projects UI** | `/workspace/projects/[id]`（threads + documents tab）、`projects-section` 侧栏分组、`move-to-project-menu`、composer 附件跨路由交接（`core/projects/composer-attach.ts`，sessionStorage pending list） |
+| **Trash / Archive** | `/workspace/trash` 回收站（分页、restore、purge、empty）、`thread-delete-dialog` 删除确认、chats 页 Archived tab + `useThreadArchiveAction` |
+| **Conversation references** | composer 引用其他会话（#5465）：picker/chip + run context `conversation_references`；消息上的 metadata 仅作展示，不授予权限 |
+| **Conversation outline** | 长对话大纲导航（#5025）：按 human turn 抽章节（≥5 turn 启用），虚拟列表锚点跳转 |
+| **Model favorites** | 用户级模型收藏（#5441）：`favorites-store.ts`（按 userId 隔离）+ `model-picker-content.tsx`（旧 `ai-elements/model-selector` 删除） |
+| **User preferences 同步** | 账号偏好跨浏览器持久化（#5397，migration 0023）：server 端 GET/PUT + outbox 式本地重试 |
+| **Threads 排序/流状态重构** | `core/threads/hooks.ts` 大改（+1225 行）：`message-order.ts` 纯函数排序（`deerflow_seq` server 序，earliest-seq-wins）、`stream-state.ts` 渲染态 patch 合并（title/artifacts/todos/goal） |
+| **Artifacts 查看重构** | CSV/TSV 有界表格预览（papaparse + web worker，#5284）、独立 `/artifacts/view` 路由、markdown 在新窗口渲染（#5056）、zip 打包下载（#5117） |
+| **Scheduled tasks 增强** | run 历史分页浏览（#5363）、duplicate 任务（#5064）、interval 调度类型（#5291）、固定 custom agent（#5288） |
 
 ## 状态管理三层
 

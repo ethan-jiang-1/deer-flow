@@ -80,7 +80,19 @@ ChainOfThought (collapsible)
 - **执行中**（streaming）：shimmer 动画 + 参数预览
 - **完成**：Tool 返回结果（缩略显示，可展开完整结果）
 
-## Artifact 预览
+### 🆕 Details 展开（同步 #6）
+
+`MessageGroup` 每个 tool call 新增 "Details" 按钮（`messages/tool-call-details.tsx`），展开后有界显示完整 payload：tool name、call id、args、tool result，各带复制按钮。序列化由 `core/messages/tool-detail-preview.ts::formatToolDetail()` 负责：
+
+- **总预算 12,000 UTF-16 码元**（`TOOL_PREVIEW_LIMIT`），JSON 节点数上限 + 深度上限 6，WeakSet 防环
+- 截断绝不切在代理对中间（高代理项检查回退一个码元），并**为完整 JSON token 预留空间**（先界定输入再 escape，因为 escape 会放大每个字符）
+- 返回 `{ text, truncated }`，UI 明示"已截断"
+
+### 🆕 Conversation Outline（同步 #6）
+
+长对话导航（#5025）：`core/messages/conversation-outline.ts::buildConversationChapters()` 把每个 `human` group 抽成一个章节（标题取 user 消息文本，空白归一化、截断到 48 字符）。`CONVERSATION_OUTLINE_MIN_TURNS = 5`——少于 5 个 turn 不显示大纲。UI 端 `messages/conversation-outline.tsx` 渲染章节列表，点击经虚拟消息列表的锚点跳转（跳转前先解除 bottom lock，见 01-stream-pipeline.md）。
+
+## Artifact 预览（同步 #6 重构）
 
 当 `present_files` tool 被调用或 agent 产出 artifact 文件时：
 
@@ -98,6 +110,14 @@ ArtifactFileList
 - `selectedArtifact: string | null` — 当前在右侧面板中查看的文件
 - `open: boolean` — 右侧面板是否打开
 - 选择自动触发 `ChatBox` 的 `ResizablePanelGroup` 从 CLOSE_MODE 切换到 OPEN_MODE
+
+### 本轮新增的三个查看面
+
+| 面 | 入口 | 说明 |
+|----|------|------|
+| **独立查看路由** | `/artifacts/view?...`（`app/artifacts/view/`） | `artifact-viewer.tsx` 是共享的 standalone reader：Markdown 渲染 + 有界 CSV/TSV 表格预览；`artifact-file-detail.tsx` 的 "在新窗口打开" 走 `window.open`（#5056），`core/artifacts/viewer.ts` 导出 `ARTIFACT_VIEWER_ROUTE` |
+| **表格预览** | `artifact-table-preview.tsx` | CSV/TSV delimited 预览（`getTabularDelimiter()` 按语言判定分隔符）：解析在 **Web Worker** 中运行（`core/artifacts/delimited-preview.worker.ts` + `use-delimited-preview.ts`），`delimited-preview.ts` 用 papaparse 只解析有界样本（`DELIMITED_RECORD_LIMIT` / `DELIMITED_COLUMN_LIMIT`），引号感知的记录分隔符探测即使在截断前缀上也能工作；超出上限显示 truncated 提示 + "加载完整内容" |
+| **zip 打包下载** | `artifact-file-list.tsx` | 按 run 打包下载（#5117）：`core/messages/artifact-archive.ts::getArtifactArchiveCandidatesByGroupIndex()` 找出每个 run 的最后一个 `assistant:present-files` group 作为下载入口，`core/artifacts/api.ts` 请求 `artifacts-{runId}.zip`，manifest 走 `["artifact-archive-manifest", threadId, runId]` 查询 |
 
 ## Markdown 渲染详情
 

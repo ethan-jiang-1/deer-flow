@@ -22,7 +22,9 @@ Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战�
 | **03-state-management.md** | TanStack Query 缓存策略、ThreadState context、用户偏好 localStorage 持久化 |
 | **04-workspace-layout.md** | Drag 面板布局、响应式设计、mobile sidebar 折叠、command palette |
 | **05-subagent-ui.md** | TaskTracker context：task_started → task_running → task_completed 的 UI 状态机；+ 持久化 subagent 批量执行 UI、后台任务 UI |
-| **06-architecture.md** | 前端技术栈全景：Next.js 16、Turbopack、Tailwind CSS 4、组件树 |
+| **06-architecture.md** | 前端技术栈全景：Next.js 16、Tailwind CSS 4、组件树；🆕 Webpack dev 默认（`DEER_FLOW_DEV_BUNDLER` 覆盖）与新 core 模块索引 |
+
+> **同步 #6（431892e1..769589e8，v2.1.0-rc0）**：Capability Center 迁出 Settings（`/workspace/capabilities`）、Projects / Trash UI、conversation references picker、conversation outline、模型收藏、账号偏好跨浏览器同步、`message-order.ts`/`stream-state.ts` 排序重构、Artifacts 表格预览（Worker）/ zip 下载。各文件的 🆕 段落覆盖全部要点。
 
 ## 关键问题
 
@@ -47,3 +49,8 @@ Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战�
 | 设置存储 | `frontend/src/core/settings/store.ts` |
 | 国际化 | `frontend/src/core/i18n/` |
 | 认证 | `frontend/src/core/auth/` |
+| 🆕 消息排序/流状态 | `frontend/src/core/threads/message-order.ts`、`stream-state.ts` |
+| 🆕 Projects / Trash 客户端 | `frontend/src/core/projects/`、`core/trash/` |
+| 🆕 Capability Center | `frontend/src/app/workspace/capabilities/page.tsx`、`components/workspace/capabilities/` |
+| 🆕 会话引用 / 大纲 | `frontend/src/core/conversation-references/`、`core/messages/conversation-outline.ts` |
+| 🆕 偏好同步 / 模型收藏 | `frontend/src/core/settings/user-preferences.ts`、`core/models/favorites-store.ts` |

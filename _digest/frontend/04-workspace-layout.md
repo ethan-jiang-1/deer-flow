@@ -25,6 +25,19 @@ QueryClientProvider
   Toaster (sonner, top-center)
 ```
 
+> **同步 #6**：最外层新增 `UserPreferencesBoundary`（账号偏好同步，见 03-state-management.md）。
+
+### 🆕 新增工作区路由（同步 #6）
+
+| 路由 | 内容 |
+|------|------|
+| `/workspace/capabilities` | 🆕 Capability Center（#5468）：Plugins / Skills 双 tab + 搜索框；skill-gallery / plugin-gallery / mcp-plugin-manager / skill-export-dialog / lark-plugin-settings（原 `settings/integrations-settings-page` 迁移改名）都归入 `components/workspace/capabilities/`。**Settings 里的 skill/tool 设置页删除**（`skill-settings-page.tsx`、`tool-settings-page.tsx` 已删，settings-dialog 瘦身） |
+| `/workspace/projects/[id]` | 🆕 项目详情页：Threads / Documents 双 tab（`projects/project-threads-section.tsx` + `project-documents-section.tsx`）；`move-to-project-menu.tsx`（会话移动菜单）与 `projects-section.tsx`（sidebar 分组）把项目接进现有导航 |
+| `/workspace/trash` | 🆕 回收站：`trash-view.tsx` 分页列表 + 恢复/彻底删除/清空；配合 `thread-delete-dialog.tsx`（权限门控见 03） |
+| `/workspace/chats` | 会话总览改为 Active / **Archived** 双 tab（`useThreadArchiveAction` + `thread-archive-status.tsx`） |
+
+项目文档附件走跨路由交接：项目页 Documents tab 附加成功后，`core/projects/composer-attach.ts` 把**已完成的上传结果**（绝不在途上传）暂存 sessionStorage（`deerflow.project-attachment.{threadId}` pending list），跳转到目标线程后 composer 显示为已上传附件，发送或显式移除才清除。
+
 ## ChatBox — 可拖拽双面板
 
 `components/workspace/chats/chat-box.tsx` — 使用 `react-resizable-panels` v4：

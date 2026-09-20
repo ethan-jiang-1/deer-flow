@@ -213,4 +213,11 @@ interface Settings {
 
 ## Demo / Mock 模式
 
-`app/mock/` 提供静态 demo 模式，所有后端 API 被 mock，用于展示型部署（如项目官网）。
+`app/mock/` 提供静态 demo 模式，所有后端 API 被 mock，用于展示型部署（如项目官网）。🆕 同步 #6：stub 响应构造统一到 `core/api/static-response.ts`（#5302），并支持独立 demo API + 运行时 GitHub stars（`app/github-stars/route.ts` + landing `star-counter.tsx`）。
+
+## 🆕 同步 #6 架构要点
+
+- **Dev bundler**：`pnpm dev` 走 `scripts/dev.mjs`，**Webpack 为跨平台默认**（Turbopack 的 PostCSS worker 泄漏 #5132 未在上游稳定修复），`DEER_FLOW_DEV_BUNDLER=turbo|webpack` 可覆盖，非法值直接报错
+- **新 core 模块**：`core/projects/`（api/hooks/types + composer-attach 跨路由附件交接）、`core/trash/`、`core/conversation-references/`、`core/threads/message-order.ts` + `stream-state.ts`（排序/流状态纯函数化）、`core/settings/user-preferences*`（账号偏好同步）、`core/models/favorites*`（模型收藏）、`core/auth/permissions.ts`（Phase 4 权限门控）、`core/artifacts/delimited-preview*`（Worker 内 CSV/TSV 预览）
+- **目录迁移**：能力管理从 `settings/` 迁到 `workspace/capabilities/`（`/workspace/capabilities` 页面）；`ai-elements/model-selector.tsx` 删除，改为 `workspace/model-picker-content.tsx`
+- 依赖：next 16.2→16.3、新增 papaparse（表格预览）；测试 runner 为 rstest

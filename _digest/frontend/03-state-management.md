@@ -27,6 +27,10 @@ DeerFlow 前端使用三层状态架构：服务端状态（TanStack Query）、
 | `useSubagentBatches(threadId)` | `["subagent-batches", threadId]` | REST API（活跃时 2s 轮询，否则 15s） |
 | `useSubagentBatchItems(...)` | `[..., batchId, "items"]` | REST API 无限分页（页 100，仅首页轮询） |
 | `useBackgroundTasks(threadId)` | `["background-tasks", threadId]` | REST API（活跃时 3s 轮询，否则 15s） |
+| `useProjects(params)` / `useProject(id)` | `["projects", ...]` | 🆕 项目列表/详情/配置（`core/projects/hooks.ts`） |
+| `useInfiniteProjectThreads/Documents` | `["projects", "threads"/"documents", id]` | 🆕 项目详情页双 tab 无限分页 |
+| `useInfiniteTrashDocuments()` | `["trash", "documents"]` | 🆕 回收站无限分页（`core/trash/hooks.ts`） |
+| `useScheduledTaskRunHistory(taskId)` | `["scheduled-tasks", "runs", taskId, page]` | 🆕 run 历史分页：页大小 50（fetch 51 探测 `hasOlder`），仅第 0 页自动轮询 15s，翻页后停自动刷新 |
 
 ### 分支会话树投影（同步 #5）
 
@@ -38,6 +42,14 @@ DeerFlow 前端使用三层状态架构：服务端状态（TanStack Query）、
 |----------|------|
 | `useDeleteThread()` | 删除 thread → 失效 `["threads", "search"]` 查询 |
 | `useRenameThread()` | 重命名 → 乐观更新 TanStack Query cache |
+| 🆕 `useRestoreDocument()` / `usePurgeDocument()` / `useEmptyTrash()` | 回收站恢复/彻底删除/清空 → 失效 trash + projects 查询；409（内容文件缺失/损坏）时该行留在回收站并提示 |
+| 🆕 `useCreateProject/PatchProject/ArchiveProject/RestoreProject/DeleteProject` | 项目生命周期 → 失效 projects + threads 查询 |
+| 🆕 `useAttachProjectDocument()` | 项目文档附加到线程 → 配合 `composer-attach.ts` 的跨路由交接（见下） |
+| 🆕 `useArchiveThread` / `useThreadArchiveAction` | 会话归档/恢复 → chats 页 Active/Archived 双 tab 切换查询 `useInfiniteThreads({ archived })` |
+
+### 🆕 权限门控（同步 #6，#5294）
+
+`core/auth/permissions.ts`：`GET /api/v1/auth/me` 现在返回 `permissions`（对齐 Gateway `authz.py` Phase 4）。`hasPermission(user, "threads:delete" | "runs:cancel")` 决定 thread-delete-dialog 与 run-cancel 入口是否渲染。语义是**建议性 UI 状态，不是执行点**：`permissions == null`（旧后端或凭据未解析出权限）或用户未加载时一律放行，避免新旧混部时隐藏仍可执行的操作；真正的强制在 Gateway 的 `@require_permission`。
 
 ## 第二层：流式状态 — LangGraph SDK useStream
 
@@ -76,8 +88,9 @@ thread: {
   3. optimistic messages (本地 state, append)
 
 去重: 按 message.id 或 tool:{tool_call_id} identity
-策略: 保留最后出现的 (新值覆盖旧值)
 ```
+
+> **同步 #6 重构**：合并顺序不再是简单的 "history prepend / stream middle / optimistic append + 后出现者覆盖"。排序抽成纯函数模块 `core/threads/message-order.ts`，以后端盖在 history/values 消息上的 `deerflow_seq` 为可信骨架（earliest-seq-wins）；`values` 帧合并抽成 `core/threads/stream-state.ts`。完整规则见 [01-stream-pipeline.md](./01-stream-pipeline.md)。
 
 ## 第三层：本地偏好 — localStorage + useSyncExternalStore
 
@@ -108,6 +121,18 @@ interface LocalSettings {
 - **两个 hook：**
   - `useLocalSettings()` — 全局设置
   - `useThreadSettings(threadId)` — 带 per-thread model 覆盖的设置
+
+### 🆕 账号偏好跨浏览器同步（同步 #6，#5397）
+
+`core/settings/user-preferences.ts` + `preferences-sync.ts`：`notification / model_name / mode / reasoning_effort` 四个偏好提升为服务端账号偏好（migration 0023，`GET/PATCH /api/v1/auth/preferences`）：
+
+- **Outbox 式同步**：`PreferencesSync` 类维护 `confirmed` + `pending` 两份，编辑先进 pending 立即本地生效，网络空闲时 flush；pending 存 sessionStorage（按 `userId` 隔离 key），崩溃/刷新后可重试，带指数退避
+- **`UserPreferencesBoundary`** 包裹整个 `WorkspaceContent`，网络生命周期挂在已认证的工作区上（不参与渲染）；409/403（cookie 换账号）立即停止，**绝不用旧账号身份重试**
+- 解析走 zod 逐字段 safeParse——只保留合法偏好，绝不复制任意运行时上下文
+
+### 🆕 模型收藏（同步 #6，#5441）
+
+`core/models/favorites-store.ts` + `use-model-favorites.ts`：按 `userId` 隔离的 localStorage 收藏列表（`favoritesKey(userId)`），存储不可用时降级 memory；`model-picker-content.tsx` 把收藏置顶（旧 `ai-elements/model-selector.tsx` 已删除）。
 
 ## React Context 层
 

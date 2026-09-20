@@ -15,7 +15,7 @@ DeerFlow 的流式渲染建立在 LangGraph SDK 的 `useStream` hook 之上，�
 - **URL 解析：** `NEXT_PUBLIC_LANGGRAPH_BASE_URL` 或 `{origin}/api/langgraph`
 - **CSRF 注入：** 所有变更请求自动从 cookie 读取 `csrf_token` 注入 `X-CSRF-Token` header
 - **Stream mode 白名单：** 只允许 `values, messages, messages-tuple, updates, events, debug, tasks, checkpoints, custom`
-- **静态 Demo 模式：** 所有 SDK 方法替换为 stub，返回本地 demo 数据
+- **静态 Demo 模式：** 所有 SDK 方法替换为 stub，返回本地 demo 数据；🆕 `core/api/static-response.ts` 统一 stub 响应构造（#5302 支持独立 demo API + 运行时 GitHub stars，`app/github-stars/route.ts` + landing `star-counter.tsx`）
 
 ## useThreadStream — 核心 Hook
 
@@ -110,3 +110,38 @@ Runs 通过 TanStack Query 缓存（`["thread", threadId]`）。每个 run 的�
 - **独立 LLM 路径**：使用 `deerflow.utils.oneshot_llm.run_oneshot_llm`（与 suggestions route 共享），model build + Langfuse metadata + invoke 统一在一处
 - **不修改 thread state**：润色结果只在 composer 中展示，用户可以选择发送原文或润色后的版本
 - **安全**：验证 stripped view of draft（发送给模型的版本与展示的版本一致），保留字面 `<think>` 子串
+
+## 🆕 同步 #6：合并排序与流状态重构
+
+`core/threads/hooks.ts` 本轮大改（净 +1225 行），核心逻辑拆成两个纯模块：
+
+### 消息排序：`core/threads/message-order.ts`
+
+合并后的展示顺序不再依赖简单的"history prepend / stream middle / optimistic append"，而是一个纯函数排序模块（无 React、无缓存、无线程态）：
+
+- **身份归一化**：`messageIdentity()` 按 message ID 或 `tool:{tool_call_id}` 识别同一条消息的多个副本
+- **可信位置**：后端在 history 行和已持久化的 `values` 帧消息上盖 `deerflow_seq`（`MESSAGE_SEQ_KEY`，镜像后端 `deerflow/runtime/events/message_identity.py::MESSAGE_SEQ_KEY`）。只有正的安全整数才算数；缺失/非法值绝不覆盖已知位置；同一身份的多个可信值收敛到最早 feed 位置（对齐后端 `get_message_seqs` 的 earliest-seq-wins）
+- **骨架编织**：以所有带可信 seq 的身份为骨架排序，无 seq 的分段围绕共享身份锚点按原内部顺序编织（分段落在下一个锚点之前）
+- **防覆盖规则**：可见内容上 live 副本刷新 history 副本，但隐藏的 checkpoint 控制消息永远不覆盖可见的 user turn；`deerflow_seq` 是 server 拥有的展示元数据，客户端绝不写回 checkpoint
+- 相关修复：#5293（content merge 时保住可信位置）、#4834（中断的 uniform run 保序）、#4696（分页与上下文压缩重叠时早期 user 消息消失/跳动）
+
+### 流状态 patch：`core/threads/stream-state.ts`
+
+`values` 帧的合并抽成独立模块：`hasRenderedThreadStateUpdate()` 只认 `title / artifacts / todos / goal` 四个渲染键的 patch，`mergeArtifacts()` 做列表合并；`GoalState`（objective + status + 时间戳，`active` 才有效）是新的一等渲染状态。
+
+### Composer 恢复
+
+#5428：流重连（stream reconnect）后恢复用户输入——`onError` 清理乐观消息时不再丢掉正在编辑的 composer 草稿。
+
+## 🆕 同步 #6：Conversation References（composer 引用会话）
+
+#5465：composer 新增「引用会话」能力，把其他会话作为下一轮消息的参考材料：
+
+- `components/workspace/conversation-references/`：`reference-conversations-button`（入口）+ `conversation-reference-picker`（选择器）+ `conversation-reference-chip`（composer 上的已选 chip）
+- 选择的 thread ID 以 `conversationReferences?: string[]` 作为 run context 发送（`input-box.tsx`），由 Gateway 在 admission 时消费并授予读取权限
+- `core/conversation-references/metadata.ts` 在可见 human 消息上写 display-only metadata（`CONVERSATION_REFERENCES_KWARG = "conversation_references"`），**它不授予权限**——读取权只来自 run request context，且 Gateway 不把它持久化进聊天历史
+
+## 🆕 同步 #6：虚拟消息列表与大纲
+
+- `messages/virtual-message-list.tsx` 本轮扩展约 +200 行，为大纲导航提供可滚动锚点；配合 `message-list.tsx` 的 IntersectionObserver 历史加载
+- 长对话时 `ConversationOutline`（见 02-message-rendering.md）按章节跳转，#5025 还包含"跳转前先解除 bottom lock"（escape bottom lock）的修正

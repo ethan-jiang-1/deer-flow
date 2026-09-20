@@ -198,3 +198,8 @@ SubagentBatchItem // { id, batch_id, item_key, position, status: pending|queued|
 - **轮询**：列出至多 20 条本地任务；任一任务活跃时 3s 轮询，否则 15s；只在用户展开卡片时才拉取有界详情。
 - **展开视图**：展示 result/preview、artifact 元数据、input 请求、最近一次 poll/通知投递/取消错误，**不暴露持久化的远程 handle**。已请求取消的任务在 status 仍活跃时保持 "Cancelling…"；远程取消持续失败时卡片仍可展开并显示尝试次数 + 最近有界错误。
 - **通知投递失败**：暴露有界错误与尝试次数；可重试的失败走后端 backoff，永久拒绝或耗尽 5 次预算则显示为 stopped（而非暗示继续重试）。
+
+## 同步 #6 小结
+
+- SubtaskCard / MessageGroup 的 tool call 新增 **Details** 有界展开（`tool-call-details.tsx`，序列化预算 12k 码元、深度 6、代理对安全，见 02-message-rendering.md）
+- 数据流本身未变：仍走 SSE custom 事件 + `SubtasksProvider`；本轮 `hooks.ts` 重构（message-order / stream-state）不影响 subtask 追踪路径
