@@ -454,6 +454,30 @@ memory:
 
 ---
 
+## 🆕 Near-Duplicate Fact Gate（v2.1.0-rc0，#5254）
+
+写侧的**确定性近重复合并门**（`deermem/core/updater.py`，opt-in）：
+
+```yaml
+fact_dedup_enabled: false                    # 默认关
+fact_dedup_similarity_threshold: 0.85        # 有界 token-Jaccard 相似度下限
+```
+
+- 只作用于 **NEW facts**（write 侧）：新提取的 fact 与已有 fact 相似度 ≥ 阈值时**合并进旧 fact**而非追加
+- 门只对**完整的分类 fact** 生效：`scope=user`、`durability=durable`、`authority=descriptive` 三字段齐全才参与（`_FACT_CLASSIFICATION_FIELDS` 校验）
+- 被提议 removal 的目标 fact **排除**在近重复合并之外——避免"一边要删一边又被合并"的循环
+- 纯确定性（token-Jaccard），无 LLM 调用；测试 `test_memory_fact_dedup.py`（317 行）
+
+## 🆕 Agent 级 Memory 禁用（#5167）
+
+Custom agent 配置可整体关闭 memory（`memory_enabled: false`）：不注入记忆上下文、不注册 memory tools、`skip_memory_flush`——agent 的内部 turn 完全不写 durable memory。Subagent 本就继承 parent `thread_id` 不 flush，此开关面向 lead/custom agent。
+
+## 🆕 Hybrid Eviction 评估基建（#4810）
+
+可复现的混合驱逐评估（eval 框架 + 数据集），验证 `hybrid-v1` 评分相对纯 `confidence` 的保留质量——调参时不必靠线上观察。
+
+---
+
 ## Template Externalization（模板外部化）
 
 Memory prompts 已从代码中抽离为 YAML 模板文件，放在 `backends/deermem/deermem/core/prompts/`：

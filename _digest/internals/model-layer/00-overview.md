@@ -148,3 +148,34 @@ DeerFlow 的 model 层**不是替代 LangChain 的 ChatModel 抽象**，而是�
 - `create_chat_model()` 负责**配置解析 + thinking 逻辑 + provider 选择**
 - Provider patch 类负责**格式差异抹平 + 多 turn 状态保持**
 - LangChain 负责 **invoke/stream/batch 基础设施**
+
+## 🆕 Model Request Admission（v2.1.0-rc0，#5432）
+
+per-model 的**进程本地 RPM 准入**（不是 TPM，不是集群级配额），在发上游请求前排队：
+
+```yaml
+models[]:
+  request_admission:
+    requests_per_minute: 60
+    group: shared-provider-account   # 可选；默认按 model config name 隔离
+    max_wait_seconds: 300
+    max_queue_size: 256
+```
+
+- 实现：`models/request_admission.py` 的 `RequestAdmission`（LangChain `BaseRateLimiter` 子类）——有界 FIFO，同步/异步调用与独立 loop 共享同一队列；等待期间**不占用** executor worker 或 timer task，短轮询 sleep 让取消和 deadline 随时生效；请求均匀间隔，空闲不积累突发配额
+- **FIFO 原子性**（#5459）：`_try_or_enqueue` 原子地"立即准入或先于后到者入队"——后到者不能插队
+- 共享 `group` 要求组内配置完全一致；修改后需重启
+- 未配置 = 完全关闭，零开销
+
+## 🆕 v2.1.0-rc0 其他变更
+
+| commit | 内容 |
+|--------|------|
+| #5074 | **GLM-5.3-Flash workaround**：thinking 不可禁、effort 只接受 low/high/max——专用 profile 恒开 thinking、抑制通用 effort 转发；`clear_thinking: true` 避免压缩后要求精确历史 reasoning 重放（完整示例见 config.example.yaml） |
+| — | **`use_previous_response_id`**（OpenAI responses API）：只发新 turn + previous_response_id 而非全量历史重放；链式上下文仍计 input tokens；**客户端侧历史重写（如 blocked-write elision）只在重放模式下生效** |
+| — | **`context_window` 喂给 langchain profile**：fraction summarization trigger 从 summary 模型声明的 context_window 解析阈值；第三方模型缺它则 fraction 条款降级丢弃（警告）而非崩溃 |
+| #5494 | Claude credential loader 守卫 malformed `claudeAiOauth` |
+| #5411 | Claude Code OAuth token 支持从 file descriptor 读取 |
+| #5509 | Codex invalid tool call 与 tool result 配对 |
+| #5195 | MindIE tool-mode 模拟流恢复 `usage_metadata` |
+| #5403 | `reasoning_effort` 不再重复传给构造器 |
