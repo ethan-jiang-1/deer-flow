@@ -163,3 +163,5 @@ client.chat(
 | 自定义 mount 配置模型 | `deerflow/config/sandbox_config.py` |
 | Skills 路径解析 | `deerflow/config/skills_config.py` |
 | 宿主机目录布局 | `deerflow/config/paths.py` |
+
+> 🔄 同步 #6（v2.1.0-rc0）：核心结论不变，two 点补充——(1) 仓库 `skills/public/` 现为 23 个内置 skill；(2) 除项目级 `skills/custom/` 外，还支持 per-user 自定义 skill（存于 `.deer-flow/users/{uid}/` 下的 skills 目录，沙箱内同样挂到 `/mnt/skills/custom/`），custom mounts 机制本身未变。

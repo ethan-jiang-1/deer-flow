@@ -14,10 +14,14 @@ DeerFlow（Deep Exploration and Efficient Research Flow）是字节跳动开源�
 | **Sandbox 执行** | 代码在隔离 Docker 容器或本地沙箱中运行，统一的 `/mnt/user-data` 虚拟路径 |
 | **Sub-agent 委派** | `task()` 工具可委派子 agent 并行执行，最多 3 个并发 |
 | **持久记忆** | 基于文件/DB 的用户记忆系统，自动提取 fact 并注入系统 prompt |
-| **18 个 Middleware** | 覆盖沙箱生命周期、错误处理、token 统计、loop 检测、guardrail 等 |
+| **37 个 Middleware** | 覆盖沙箱生命周期、错误处理、token 统计、loop 检测、guardrail 等 |
 | **IM 频道** | 飞书/Slack/Telegram/DingTalk 可直接作为 agent 交互入口 |
 
-技术栈：Python 3.12+ / Node.js 22+ / LangGraph / Next.js 16 / FastAPI / Nginx
+> 🔄 同步 #6（v2.1.0-rc0）：middleware 数量 18 → 37（`_digest/internals/middleware/03-catalog.md`）。
+
+技术栈：Python 3.12+ / Node.js 24+ / LangGraph / Next.js 16 / FastAPI / Nginx
+
+> 🔄 同步 #6（v2.1.0-rc0）：Node.js 要求 22+ → 24+（#5063，CI 与开发环境同步升级）。
 
 > 架构全景见 `_digest/architecture/`，middleware 完整链见 `_digest/middleware/03-catalog.md`。
 
@@ -30,7 +34,7 @@ DeerFlow（Deep Exploration and Efficient Research Flow）是字节跳动开源�
 | 方式 | 需要 |
 |------|------|
 | Docker（推荐） | Docker Desktop 或 Docker Engine + `docker` CLI |
-| 本地开发 | Node.js 22+, pnpm 10+, uv (Python 包管理器), nginx |
+| 本地开发 | Node.js 24+, pnpm 10+, uv (Python 包管理器), nginx |
 
 ## A.3 安装（Docker 方式，推荐）
 
@@ -76,6 +80,8 @@ make docker-logs-gateway
 ```
 
 > 服务架构（nginx 统一入口 2026，反代到 gateway:8001 和 web:3000）见 `_digest/architecture/01-system-overview.md`。
+>
+> 🔄 同步 #6（v2.1.0-rc0）：生产启动除 `make docker-start` 外还支持本地 `make start`（`SKIP_FRONTEND_BUILD=1` 可复用上次前端构建，跳过重新打包）；Gateway 提供就绪探针 `GET /health/ready`（除进程存活外还探测持久化后端可达性），`make up` 会等待该探针通过才打印成功横幅。
 
 ## A.4 安装（本地开发方式）
 
@@ -94,6 +100,8 @@ make dev           # 启动全部服务（Gateway + Frontend + Nginx）
 ## A.5 配置模型
 
 编辑项目根目录的 `config.yaml`。值以 `$` 开头会从环境变量解析。
+
+> 🔄 同步 #6（v2.1.0-rc0）：`config.example.yaml` 的 `config_version` 现为 **45**；旧配置启动时 Gateway 会警告版本落后，用 `make config-upgrade` 合并缺失字段。
 
 **最小配置 — 只配一个 DeepSeek V3**：
 
@@ -214,4 +222,6 @@ memory = client.get_memory()
 print(f"{len(models['models'])} 个模型, {len(skills['skills'])} 个 skills")
 ```
 
-> `DeerFlowClient` 的实现见 `deerflow/client.py:82`，它与 Gateway 共享同一套底层模块（`make_lead_agent` → `create_agent` → middleware chain），不是二次包装。
+> `DeerFlowClient` 的实现见 `deerflow/client.py:145`（`class DeerFlowClient`），它与 Gateway 共享同一套底层模块（`make_lead_agent` → `create_agent` → middleware chain），不是二次包装。
+>
+> 🔄 同步 #6（v2.1.0-rc0）：原引用 `client.py:82` 已漂移（现 L145）；另 v2.1.0-rc0 起 `DeerFlowClient` 支持多用户内嵌复用（#5206，按 `(agent_name, user_id)` 缓存内部 agent）与流式修复（#5408/#5479），trace id 无条件下发（#5119）。

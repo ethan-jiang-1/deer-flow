@@ -19,7 +19,7 @@ class AgentState(TypedDict, Generic[ResponseT]):
 
 ## DeerFlow 的 ThreadState：给地基盖了三层楼
 
-`deerflow/agents/thread_state.py` L223-235：
+`deerflow/agents/thread_state.py` L280+：
 
 ```python
 class ThreadState(AgentState):        # 继承 LangChain 的 AgentState
@@ -30,12 +30,17 @@ class ThreadState(AgentState):        # 继承 LangChain 的 AgentState
     todos: Annotated[list | None, merge_todos]               # 待办事项
     goal: Annotated[GoalState | None, merge_goal]            # 目标追踪
     uploaded_files: NotRequired[list[dict] | None]           # 上传文件
-    viewed_images: Annotated[dict, merge_viewed_images]      # 图片缓存
+    viewed_images: Annotated[dict[str, ViewedImageData], merge_viewed_images]  # 图片缓存
     promoted: Annotated[PromotedTools | None, merge_promoted] # MCP 工具提升
     delegations: Annotated[list[DelegationEntry], merge_delegations]  # 子任务委托
     skill_context: Annotated[list[SkillEntry], merge_skill_context]    # 已加载 skill
+    task_notes: Annotated[dict | None, TaskNotesChannel]     # 任务笔记（task_continuity）
+    task_history: NotRequired[dict | None]                   # 任务历史（task_continuity）
     summary_text: NotRequired[str | None]                    # 历史总结
+    background_tasks: NotRequired[list[BackgroundTaskState]] # 后台任务
 ```
+
+> 🔄 同步 #6（v2.1.0-rc0）：ThreadState 新增 `task_notes`（`merge_task_notes` reducer，`agents/task_continuity/state.py`）与 `task_history` 顶层字段；`DelegationEntry` 新增 `receipt_verdict` / `acceptance_verdict`（thread_state.py:185-188）；`ViewedImageData` 新增 `sha256` / `source_sandbox_id`（thread_state.py:65-66，用于跨轮图片校验）。另有 `background_tasks` 字段。详见 `_digest/concepts/lead-agent/`。
 
 ### 每个字段谁能读、谁能写
 
@@ -57,20 +62,23 @@ class ThreadState(AgentState):        # 继承 LangChain 的 AgentState
 | `delegations` | `DurableContextMiddleware` | model node（注入上下文） |
 | `skill_context` | `SkillActivationMiddleware` | model node（注入上下文） |
 | `summary_text` | `SummarizationMiddleware` | model node（注入上下文） |
+| `task_notes` / `task_history` | task_continuity tools（`write_task_notes` 等） | model node（恢复任务上下文） |
 
 **关键洞察**：大部分字段是"特定 middleware 写，model node 读"。这就是 middleware → state → model 的数据流。
 
-### DeerFlow 的 5 个自定义 Reducer
+### DeerFlow 的自定义 Reducer
 
 这些都是从 DeerFlow 源码直接提取的，位于 `thread_state.py`：
 
 | Reducer | 逻辑 | 为什么不用 last_value |
 |---------|------|----------------------|
 | `merge_artifacts` | 并集 + 去重 | 多个 tool 同时产出文件，后面的不应该覆盖前面的 |
+| `merge_viewed_images` | dict 合并（支持 middleware 清空） | 图片缓存按 path 合并，处理完可整体清除 |
 | `merge_todos` | `None` = 保留旧值，非 `None` = 覆盖 | `write_todos` 不返回 todos 时不应该清空已有列表 |
 | `merge_delegations` | 追加，同 ID 最新胜，终态保护，上限 50 | 多个子任务同时完成，状态不能互相覆盖 |
 | `merge_promoted` | catalog-hash 作用域，catalog 变更时全替换 | catalog 更新后，旧 promotion 应该失效 |
 | `merge_skill_context` | 按 path 去重，最近读取优先，上限 8 | 重复读同一个 skill 不应重复存储 |
+| `merge_task_notes` | task_continuity 笔记合并 | 🔄 同步 #6 新增：跨轮任务笔记不应互相覆盖 |
 
 ---
 

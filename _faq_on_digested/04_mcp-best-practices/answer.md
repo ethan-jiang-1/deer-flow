@@ -8,7 +8,7 @@ DeerFlow 的代码库中**已经实现了一套完整的 MCP 工具延迟发现�
 
 ### 设计目标
 
-`config.example.yaml:504-513` 的注释说明了一切：
+`config.example.yaml:1190-1204` 的注释说明了一切：
 
 > "When enabled, MCP tools are not loaded into the agent's context directly. Instead, they are listed by name in the system prompt and discoverable via the `tool_search` tool at runtime. **This reduces context usage and improves tool selection accuracy when multiple MCP servers expose a large number of tools.**"
 
@@ -17,24 +17,24 @@ DeerFlow 的代码库中**已经实现了一套完整的 MCP 工具延迟发现�
 ```
 Session 开始
   │
-  ├─ get_available_tools() — tools.py:132-180
-  │     → DeferredToolRegistry 注册所有 MCP 工具（name + description + BaseTool 对象）
+  ├─ get_available_tools() + assemble_deferred_tools() — tools.py:73, tool_search.py:200-219
+  │     → DeferredToolCatalog 持有所有 MCP 工具（name + description + BaseTool 对象）
   │     → 但 FAKE 工具名 / schema 不进入 bind_tools
   │
-  ├─ DeferredToolFilterMiddleware.wrap_model_call() — middleware:34-47
+  ├─ DeferredToolFilterMiddleware.wrap_model_call() — middleware:84-101
   │     → 从 request.tools 中移除 deferred tool
   │     → LLM 看不到这些工具的 schema（看不到参数、类型、必填字段）
   │
-  ├─ 系统 prompt 中注入 <available-deferred-tools> 块 — prompt.py:687-714
+  ├─ 系统 prompt 中注入 <available-deferred-tools> 块 — prompt.py:655（占位符）+ tool_search.py:282-301
   │     → 只包含工具名字（连 description 都不列）
   │     → 例如: github_create_issue\ngithub_list_repos\n...
   │
   ├─ LLM 知道这些工具存在，但没有 schema → 调用 tool_search("github")
   │
-  ├─ tool_search 执行 — tool_search.py:186-202
-  │     → registry.search("github") — 三种搜索模式
-  │     → 返回匹配工具的完整 OpenAI function schema（最多 5 个）
-  │     → registry.promote({matched_names}) — 从 deferred set 中移除
+  ├─ tool_search 执行 — tool_search.py:142-173
+  │     → catalog.search("github") — 三种搜索模式
+  │     → 返回匹配工具的完整 OpenAI function schema（排序模式最多 5 个，`select:` 精确模式不设上限）
+  │     → promote 结果通过 Command 写入 graph state（catalog_hash + names）
   │
   ├─ 下一次 wrap_model_call:
   │     → 已 promote 的工具不再被过滤 → LLM 看到完整 schema
@@ -44,13 +44,15 @@ Session 开始
 
 ### 三种搜索模式
 
-`DeferredToolRegistry.search()` (`tool_search.py:69-109`)，硬上限 `MAX_RESULTS = 5`：
+`DeferredToolCatalog.search()` (`tool_search.py:79-111`)，排序模式硬上限 `MAX_RESULTS = 5`（`tool_search.py:42`），`select:` 精确模式不设上限：
 
 | 模式 | 语法 | 匹配逻辑 |
 |------|------|---------|
-| **精确选择** | `select:name1,name2` | 按逗号分隔，精确匹配 name |
+| **精确选择** | `select:name1,name2` | 按逗号分隔，精确匹配 name（按名点选，不做静默截断——无上限） |
 | **关键词必须** | `+keyword rest` | name 必须包含 keyword，rest 部分用 regex 对 name+description 做加权排序 |
 | **通用搜索** | `任意文本` | regex 对 `{name} {description}` 匹配，name 匹配权重 2，description 权重 1，按得分排序 |
+
+> 🔄 同步 #6（v2.1.0-rc0）：`DeferredToolRegistry` 已重构为 `DeferredToolCatalog`，promote 状态由 ContextVar 改为存入 graph state（`catalog_hash` + names，经 `Command` 提交），跨中间件/子 agent 一致。新增 PR1 MCP routing 元数据：`tool_search.auto_promote_top_k`（默认 3）可在每次模型调用前按 routing hints 自动 promote 匹配的 deferred 工具——见 `_digest/internals/mcp/`。
 
 ### 安全网
 
@@ -62,14 +64,16 @@ Session 开始
 # config.yaml
 tool_search:
   enabled: true
+  # 可选：routing hints 自动 promote，每次模型调用最多匹配 N 个（1..5）
+  auto_promote_top_k: 3
 ```
 
 ### `tool_search` 的优点
 
 - ✅ **token 效率** — MCP 工具 schema（每个可能几百 tokens）只在 LLM 主动搜索时才注入上下文
 - ✅ **按需发现** — Agent 不需要一次看到全部工具，按需搜索
-- ✅ **硬上限 5 个结果** — 即使搜索返回很多匹配，也只展示前 5 个
-- ✅ **ContextVar 隔离** — 每个请求有独立的 deferred/promoted 状态，并发安全
+- ✅ **硬上限 5 个结果** — 即使搜索返回很多匹配，排序模式也只展示前 5 个（`select:` 例外）
+- ✅ **graph state 隔离** — promoted 状态随 LangGraph checkpoint 持久化，每个 run/thread 独立，并发安全
 - ✅ **子 agent 安全** — 修复了 issue #2884，子 agent 的 `get_available_tools()` 不会擦除主 agent 的 promotions
 
 ### `tool_search` 的局限
@@ -87,7 +91,7 @@ tool_search:
 
 `extensions_config.json` 中每个 server 的 `enabled` 字段
 
-`backend/packages/harness/deerflow/config/extensions_config.py:185-191`
+`backend/packages/harness/deerflow/config/extensions_config.py:206-209`（`McpServerConfig.enabled`），过滤逻辑 `extensions_config.py:559-565`
 
 ```python
 def get_enabled_mcp_servers(self) -> dict[str, McpServerConfig]:
@@ -121,13 +125,15 @@ PUT /api/mcp/config
 # → LangGraph mtime 检测 → 下次请求自动重载工具
 ```
 
+> 🔄 同步 #6（v2.1.0-rc0）：MCP server 管理已迁入 Settings 页，对应 `backend/app/gateway/routers/mcp.py` 大改——除整体 `PUT /api/mcp/config`（mcp.py:1438）外，还提供 per-server 的 create/update/delete/enabled 状态切换（mcp.py:1340/1366/1395/1239）与工具缓存重置 `POST .../reset`（mcp.py:1417），并带敏感值掩码与 stdio 命令白名单校验。此外新增 request-scoped secrets：`mcp/context_headers.py` + `mcp/headers.py` 允许把调用方上下文中的密钥经 HTTP/SSE headers 注入 MCP 请求（不再写入磁盘配置），session pool 按 `(server_name, scope_key, owning_loop)` 键控（`mcp/session_pool.py`）。详见 `_digest/internals/mcp/`。
+
 ---
 
 ## 机制 3：Subagent Tool Allowlist/Denylist —— MCP 工具可参与
 
 ### 位置
 
-`backend/packages/harness/deerflow/subagents/executor.py:239-266`
+`backend/packages/harness/deerflow/subagents/executor.py:739-766`（`_filter_tools`）
 
 ```python
 def _filter_tools(tools, allowlist, denylist):
@@ -174,7 +180,7 @@ subagents:
 
 ### 位置
 
-`backend/packages/harness/deerflow/skills/tool_policy.py:13-44`
+`backend/packages/harness/deerflow/skills/tool_policy.py:28-52`（`allowed_tool_names_for_skills`）与 `tool_policy.py:54+`（`filter_tools_by_skill_allowed_tools`）
 
 ```python
 def filter_tools_by_skill_allowed_tools(tools, skills):
@@ -210,7 +216,7 @@ allowed-tools:
 
 ### 位置
 
-`backend/packages/harness/deerflow/tools/tools.py:67`
+`backend/packages/harness/deerflow/tools/tools.py:105`（groups 过滤行；`get_available_tools()` 在 tools.py:73）
 
 ```python
 # 只过滤 config.yaml 定义的 tools，不过滤 MCP
@@ -307,9 +313,11 @@ tool_search("select:github_create_release,github_upload_asset,k8s_deploy")
 
 `get_mcp_tools()` 会连接**所有 enabled** 的 MCP server，不管 `tool_search` 是否开启。延迟加载只影响**是否暴露给 LLM**，不影响连接成本（connection overhead 仍然存在）。
 
-### 4. 不能动态 promoter
+### 4. 不能手动预 promote（但已有自动 promote）
 
-没有外部 API 可以在 agent run 开始前预先 promote 特定 MCP 工具。`registry.promote()` 只能被 `tool_search` 调用。对于自主执行场景，需要在初始消息中指导 agent 调用 `tool_search("select:...")`。
+没有外部 API 可以在 agent run 开始前手动 promote 特定 MCP 工具；`promote` 只能由 `tool_search` 调用（或 routing 中间件自动触发）。对于自主执行场景，可在初始消息中指导 agent 调用 `tool_search("select:...")`。
+
+> 🔄 同步 #6（v2.1.0-rc0）：新增 `build_mcp_routing_middleware()`（tool_search.py:239-280）——server/tool 配置中的 PR1 routing hints 可在每次模型调用前自动 promote 匹配的 deferred 工具（上限 `auto_promote_top_k`，默认 3），部分缓解了"必须靠 LLM 主动搜索"的问题。
 
 ### 5. MCP 工具文件系统冲突
 
@@ -336,13 +344,15 @@ DeerFlow 文档明确警告：**不要添加 MCP filesystem server**。DeerFlow 
 - `_faq_on_digested/skill-selection-accuracy/` — Q1: skill 选取精度问题
 
 Sources:
-- DeerFlow 源码: `deerflow/tools/builtins/tool_search.py:39-202` — `DeferredToolRegistry` + `tool_search`
-- DeerFlow 源码: `deerflow/agents/middlewares/deferred_tool_filter_middleware.py:34-107` — 中间件过滤
-- DeerFlow 源码: `deerflow/tools/tools.py:67, 132-180` — `get_available_tools()` 中 groups 只过滤 config 工具 + deferred 注册
-- DeerFlow 源码: `deerflow/config/tool_search_config.py` — `ToolSearchConfig(enabled=False)`
-- DeerFlow 源码: `deerflow/agents/lead_agent/prompt.py:687-714` — `<available-deferred-tools>` 注入
-- DeerFlow 源码: `deerflow/subagents/executor.py:239-266` — subagent tool allowlist/denylist
-- DeerFlow 源码: `deerflow/skills/tool_policy.py:13-44` — skill `allowed-tools` 过滤
-- DeerFlow 源码: `deerflow/config/extensions_config.py:185-191` — server `enabled` 过滤
-- DeerFlow 文档: `backend/docs/MCP_SERVER.md:17-28` — MCP filesystem server 警告
-- DeerFlow 配置: `config.example.yaml:503-513` — tool_search 配置说明
+- DeerFlow 源码: `deerflow/tools/builtins/tool_search.py:42-301` — `DeferredToolCatalog` + `tool_search` + prompt section（Registry→Catalog 重构，promote 状态入 graph state）
+- DeerFlow 源码: `deerflow/agents/middlewares/deferred_tool_filter_middleware.py:29-119` — 中间件过滤
+- DeerFlow 源码: `deerflow/tools/tools.py:73, 105` — `get_available_tools()` 中 groups 只过滤 config 工具 + deferred 装配（`assemble_deferred_tools`）
+- DeerFlow 源码: `deerflow/config/tool_search_config.py` — `ToolSearchConfig(enabled=False, auto_promote_top_k=3)`
+- DeerFlow 源码: `deerflow/agents/lead_agent/prompt.py:655` + `deerflow/tools/builtins/tool_search.py:282-301` — `<available-deferred-tools>` 注入
+- DeerFlow 源码: `deerflow/subagents/executor.py:739-766` — subagent tool allowlist/denylist
+- DeerFlow 源码: `deerflow/skills/tool_policy.py:28-66` — skill `allowed-tools` 过滤
+- DeerFlow 源码: `deerflow/config/extensions_config.py:206-209, 559-565` — server `enabled` 过滤
+- DeerFlow 源码: `backend/app/gateway/routers/mcp.py:1110-1444` — Settings 页 MCP server 管理 API（同步 #6 大改）
+- DeerFlow 源码: `deerflow/mcp/context_headers.py` / `deerflow/mcp/headers.py` / `deerflow/mcp/session_pool.py` — request-scoped header secrets 与 loop 键控 session pool
+- DeerFlow 文档: `backend/docs/MCP_SERVER.md` — MCP filesystem server 警告
+- DeerFlow 配置: `config.example.yaml:1190-1204` — tool_search 配置说明（含 `auto_promote_top_k`）

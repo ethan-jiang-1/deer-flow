@@ -20,7 +20,7 @@ DeerFlow 没有 `console_scripts`、没有 `__main__.py`、没有 `pip install` 
 
 ## A.2 debug.py — 内置 REPL
 
-源码：`backend/debug.py`（169 行）
+源码：`backend/debug.py`（168 行，v2.1.0-rc0）
 
 ```bash
 cd backend && PYTHONPATH=. uv run python debug.py
@@ -51,7 +51,7 @@ config = {
 
 ## A.3 DeerFlowClient Python REPL — 最灵活
 
-源码：`deerflow/client.py:82-850`
+源码：`deerflow/client.py:145`（`class DeerFlowClient`；文件现约 1780 行，`stream()` L770、`chat()` L1193）
 
 ```bash
 cd backend && PYTHONPATH=. uv run python
@@ -179,11 +179,11 @@ sandbox:
 
 配置后，agent 看到 `/mnt/project/README.md`，实际读写的就是 `/Users/bowhead/my-sdd-project/README.md`。你在宿主机上 `vim` 改了这个文件，agent 下一次 `read_file` 读到的就是新内容。
 
-源码依据：
-- `VolumeMountConfig` 定义：`deerflow/config/sandbox_config.py:4-10`
-- mount → PathMapping 转换：`deerflow/sandbox/local/local_sandbox_provider.py:82-169`
-- 文件每次从磁盘新读取：`deerflow/sandbox/local/local_sandbox.py:373` — `with open(resolved_path, ...) as f`，无内存缓存
-- 路径安全校验覆盖 custom mount：`deerflow/sandbox/tools.py:669-673` — `_is_custom_mount_path()` 检查
+源码依据（行号为 v2.1.0-rc0 现状，旧引用位置多已漂移）：
+- `VolumeMountConfig` 定义：`deerflow/config/sandbox_config.py:115`（原 L4-10 位置已重构）
+- mount → PathMapping 转换：`deerflow/sandbox/local/local_sandbox_provider.py:101-228` — `_setup_path_mappings()`（原 L82-169 已漂移）
+- 文件每次从磁盘新读取：`deerflow/sandbox/local/local_sandbox.py:822` — `with open(resolved_path, ...) as f`，无内存缓存（原 L373 已漂移）
+- 路径安全校验覆盖 custom mount：`deerflow/sandbox/tools.py:419` — `_is_custom_mount_path()` 定义（调用点 L949 等；原 L669-673 已漂移）
 
 ## B.2 三层约定机制
 
@@ -191,7 +191,7 @@ sandbox:
 
 ### 层 1：SOUL.md — 始终激活的人格
 
-每个自定义 agent 的 SOUL.md **每轮对话**都注入到系统 prompt 的 `<soul>` 块中（`deerflow/agents/lead_agent/prompt.py:659-664`）。
+每个自定义 agent 的 SOUL.md **每轮对话**都注入到系统 prompt 的 `<soul>` 块中（`deerflow/agents/lead_agent/prompt.py:954-966` — `get_agent_soul()` 做 HTML 转义后渲染为 `<soul>` 块，原 L659-664 位置已重构）。
 
 ```markdown
 # {base}/users/default/agents/sdd-agent/SOUL.md
@@ -347,9 +347,11 @@ client.chat("继续之前的工作，实现 spec-3", thread_id="sdd-project")
 |------|------|
 | Sandbox 三种实现 + 路径映射 | `_digest/architecture/06-sandbox.md` |
 | Gateway API 完整参考 | `_digest/app-layer/01-api-reference.md` |
-| 系统 prompt 组装 | `deerflow/agents/lead_agent/prompt.py:768-823` |
-| 中间件全链（19 个） | `_digest/middleware/03-catalog.md` |
+| 系统 prompt 组装 | `deerflow/agents/lead_agent/prompt.py:1070`（`apply_prompt_template()`） |
+| 中间件全链（37 个） | `_digest/internals/middleware/03-catalog.md` |
 | Agent 循环执行流 | `_digest/agent-loop/` |
+
+> 🔄 同步 #6（v2.1.0-rc0）：middleware 总数现为 37 个（新增 `ToolReceiptMiddleware` 与 `DeferredToolPromotionAuditMiddleware`），digest 目录迁移为 `_digest/internals/middleware/`。本 FAQ 描述的 CLI/REPL/SDD 工作流本身不受影响，但上表源码行号已按 v2.1.0-rc0 更新。
 
 ## 相关 FAQ
 
@@ -370,11 +372,11 @@ Sources:
 - `backend/debug.py` — prompt_toolkit REPL 实现
 - `skills/public/claude-to-deerflow/scripts/chat.sh` — bash CLI
 - `skills/public/claude-to-deerflow/scripts/status.sh` — status CLI
-- `deerflow/client.py:82-850` — DeerFlowClient 完整实现
-- `deerflow/config/sandbox_config.py:4-10` — VolumeMountConfig
-- `deerflow/sandbox/local/local_sandbox_provider.py:82-169` — mount → PathMapping
-- `deerflow/sandbox/tools.py:624-675` — validate_local_tool_path（含 custom mount 校验）
-- `deerflow/sandbox/local/local_sandbox.py:373` — read_file 每次从磁盘新读
-- `deerflow/agents/lead_agent/prompt.py:659-664, 768-823` — SOUL.md 注入 + 系统 prompt 组装
-- `deerflow/config/agents_config.py:129-151` — load_agent_soul()
-- `deerflow/agents/middlewares/dynamic_context_middleware.py:81` — 动态上下文注入
+- `deerflow/client.py:145` — DeerFlowClient 完整实现（约 1780 行）
+- `deerflow/config/sandbox_config.py:115` — VolumeMountConfig
+- `deerflow/sandbox/local/local_sandbox_provider.py:101-228` — mount → PathMapping
+- `deerflow/sandbox/tools.py:419` — `_is_custom_mount_path()`（custom mount 校验，经 `validate_local_tool_path()` L904 使用）
+- `deerflow/sandbox/local/local_sandbox.py:822` — read_file 每次从磁盘新读
+- `deerflow/agents/lead_agent/prompt.py:954-966, 1070` — SOUL.md 注入 + 系统 prompt 组装（v2.1.0-rc0 行号）
+- `deerflow/config/agents_config.py:344` — load_agent_soul()
+- `deerflow/agents/middlewares/dynamic_context_middleware.py:323` — DynamicContextMiddleware 类定义（动态上下文注入；v2.1.0-rc0 中该文件已大幅重构）

@@ -18,7 +18,7 @@ LangChain 的 `create_agent()` 构建了一个标准的 **ReAct 循环图**：
 START → agent_model → [routing: 有 tool_calls?] → tools_node → agent_model → ... → END
 ```
 
-源码：`deerflow/agents/lead_agent/agent.py:482-493`
+源码：`deerflow/agents/lead_agent/agent.py:796-801`（`make_lead_agent()` → `assemble_lead_agent()`；v2.1.0-rc0 行号）
 
 ```python
 return create_agent(
@@ -40,7 +40,7 @@ return create_agent(
 
 ### task() 工具
 
-源码：`deerflow/tools/builtins/task_tool.py:186`
+源码：`deerflow/tools/builtins/task_tool.py:651`（`task_tool()`；原 L186 位置已重构）
 
 ```python
 @tool("task", parse_docstring=True)
@@ -68,7 +68,7 @@ Main Agent 的 LLM 决定调用 task()
 
 ### SubagentExecutor
 
-源码：`deerflow/subagents/executor.py:269`
+源码：`deerflow/subagents/executor.py:771`（`class SubagentExecutor`；原 L269 已漂移）
 
 - 为每个 sub-agent 创建**独立的 agent graph**（自己的 model、tools、middleware、system_prompt）
 - 双线程池：`_scheduler_pool`（3 workers）+ 持久隔离 event loop
@@ -192,7 +192,7 @@ task("test-writer", "为 models/factory.py 生成单元测试")
 ```
 
 源码依据：
-- `CustomSubagentConfig`：`deerflow/config/subagents_config.py:34-68`
+- `CustomSubagentConfig`：`deerflow/config/subagents_config.py:102`（`class CustomSubagentConfig`）
 - 内置 sub-agent：`general-purpose`（全部工具除 task）、`bash`（仅 sandbox 工具）
 - Sub-agent 自动禁止嵌套 task：`disallowed_tools` 默认 `["task", "ask_clarification", "present_files"]`
 
@@ -278,13 +278,13 @@ client.chat(
 
 | 机制 | 位置 |
 |------|------|
-| make_lead_agent 图构建 | `deerflow/agents/lead_agent/agent.py:482-493` |
-| create_deerflow_agent 工厂 | `deerflow/agents/factory.py:61` |
+| make_lead_agent 图构建 | `deerflow/agents/lead_agent/agent.py:796-801` |
+| create_deerflow_agent 工厂 | `deerflow/agents/factory.py:66`（`create_deerflow_agent`） |
 | RuntimeFeatures 声明式配置 | `deerflow/agents/features.py` |
-| task() 工具 | `deerflow/tools/builtins/task_tool.py:186` |
-| SubagentExecutor | `deerflow/subagents/executor.py:269` |
+| task() 工具 | `deerflow/tools/builtins/task_tool.py:651` |
+| SubagentExecutor | `deerflow/subagents/executor.py:771` |
 | SubagentLimitMiddleware | `deerflow/agents/middlewares/subagent_limit_middleware.py` |
-| CustomSubagentConfig | `deerflow/config/subagents_config.py:34-68` |
+| CustomSubagentConfig | `deerflow/config/subagents_config.py:102`（`class CustomSubagentConfig`） |
 | SubagentConfig | `deerflow/subagents/config.py` |
-| 编排指令（系统 prompt） | `deerflow/agents/lead_agent/prompt.py:363` |
-| DeerFlowClient | `deerflow/client.py:82` |
+| 编排指令（系统 prompt） | `deerflow/agents/lead_agent/prompt.py:342`（`_build_subagent_section`） |
+| DeerFlowClient | `deerflow/client.py:145` |

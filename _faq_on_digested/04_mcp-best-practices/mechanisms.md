@@ -20,6 +20,8 @@ tool_search:
 
 可通过 Gateway API `PUT /api/mcp/config` 运行时修改。
 
+> 🔄 同步 #6（v2.1.0-rc0）：MCP server 管理迁入 Settings 页（`backend/app/gateway/routers/mcp.py`），新增 per-server 的 create/update/delete/enable 端点与工具缓存重置；request-scoped secrets 经 `mcp/context_headers.py` 以 HTTP/SSE headers 注入，不再写入磁盘配置。
+
 ## 机制 3：Subagent Tool Allowlist/Denylist
 
 **对 MCP 工具生效。** 在 `config.yaml` 的 subagent 配置中指定：

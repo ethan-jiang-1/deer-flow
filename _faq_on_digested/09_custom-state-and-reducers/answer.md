@@ -2,7 +2,7 @@
 
 ## 直接回答
 
-**90% 的情况下不需要。** ThreadState 的 12 个字段 + messages 消息历史 + sandbox 文件系统，已经覆盖了大多数 agentic workflow 的需求。
+**90% 的情况下不需要。** ThreadState 的十几个字段 + messages 消息历史 + sandbox 文件系统，已经覆盖了大多数 agentic workflow 的需求。
 
 **只有当你遇到以下三种情况之一时，才需要加字段：**
 
@@ -37,7 +37,10 @@ Agent 的 messages 列表天然记录了所有上下文——用户说了什么�
 | 委托子任务 | `delegations` | DurableContextMiddleware |
 | 加载 skill | `skill_context` | SkillActivationMiddleware |
 | 设定目标 | `goal` | Goal evaluator |
+| 跨轮任务笔记/续作 | `task_notes` / `task_history` | task_continuity（`agents/task_continuity/`） |
 | 记住用户偏好 | memory 系统（不在 state 里） | MemoryMiddleware |
+
+> 🔄 同步 #6（v2.1.0-rc0）：ThreadState 新增 `task_notes`（`merge_task_notes` reducer，来自 `agents/task_continuity/state.py`）与 `task_history: NotRequired[dict | None]` 顶层字段（`agents/thread_state.py:292-293`）；`DelegationEntry` 增加 `receipt_verdict` / `acceptance_verdict` 回执校验字段，`ViewedImageData` 增加 `sha256` / `source_sandbox_id`。详见 `_digest/concepts/lead-agent/`。
 
 ---
 

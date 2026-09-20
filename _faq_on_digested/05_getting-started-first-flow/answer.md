@@ -34,13 +34,14 @@ DeerFlow 是一个开源 super-agent harness，基于 LangGraph，通过 Skills�
 ```bash
 # === 服务管理（项目根目录）===
 make docker-start      # Docker 启动（推荐）
-make dev               # 本地启动
+make dev               # 本地启动（热重载）
+make start             # 本地生产模式启动；SKIP_FRONTEND_BUILD=1 复用上次前端构建
 make stop              # 停止所有服务
 make docker-logs       # Docker 日志
 
 # === 配置 ===
 make config            # 从 config.example.yaml 生成 config.yaml
-make config-upgrade    # 合并新版 config schema 的缺失字段
+make config-upgrade    # 合并新版 config schema 的缺失字段（config_version 现为 45）
 
 # === 后端（backend/ 目录）===
 make test              # 运行全部测试
@@ -68,12 +69,14 @@ DeerFlow 官方推荐：**Doubao-Seed-2.0-Code**、**DeepSeek V3.2**、**Kimi 2.
 |------|------|
 | 系统架构全景 | `_digest/architecture/` |
 | Agent 循环执行流 | `_digest/agent-loop/` |
-| Middleware 完整链（18 个 + 时序） | `_digest/middleware/03-catalog.md` |
+| Middleware 完整链（37 个 + 时序） | `_digest/middleware/03-catalog.md` |
 | 配置系统（双文件 + 热加载边界） | `_digest/configuration/` |
 | 模型层（factory + provider patches） | `_digest/model-layer/` |
 | Gateway API 和应用层 | `_digest/app-layer/` |
 | MCP 工具注入和缓存 | `_digest/configuration/02-extensions-json.md` |
 | Sandbox（local vs Docker vs K8s） | `_digest/architecture/`（sandbox section） |
+
+> 🔄 同步 #6（v2.1.0-rc0）：Node.js 要求升级为 24+（#5063）；Gateway 新增 `GET /health/ready` 就绪探针；`DeerFlowClient` 支持多用户内嵌复用（#5206）与流式修复（#5408/#5479）；前端新增 Projects / Trash / Capability Center 页面；seven sandbox 实现不变。
 
 ## 相关 FAQ
 

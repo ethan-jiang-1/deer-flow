@@ -126,25 +126,25 @@ allowed-tools: [read_file, write_file, bash, ls, glob, grep]
 
 ### Custom Mount 是如何工作的
 
-配置 `sandbox.mounts` 后，`LocalSandboxProvider._setup_path_mappings()`（`local_sandbox_provider.py:82-169`）在初始化时把每个 mount 转为 `PathMapping(container_path, local_path, read_only)`。这些 mapping 是**静态的、全局的**——所有线程的 sandbox 共享同一套。
+配置 `sandbox.mounts` 后，`LocalSandboxProvider._setup_path_mappings()`（`local_sandbox_provider.py:101-228`）在初始化时把每个 mount 转为 `PathMapping(container_path, local_path, read_only)`。这些 mapping 是**静态的、全局的**——所有线程的 sandbox 共享同一套（per-thread 的 `/mnt/user-data`、`/mnt/acp-workspace`、`/mnt/skills/custom` 映射则在 `_build_thread_path_mappings()` 中按 `thread_id`/`user_id` 追加）。
 
-路径解析用**最长前缀匹配**（`local_sandbox.py:114`），所以 `/mnt/agent-home/knowledge` 会优先匹配到 `/mnt/agent-home` 这个 mount。
+路径解析用**最长前缀匹配**（`local_sandbox.py:295-310`，`_find_path_mapping` 按 container specificity 排序），所以 `/mnt/agent-home/knowledge` 会优先匹配到 `/mnt/agent-home` 这个 mount。
 
 ### Mount 的约束
 
-源码 `local_sandbox_provider.py:116-164`：
+源码 `local_sandbox_provider.py:164-228`：
 
 | 约束 | 违规后果 |
 |------|---------|
 | `host_path` 必须是绝对路径 | 静默跳过 + warning |
 | `container_path` 必须以 `/` 开头 | 静默跳过 + warning |
-| container_path 不能与 `/mnt/skills`、`/mnt/user-data`、`/mnt/acp-workspace` 冲突 | 静默跳过 + warning |
+| container_path 不能与 `/mnt/skills`（含 public/custom/integrations/legacy 子路径）、`/mnt/user-data`、`/mnt/acp-workspace` 冲突 | 静默跳过 + warning |
 | `host_path` 必须在 provider 初始化时存在 | 静默跳过 + warning |
 | 尾部斜杠 | 自动去除 |
 
 ### 路径安全校验也覆盖 custom mount
 
-`validate_local_tool_path()`（`tools.py:624-675`）在做路径白名单检查时，会将 custom mount 路径纳入允许范围（`tools.py:669-673`）：
+`validate_local_tool_path()`（`tools.py:904-955`）在做路径白名单检查时，会将 custom mount 路径纳入允许范围（`tools.py:948-954`）：
 
 ```python
 if _is_custom_mount_path(path):
@@ -158,7 +158,7 @@ if _is_custom_mount_path(path):
 
 ### thread_id 决定 workspace 路径
 
-`Paths.sandbox_work_dir()`（`paths.py:191`）：
+`Paths.sandbox_work_dir()`（`paths.py:337`）：
 
 ```
 {base_dir}/users/{user_id}/threads/{thread_id}/user-data/workspace/
@@ -219,12 +219,14 @@ Skill 或 SOUL.md 中约定：
 
 | 机制 | 文件 |
 |------|------|
-| VolumeMountConfig 定义 | `deerflow/config/sandbox_config.py:4-10` |
-| LocalSandboxProvider mount 转换 | `deerflow/sandbox/local/local_sandbox_provider.py:82-169` |
-| PathMapping 解析（最长前缀匹配） | `deerflow/sandbox/local/local_sandbox.py:19-25, 114` |
-| 工具层 custom mount 路径校验 | `deerflow/sandbox/tools.py:624-675, 164-191` |
-| 工作目录路径定义 | `deerflow/config/paths.py:66-80, 191` |
+| VolumeMountConfig 定义 | `deerflow/config/sandbox_config.py:115` |
+| LocalSandboxProvider mount 转换 | `deerflow/sandbox/local/local_sandbox_provider.py:101-228` |
+| PathMapping 解析（最长前缀匹配） | `deerflow/sandbox/local/local_sandbox.py:82, 295-310` |
+| 工具层 custom mount 路径校验 | `deerflow/sandbox/tools.py:904-955` |
+| 工作目录路径定义 | `deerflow/config/paths.py:337` |
 | ThreadDataMiddleware（工作目录创建） | `deerflow/agents/middlewares/thread_data_middleware.py` |
-| Agent 元数据目录 | `deerflow/config/paths.py:159-169` |
-| DeerFlowClient thread_id 流 | `deerflow/client.py:206, 503, 585` |
-| config.example.yaml mounts 注释 | `config.example.yaml:606-654` |
+| Agent 元数据目录 | `deerflow/config/paths.py:245-251`（`user_agents_dir` / `user_agent_dir`） |
+| DeerFlowClient thread_id 流 | `deerflow/client.py:770`（`stream`）、`:1193`（`chat`）、`:1601`（`upload_files`） |
+| config.example.yaml mounts 注释 | `config.example.yaml:1440-1545`（另见 `thread_data_mounts` 选项，`:1526` 附近） |
+
+> 🔄 同步 #6（v2.1.0-rc0）：本节全部行号引用因源码演进已重核更新（原 `sandbox_config.py:4-10`、`local_sandbox_provider.py:82-169`、`local_sandbox.py:19-25,114`、`tools.py:624-675,164-191`、`paths.py:66-80,191,159-169`、`client.py:206,503,585`、`config.example.yaml:606-654` 均已漂移；符号本身仍在）。机制结论不变；另注意 per-user skills 挂载（`/mnt/skills/custom`）已改为按 `user_id` 动态构建。

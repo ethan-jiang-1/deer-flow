@@ -62,7 +62,7 @@ sandbox:
 | **隔离** | 无—进程即用户，路径校验是 regex 级别 | 容器隔离（cgroups/namespace/network） |
 | **延迟** | 近零（直接文件系统调用） | 冷启动 ~数秒，热启动复用 warm pool |
 | **git/pip/npm** | 需 `allow_host_bash: true` | 容器内置，直接可用 |
-| **并发** | 无限（LRU 上限 256） | 受 `replicas` 限制（默认 3） |
+| **并发** | 无限（LRU 上限 256） | 受 `replicas` 限制（默认未设置，按 provider 语义计） |
 | **包安装** | 污染宿主机 Python 环境 | 容器内隔离环境 |
 
 ### 结论
@@ -73,6 +73,8 @@ sandbox:
 ```bash
 git clone ... && cd deer-flow
 make config       # 得到默认 LocalSandboxProvider 的配置
-make install      # 安装依赖
+make install      # 安装依赖（Node.js 24+ / pnpm / uv / nginx，见 `make check`）
 make dev          # 启动（或 cd backend && make gateway 只跑后端）
 ```
+
+> 🔄 同步 #6（v2.1.0-rc0）：本地环境 Node.js 要求 22+ → 24+（#5063）；其余沙箱结论不变（seven sandbox 实现未变）。

@@ -13,10 +13,10 @@
 前端 `sendMessage` 支持 `extraContext` 参数：
 
 ```typescript
-// frontend/src/core/threads/hooks.ts:607-609
+// frontend/src/core/threads/hooks.ts:223-237
 context: {
   ...extraContext,   // 调用方传入
-  ...context,        // settings context
+  ...ownedSettings,  // settings context
   ...
 }
 ```
@@ -26,7 +26,7 @@ context: {
 ### 白名单限制
 
 ```python
-# backend/app/gateway/services.py:124-136
+# backend/app/gateway/services.py:506-518
 _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
     "model_name",
     "mode",
@@ -35,6 +35,7 @@ _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
     "is_plan_mode",
     "subagent_enabled",
     "max_concurrent_subagents",
+    "max_total_subagents",
     "agent_name",
     "is_bootstrap",
 })
@@ -47,14 +48,15 @@ _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
 **机制 1：`/bootstrap` 命令**（硬编码，唯一 command→skill 映射）
 
 ```python
-# backend/app/channels/manager.py:936-941
-if command == "bootstrap":
-    await self._handle_chat(chat_msg, extra_context={"is_bootstrap": True})
+# backend/app/channels/manager.py:2740-2745
+if reply is None and command == "bootstrap":
+    ...
+    await self._handle_chat(chat_msg, extra_context={"is_bootstrap": True}, bound_identity_checked=True)
 
-# backend/packages/harness/deerflow/agents/lead_agent/agent.py:356-358
+# backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-776
 def _available_skill_names(agent_config, is_bootstrap: bool) -> set[str] | None:
     if is_bootstrap:
-        return {"bootstrap"}  # 硬编码，只暴露 bootstrap skill
+        return set(_BOOTSTRAP_SKILL_NAMES)  # 硬编码，只暴露 bootstrap skill
 ```
 
 `/bootstrap` 设置 `is_bootstrap=True`，经由 `_available_skill_names()` 将可用 skill 限定为 `{"bootstrap"}`。`get_skills_prompt_section()` 然后将系统 prompt 中的 `<available_skills>` 缩减为仅一个 skill。
@@ -62,17 +64,19 @@ def _available_skill_names(agent_config, is_bootstrap: bool) -> set[str] | None:
 **机制 2：Agent config 中的 `skills` 白名单**
 
 ```python
-# agent.py:359-361
+# agent.py:774-780
 if agent_config and agent_config.skills is not None:
     return set(agent_config.skills)
 ```
 
 每个 agent 的 `config.yaml` 可以配置 `skills: [...]` 来控制可见 skill。但这需要**提前人工配置**，且 agent 一旦选定，skill 集合就固定了——不能根据单个任务动态变化。
 
+> 🔄 同步 #6（v2.1.0-rc0）：本节"仅有的两种机制"已不再是完整清单——新增 **slash skill 激活**通道：`skills/slash.py` 的 `parse_slash_skill_reference`/`resolve_slash_skill` 解析严格 `/skill-name 任务文本` 语法，`SkillActivationMiddleware`（`agents/middlewares/skill_activation_middleware.py`）在模型调用前把对应 SKILL.md 内容注入上下文——这是一个确定性的 command→skill 管道，且与 `available_skills` 白名单正交生效。详见 `_digest/concepts/skills-tools/skill-md-and-tool-assembly.md`。
+
 ### `CONTEXT_CONFIGURABLE_KEYS` 中没有 skills 的原因
 
 ```python
-# agent.py:397-403
+# agent.py:947-962
 cfg = _get_runtime_config(config)
 ...
 is_bootstrap = cfg.get("is_bootstrap", False)
@@ -155,6 +159,8 @@ Codex 支持两种 skill 触发方式：
 
 DeerFlow **没有这个 `$` 触发语法**。它是 Codex 的独家功能（`codex-rs/core/src/skills/render.rs` 处理）。
 
+> 🔄 同步 #6（v2.1.0-rc0）：此句已过时——DeerFlow 现在有自己的等价物：`/skill-name` 语法（`skills/slash.py`，保留控制命令名不冲突），由 `SkillActivationMiddleware` 确定性地把 SKILL.md 注入上下文，语义与 Codex 的 `$skill-name` 相同（区别在 `/` 前缀与 middleware 实现层）。**长期改进方向（实现触发语法）在 v2.1.0-rc0 已基本落地。**
+
 ---
 
 ## 改进方向
@@ -234,6 +240,8 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 
 **DeerFlow 目前没有任何方法让任务 MD 文件可靠地指定 skill。** 唯一确定性的 command→skill 映射是 `/bootstrap`→`{"bootstrap"}`，而且这是硬编码在 channel manager 里的。
 
+> 🔄 同步 #6（v2.1.0-rc0）：`/bootstrap` 已不是唯一确定性映射——`/skill-name` slash 激活（`skills/slash.py` + `SkillActivationMiddleware`）让任务文本的第一行 `/k8s-deploy ...` 成为确定性 skill 路由；配合 enabled-only `/mnt/skills` projection（#4178），未启用 skill 的同名 slash 也无法激活。核心结论"任意 MD 正文内的 skill 指定仍不可靠"仍然成立，但"行首 slash 标记"这条刚性管道已经存在。
+
 核心矛盾是：DeerFlow 的 skill 选择**完全是 LLM 自主决策**——不管需求来自聊天输入还是 MD 文件，都是同一套"LLM 读描述→判断"流程。要改变这一点，需要在 LLM 之前的管道中加入**确定性路由**。
 
 三个改进层次：
@@ -253,10 +261,11 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 - `_digest/middleware/01-hooks-and-flow.md` — 中间件生命周期中如何处理上下文
 
 Sources:
-- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/agent.py:356-361, 397-403`
-- DeerFlow 源码: `backend/app/gateway/services.py:124-153`
-- DeerFlow 源码: `backend/app/channels/manager.py:936-941`
+- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-780, 947-962`（v2.1.0-rc0 行号）
+- DeerFlow 源码: `backend/app/gateway/services.py:506-518, 611-638`
+- DeerFlow 源码: `backend/app/channels/manager.py:2740-2745`
 - DeerFlow 源码: `backend/app/channels/commands.py:11-20`
-- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/prompt.py:626-656`
-- DeerFlow 源码: `frontend/src/core/threads/hooks.ts:607-609`
+- DeerFlow 源码: `backend/packages/harness/deerflow/skills/slash.py`（新增：slash skill 激活）
+- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/prompt.py:884`
+- DeerFlow 源码: `frontend/src/core/threads/hooks.ts:223-237`
 - [Codex Skills — OpenAI Developers](https://developers.openai.com/codex/skills)

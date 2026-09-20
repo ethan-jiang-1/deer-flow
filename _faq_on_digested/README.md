@@ -44,6 +44,8 @@ _faq_on_digested/
 | 10 | 配置灵活性 | [10_config-flexibility/](10_config-flexibility/) |
 | 11 | 研究/开发工作区组织（三仓分层） | [11_workspace-organization/](11_workspace-organization/) |
 
+> 注：全部答案已对照同步 #6（v2.1.0-rc0，431892e1..769589e8）后的代码复核——受影响处（middleware 18→37、Node.js 24+、config_version 45、`make start SKIP_FRONTEND_BUILD=1`、`/health/ready`、DeerFlowClient 多用户内嵌复用 #5206 与流式修复 #5408/#5479、trace id 无条件下发 #5119、Projects/Trash/Capability Center 新前端）均以 `> 🔄 同步 #6（v2.1.0-rc0）：...` 附注标出，源码行号引用已重核更新。
+
 ## 配方（Recipe）
 
 | 名称 | 文件 |

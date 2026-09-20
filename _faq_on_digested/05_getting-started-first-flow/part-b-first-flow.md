@@ -88,7 +88,7 @@ allowed-tools:
 3. 调用 `read_file` 读取 SKILL.md 的内容
 4. 遵循其中的步骤指令执行
 
-> Skill 选择机制是纯 LLM 驱动的，所有 enabled skill 的 name+description 会平铺注入系统 prompt。当 skill 数量超过 50 时选择精度会下降。详见 `_faq_on_digested/skill-selection-accuracy/`。精确选择方案见 `_faq_on_digested/precise-skill-selection/`。
+> Skill 选择机制是纯 LLM 驱动的，所有 enabled skill 的 name+description 会平铺注入系统 prompt。当 skill 数量超过 50 时选择精度会下降。详见 `_faq_on_digested/01_skill-selection-accuracy/`。精确选择方案见 `_faq_on_digested/03_precise-skill-selection/`。
 
 ## B.2 自定义 Agent — 固定人格 + 工具权限
 
@@ -157,7 +157,9 @@ curl -X POST http://localhost:2026/api/threads/review-2/runs/stream \
   }'
 ```
 
-> Agent 配置加载见 `deerflow/config/agents_config.py:80-126`（`load_agent_config`），SOUL.md 注入系统 prompt 见 `deerflow/agents/lead_agent/prompt.py:659-664`。
+> Agent 配置加载见 `deerflow/config/agents_config.py:316`（`load_agent_config`），SOUL.md 注入系统 prompt 见 `deerflow/agents/lead_agent/prompt.py:955-985`（"Append SOUL.md" 段）。
+>
+> 🔄 同步 #6（v2.1.0-rc0）：原引用 `agents_config.py:80-126`、`prompt.py:659-664` 已漂移，符号仍在，行号按当前源码更新。
 
 ## B.3 Sub-agent 委派 — 并行多 agent 协作
 
@@ -321,4 +323,6 @@ Agent 循环（agent loop, 最多 N 轮）:
 Stream → SSE → 前端实时显示 / DeerFlowClient 逐 event 返回
 ```
 
-> Agent loop 的完整执行流（包括 graph.astream 的 3 个 stream_mode、18 个 middleware 的 hook 时序）见 `_digest/agent-loop/`。
+> Agent loop 的完整执行流（包括 graph.astream 的 3 个 stream_mode、37 个 middleware 的 hook 时序）见 `_digest/agent-loop/`。
+>
+> 🔄 同步 #6（v2.1.0-rc0）：middleware 数量 18 → 37（前 14 个共享层来自 `build_lead_runtime_middlewares()`，后 23 个来自 `build_middlewares()`，见 `_digest/internals/middleware/03-catalog.md`）。

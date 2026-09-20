@@ -8,27 +8,32 @@ skills/{public,custom}/**/SKILL.md
         ▼
 LocalSkillStorage.load_skills(enabled_only=True)
   → 递归扫描磁盘，解析 YAML frontmatter（name, description, license, allowed-tools）
-  → 见 deerflow/skills/storage/local_skill_storage.py:63-74
+  → 见 deerflow/skills/storage/skill_storage.py:277（基类 load_skills(enabled_only=...)；
+    用户隔离变体见 user_scoped_skill_storage.py:185，v2.1.0-rc0 后存储已按用户分域）
         │
         ▼
 get_skills_prompt_section()
   → 所有 enabled skill 的 (name, description, category, file_path) 
-  → 不经任何过滤、排序、或相关性计算
-  → 见 deerflow/agents/lead_agent/prompt.py:626-656
+  → 默认路径仍不经相关性排序；但新增 deferred discovery 路径：
+    传入 skill_names 时只渲染 <skill_index>（纯名字），LLM 用 describe_skill 按需取详情
+  → 见 deerflow/agents/lead_agent/prompt.py:884（legacy 全量元数据路径仍存在）
         │
         ▼
 系统 prompt 的 <available_skills> 块
-  → XML 格式注入：
+  → XML 格式注入（_render_available_skill，prompt.py:231；块拼接在 prompt.py:846）：
     <skill>
         <name>my-skill</name>
         <description>This skill helps with X, Y, Z...</description>
         <location>/mnt/skills/public/my-skill/SKILL.md</location>
     </skill>
-  → 见 deerflow/agents/lead_agent/prompt.py:594-623
+  → 注：/mnt/skills 现为 managed enabled-only projection（同步 #6，#4178），
+    沙箱内只投影 enabled skill，路径由 projection.py 物化
         │
         ▼
 LLM 阅读理解所有 skill 描述 → 自主决定调用 read_file 加载哪个
 ```
+
+> 🔄 同步 #6（v2.1.0-rc0）：本节链路已部分演进——新增 **deferred discovery** 路径（`skills_config.skills.deferred_discovery`）：开启后系统 prompt 只注入 `<skill_index>`（仅名字），LLM 通过 `describe_skill` 工具按需读取详情（`skills/describe.py`，`get_skill_index_prompt_section` prompt.py:925）。同时 `/mnt/skills` 收归 managed enabled-only projection（#4178），未启用的 skill 在沙箱文件系统中不可见。详见 `_digest/concepts/skills-tools/skill-md-and-tool-assembly.md`。
 
 ### 问题的根源
 
@@ -44,6 +49,8 @@ DeerFlow 的 skill 选取依赖**一个步骤**：LLM 在系统 prompt 中读所
 | 无 context budget 控制 | skill 再多也全部塞进 prompt，挤占 context window |
 | 无 selection 反馈循环 | 选错了没有纠正机制 |
 
+> 🔄 同步 #6（v2.1.0-rc0）："无 relevance 排序 / 无 keyword 匹配"两行已被部分推翻——`deerflow/skills/catalog.py` 新增字面 intent 排名（`_intent_score` catalog.py:76、`_rank_by_intent` catalog.py:96），`SkillCatalog.search()` 按 query 对 skill 做 keyword/token 评分排序（#5369），slash 激活与 skill 搜索即基于此。但默认 `<available_skills>` 全量注入路径仍未用此排序，context budget 控制也仍缺失；见 `_digest/concepts/skills-tools/skill-md-and-tool-assembly.md`。
+
 **当 skill 数量上去后，三个问题叠加：**
 
 1. **Context 稀释** — 50 个 skill × 平均 100 tokens 描述 = ~5000 tokens。这些 tokens 挤占了模型真正用于推理的空间。LLM 的注意力被分散到不相关的 skill 上。
@@ -55,7 +62,7 @@ DeerFlow 的 skill 选取依赖**一个步骤**：LLM 在系统 prompt 中读所
 `get_skills_prompt_section()` 接受一个 `available_skills: set[str]` 参数：
 
 ```python
-# prompt.py:648
+# prompt.py:943
 if available_skills is not None and not any(
     skill.name in available_skills for skill in skills
 ):
@@ -144,9 +151,11 @@ DeerFlow 的 skill description 完全由 skill 作者控制。在 digest 或文�
 - 使用动作词（"Use this when..."、"For X tasks..."）
 - 不超过 200 字符（多余内容放在 SKILL.md body 中）
 
+> 🔄 同步 #6（v2.1.0-rc0）：空白 description 现已在导入/写入时被门禁拒绝（#4867，`skills/validation.py` / frontmatter 校验），description 的下限有了硬保障；但上限与触发词规范仍是写作约定。注意 description 同时参与 `_rank_by_intent` 的字面 intent 评分，高信号 description 现在直接影响排序结果。
+
 **3. 给每个 skill 加 `trigger_keywords` frontmatter**
 
-扩展 `Skill` dataclass（`deerflow/skills/types.py:19-31`）和 parser（`deerflow/skills/parser.py:35-110`）：
+扩展 `Skill` dataclass（`deerflow/skills/types.py:41`）和 parser（`parse_skill_file`，`deerflow/skills/parser.py:190`）：
 
 ```python
 @dataclass
@@ -192,6 +201,8 @@ DeerFlow 当前的 skill 选取精度问题**不是 bug，是架构选择**。�
 Codex 的做法（budget 硬上限 + 渐进加载 + 显式/隐式双模式）是目前最成熟的参考。但 DeerFlow 已经有实现类似机制的基础设施——`tool_search` 的 deferred registry 模式可以直接套用到 skill 上。
 
 最务实的改进路径：**加 context budget 上限 + 强化 description 写作规范 + 可选 keyword 预设筛选**——这三项都不用改架构，都利用现有基础设施。
+
+> 🔄 同步 #6（v2.1.0-rc0）：结论需打折更新——keyword 预筛与 relevance 排序已由 `_rank_by_intent`/`_intent_score`（`skills/catalog.py`）落地，deferred discovery（`<skill_index>` + `describe_skill`）提供了官方的渐进加载路径，`/mnt/skills` enabled-only projection（#4178）收窄了沙箱可见面；尚未实现的只剩 context budget 硬上限与 embedding 排序。
 
 ---
 

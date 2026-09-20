@@ -25,7 +25,7 @@ DeerFlow 没有可安装的 `deerflow` CLI 二进制（无 console_scripts、无
 
 ## 1. Python REPL + DeerFlowClient（最灵活）
 
-源码：`deerflow/client.py:82-850`
+源码：`deerflow/client.py:145`（`class DeerFlowClient`；v2.1.0-rc0 中文件已扩至约 1780 行）
 
 ```bash
 cd /Users/bowhead/ai_deerflow_wiki
@@ -427,7 +427,7 @@ jobs:
 
 | 内容 | 位置 |
 |------|------|
-| DeerFlowClient 全方法 | `deerflow/client.py:82-850` |
+| DeerFlowClient 全方法 | `deerflow/client.py:145`（`stream()` L770、`chat()` L1193） |
 | StreamEvent 定义 | `deerflow/client.py` `StreamEvent` dataclass |
 | debug.py REPL | `backend/debug.py` |
 | chat.sh | `skills/public/claude-to-deerflow/scripts/chat.sh` |

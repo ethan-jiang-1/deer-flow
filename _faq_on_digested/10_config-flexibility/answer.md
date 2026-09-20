@@ -19,7 +19,7 @@ description: "三层机制：文件路径切换、YAML 内 $ENV_VAR 注入、运
 3. 自动搜索：  项目根目录 → backend/ → repo root 的 config.yaml
 ```
 
-源码位置：`app_config.py:268-295` `resolve_config_path()`
+源码位置：`app_config.py:384-411` `resolve_config_path()`
 
 **实际用法：**
 
@@ -55,7 +55,7 @@ models:
     base_url: $CUSTOM_OPENAI_BASE   # ← 也可以
 ```
 
-源码位置：`app_config.py:431-453` `resolve_env_variables()`
+源码位置：`app_config.py:565-600` `resolve_env_variables()`
 
 **这是递归的**——字典的每一层、列表的每个元素都会被扫描。找到 `$` 前缀的字符串就替换。找不到对应的环境变量 → 直接报错 `ValueError`。
 
@@ -92,7 +92,7 @@ push_current_app_config(custom_cfg)
 pop_current_app_config()
 ```
 
-源码位置：`app_config.py:634-648`
+源码位置：`app_config.py:768-783`（`push_current_app_config` / `pop_current_app_config`；另有 `peek_current_app_config` app_config.py:763）
 
 **这就是你能"动态改配置"的入口**。不需要重启 Gateway，不需要改 YAML 文件——在代码里构建一个新的 `AppConfig`，push 到 ContextVar 栈上，之后所有的 middleware、tools、agent 调用都会看到这个新配置。
 
@@ -110,9 +110,11 @@ Gateway 启动时就是利用这个机制来隔离不同请求间的 config 快�
 | 文件**内容签名**变了（sha256 + mtime + size） | ✅ 自动重载 |
 | 仅 mtime 变了 | ✅ 自动重载（兼容） |
 
-源码位置：`app_config.py:547-578`
+源码位置：`app_config.py:681-760` `get_app_config()`
 
 **注意**：只有 `STARTUP_ONLY_FIELDS` 里的字段（database、checkpointer、sandbox、channels 等基础设施）改后需要重启。其他字段（models、tools、summarization、memory、guardrails 等）改了就生效。
+
+> 🔄 同步 #6（v2.1.0-rc0）：schema 已扩到 `config_version: 45`、顶层 38 个 section。新增顶层键 `projects`（`projects_config.py`，instructions 注入/shelf/trash）、`task_continuity`（`task_continuity_config.py`，thread-local notes + compacted-source recall）、`recursion_limit`/`max_recursion_limit`（run 级 LangGraph 递归上限与硬顶），以及 `sandbox.network`、`request_admission`、`tool_output`（输出预算 elision：超限落盘 + 摘要引用，`read_before_write` 防循环）等段。`auth.local` 限流改为 live-read（改配置即生效，不需重启）。Tenki 天气工具的 `project_id` 配置项已移除（**breaking**）。详见 `_digest/internals/configuration/`。
 
 ---
 
@@ -157,7 +159,7 @@ Gateway 启动时就是利用这个机制来隔离不同请求间的 config 快�
 
 ### `.env` 文件支持
 
-`serve.sh` 启动时会 source `.env` 文件（`serve.sh:34-38`），`app_config.py:50` 还有 `load_dotenv()`。所以你可以在项目根目录放一个 `.env`：
+`serve.sh` 启动时会 source `.env` 文件（`serve.sh:34-40`），`app_config.py:59` 还有 `load_dotenv()`。所以你可以在项目根目录放一个 `.env`：
 
 ```bash
 # .env
@@ -189,7 +191,7 @@ DEER_FLOW_CONFIG_PATH=prod.yaml
 
 ### `ConfigDict(extra="allow")`——未知 key 静默接受
 
-`AppConfig` 用的是 `extra="allow"`（`app_config.py:190`）。这意味着你在 `config.yaml` 里写**不在 schema 里的自定义 key** 不会报错：
+`AppConfig` 用的是 `extra="allow"`（`app_config.py:271`，class 在 187）。这意味着你在 `config.yaml` 里写**不在 schema 里的自定义 key** 不会报错：
 
 ```yaml
 # 这些 DeerFlow 不认识，但不会报错
@@ -206,7 +208,7 @@ my_custom_tool:
 
 ### Uvicorn `--reload` 监听 `.yaml` 变动
 
-Dev 模式下，`serve.sh:331` 启动 uvicorn 时加了：
+Dev 模式下，`serve.sh:364` 启动 uvicorn 时加了：
 ```
 --reload --reload-include='*.yaml' --reload-include='.env'
 ```
@@ -248,13 +250,13 @@ push_current_app_config(merged)
 
 | 想看什么 | 去这里 |
 |---------|--------|
-| 配置文件路径解析（3 优先级） | `app_config.py:268-295` `resolve_config_path()` |
-| `$ENV_VAR` 递归替换 | `app_config.py:431-453` `resolve_env_variables()` |
-| 启动时加载 + 传播到子系统 singleton | `app_config.py:298-335` `from_file()` |
-| 热加载检测（content signature） | `app_config.py:547-578` `get_app_config()` |
-| ContextVar 运行时覆盖 | `app_config.py:634-648` `push/pop_current_app_config()` |
-| 哪些字段改后需要重启 | `reload_boundary.py` `STARTUP_ONLY_FIELDS` |
-| Extensions JSON 热加载 | `extensions_config.py:152-200` `resolve_config_path()` |
+| 配置文件路径解析（3 优先级） | `app_config.py:384-411` `resolve_config_path()` |
+| `$ENV_VAR` 递归替换 | `app_config.py:565-600` `resolve_env_variables()` |
+| 启动时加载 + 传播到子系统 singleton | `app_config.py:414-463` `from_file()`（含 `_check_config_version` :520） |
+| 热加载检测（content signature） | `app_config.py:681-760` `get_app_config()` |
+| ContextVar 运行时覆盖 | `app_config.py:768-783` `push/pop_current_app_config()` |
+| 哪些字段改后需要重启 | `reload_boundary.py:45` `STARTUP_ONLY_FIELDS` |
+| Extensions JSON 热加载 | `extensions_config.py:419-494` `resolve_config_path()` |
 | Gateway 启动时 config 装载 | `gateway/app.py` `lifespan()` |
 | `make config-upgrade`（版本迁移） | `Makefile` `config-upgrade` target |
 

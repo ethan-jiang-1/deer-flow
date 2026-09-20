@@ -77,9 +77,11 @@ middleware 的 `before_model`/`after_model` 会被编译成独立 LangGraph node
 | `_handle_model_output` | 同上 | L1036-1138 |
 | `_build_commands` | 同上 | L177-216 |
 | `ToolNode` 类 | `langgraph/prebuilt/tool_node.py` | L620-1989 |
-| `model_to_tools` 条件边 | `factory.py` | L1695-1753 |
-| `tools_to_model` 条件边 | `factory.py` | L1783-1816 |
-| DeerFlow 调用入口 | `deerflow/agents/lead_agent/agent.py` | L437-603 |
+| `model_to_tools` 条件边 | `factory.py` | L1701-1753 |
+| `tools_to_model` 条件边 | `factory.py` | L1790-1816 |
+| DeerFlow 调用入口 | `deerflow/agents/lead_agent/agent.py` | L1239-1245（`_make_lead_agent` 内的 `create_agent`） |
+
+> 🔄 同步 #6（v2.1.0-rc0）：DeerFlow 侧入口行号已重核（`agent.py` 经大规模重构，原 L437-603 已漂移）；langchain/langgraph 侧行号基本未变（`model_to_tools` 1695→1701、`tools_to_model` 1783→1790，≤7 行微移）。
 
 ---
 
@@ -236,17 +238,19 @@ LangGraph 拿到这个 `Command` 后，通过 **reducer** 把更新合入 graph 
 
 ### 1.6 DeerFlow 怎么调用 `create_agent`
 
-`deerflow/agents/lead_agent/agent.py` L603：
+`deerflow/agents/lead_agent/agent.py` L1239：
 
 ```python
-return create_agent(
-    model=create_chat_model(name=model_name, thinking_enabled=thinking_enabled, ...),
+graph = create_agent(
+    model=create_chat_model(name=model_name, thinking_enabled=thinking_enabled, reasoning_effort=reasoning_effort, app_config=resolved_app_config, attach_tracing=False, ...),
     tools=final_tools,                # sandbox + MCP + builtins + community + subagent tools
-    middleware=build_middlewares(config, ...),  # 30+ middleware
-    system_prompt=apply_prompt_template(...),   # 动态 prompt 模板
-    state_schema=ThreadState,          # DeerFlow 自定义 state（12 个字段）
+    middleware=normalize_middleware_state_schemas(middlewares, mode),  # 37 个 middleware
+    system_prompt=system_prompt,                # 动态 prompt 模板
+    state_schema=get_thread_state_schema(mode),          # DeerFlow 自定义 state（按 mode 选择 schema）
 )
 ```
+
+> 🔄 同步 #6（v2.1.0-rc0）：原片段（L603）中 `middleware=build_middlewares(config, ...)`、`state_schema=ThreadState` 已演进为上面的形式——middleware 现为 37 个（前 14 个共享层来自 `build_lead_runtime_middlewares()`，见 `_digest/internals/middleware/03-catalog.md`），state schema 改由 `get_thread_state_schema(mode)` 按 mode 提供。
 
 ---
 
@@ -342,7 +346,7 @@ ToolNode 能处理三种输入格式：
 
 ## 3. 条件路由：两个决策函数决定图往哪走
 
-### 3.1 `model_to_tools`——模型输出后往哪走（L1695-1753）
+### 3.1 `model_to_tools`——模型输出后往哪走（L1701-1753）
 
 挂在 `loop_exit_node` 上（如果没有 after_model middleware 就是 `"model"` node，如果有就是最外层的 after_model node）。可选目标：`["tools", exit_node, loop_entry_node]`。
 
@@ -389,7 +393,7 @@ return [
 
 每个 `Send` 让 LangGraph 为一个 tool call 启动一个独立的 ToolNode 调用。**多个 `Send` 并行执行。**
 
-### 3.2 `tools_to_model`——工具执行完后往哪走（L1783-1816）
+### 3.2 `tools_to_model`——工具执行完后往哪走（L1790-1816）
 
 挂在 `"tools"` node 上。可选目标：`[loop_entry_node, exit_node]`。
 
@@ -413,14 +417,14 @@ return [
 
 类型（`types.py` L69）：`JumpTo = Literal["tools", "model", "end"]`
 
-State 声明（`types.py` L350-355）：
+State 声明（`types.py` L354）：
 ```python
 jump_to: NotRequired[Annotated[JumpTo | None, EphemeralValue, PrivateStateAttr]]
 ```
 
 **`EphemeralValue`** 意味着——读一次就消失。在条件边函数中 `state.get("jump_to")` 之后，后续边函数不会再看到同一个值。这防止了 `jump_to` 在多次循环中反复生效。
 
-middleware 通过返回 `{"jump_to": "end"}` 来设值。`model_to_tools`（L1704）在第一优先级就检查它。
+middleware 通过返回 `{"jump_to": "end"}` 来设值。`model_to_tools`（L1708）在第一优先级就检查它。
 
 `jump_to` 检查点分布：
 
@@ -493,7 +497,7 @@ DeerFlow 处理"反问用户"的机制。当模型调用 `ask_clarification` 工
 
 **`ask_clarification` 工具从未被真正执行。** 图直接终止，用户看到反问消息。
 
-这可行的原因：ClarificationMiddleware 是 DeerFlow middleware 列表中的**最后一个**（`agent.py` L404: `middlewares.append(ClarificationMiddleware())`）。在 `after_model` 的反向执行顺序中（详见 Q8），最后一个 = 最外层 = 第一个执行 = **它就是 `loop_exit_node`**。所以 `model_to_tools` 条件边挂在 ClarificationMiddleware 的 after_model 后面，`jump_to` 在工具执行前就被读取了。
+这可行的原因：ClarificationMiddleware 是 DeerFlow middleware 列表中的**最后一个**（`agent.py` L740: `middlewares.append(ClarificationMiddleware())`，注释明确 "ClarificationMiddleware should always be last"；🔄 同步 #6：原 L404 已漂移）。在 `after_model` 的反向执行顺序中（详见 Q8），最后一个 = 最外层 = 第一个执行 = **它就是 `loop_exit_node`**。所以 `model_to_tools` 条件边挂在 ClarificationMiddleware 的 after_model 后面，`jump_to` 在工具执行前就被读取了。
 
 ---
 
@@ -511,7 +515,9 @@ DeerFlow 处理"反问用户"的机制。当模型调用 `ask_clarification` 工
 
 ## 关键源码
 
-- `langchain/agents/factory.py`：`model_node` L1296-1314, `_execute_model_sync` L1269-1294, `_get_bound_model` L1140-1267, `_handle_model_output` L1036-1138, `_build_commands` L177-216, `model_to_tools` L1695-1753, `tools_to_model` L1783-1816
+- `langchain/agents/factory.py`：`model_node` L1296-1314, `_execute_model_sync` L1269-1294, `_get_bound_model` L1140-1267, `_handle_model_output` L1036-1138, `_build_commands` L177-216, `model_to_tools` L1701-1753, `tools_to_model` L1790-1816
 - `langgraph/prebuilt/tool_node.py`：`ToolNode.__init__` L620-784, `_func` L791-824, `_run_one` L1012-1065, `_execute_tool_sync` L920-1010, `_parse_input` L1222-1264
-- `langchain/agents/middleware/types.py`：`AgentState.jump_to` L350-355, `JumpTo` L69
-- `deerflow/agents/lead_agent/agent.py`：`_make_lead_agent` L671-929, `build_middlewares` L373-617
+- `langchain/agents/middleware/types.py`：`AgentState.jump_to` L354, `JumpTo` L69
+- `deerflow/agents/lead_agent/agent.py`：`_make_lead_agent` L842 起（`create_agent` 调用在 L1239-1245）, `build_middlewares` L484-746
+
+> 🔄 同步 #6（v2.1.0-rc0）：以上行号对照 backend/.venv 中 langchain 1.2.15 / langgraph-prebuilt 1.0.11 与当前 `deerflow/agents/lead_agent/agent.py` 逐一核实；LangChain/LangGraph 侧基本未漂移，DeerFlow 侧 `agent.py` 因重构行号大幅前移。

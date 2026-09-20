@@ -88,3 +88,5 @@ uv sync --extra operations --extra demo-tui    # 建 venv（框架走 submodule 
 - digest：[`_upstream-sync/SYNC_LOG.md`](../../_digest/_upstream-sync/SYNC_LOG.md) —— 版本差的来龙去脉
 - 证据：`deep_research_harness/pyproject.toml` 的 `[tool.uv.sources]`（editable → submodule）；`uv.lock`；258 测试
 - 注：git submodule、editable 安装、AGENTS.md 划界属通用工程实践，非 DeerFlow 特性
+
+> 🔄 同步 #6（v2.1.0-rc0）：ethan 分支已前进到 769589e8（已合并 upstream v2.1.0-rc0，含 Node.js 24+ 要求、config_version 45、Projects/Trash/Capability Center 新前端等）。文中 `9ef471e9` 是建仓时钉的 commit，属历史事实、保持不改；如需升级基座，按「未来维护」一节更新 submodule 指针即可。

@@ -18,7 +18,7 @@
 
 **"middleware 在 DeerFlow 里到底是什么角色？"**
 
-Middleware 是 DeerFlow 的**业务逻辑插件系统**。LangChain 提供了 middleware 的抽象接口（`AgentMiddleware`），DeerFlow 写了 35 个具体实现——负责总结、标题、记忆、错误处理、安全检查等等。每个 middleware 通过覆写 hook 方法，把自己的逻辑"注入"到 agent 循环的正确位置。
+Middleware 是 DeerFlow 的**业务逻辑插件系统**。LangChain 提供了 middleware 的抽象接口（`AgentMiddleware`），DeerFlow 写了 37 个具体实现（v2.1.0-rc0，sync #6）——负责总结、标题、记忆、错误处理、安全检查等等。每个 middleware 通过覆写 hook 方法，把自己的逻辑"注入"到 agent 循环的正确位置。
 
 ---
 
@@ -46,7 +46,7 @@ class AgentMiddleware:
 
 ### 3. DeerFlow Middleware（具体业务逻辑）
 
-DeerFlow 写的 35 个类，每个都继承 `AgentMiddleware`，覆写自己需要的 hook。比如 `TitleMiddleware` 只覆写 `after_agent`，`LLMErrorHandlingMiddleware` 只覆写 `wrap_model_call`。
+DeerFlow 写的 37 个类，每个都继承 `AgentMiddleware`，覆写自己需要的 hook。比如 `TitleMiddleware` 只覆写 `after_agent`，`LLMErrorHandlingMiddleware` 只覆写 `wrap_model_call`。
 
 **关键关系：**
 
@@ -64,7 +64,7 @@ LangChain AgentMiddleware（抽象接口）
 
 ## Hook → Node 的编译过程（源码级）
 
-`factory.py` L1372-1453。`create_agent()` 遍历 middleware 列表，对每个 middleware 检查 4 个 hook：
+`factory.py`（LangChain `langchain/agents/factory.py`）L1372-1436。`create_agent()` 遍历 middleware 列表，对每个 middleware 检查 4 个 hook：
 
 ```python
 for m in middleware:
@@ -176,19 +176,21 @@ for m in middleware:
 
 ## DeerFlow 实际上有多少 node？
 
-DeerFlow 有 35 个 middleware（`agent.py` `build_middlewares()` L373-617），但不是每个都覆写了所有 4 个 hook。实际情况：
+DeerFlow 有 37 个 middleware（v2.1.0-rc0；组装分两阶段：`tool_error_handling_middleware.py` 的 `build_lead_runtime_middlewares()` 前 14 个共享基础层 + `lead_agent/agent.py` 的 `build_middlewares()` 后 23 个 lead-only 层，后者现在从 L484 起），但不是每个都覆写了所有 4 个 hook。实际情况：
 
 - 大部分 middleware 只覆写 `after_model` → 每个产生 1 个 node
 - 少数覆写 `before_agent`（如 `UploadsMiddleware`、`SandboxMiddleware`）
 - `wrap_model_call` 和 `wrap_tool_call` 不产生 node
 
-粗略估算：**2 个固定 node + ~40 个 middleware node ≈ 图上共 ~42 个 node**。每次 agent 循环（一次 model 调用 + 可能的 tool 执行），图上大约有 15-20 个 node 被依次执行（before_model 链 → model → after_model 链 → 条件判断 → 可能走 tools → 回到 loop）。
+粗略估算：**2 个固定 node + ~44 个 middleware node ≈ 图上共 ~46 个 node**。每次 agent 循环（一次 model 调用 + 可能的 tool 执行），图上大约有 15-20 个 node 被依次执行（before_model 链 → model → after_model 链 → 条件判断 → 可能走 tools → 回到 loop）。
+
+> 🔄 同步 #6（v2.1.0-rc0）：middleware 总数 35 → 37（sync #5 新增 `ToolReceiptMiddleware`（共享基础层 #9，最外层 `wrap_tool_call` 收据记账）；sync #6 新增 `DeferredToolPromotionAuditMiddleware`（#17，SkillActivation 之后，`tool_search.enabled` 时启用）。上文的 ~44/~46 为按此推算的近似值。
 
 ---
 
 ## 边的连接规则
 
-### 关键节点定义（factory.py L1455-1481）
+### 关键节点定义（factory.py L1455-1481，v2.1.0-rc0 中位置基本未变）
 
 ```python
 # 入口：第一个 before_agent，或第一个 before_model，或 "model"
@@ -241,7 +243,7 @@ for idx in range(len(middleware_w_after_model) - 1, 0, -1):
 
 **反向——后加的 middleware 先执行**，最靠近 model 的输出。
 
-这就是为什么 `ClarificationMiddleware` 必须在列表最后（L404 `middlewares.append(ClarificationMiddleware())`）。它对 `after_model` 的执行顺序敏感——它需要第一个检查模型输出，发现 `ask_clarification` 就设 `jump_to="end"` 短路整个后续流程。如果它在列表前面（= after_model 最后执行），其他 middleware 可能先把反问消息当成正常输出处理掉了。
+这就是为什么 `ClarificationMiddleware` 必须在列表最后（`lead_agent/agent.py` L740 `middlewares.append(ClarificationMiddleware())`）。它对 `after_model` 的执行顺序敏感——它需要第一个检查模型输出，发现 `ask_clarification` 就设 `jump_to="end"` 短路整个后续流程。如果它在列表前面（= after_model 最后执行），其他 middleware 可能先把反问消息当成正常输出处理掉了。
 
 ### 每个 middleware node 都自带 jump_to 检查
 
@@ -261,9 +263,9 @@ def jump_edge(state: dict[str, Any]) -> str:
 
 ## 从你的场景出发：哪几个 middleware 最值得读？
 
-你的场景是**构建 agentic workflow**——让 agent 自动执行多步骤任务。DeerFlow 35 个 middleware 你不用全看，下面按"你最可能涉足的"挑 7 个，用它们反复强化你对 middleware 的理解。
+你的场景是**构建 agentic workflow**——让 agent 自动执行多步骤任务。DeerFlow 37 个 middleware 你不用全看，下面按"你最可能涉足的"挑 7 个，用它们反复强化你对 middleware 的理解。
 
-### 必读 1：`ToolErrorHandlingMiddleware`（共享基础层第 12 个）
+### 必读 1：`ToolErrorHandlingMiddleware`（共享基础层第 14 个）
 
 **它覆写了什么 hook**：`wrap_tool_call`
 
@@ -277,7 +279,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
             tool_call_id="call_abc", status="error")
 ```
 
-### 必读 2：`LLMErrorHandlingMiddleware`（共享基础层第 7 个）
+### 必读 2：`LLMErrorHandlingMiddleware`（共享基础层第 8 个）
 
 **它覆写了什么 hook**：`wrap_model_call`
 
@@ -285,7 +287,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 **你的场景**：生产环境中 LLM 不可靠。这个 middleware 让你的 agent 在 API 抖动时自动恢复，而不是直接挂。
 
-### 必读 3：`ClarificationMiddleware`（lead-only 最后一个，L404）
+### 必读 3：`ClarificationMiddleware`（lead-only 最后一个，agent.py L740）
 
 **它覆写了什么 hook**：`after_model`
 
@@ -293,7 +295,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 **你的场景**：你可能不需要反问用户，但你会需要类似的模式——在模型输出后做检查，必要时短路后续流程。这就是 `after_model` + `jump_to` 的用法模板。
 
-### 必读 4：`SandboxMiddleware`（共享基础层第 5 个）
+### 必读 4：`SandboxMiddleware`（共享基础层第 6 个）
 
 **它覆写了什么 hook**：`before_agent`
 
@@ -301,7 +303,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 **你的场景**：如果你的 workflow 需要在启动时做资源分配（比如创建一个临时目录、初始化一个数据库连接），就写一个 `before_agent` middleware。
 
-### 必读 5：`TitleMiddleware`（lead-only 第 19 个）
+### 必读 5：`TitleMiddleware`（lead-only 第 23 个）
 
 **它覆写了什么 hook**：`after_model`
 
@@ -309,7 +311,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 **你的场景**：如果你想在模型输出后做**轻量级后处理**（比如记录日志、统计 token、检测敏感词），照这个模式写。
 
-### 必读 6：`SummarizationMiddleware`（lead-only 第 16 个）
+### 必读 6：`SummarizationMiddleware`（lead-only 第 20 个）
 
 **它覆写了什么 hook**：`after_model`
 
@@ -317,7 +319,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 **你的场景**：任何需要在多次循环中积累状态、在特定条件下触发的逻辑（比如"每 5 轮检查一次进度"），都参考这个模式。
 
-### 必读 7：`LoopDetectionMiddleware`（lead-only 第 25 个）
+### 必读 7：`LoopDetectionMiddleware`（lead-only 第 30 个）
 
 **它覆写了什么 hook**：`after_model`
 
@@ -337,7 +339,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 | `after_model` 有状态条件触发 | SummarizationMiddleware |
 | `after_model` 强干预（修改输出） | LoopDetectionMiddleware |
 
-**这 7 个看完，你就能自己写 middleware 了。** 剩下 26 个是 DeerFlow 特定业务（TokenUsage、Memory、SkillActivation、DeferredToolFilter 等），需要时再看。
+**这 7 个看完，你就能自己写 middleware 了。** 剩下 30 个是 DeerFlow 特定业务（TokenUsage、Memory、SkillActivation、ToolReceipt、DeferredToolPromotionAudit、DeferredToolFilter 等），需要时再看。
 
 ---
 
@@ -349,17 +351,19 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 | middleware 和 node 是什么关系？ | middleware 的 **hook 方法** 被编译成 node。不是 "middleware 就是 node"，而是 "hook → node" |
 | 哪些 hook 变 node？ | `before_agent`、`before_model`、`after_model`、`after_agent` |
 | 哪些 hook 不变 node？ | `wrap_model_call`、`wrap_tool_call`（在 node 内部，洋葱模式） |
-| DeerFlow 图上有多少 node？ | 2 固定 + ~40 middleware node ≈ 42 个 |
+| DeerFlow 图上有多少 node？ | 2 固定 + ~44 middleware node ≈ 46 个（37 个 middleware，v2.1.0-rc0） |
 | 为什么 after_model 反向？ | 后加的 middleware 先看到模型输出。ClarificationMiddleware 必须最后加，最先执行 |
 | 每个 middleware node 能跳转吗？ | 能。每个 node 后都有条件边检查 `jump_to` |
 | 三类概念的层次？ | LangGraph Node（图顶点）← LangChain AgentMiddleware（抽象接口）← DeerFlow Middleware（业务实现） |
 
 ## 关键源码
 
-- `langchain/agents/factory.py`：middleware node 创建 L1372-1453，关键节点定义 L1455-1481，before_model 边 L1578-1597，after_model 反向边 L1600-1614，after_agent 反向边 L1617-1639，`_add_middleware_edge` L1819-1864
+- `langchain/agents/factory.py`（LangChain 库源码）：middleware node 创建 L1372-1436，关键节点定义 L1455-1481，before_model 边 L1578-1597，after_model 反向边 L1600-1614，after_agent 反向边 L1619-1641，`_add_middleware_edge` L1819（以上为 v2.1.0-rc0 锁定的 langchain 版本行号，位置基本未变）
 - `langchain/agents/middleware/types.py`：`AgentMiddleware` 抽象类定义
-- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L373-617，展示 35 个 middleware 的完整列表和添加顺序
+- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L484 起，展示 lead-only 层 23 个 middleware 的添加顺序（`ClarificationMiddleware` L740 必须最后）；共享基础层 14 个由 `deerflow/agents/middlewares/tool_error_handling_middleware.py` 的 `build_lead_runtime_middlewares()` L320 组装
+
+> 🔄 同步 #6（v2.1.0-rc0）：middleware 组装改两阶段——前 14 个共享基础层在 `build_lead_runtime_middlewares()`，后 23 个 lead-only 层在 `build_middlewares()`；新增 `ToolReceiptMiddleware`（#9）与 `DeferredToolPromotionAuditMiddleware`（#17），并引入 superseded write elision / blocked payload elision / loop-detection 与 tool-promotion 事件持久化（均不改变 hook → node 的编译映射）。
 
 ## 补充文件
 
-- [complete-catalog.md](complete-catalog.md) —— **完整 35 个 middleware 一览表**（按顺序、按 hook 类型、按使用频率分类）
+- [complete-catalog.md](complete-catalog.md) —— **完整 37 个 middleware 一览表**（sync #6，v2.1.0-rc0；按顺序、按 hook 类型、按使用频率分类）
