@@ -12,7 +12,7 @@ topics: [setup, configuration, quickstart]
 
 | 文件 | 用途 | 生成方式 |
 |------|------|----------|
-| `config.yaml` | 主配置（1100+ 行） | `make config` 从 `config.example.yaml` 生成 |
+| `config.yaml` | 主配置（2900+ 行，config_version 45） | `make config` 从 `config.example.yaml` 生成 |
 | `extensions_config.json` | MCP + Skills 启停 | 从 `extensions_config.example.json` 复制 |
 
 ## 配置解析优先级
@@ -46,6 +46,11 @@ topics: [setup, configuration, quickstart]
 | `uploads` | 文件上传大小限制 + 文档自动转换 | 否 |
 | `title` | 对话标题自动生成 | 否 |
 | `log_level` | debug/info/warning/error | **是** |
+| 🔄 `recursion_limit` | run 的 super-step 默认上限（原硬编码 100，`max_recursion_limit` 仍为硬上限） | 否 |
+| 🔄 `projects` / `task_continuity` | 项目工作区限额 / 任务笔记 + 压缩消息召回（默认关） | 否 |
+| 🔄 `sandbox.network` | 沙箱出网管控（open/isolated/allowlist，仅本地 Docker 沙箱） | **是** |
+| 🔄 `tool_output` / `read_before_write` | 上下文成本工程：superseded/blocked write payload 剔除 | 否 |
+| 🔄 `auth.local` | 登录限流（`max_login_attempts`/`lockout_seconds`，live-read 免重启） | 否 |
 
 ## extensions_config.json 核心段
 

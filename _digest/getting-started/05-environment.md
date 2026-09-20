@@ -26,6 +26,9 @@ topics: [setup, configuration, quickstart]
 | 变量 | 用途 |
 |------|------|
 | `SERPER_API_KEY` | Google Search (serper.dev) |
+| `SERPLY_API_KEY` | 🆕 Google Search/News/Scholar (serply.io) |
+| `SOFYA_API_KEY` | 🆕 Sofya 搜索/爬取 |
+| `TENCENTCLOUD_WSA_APIKEY` | 🆕 腾讯云 WSA 搜索 |
 | `TAVILY_API_KEY` | Tavily 搜索 |
 | `JINA_API_KEY` | Jina AI Reader (web fetch) |
 | `INFOQUEST_API_KEY` | BytePlus InfoQuest 搜索/爬取 |
@@ -52,6 +55,7 @@ topics: [setup, configuration, quickstart]
 | `DEER_FLOW_SKILLS_PATH` | Skills 目录（覆盖 config.yaml 中的 skills.path） |
 | `DEER_FLOW_DOCKER_SOCKET` | Docker socket 路径（Docker 部署时） |
 | `DEER_FLOW_REPO_ROOT` | 仓库根目录（Docker DooD 中用于 Skills host path） |
+| `DEER_FLOW_DATE_TIMEZONE` | 🆕 注入 agent 的会话日期所用 IANA 时区（如 `Asia/Shanghai`；非 config schema 字段，date-context 中间件运行时读取） |
 
 ## 内部通信
 

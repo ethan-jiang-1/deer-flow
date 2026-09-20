@@ -9,7 +9,7 @@ topics: [setup, configuration, quickstart]
 ## 前提条件
 
 - Python 3.12+
-- Node.js 22+
+- Node.js 24+
 - pnpm
 - uv (Python 包管理器)
 - Docker (可选，沙箱隔离)

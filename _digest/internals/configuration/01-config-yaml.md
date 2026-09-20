@@ -28,7 +28,7 @@ topics: [configuration, hot-reload, yaml-config]
 `_check_config_version()` (`app_config.py:226`) 从 `config.yaml` 读 `config_version`（整数，缺省 = 0），然后在上 5 级目录找 `config.example.yaml`，取其 `config_version`。用户版本 < example 版本时，发出 warning：
 
 ```
-Your config.yaml (version 33) is outdated — the latest version is 36.
+Your config.yaml (version 38) is outdated — the latest version is 45.
 Run `make config-upgrade` to merge new fields into your config.
 ```
 
@@ -99,7 +99,7 @@ pop_current_app_config()                   # 弹出
 
 ---
 
-## 35 Section 速览
+## 38 Section 速览
 
 | Section | 类型 | 作用 |
 |---------|------|------|
@@ -144,6 +144,9 @@ pop_current_app_config()                   # 弹出
 | 🆕 `channel_connections` | | 用户拥有的 IM 频道绑定 |
 | 🆕 `auth.oidc` | | OIDC SSO（Keycloak/Google/Azure/Okta） |
 | 🆕 `suggestions` | | 自动生成跟进问题建议 |
+| 🔄 🆕 `recursion_limit` | | run 的 LangGraph super-step 默认上限（原硬编码 100，仍被 `max_recursion_limit` 钳制；客户端可在请求中覆盖） |
+| 🔄 🆕 `projects` | `ProjectsConfig` | 项目工作区：instructions 字节上限、document shelf 索引渲染上限、回收站保留天数 |
+| 🔄 🆕 `task_continuity` | `TaskContinuityConfig` | 任务笔记 + 已压缩消息关键词召回（默认关闭） |
 
 注：当前 `config_version` = **45**（🆕 同步 #6，36→45：新增 `projects:`/`task_continuity:`/`sandbox.network:`/`request_admission` 等段）；`checkpointer` 已废弃但后向兼容（统一由 `database` 接管）。
 

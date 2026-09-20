@@ -12,7 +12,7 @@ DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、�
 
 | 问题 | 答案 |
 |------|------|
-| **几个配置文件？** | 两个 — `config.yaml`（AppConfig，35 个顶层 section，含 `plugins:` 打包扩展）+ `extensions_config.json`（MCP servers + skills state） |
+| **几个配置文件？** | 两个 — `config.yaml`（AppConfig，38 个顶层 section，含 `plugins:` 打包扩展）+ `extensions_config.json`（MCP servers + skills state） |
 | **改 config.yaml 要重启吗？** | 分两半 — database/sandbox/channels 等基础设施字段要重启，model/tool/memory/prompt 等策略字段实时生效 |
 | **env var 怎么解析？** | `$VAR` → `os.getenv()`。AppConfig 严格模式（缺了就报错），ExtensionsConfig 宽松模式（缺了存空串） |
 | **配置优先级？** | 显式传参 > 环境变量 > 项目根目录 > legacy backend/ |

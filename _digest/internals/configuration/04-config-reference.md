@@ -15,7 +15,7 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 
 | 文件 | 用途 | 生成方式 |
 |------|------|----------|
-| `config.yaml` | 主配置（1100+ 行） | `make config` 从 `config.example.yaml` 生成 |
+| `config.yaml` | 主配置（2900+ 行） | `make config` 从 `config.example.yaml` 生成 |
 | `extensions_config.json` | 扩展配置 | 从 `extensions_config.example.json` 复制 |
 
 配置解析优先级：
@@ -33,7 +33,7 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 ## 配置版本
 
 ```yaml
-config_version: 36
+config_version: 45
 ```
 
 用于检测配置过期。改 schema 时上游会升这个数字。`make config-upgrade` 把新字段合并到已有 `config.yaml`。
@@ -43,6 +43,19 @@ config_version: 36
 ```yaml
 log_level: info   # debug | info | warning | error
 ```
+
+> 🔄 Sync #6：trace id 现在**无条件下发**——每个 HTTP 响应都带 `X-Trace-Id`。`logging.enhance.enabled` 只控制**日志格式**（日志记录是否带 `trace_id` 字段及格式），默认关闭。
+
+## Recursion Limit 🔄 Sync #6
+
+```yaml
+recursion_limit: 100        # 🆕 可配置的默认值（原来硬编码 100）
+max_recursion_limit: 1000   # 硬上限，钳制配置值与客户端值
+```
+
+客户端可以在请求里覆盖 `recursion_limit`，非法/非正数回退到 `recursion_limit` 配置值；任何超过 `max_recursion_limit` 的值（无论来自配置还是客户端）都被钳制下来。
+
+另：`DEER_FLOW_DATE_TIMEZONE` 环境变量（🆕）可指定注入 agent 的会话日期所用 IANA 时区（如 `Asia/Shanghai`）；它不是 config schema 字段，由 date-context 中间件运行时读取，容器里设了即生效，无需挂载 config.yaml。
 
 ## Token Usage
 
@@ -71,6 +84,12 @@ models:
     supports_reasoning_effort: false
     use_responses_api: false    # 使用 OpenAI Responses API（OpenAI 专用）
     output_version: null
+    use_previous_response_id: false  # 🆕 Responses API：只发新 turn + previous_response_id，不重放全量历史
+    request_admission:          # 🆕 每-模型请求节奏（RPM 共享配额，默认关闭）
+      requests_per_minute: 60
+      group: shared-provider-account  # 可选；默认为模型配置名；共享 group 要求设置完全一致
+      max_wait_seconds: 300
+      max_queue_size: 256
     when_thinking_enabled:      # 开启思考时的覆盖参数
       extra_body:
         thinking:
@@ -97,9 +116,30 @@ models:
 
 **Ollama 重要提示**：如果用 `langchain_openai:ChatOpenAI` 连 Ollama，thinking/reasoning_content 不会正确返回。必须用 `langchain_ollama:ChatOllama`，它走原生 `/api/chat` 路径。
 
+### `request_admission`（RPM 准入）🆕
+
+每个模型条目内可选配置进程内 RPM 排队（不是 TPM，也不是集群级配额）。同 `group` 的模型共享配额，设置必须完全一致；修改后需重启。上游示例还带一个 GLM-5.3-Flash workaround 配置（`deerflow.models.patched_deepseek:PatchedChatDeepSeek` + `extra_body.thinking: {type: enabled, clear_thinking: true}` + `supports_reasoning_effort: false`）——该模型不能关 thinking、只接受 low/high/max effort，所以强制 thinking 开启并抑制通用 effort 透传。
+
+### `use_previous_response_id` 🆕
+
+OpenAI Responses API 模型可开（默认 false）：请求只带最新 turn + `previous_response_id`，链式上下文仍按 input token 计费；且客户端侧历史改写（如 blocked-write payload elision）只在重放历史时生效。
+
 ### 模型热加载
 
 模型列表支持热加载——修改 `config.yaml` 后下一个请求生效，无需重启。
+
+## Extensions.middlewares（config 声明的中间件）🔄 Sync #6
+
+```yaml
+# extensions:
+#   middlewares:
+#     - my_company.deerflow_middlewares:DomainGuardMiddleware   # 零参类路径
+#     - class: my_company.deerflow_middlewares:LatencyStampingMiddleware
+#       kwargs:
+#         header: X-DeerFlow-Latency                            # 🆕 构造参数
+```
+
+条目可以是类路径，或 🆕 `{class, kwargs}` 形式传构造参数（kwargs 值必须是 JSON 类型；YAML 日期/时间戳会被转成 ISO 字符串）。构造异常在 agent 创建时报错并带底层异常。该列表同时作用于 lead 与 subagent 运行时；留空时 `extensions_config.json` 仍是这个 fixed-slot 列表的真相源。
 
 ## Tool Groups & Tools
 
@@ -119,14 +159,20 @@ tool_groups:
 |------|-----------|------|
 | `web_search` | `deerflow.community.ddg_search.tools:web_search_tool` | DuckDuckGo，免费，默认 |
 | `web_search` | `deerflow.community.serper.tools:web_search_tool` | Google Search，需 `SERPER_API_KEY` |
+| `web_search` | `deerflow.community.serply.tools:web_search_tool` | 🆕 Google Search/News/Scholar，需 `SERPLY_API_KEY`，支持 `vertical`/`gl`/`hl` |
+| `web_search` | `deerflow.community.sofya.tools:web_search_tool` | 🆕 返回结果页正文，需 `SOFYA_API_KEY`，支持 `search_depth` |
+| `web_search` | `deerflow.community.tencent_wsa.tools:web_search_tool` | 🆕 腾讯云 WSA，需 `TENCENTCLOUD_WSA_APIKEY` |
 | `web_search` | `deerflow.community.tavily.tools:web_search_tool` | Tavily，需 `TAVILY_API_KEY` |
 | `web_search` | `deerflow.community.infoquest.tools:web_search_tool` | InfoQuest，需 `INFOQUEST_API_KEY` |
 | `web_search` | `deerflow.community.exa.tools:web_search_tool` | Exa，需 `EXA_API_KEY` |
-| `web_search` | `deerflow.community.firecrawl.tools:web_search_tool` | Firecrawl，需 `FIRECRAWL_API_KEY` |
+| `web_search` | `deerflow.community.firecrawl.tools:web_search_tool` | Firecrawl，需 `FIRECRAWL_API_KEY`；🆕 自托管可设 `base_url` 免 key |
 | `web_fetch` | `deerflow.community.jina_ai.tools:web_fetch_tool` | Jina AI，默认，免费 |
+| `web_fetch` | `deerflow.community.sofya.tools:web_fetch_tool` | 🆕 返回 markdown，支持 PDF/DOCX |
 | `web_fetch` | `deerflow.community.exa.tools:web_fetch_tool` | Exa |
 | `web_fetch` | `deerflow.community.infoquest.tools:web_fetch_tool` | InfoQuest |
-| `web_fetch` | `deerflow.community.firecrawl.tools:web_fetch_tool` | Firecrawl |
+| `web_fetch` | `deerflow.community.firecrawl.tools:web_fetch_tool` | Firecrawl；🆕 自托管可设 `base_url` |
+| `knowledge_search` | `deerflow.community.lightrag.tools:knowledge_search_tool` | 🆕 LightRAG（与 RAGFlow 同工具的第二 provider，二选一），需 v1.4.9+，`mode: naive/local/global/hybrid/mix` |
+| `read_conversation` | `deerflow.tools.conversation:read_conversation` | 🆕 读取被显式引用的会话（Gateway API only，opt-in，run 需提交 `conversation_references`） |
 | `image_search` | `deerflow.community.image_search.tools:image_search_tool` | DuckDuckGo 图片搜索 |
 | `image_search` | `deerflow.community.infoquest.tools:image_search_tool` | InfoQuest 图片搜索 |
 | `ls` | `deerflow.sandbox.tools:ls_tool` | 目录列表 |
@@ -164,6 +210,24 @@ loop_detection:
   #     warn: 150
   #     hard_limit: 300
 ```
+
+## Tool Output & read_before_write（上下文成本工程）🔄 Sync #6
+
+```yaml
+tool_output:
+  enabled: true
+  elide_superseded_writes: true    # 🆕 同一路径被后续 read/write/str_replace 覆盖后，
+                                   #    模型请求中旧 write_file 的 content 换成占位符
+  superseded_write_min_chars: 2000 # 🆕 只剔除 ≥ 该字符数的 content（0 = 全剔除）
+  keep_recent_writes: 1            # 🆕 最近 N 次成功 write_file 永不剔除（0 = 不保留）
+
+read_before_write:
+  enabled: true
+  elide_blocked_payloads: true     # 🆕 被拦截调用（write content / str_replace old_str/new_str）
+  elide_min_chars: 2000            #    在后续模型请求中替换为占位符（0 = 全剔除）
+```
+
+两者都只改**模型可见的请求**：存储历史、receipts、run journal 保留原始参数。字符数按 character 计（CJK 每字符成本是 ASCII 的 3-4 倍）。
 
 ## Safety Finish Reason
 
@@ -222,6 +286,21 @@ sandbox:
 
 macOS 上自动优先用 Apple Container，fallback 到 Docker。
 
+### sandbox.network（出网管控）🆕
+
+```yaml
+sandbox:
+  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  network:
+    mode: allowlist              # open | isolated | allowlist（默认 open）
+    allow_domains: [pypi.org, files.pythonhosted.org, registry.npmjs.org, github.com]
+    approval: prompt             # deny | prompt（被拒公共域名可在 Human Input 卡片审批）
+    temporary_grant_ttl: 300     # 30-3600 秒
+    proxy_image: ghcr.io/bytedance/deer-flow-sandbox-network-proxy:latest
+```
+
+仅适用于本地管理的 Docker 沙箱：需要 Docker Engine 28+，**不支持 Apple Container 与 provisioner 模式**。`isolated` 拒绝一切出网；私有/回环/链路本地/多播/云 metadata 地址始终被拒。
+
 ### Provisioner 模式（K3s）
 
 ```yaml
@@ -238,8 +317,10 @@ sandbox:
   api_key: $TENKI_API_KEY     # 或 TENKI_AUTH_TOKEN 环境变量
   base_url: https://tenki.cloud
   # image: my-base-image
-  # project_id: proj_...
   # workspace_id: ws_...
+  # ⚠️ Breaking (Sync #6)：`project_id` 已移除 — Tenki 1.x 删除了 projects，
+  #    作用域只看 workspace。残留 project_id 被忽略并启动告警；
+  #    账户有多个 workspace 时需显式设 workspace_id。
   # cpu_cores: 2
   # memory_mb: 2048
   replicas: 3                 # active + warm microVM 上限
@@ -361,7 +442,9 @@ summarization:
     # - type: messages
     #   value: 50
     # - type: fraction
-    #   value: 0.8      # 模型最大输入的 80%
+    #   value: 0.8      # 模型最大输入的 80%（从 summary 模型声明的 context_window 解析；
+    #                   # 第三方 OpenAI 兼容模型无内置 profile，缺 context_window 时
+    #                   # 该 fraction 条款会被丢弃并告警，其余绝对阈值继续生效）
   keep:
     type: messages
     value: 10           # 保留最近 10 条消息
@@ -434,6 +517,34 @@ memory:
 
 后端注册表位于 `deerflow/agents/memory/backends/`（`deermem`/`honcho`/`mem0`/`noop`/`openviking`），每个子目录暴露 `MANAGER_CLASS`。`manager_class` 可以是这些注册名之一，也可以是一个 `MemoryManager` 子类的 dotted import path。
 
+## Projects（项目工作区）🆕
+
+```yaml
+projects:
+  instructions_max_bytes: 8192       # 项目 instructions UTF-8 字节上限（256-262144）
+  shelf_index_max_entries: 50        # <documents> 索引每次 run 渲染的条目上限（1-500）
+  shelf_index_max_bytes: 4096        # <documents> 索引渲染的 UTF-8 字节上限（512-65536）
+  trash_retention_days: 30           # 回收站文档保留天数（1-3650）
+```
+
+Member thread 每次 run 收到请求级 `<project>` / `<documents>` 块，由 run 准入时 pin 的快照渲染，不进 system prompt 也不进持久化历史。超限 instructions 写入时直接 422，不会截断。
+
+## task_continuity（任务笔记与压缩消息召回）🆕
+
+```yaml
+task_continuity:
+  enabled: false                     # opt-in
+  max_batches: 32
+  max_records_per_batch: 256
+  max_record_chars: 16000
+```
+
+可选的任务笔记 + 对已压缩（summarized）消息的关键词召回，详见上游 `docs/task-continuity.md`。
+
+## Stream Bridge（心跳间隔）🔄 Sync #6
+
+`stream_bridge`（memory / redis 两种 backend）均支持 `heartbeat_interval_seconds: 15`（上限 86400）：SSE、wait 及内部 stream 消费者的空闲心跳间隔。redis 模式下每个 SSE 客户端阻塞在 `XREAD ... BLOCK <heartbeat_interval>`，并发客户端多时调小可减少挂起的 redis 连接。
+
 ## Authorization（授权）🆕
 
 ```yaml
@@ -457,6 +568,17 @@ authorization:
 ```
 
 可插拔鉴权（AuthorizationProvider + 内置 RBAC）详见 [operations/security/01-auth.md](../../operations/security/01-auth.md)。配置可热更新。
+
+### auth.local（登录限流）🔄 Sync #6
+
+```yaml
+auth:
+  local:
+    # max_login_attempts: 5     # 每 client IP 失败上限（最低 2）
+    # lockout_seconds: 300      # 锁定时长
+```
+
+按 client IP 的进程内登录节流，默认保持历史硬编码策略（5 次 / 5 分钟）。**live-read**：改配置无需重启 Gateway——调低 `lockout_seconds` 立即释放活跃锁；调高只延长未过期锁，不会复活已过期锁。共享出口 IP（公司 NAT）场景可调高 `max_login_attempts`。
 
 ## Database（数据库/持久化）
 
@@ -569,7 +691,7 @@ scheduler:
   recursion_limit: 1000        # 定时 run 的 LangGraph super-step 上限（匹配 web UI，被 max_recursion_limit 钳制）
 ```
 
-poller 字段（`enabled`/`multi_instance`/`poll_interval_seconds`/`lease_seconds`/`max_concurrent_runs`/`min_once_delay_seconds`）为 restart-required。**例外**：`recursion_limit` 在每次 dispatch 时从 `get_app_config()` 读取，改 YAML 后下一个定时 run 即生效，无需重启 poller。
+poller 字段（`enabled`/`multi_instance`/`poll_interval_seconds`/`lease_seconds`/`max_concurrent_runs`/`min_once_delay_seconds`）为 restart-required。**例外**：`recursion_limit` 在每次 dispatch 时从 `get_app_config()` 读取，改 YAML 后下一个定时 run 即生效，无需重启 poller。调度类型现为 🔄 一次性 + cron + interval；`min_once_delay_seconds` 同时是一次性 `run_at` 与 interval `every_seconds` 的下限。
 
 ## mcp_tasks（长时 MCP 任务持久化）🆕
 
@@ -603,6 +725,7 @@ mcp_tasks:
 | tools | channels 凭证 |
 | agent system prompt | scheduler.*（`recursion_limit` 除外） |
 | guardrails | mcp_tasks / subagent_runtime / subagent_batches / plugins |
+| auth.local 限流（live-read，逐次登录读取） | |
 
 ---
 
