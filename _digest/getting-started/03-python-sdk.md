@@ -195,3 +195,11 @@ Client 和 Gateway API 读取相同的 config.yaml 和 extensions_config.json。
 ## Gateway 一致性测试
 
 `tests/test_client.py` 中 `TestGatewayConformance` 验证每个 dict-returning 的 client 方法输出能通过对应 Gateway Pydantic response model 解析。如果 Gateway 加了必填字段而 Client 没同步，CI 会报 `ValidationError`。这保证了两种接入方式的结果格式一致。
+
+## 🆕 v2.1.0-rc0 变更（同步 #6）
+
+- **多用户内嵌复用**（#5206）：prompt/middleware 装配绑定 user-scoped SOUL、skills、storage——即使授权强制关闭，graph 缓存 key 也独立包含生效用户身份，**一个受信 embedded client 可安全服务多个调用方**
+- **流式修复×2**（#5408/#5479）：流式 tool call 带**完整 args 只发一次**（不再分片重发）；后续 node 向已发出的 AI message 追加文本时也能发出
+- **trace id 绑定**（#5119 配套）：每个 turn 绑定 trace id，`close()` 驱动的 GeneratorExit 清理路径也在同一 id 下记录——废弃流的清理与所属 turn 可关联
+- **sandbox lease 清理围栏**：内嵌 graph 迭代器经 `_stream_with_sandbox_lease_cleanup` 包装，异常退出时 lease 仍被释放
+- skill enabled 状态写入走 extensions config 锁（调用方持锁）

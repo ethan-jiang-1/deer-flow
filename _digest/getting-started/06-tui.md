@@ -56,6 +56,7 @@ echo "scan files" | deerflow --json | while read line; do process "$line"; done
 - **🆕 `/clear`**：清空显示（不切换 thread）；run 进行中时本地重置命令（`/new`、`/clear`）被阻止
 - **🆕 Recursion limit**：`--recursion-limit` 可覆盖 agent recursion limit（#4615）
 - **🆕 `/help`**：从命令注册表派生帮助文本（#4327）
+- **🆕 Transcript 滚动位置保持**（#4975，v2.1.0-rc0）：流式更新不再把 transcript 视口拉回底部——用户上翻阅读历史时滚动位置保持不变
 
 源码：`deerflow/tui/`（14 个文件），`pyproject.toml [project.scripts]`
 
