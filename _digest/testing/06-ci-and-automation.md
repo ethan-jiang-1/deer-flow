@@ -20,19 +20,49 @@ jobs:
   test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false          # 🆕 失败分片照常报告，不取消兄弟分片
+      matrix:
+        shard: [1, 2, 3, 4]     # 🆕 后端单测拆 4 个并行分片（#5137）
+    services:
+      postgres: ...
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
       - run: pip install uv
-      - run: cd backend && uv sync --group dev
-      - run: cd backend && make test
+      - run: cd backend && uv sync --group dev --extra postgres
+      - run: cd backend && make test-shard SPLITS=4 GROUP=${{ matrix.shard }}  # 🆕
 ```
 
 三条关键规则：
 - **LLM 测试在 CI 中全部跳过**——`@requires_llm` 标记检查 `CI=true` 或缺少 `OPENAI_API_KEY`
 - **只跑纯 Python 测试**——mock 一切，零外部依赖
-- **阻塞 IO 门禁**——`make test-blocking-io` 在 `backend/**` 变更时触发
+- **阻塞 IO 门禁**——`make test-blocking-io` 在 `backend/**` 变更时触发（`make test` 默认 `--ignore=tests/blocking_io`，严格套件单独跑）
+
+### 🆕 同步 #6：duration-aware 测试分片（#5137）
+
+- **`backend/Makefile` 新目标**：`make test-shard SPLITS=4 GROUP=2` 用 pytest-split 的 `least_duration` 算法按真实墙钟成本均衡分片；`make test-shard-durations` 从完整离线套件重生成基线后提交。分片只**读** `.test_durations`（不 `--store-durations`），并发 CI job 不会竞争写。
+- **`backend/.test_durations`**（1.3 万行）：分片依据的时长基线文件，测试集有实质变化后需重新生成。
+
+### 🆕 同步 #6：CI 其他变更
+
+| 变更 | 位置 |
+|------|------|
+| Node 22 → 24（#5063） | `frontend-unit-tests.yml`、`lint-check.yml` 等所有 `setup-node` |
+| Sandbox image smoke workflow 🆕 | `.github/workflows/sandbox-image-smoke.yml`（+73 行）——真实镜像冒烟验证 AIO sandbox 加固：基线镜像 + 需要 FOWNER 的 1.11.0 启动路径；先把镜像 pull 并转成不可变 `repo@sha256` 引用再跑，摘要打印 digest 保证可复现 |
+| sandbox-network-proxy 镜像 workflow 🆕 | `.github/workflows/sandbox-network-proxy-image.yaml` |
+| Skill review waivers（见下节） | `.github/skill-review-waivers.v1.json` + `scripts/skill_review_waivers.py` |
+
+## 🆕 同步 #6：Skill review CI waivers 机制
+
+`.github/skill-review-waivers.v1.json`（schema `deerflow.skill-review-waivers.v1`）+ `scripts/skill_review_waivers.py`（295 行），由 `scripts/review_changed_public_skills.py` 消费：
+
+- **精确匹配**：每条 waiver 匹配一条 error finding（package / source / rule_id / path / line / evidence 全对上才生效），附带被审文件的 SHA-256 和过期日期（`expires_on`），可选 `preapproved_file_sha256s`（上限 8 个）预批未来的整文件哈希。
+- **信任边界**：PR 可以从 head revision 验证 waiver 编辑，但只有 **trusted base revision** 的 manifest 能真正豁免本次 CI。
+- **永不豁免 blocker**：blocker 级 finding 任何情况都不能被 waiver 掉。
+- **两段式合并流程**：waiver 生效需要 manifest 变更先落到 trusted base——即先合 manifest，再合 skill 变更，之后在一次 follow-up cleanup 中把消费掉的哈希从 `preapproved_file_sha256s` 提升为 `file_sha256`。直接在同一次 PR 里同时改 waiver 和 skill 是不会生效的。
+- waiver 条目在 CI 输出中保持可见（不静默吞掉）。
 
 ## 为你的 DeerFlow 应用搭 CI
 

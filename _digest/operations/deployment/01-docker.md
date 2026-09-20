@@ -60,6 +60,31 @@ services:
 
 > 这两个镜像配合 provisioner 使用：`docker/provisioner/app.py` 提供 `/api/capabilities` 探针，让 Gateway 判断 `lark-cli` 在 chat 时是否真的可用（`sandbox_runtime_mode: none | gateway-download | init-container | broker`）。
 
+## 🆕 同步 #6（v2.1.0-rc0）Docker 部署变更
+
+| 组件 | 位置 | 变更 |
+|------|------|------|
+| **sandbox-network-proxy 镜像** | `docker/sandbox-network-proxy/Dockerfile` 🆕 | 新的独立 Docker 镜像，配套 workflow `.github/workflows/sandbox-network-proxy-image.yaml` 构建发布 |
+| **Compose healthcheck** | `docker/docker-compose.yaml` | gateway 健康检查 `/health`(timeout=3) → `/health/ready`(timeout=5)；`/health/ready` 在 3s 端点 deadline 内并发跑两个探针，客户端 timeout 必须高于它 |
+
+### `docker/provisioner/app.py` 大改（+379 行）主题
+
+- **skills 容器路径可配置**：`CreateSandboxRequest` 新增 `skills_container_path`（默认 `/mnt/skills`，老 Gateway 不传保持兼容）。`_normalize_skills_container_path()` 校验绝对路径、非 root、无冗余分隔符，且不得与保留挂载（`/mnt/user-data`、`/mnt/acp-workspace`、`/mnt/integrations/lark-cli`）重叠。
+- **受管 skill 分类挂载**：`<skills-root>/{public,custom,legacy,integrations}` 由 provisioner 自动派生并加入 extra mount 白名单（替代旧的硬编码 `/mnt/skills/custom` / `/mnt/skills/integrations`），并支持 skill override mount 的归并判断。
+- **`max_shell_sessions`**：新 Gateway 按 process-wide subagent capacity 传入，provisioner 写入 sandbox 响应（`None` 保持旧调用方兼容，默认上限 10）。
+
+### `scripts/deploy.sh` Windows 修复
+
+`aio` 模式下 Docker socket 检查改为从 `.env` 读取 `DEER_FLOW_DOCKER_SOCKET`；Windows（Git Bash/MSYS）上 Docker Desktop 即使宿主无 socket 文件也会把默认 `/var/run/docker.sock` 挂进容器，且导出该路径会被 MSYS 转换成 `C:\Program Files\Git\var\run\docker.sock` 导致 compose mkdir 报错——此时跳过 socket 文件检查并 unset 该变量，让 Compose 用自身默认 fallback。
+
+### 本地启停命令（同步 #6）
+
+- **`make start SKIP_FRONTEND_BUILD=1`**（#5053，`scripts/serve.sh --skip-frontend-build`）：生产模式复用上一次前端构建，跳过 `next build`；`start-daemon` 同样支持。
+- **`make dev` Windows 修复**：Makefile 统一 `RUN_SHELL_SCRIPT`——Windows 仍走 Git Bash 包装，POSIX 改为显式 `$(BASH)` 调用，修复丢失可执行位的 checkout（zip 下载、`core.fileMode=false`）。
+- **`scripts/pnpm.py` 解析顺序变化**（#5305）：Windows 先试 `pnpm.cmd` 再 `pnpm`（Corepack 同理 `corepack.cmd` 优先），POSIX 顺序不变。
+- **`scripts/doctor.py` / `scripts/detect_uv_extras.py`**：`models[].use == langchain_ollama:*` 会自动探测 `ollama` uv extra（`_PROVIDER_EXTRAS` 映射）；doctor 各检查对 `models`/`tools` 为 `None` 或非 dict 项更健壮，并补 serply/sofya/tencent_wsa 等 API key 提示。
+- **`make extension-upgrade SOURCE=...`**：新根 make 目标，替换已装扩展并保留其配置。
+
 ## 网络配置
 
 所有服务在一个 Docker network 内通信：

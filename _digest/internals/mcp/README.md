@@ -6,7 +6,7 @@ type: index
 
 # MCP — 协议集成深度
 
-`deerflow/mcp/` 是 MCP（Model Context Protocol）服务器与 DeerFlow 工具管道的集成层。它解决四类问题：**会话生命周期**（stdio 有状态服务器跨调用复用）、**鉴权**（OAuth server 级令牌 + user_auth 按用户凭据）、**配置热生效**（extensions_config 的 content-signature 缓存失效），以及**长任务**（把请求/响应式工具调用升级为可恢复的持久化任务）。
+`deerflow/mcp/` 是 MCP（Model Context Protocol）服务器与 DeerFlow 工具管道的集成层。它解决六类问题：**会话生命周期**（stdio 有状态服务器跨调用复用，按 `(server_name, scope_key, owning_loop)` 隔离）、**鉴权**（OAuth server 级令牌 + user_auth 按用户凭据 + headers_from_context 按请求凭据）、**配置热生效**（extensions_config 的 content-signature 缓存失效）、**长任务**（把请求/响应式工具调用升级为可恢复的持久化任务）、**管理面**（Gateway `/api/mcp` 的增删改/启停 API，Settings 页的数据源），以及**可选集成**（Parallel Search server）。
 
 → Back to [parent README](../README.md)
 
@@ -14,10 +14,13 @@ type: index
 
 | 能力 | 关键模块 | 说明 |
 |------|----------|------|
-| Session Pool | `session_pool.py` | 按 `(server_name, user_id:thread_id)` 复用持久会话，LRU 256 淘汰，跨线程安全 |
-| OAuth | `oauth.py` | `client_credentials` / `refresh_token`，自动刷新 + Bearer header 注入，双检查锁防并发刷新 |
-| 缓存失效 | `cache.py` | resolved-path + `(mtime,size,sha256)` content-signature 检测，替代纯 mtime |
+| Session Pool | `session_pool.py` | 按 `(server_name, scope_key, owning_loop)` 复用持久会话，LRU 256 硬上限（创建与 promotion 两次准入），跨线程安全 |
+| OAuth | `oauth.py` | `client_credentials` / `refresh_token`，自动刷新 + Bearer header 注入（值过 `illegal_header_value_reason` 检查），双检查锁防并发刷新 |
+| 缓存失效 | `cache.py` | resolved-path + `(mtime,size,sha256)` content-signature 检测，跨事件循环初始化锁安全 |
 | 按用户凭据 | `user_scoped_auth.py` | 共享 HTTP/SSE server 的 per-user credential 注入，fail-closed |
+| 按请求凭据 🆕 同步#6 | `context_headers.py` + `headers.py` | `headers_from_context` 把 run request 的 `config.context.secrets` 映射为 HTTP/SSE header，大小写不敏感写入 + 值合法性拒绝，fail-closed |
+| 管理面 🆕 同步#6 | `app/gateway/routers/mcp.py` | Settings 页管理 MCP servers：`GET/PUT /api/mcp/config`、逐 server `POST/PUT/DELETE`、`PATCH` 启停；敏感值掩码 + stdio 启动策略校验 |
+| 可选集成 🆕 同步#6 | `extensions_config.example.json` | Parallel Search server（默认关闭，匿名 + `User-Agent: deer-flow` 标识） |
 | Durable Task | `tasks/` + `app/mcp_tasks/` | 长任务持久化：submit 立即返回本地 ID，后台轮询/取消/通知 |
 
 ## 文件导航

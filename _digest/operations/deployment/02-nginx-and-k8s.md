@@ -174,3 +174,29 @@ Gateway 通过 `DEER_FLOW_SANDBOX_HOST` 环境变量连接 sandbox：
 - **Provisioner**：ClusterIP Services + scoped per-skill PVC mounts + 可配置 sandbox container port
 - **Gateway**：Helm chart 中配置 `terminationGracePeriodSeconds`（需大于 `shutdown_flush_timeout_seconds`）
 
+## 🆕 同步 #6（v2.1.0-rc0）中的 nginx / Helm 变更
+
+### nginx 60s 模型请求超时修复（#5505）
+
+`/api/threads` 下 model-bound 端点会把响应挂起等模型：`/compact`、`/suggestions` 等一次模型调用，`/runs/wait` 等整个 run。nginx 默认 60s `proxy_read_timeout` 会在工作中途 504（compaction 实际仍会 commit，被 wait 的 run 则被取消）。修复在 `docker/nginx/nginx.conf`、`docker/nginx/nginx.local.conf` 和 Helm `configmap-nginx.yaml` 三处同步：
+
+```nginx
+location /api/threads {
+    ...
+    proxy_read_timeout 600s;   # 🆕 默认 60s 会 504 model-bound 请求
+}
+```
+
+同一批变更还新增了本地 `.skill` 归档上传的专用 location（`/api/skills/install/upload`，admin-only）：`client_max_body_size 101M` + `proxy_request_buffering off` + `proxy_read_timeout 600s`（skill 校验会串行跑多次 LLM 调用）。
+
+### Helm chart 同步变更（`deploy/helm/deer-flow/`）
+
+- **`templates/configmap-nginx.yaml`**：与上面 nginx.conf 相同的两处 location（600s 线程读超时 + 101M skill 上传）。
+- **`templates/gateway-deployment.yaml`**：readinessProbe 从 `/health` 改为 `/health/ready`（一个端点 3s deadline 内并发跑两个探针），`timeoutSeconds: 5` 必须大于该 3s 端点 bound，否则 K8s 以 1s 默认值掐掉慢但健康的响应。
+- **`values.yaml`**：默认 `ingress.annotations` 不再为空——`proxy-body-size: 101m`、`proxy-request-buffering: off`、`proxy-read-timeout: 600`，与 skill 上传/长请求对齐；内嵌 `config:` 示例升到 `config_version: 45` 并补 `recursion_limit` / LightRAG 检索示例。若自定义 `ingress.annotations`，需保留等价的 size/streaming/timeout 设置。
+- **CI 校验**：`.github/workflows/chart.yaml` 新增 `scripts/check_chart_skill_upload_size.sh` 步骤，防止渲染出的 Ingress 与 Gateway 上传要求漂移。
+
+### Compose 健康检查同步
+
+`docker/docker-compose.yaml` 的 gateway healthcheck 也从 `/health`（timeout=3）改为 `/health/ready`（timeout=5，须高于端点 3s deadline）。
+

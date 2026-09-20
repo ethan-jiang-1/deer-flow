@@ -65,6 +65,19 @@ import os
 api_key = os.getenv("MY_PROVIDER_API_KEY")
 ```
 
+**模式 C（较新，Serply/Sofya/Tencent WSA 采用）🆕：config 优先、env fallback**
+```python
+def _get_api_key(tool_name: str) -> str | None:
+    config = get_app_config().get_tool_config(tool_name)
+    if config is not None:
+        api_key = (config.model_extra or {}).get("api_key")
+        if isinstance(api_key, str) and api_key.strip():
+            return api_key.strip()
+    return os.getenv("MY_PROVIDER_API_KEY") or None
+```
+
+配合 `_api_key_warned: set[str]` 集合，key 缺失时每个 tool 名只 warn 一次，然后返回结构化 JSON 错误（如 `{"error": "...", "query": ...}`）而不是裸文本——模型能解析失败原因。
+
 ### 3. 注册到 config.yaml
 
 ```yaml
@@ -125,5 +138,9 @@ def test_empty_query_handled():
 | Serper | `community/serper/tools.py` | env var | `{query, total_results, results: [...]}` |
 | Brave | `community/brave/tools.py` | env var | `{query, results: [...]}` |
 | SearXNG | `community/searxng/tools.py` | config | `{query, results: [...]}` |
+| Serply 🆕 | `community/serply/tools.py` | config 优先 + env fallback | `{query, total_results, results: [...]}` |
+| Sofya 🆕 | `community/sofya/tools.py` | config 优先 + env fallback | `{query, total_results, results: [...]}` |
+| Tencent WSA 🆕 | `community/tencent_wsa/tools.py` | config 优先 + env fallback | `{query, total_results, results: [...], request_id?}` |
+| LightRAG 🆕 | `community/lightrag/tools.py` | `StructuredTool`（async），api_key 可选 | 带引用编号纯文本 |
 
 源码路径：`deerflow/community/{provider}/tools.py`

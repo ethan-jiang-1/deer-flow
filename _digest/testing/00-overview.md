@@ -117,3 +117,5 @@ harness 文件有少量被批准的豁免（如测试辅助代码），通过注
 - **Frontend：** Vitest 4.x，jsdom 环境，`vitest.config.ts`
 - **Backend：** pytest，`pyproject.toml` 中 `[tool.pytest.ini_options]`
 - **CI：** 通过 GitHub Actions（如果配置）或手动 `make test`
+
+> 🆕 同步 #6：`make test` 默认 `--ignore=tests/blocking_io`（只跑离线套件）；阻塞 IO 严格套件单独跑 `make test-blocking-io`。CI 后端单测拆 4 个 duration-aware 并行分片（#5137，`make test-shard` + `backend/.test_durations` 时长基线），Node CI 版本升到 24（#5063）；skill review CI 新增 waivers 机制——详见 `06-ci-and-automation.md`。

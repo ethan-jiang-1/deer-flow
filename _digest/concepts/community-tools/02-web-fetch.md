@@ -1,12 +1,12 @@
 ---
-title: "Web Fetch：5 种 URL→Markdown 管线"
-description: "所有 5 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markd"
+title: "Web Fetch：6 种 URL→Markdown 管线"
+description: "所有 6 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markd"
 topics: [tools, community, external-integration]
 ---
 
-# Web Fetch：5 种 URL→Markdown 管线
+# Web Fetch：6 种 URL→Markdown 管线
 
-所有 5 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markdown string（截断到 4096 字符）。
+所有 6 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markdown string（截断到 4096 字符）。
 
 ## Provider 管线对比
 
@@ -29,7 +29,11 @@ topics: [tools, community, external-integration]
 ├─────────────────────────────────────────────────────────────────────┤
 │ Firecrawl                                                            │
 │   URL → FirecrawlApp.scrape(formats=["markdown"])                   │
-│       → markdown → [:4096]                                           │
+│       → markdown → [:4096]          （self-host: base_url 免云 key）  │
+├─────────────────────────────────────────────────────────────────────┤
+│ Sofya 🆕                                                             │
+│   URL → POST sofya.co/v1/fetch {urls:[url]}                         │
+│       → 服务端 markdown → "# title\n\ncontent" → [:4096]            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -82,16 +86,38 @@ topics: [tools, community, external-integration]
 - **认证：** config `api_key` → `FirecrawlApp`
 - **管线：** `FirecrawlApp.scrape(url, formats=["markdown"])` → `result.markdown` → `f"# {title}\n\n{markdown[:4096]}`
 - **特点：** 直接返回 markdown，无需本地转换
+- **self-host 🆕：** 配置 `base_url`（如 `http://<host>:3002`）→ `FirecrawlApp(api_url=...)` 指向自建实例，无需云 API key
+
+### Sofya 🆕
+
+- **文件：** `community/sofya/tools.py`（#5239，与 web_search 同一模块）
+- **签名：** `def web_fetch_tool(url: str) -> str`
+- **认证：** config `model_extra["api_key"]` 或 env `SOFYA_API_KEY`（config 优先）→ `Authorization: Bearer`
+- **端点：** `POST https://sofya.co/v1/fetch`，body `{"urls": [url]}`
+- **管线：** Sofya 服务端完成提取并返回 **markdown** → `f"# {title}\n\n{content[:4096]}"`
+- **特点：** 官方注释称同时处理 PDF、DOCX 等文档格式；单个 URL 失败时返回 `result.error`；与 web_search 共用 `_sofya_post` / `_response_results` 辅助函数和 60s 超时
+- **配置示例**（`config.example.yaml`）：
+
+```yaml
+  # Web fetch tool (uses Sofya, requires SOFYA_API_KEY)
+  # Returns the page as markdown. Also handles PDF, DOCX and other documents.
+  # NOTE: Only one web_fetch provider can be active at a time.
+  # - name: web_fetch
+  #   group: web
+  #   use: deerflow.community.sofya.tools:web_fetch_tool
+  #   # api_key: $SOFYA_API_KEY
+```
 
 ## 关键差异
 
-| 维度 | Jina AI | InfoQuest | Tavily | Exa | Firecrawl |
-|------|---------|-----------|--------|-----|-----------|
-| **Async** | 是 | 否 | 否 | 否 | 否 |
-| **API 返回** | HTML | HTML | text | text | markdown |
-| **本地管线** | ReadabilityExtractor | ReadabilityExtractor | 无 | 无 | 无 |
-| **截断位置** | 客户端 [:4096] | 客户端 [:4096] | 客户端 [:4096] | 服务端/客户端 | 客户端 [:4096] |
-| **免费层** | 有（有限速） | 否 | 否 | 否 | 否 |
+| 维度 | Jina AI | InfoQuest | Tavily | Exa | Firecrawl | Sofya 🆕 |
+|------|---------|-----------|--------|-----|-----------|----------|
+| **Async** | 是 | 否 | 否 | 否 | 否 | 否 |
+| **API 返回** | HTML | HTML | text | text | markdown | markdown |
+| **本地管线** | ReadabilityExtractor | ReadabilityExtractor | 无 | 无 | 无 | 无 |
+| **截断位置** | 客户端 [:4096] | 客户端 [:4096] | 客户端 [:4096] | 服务端/客户端 | 客户端 [:4096] | 客户端 [:4096] |
+| **免费层** | 有（有限速） | 否 | 否 | 否 | self-host 可免 | 否 |
+| **文档格式** | HTML 页 | HTML 页 | — | — | — | 含 PDF/DOCX |
 
 ## ReadabilityExtractor（Jina AI & InfoQuest 共用）
 

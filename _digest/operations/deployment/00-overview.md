@@ -33,6 +33,8 @@ make dev
 - **Frontend** — Next.js Turbopack，HMR (Hot Module Replacement)
 - **Sandbox** — 可选，仅在使用 AIO 沙箱时需要 Docker
 
+> 🆕 同步 #6：`make start` 支持 `SKIP_FRONTEND_BUILD=1` 复用上次前端构建（#5053）；生产启动用镜像内预装 Python 环境（`uv run --no-sync`）+ 真实 `/health` 探针，`make up` 等 probe 通过才打成功横幅。详见 `01-docker.md`。
+
 ## Docker Compose
 
 `docker/docker-compose.yml`：

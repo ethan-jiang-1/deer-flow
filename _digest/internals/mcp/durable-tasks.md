@@ -9,6 +9,8 @@ topics: [mcp, tasks, persistence, notifications, auth]
 MCP 服务器暴露的"提交 → 轮询 → 取结果"类工具（典型如 OpenViking 这类长任务集成）默认是同步的：Agent 调用工具后必须阻塞等待远端完成，既占用 Agent 循环，也拿不到可恢复的任务句柄。这套子系统把这类工作**从一次工具调用变成一个持久化任务对象**，把"状态轮询"整个搬出 Agent/LLM 循环。
 
 > 同步 #5：对应上游 `e9387394`（runtime foundation）、`47b258eb`（ordinary driver）、`5ffc2d3e`（notification + chat UI）、`7e95bef2`（per-user credential injection）、`a263af28`（OpenViking 集成）。前三个是 durable task 的主体，后两个是本轮一并落地的相邻能力。
+>
+> 同步 #6 增量：stdio 后台会话在任务超时后保留、按错误类别断线驱逐（#5027/#5018）；submit 独占 `headers_from_context` 请求级 headers（#5010）。
 
 ## 相关文件
 
@@ -16,11 +18,12 @@ MCP 服务器暴露的"提交 → 轮询 → 取结果"类工具（典型如 Ope
 - `deerflow/mcp/tasks/models.py` (146 行) — 协议中立状态机、快照、任务引用
 - `deerflow/mcp/tasks/ordinary.py` (213 行) — 唯一内置 driver：普通 submit/status/cancel 三工具契约
 - `deerflow/mcp/tasks/runtime.py` (124 行) — 进程内桥：`McpTaskSubmitter` 协议 + 启动快照冻结
-- `deerflow/mcp/task_tool_caller.py` (227 行) — 按精确名调用原始 MCP 工具、复用 stdio 会话
+- `deerflow/mcp/task_tool_caller.py` (267 行) — 按精确名调用原始 MCP 工具、复用 stdio 会话
 - `deerflow/mcp/tools.py` (`_configure_task_tools_for_server`) — 隐藏 status/cancel、替换 submit 包装器
 - `deerflow/tools/builtins/background_tasks_tool.py` (84 行) — 模型可见的 `list/cancel_background_task` 业务工具
-- `deerflow/mcp/user_scoped_auth.py` (117 行) — 共享 MCP server 的按用户凭据注入
-- `deerflow/mcp/interceptors.py` (86 行) — 拦截器组装（OAuth → user-auth → 自定义）
+- `deerflow/mcp/user_scoped_auth.py` (150 行) — 共享 MCP server 的按用户凭据注入
+- `deerflow/mcp/context_headers.py` (206 行) 🆕 同步#6 — 按请求凭据注入（submit 带、poll 不带，见 §4.2）
+- `deerflow/mcp/interceptors.py` (96 行) — 拦截器组装（OAuth → user-auth → context-headers → 自定义）
 - `deerflow/persistence/mcp_tasks/model.py` / `sql.py` — `mcp_tasks` 表与 `McpTaskRepository`
 - `deerflow/persistence/migrations/versions/001{1,2,3}_mcp_task*.py` — 建表 / 结果字段 / 通知字段
 - `app/mcp_tasks/service.py` (676 行) — `McpTaskService`：轮询/取消/通知的后台循环
@@ -162,10 +165,12 @@ class McpTaskDriver(Protocol):
 
 `McpTaskToolCaller.call_tool()` 负责"按精确名调用原始 MCP 工具但不把它们暴露回 Agent"，对两条 transport 分别处理：
 
-- **stdio**：`_prepare_stdio_connection` 把 cwd 钉到线程 workspace、`TMPDIR/TMP/TEMP` 钉到 `workspace/.mcp/tmp/`（`0o700`）；通过 `get_session_pool()` 以 `scope_key = f"{user_id}:{thread_id}"` **复用持久会话**；`session_init_timeout` 包住 `pool.get_session`，`tool_call_timeout` 作为 `read_timeout_seconds`。调用异常时 `close_session` 清掉这个 scope 的会话，避免死子进程毒化后续轮询。
+- **stdio**：`_prepare_stdio_connection` 把 cwd 钉到线程 workspace、`TMPDIR/TMP/TEMP` 钉到 `workspace/.mcp/tmp/`（`0o700`）；通过 `get_session_pool()` 以 `scope_key = f"{user_id}:{thread_id}"` **复用持久会话**；`session_init_timeout` 包住 `pool.get_session`，`tool_call_timeout` 作为 `read_timeout_seconds`。🆕 同步#6：异常处理不再"一律 `close_session`"（#5027）——超时的 status poll 不能把健康的有状态会话（连同浏览器等服务器状态）端掉；会话驱逐改由池内按错误类别判定，只有真正的传输断线（MCP SDK `Connection closed` / AnyIO closed-stream，且注册条目仍是那个失败的 `ClientSession`）才清掉该 scope（#5018），之后的重试创建全新子进程/会话，失败调用本身照常上抛、绝不自动重放。
 - **HTTP/SSE**：走 ephemeral `create_session`，`session_init_timeout` 包 `initialize`，`tool_call_timeout` 包 `call_tool`；`tool_call_timeout` 生效前先通过 `OAuthTokenManager.get_authorization_header` 注入 OAuth 头（server 级 refresh 可在 Agent run 之外发生）。
 
-`_invoke` 把拦截器（OAuth → user-auth → 自定义，见 §7）按 onion 风格包在 `MCPToolCallRequest` 外层。
+🆕 同步#6 **请求级 headers 只覆盖 submit**：`call_tool(request_scoped_headers=True)` 由 `OrdinaryMcpTaskDriver.submit` 独家传入，启用 `headers_from_context` 拦截器（此时请求 secrets 还在 Agent run 里）；status/cancel poll 跑在该 run 结束之后、没有 secrets，继续用 server 静态/OAuth 凭据。声明了 `headers_from_context` + `task_toolsets` 的 server 会在启动时收到警告——`on_missing: "deny"` 只保护 submit，不保护后台 poll。
+
+`_invoke` 把拦截器（OAuth → user-auth → context-headers → 自定义，见 §7）按 onion 风格包在 `MCPToolCallRequest` 外层。
 
 ### 4.3 管理工具（`background_tasks_tool.py` + `tools/tools.py`）
 
