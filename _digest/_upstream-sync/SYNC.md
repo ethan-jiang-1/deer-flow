@@ -29,7 +29,11 @@ type: index
         │
         ├─ 108 commits later...
         │
-        └─ 上游 commit 431892e1  ← 锚点 #5（2026-08-25，本次同步）
+        └─ 上游 commit 431892e1  ← 锚点 #5（2026-08-25，已同步）
+        │
+        ├─ 304 commits later...
+        │
+        └─ 上游 tag v2.1.0-rc0（769589e8）← 锚点 #6（2026-09-21，本次同步，首个带版本号的锚点）
 ```
 
 ## 核心约定
@@ -47,13 +51,13 @@ ethan  = main + _digest/ + _faq_on_digested/（103 个 commit，247 个文件，
 
 | 项目 | 值 |
 |------|-----|
-| **`main` HEAD（= 消化基准）** | `431892e1` |
-| **旧锚点** | `e5c62cab`（2026-08-08） |
-| **日期** | 2026-08-25 |
-| **上游变更规模** | 108 commits |
-| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #5 |
-| **上游当前 HEAD** | `431892e1`（bytedance/deer-flow main，已同步） |
-| **累积落后** | `162fb214` → `431892e1`（共 865 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...main) |
+| **`main` HEAD（= 消化基准）** | `769589e8`（**tag `v2.1.0-rc0`**） |
+| **旧锚点** | `431892e1`（2026-08-25） |
+| **日期** | 2026-09-21 |
+| **上游变更规模** | 304 commits |
+| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #6 |
+| **上游当前状态** | tag 之后 main 还有 ~66 commits（发正式版 v2.1.0 前的修复期）；下次可同步到正式版 tag |
+| **累积落后** | `162fb214` → `v2.1.0-rc0`（共 1169 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...v2.1.0-rc0) |
 
 ## 未来同步时怎么看
 
@@ -61,9 +65,9 @@ ethan  = main + _digest/ + _faq_on_digested/（103 个 commit，247 个文件，
 # 1. 拉上游最新到 main
 git checkout main && git pull upstream main
 
-# 2. 看多了什么（e5c62cab 是旧锚点，upstream/main 是新锚点）
-git log e5c62cab..upstream/main --oneline
-git diff --stat e5c62cab..upstream/main
+# 2. 看多了什么（431892e1 是旧锚点，upstream/main 是新锚点）
+git log 431892e1..upstream/main --oneline
+git diff --stat 431892e1..upstream/main
 
 # 3. 合并到 ethan
 git checkout ethan && git merge main

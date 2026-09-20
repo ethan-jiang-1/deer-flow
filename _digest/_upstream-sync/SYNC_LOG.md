@@ -8,6 +8,24 @@ type: index
 
 ---
 
+## #6 — 2026-09-21（同步）
+
+| 项目 | 值 |
+|------|-----|
+| **操作** | 同步 |
+| **旧锚点** | `431892e1` |
+| **新锚点** | `769589e8`（**tag `v2.1.0-rc0`**，2026-09-17 切割） |
+| **上游新增 commits** | 304 |
+| **变更规模** | 1214 files, +187,495 / -9,772 lines（历史最大同步） |
+| **时间跨度** | 2026-08-25 → 2026-09-17 |
+| **提交构成** | 71 feat / 192 fix / 15 test / 12 docs / 6 chore / 4 perf / 1 eval |
+| **config** | config_version 36 → **45**；migrations **0017–0024**（PAT / OAuth identity / projects×2 / thread_incarnations / batch_acceptance / scheduled_occurrence_seq / user_preferences+run_change_seq / project_documents） |
+| **主要变更领域** | **projects**（全新子系统 MVP Phase 1+2：项目工作区 + instructions + document shelf + promotion + trash + `<project>`/`<documents>` 上下文注入）、**subagents**（RFC #4651 layer 2 完成：acceptance checklist +1396 行 / report contract / citation verification / batch item acceptance / parent context snapshots）、**sandbox**（网络 egress 三模式 + 人工审批 + sandbox-network-proxy 容器、identity 共享、Tenki project_id 移除 breaking）、**auth**（Personal Access Tokens + authz Phase 4 + login 限流可配 + /health/ready）、**threads**（archive/trash、idempotent runs、paginated run history、conversation references + read_conversation 工具）、**搜索 provider ×4**（Tencent WSA / Serply / Sofya / recency filters）+ LightRAG、**上下文成本工程**（write payload elision、read_file 行边界续读）、**模型层**（RPM request admission、模型收藏、GLM-5.3-Flash workaround）、**scheduler**（interval 类型 + custom agent + cron preview）、**artifacts**（zip 下载 + CSV/TSV 表格预览）、**frontend**（158 files：capability center 迁出 Settings、Projects、trash、conversation outline、user preferences 跨浏览器同步）、**可观测性**（trace id 无条件下发 breaking、loop detection/promotions/tool-progress 持久化）、**skills**（本地归档安装、包导出、`/mnt/skills` 保留 breaking）、**task_continuity**（opt-in 新子系统） |
+| **影响的 digest** | concepts/lead-agent、concepts/subagent、concepts/sandbox、concepts/memory、concepts/community-tools、concepts/skills-tools、concepts/builtin-tools、concepts/workspace-changes、internals/agent-loop、internals/middleware、internals/mcp、internals/configuration、internals/model-layer、internals/persistence、internals/runtime、internals/harness-hooks、observability、operations/app-layer、operations/security、operations/scheduler、operations/channels、operations/tracing、operations/deployment、testing、frontend/、getting-started、overview |
+| **备注** | 首个带版本号的锚点（v2.1.0-rc0）。四个新子系统：Projects、Trash/Archive、Conversation References、Sandbox egress control。无单点大重构，但新增面极广（71 feat）。更新计划见 UPDATE_PLAN_6.md。tag 之后 main 还有 ~66 fix，正式版 v2.1.0 发布后可做一次小同步。 |
+
+---
+
 ## #3 — 2026-07-20（同步）
 
 | 项目 | 值 |
