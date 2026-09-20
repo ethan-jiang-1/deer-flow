@@ -185,6 +185,23 @@ def sanitize_log_param(value: str) -> str:
 | **Subagent Batches** | `GET /api/threads/{id}/subagent-batches[/{batch_id}...]` | 持久化原生 subagent 批进度/控制（pause/resume/cancel/retry、`results.jsonl` 导出） |
 | **MCP Tasks** | `GET /api/threads/{id}/mcp-tasks[/{task_id}]`，`POST /{task_id}/cancel` | 长时 MCP 持久化任务的 owner-scoped 只读视图 + 取消 |
 
+### 🆕 v2.1.0-rc0 新增路由（同步 #6）
+
+| Router | 端点 | 说明 |
+|--------|------|------|
+| **Projects** | `POST/GET /api/projects`，`GET/PATCH/DELETE /api/projects/{id}`，`POST /{id}/archive`、`/{id}/restore`，`GET /{id}/threads`，`GET /config` | 项目工作区 CRUD + 归档/恢复 + 成员线程列表 + 配置界限（instructions/shelf 上限） |
+| **Project Documents** | `GET/POST /api/projects/{id}/documents`，`POST /from-thread`，`POST /{doc}/attach-to-thread/{tid}`，`GET /{doc}/content`，`DELETE /{doc}` | Document shelf：上传（有界 staging）、从线程晋升、附加到线程、内容读取、删除（进 trash） |
+| **Trash** | `GET /api/trash/documents`，`POST /documents/{id}/restore`、`/{id}/purge`，`POST /purge` | 回收站：列出/恢复/永久清除（单条+批量）。restore 是 DB 重指向（文件不移动）；purge 行锁事务内 unlink 原件+派生 markdown；`trash_retention_days` 保留期清扫兜底 |
+| **User Preferences** | `GET/PATCH /api/v1/auth/preferences` | 账号级偏好持久化（跨浏览器，migration `0023_user_preferences`），前端 settings 同步的后端 |
+| **PAT** | `routers/auth.py` 扩展（`auth/pat.py` 核心，migration `0017`） | Personal Access Tokens：程序化 API 访问的令牌签发/吊销 |
+| **Skill Export** | `gateway/skill_export.py` | 自定义 skill 包导出 + revision-bound preview |
+| **Artifact Archive** | `gateway/artifact_archive.py` | run 文件打包 zip 下载 |
+| **Conversation Access/Reader** | `gateway/conversation_access.py`、`conversation_reader.py` | run context 携带 `conversation_references` 的归属与分页读取（供 `read_conversation` 工具，owner 校验每次读取都做） |
+| **Upload Ingestion** | `gateway/upload_ingestion.py` | 上传摄取统一入口（去重文件名 255 字节上限） |
+| **Readiness** | `GET /health/ready` | 公开无认证探针，探测 Gateway 实际使用的持久化（DB bootstrap 状态）——`make up` 就绪等待用它 |
+
+其他 rc0 Gateway 行为：**idempotent thread runs**（同 run key 重试不重复执行）、**paginated thread run history**（`thread_runs.py` 大改，migration `0023_run_change_seq` 支持稳定分页游标）、renamed thread title 全端同步。
+
 ## 🆕 Cache-aware Cost Accounting
 
 Console 的 cost estimation 支持 **cache-aware pricing**：
