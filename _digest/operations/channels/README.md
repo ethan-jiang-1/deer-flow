@@ -8,7 +8,7 @@ type: index
 
 DeerFlow 通过 outbound WebSocket/polling 连接接入 8 个 IM 平台（Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、**Buzz**）。另有 **Lark CLI 托管集成**（harness 级 `integrations/lark_cli.py`，管理 27 个官方 `lark-*` 技能包，不是 app/channels 通道）。所有频道共享同一套消息总线架构，但在 stream 策略上分裂为两派：增量流式（Feishu/DingTalk/Buzz）和阻塞等待（Slack/Telegram）。
 
-**回答的核心问题**：MessageBus 的 pub/sub 怎么工作？ChannelManager 的 dispatch loop 怎么调度？8 个平台的 stream 策略为什么不同？Buzz（Nostr）怎么把身份验证和去重做到 relay 协议层？怎么加一个新平台？
+**回答的核心问题**：MessageBus 的 pub/sub 怎么工作？ChannelManager 的 dispatch loop 怎么调度？8 个平台的 stream 策略为什么不同？Buzz（Nostr）怎么把身份验证和去重做到 relay 协议层？怎么在 IM 会话里切换 custom agent？怎么加一个新平台？
 
 > **约束：不修改项目源代码。** 本 `_digest/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
 
@@ -19,7 +19,7 @@ DeerFlow 通过 outbound WebSocket/polling 连接接入 8 个 IM 平台（Feishu
 | **00-overview.md** | 全景：8 平台架构图、MessageBus 模式、两种 stream 策略分裂、Buzz/Lark CLI 概览 |
 | **01-message-bus.md** | MessageBus pub/sub 机制、ChannelManager._dispatch_loop() 核心调度 |
 | **02-stream-strategies.md** | 增量流式 vs 阻塞等待：Feishu AI Card patch、DingTalk streaming card、Slack/Telegram wait 模式 |
-| **03-thread-mapping.md** | Channel → Thread ID 映射持久化、多平台 session 覆盖、命令系统 |
+| **03-thread-mapping.md** | Channel → Thread ID 映射持久化、多平台 session 覆盖、命令系统、🆕 会话级 custom agent 选择（/agent） |
 | **05-user-connections.md** 🆕 | 用户拥有的 IM 频道连接：bind code 生命周期、single-active-owner 转移、8 平台差异 |
 | **06-buzz.md** 🆕 | Buzz（Nostr）通道深挖：NIP-01/42、BIP-340 签名验证、订阅/去重/watermark、run policy |
 

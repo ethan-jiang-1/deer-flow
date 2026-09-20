@@ -88,6 +88,15 @@ Buzz 是基于 **Nostr 协议**（NIP-01/NIP-42）的 IM 通道，通过 WebSock
 - **可靠性**：订阅 `CLOSED` 帧恢复（`MAX_RESUBSCRIBE_ATTEMPTS=3`）；重订阅 watermark **按频道**且拒绝未来时间戳（`MAX_FUTURE_SKEW_SECONDS=60`）；relay 单频道历史上限 2000 条（已知边界，超出丢最旧）
 - **去重**：`dedupe_store.py` 两级——进程内 `MemoryInboundDedupeStore`（TTL 10min）或 `PostgresInboundDedupeStore`（多副本共享）
 
+## 同步 #6 更新（431892e1..769589e8）🆕
+
+- **会话级 custom agent 选择**（#5168）：`/agent list` / `/agent use <name>` 开新对话并固定 custom agent，选择跨 Gateway 重启与 IM/Web 客户端存活；已有对话绝不中途切换。→ 详见 [03-thread-mapping.md](03-thread-mapping.md)
+- **WeChat/WeCom `allowed_media_hosts`**：`channels.wechat.allowed_media_hosts` / `channels.wecom.allowed_media_hosts` 增加额外的入站媒体下载 host **后缀**白名单（`"example.com"` 与 `"*.example.com"` 等价），叠加在平台 CDN 默认之上——WeChat 默认 `*.qq.com` + `cdn_base_url` host；WeCom 默认 qq.com 家族 + 官方 COS 媒体 host（`ww-aibot-img-*.myqcloud.com`），COS 账号轮换或媒体走代理时在此追加。config.yaml 的 `wechat:` 与 `wecom:` 两处各有一份。
+- **Buzz seen-events 落盘移出事件循环**（#5103）：flush/加载经 `asyncio.to_thread` 进 worker 线程 + generation 计数 + `quiesce()`/`resume()`。→ 详见 [06-buzz.md](06-buzz.md)
+- **Discord ack-reaction task 强引用**（#5049）：事件循环只持 `asyncio.create_task` 弱引用，✅ 确认 reaction 任务可能被 GC 掉而静默丢失——**实例级** retention set 持有到完成并记录失败（实例级保证一个通道的 stop 不取消其它实例的在途任务），通道 `stop()` 的所有清理点同时 drain typing task 与 in-flight ack-reaction task，避免 channel 实例与 discord Message 对象图跨重启被钉住。
+- **ChannelStore 读同步**（#5083）：`get_thread_id()`/`list_entries()` 读取路径加锁。→ 详见 [03-thread-mapping.md](03-thread-mapping.md)
+- **Lark CLI 凭据切换保留 app secrets**（#4820）：`_replace_lark_app_credentials_locked` 调整为**先** `_clear_directory_contents` **再** `_save_lark_app_config_with_cli`——此前先写新凭据再清目录，切换会把刚写入的 app_id/app_secret 一并清掉；事务快照中的旧 auth 撤销保持不变。
+
 ## Lark CLI 托管集成 🆕
 
 `deerflow/integrations/lark_cli.py` 是 harness 级托管集成安装器（不是 app/channels 通道），管理 27 个官方 `lark-*` 技能包（Feishu/Lark 办公套件）。部署时通过 `GET /api/integrations/lark/status` 暴露 `sandbox_runtime_mode` / `sandbox_runtime_ready`。

@@ -44,6 +44,8 @@ os.replace(tmp.name, store_path)  # 原子操作——写入要么完全成功�
 
 使用 `tempfile.NamedTemporaryFile` + `os.replace()` 确保 crash-safe——即使在写入中途崩溃，旧文件也保持完整。
 
+🆕 **读同步**（#5083）：`get_thread_id()` 与 `list_entries()` 现在也在 `self._lock` 下读取——此前只有写路径持锁，多线程通道（独立 thread + event loop）下读-写并发可能读到撕裂的 dict 状态；`list_entries()` 改为锁内快照拷贝后再解析，避免迭代中被并发写改变。
+
 ## 各平台 topic_id 语义
 
 不同平台对 "对话线程" 有不同的概念，DeerFlow 适配了每种：
@@ -79,8 +81,10 @@ os.replace(tmp.name, store_path)  # 原子操作——写入要么完全成功�
 `app/channels/commands.py` 定义了已知命令集：
 
 ```python
-KNOWN_COMMANDS = {
+KNOWN_CHANNEL_COMMANDS = {
+    "/agent",      # 🆕 列出/切换会话的 custom agent
     "/bootstrap",  # 创建 custom agent
+    "/goal",       # 设置目标（持久化后作为 chat turn 路由）
     "/new",        # 开始新对话（创建新 thread）
     "/status",     # 查询当前 session 状态
     "/models",     # 列出可用模型
@@ -91,7 +95,16 @@ KNOWN_COMMANDS = {
 
 命令由 `_handle_command()` 处理：
 - `/new` → 创建新 thread + 更新 store 映射
+- 🆕 `/agent list` → 只读当前生效 owner 的 custom agents（上限 50 个、描述截断 120 字符）；`/agent use <name>` → 在同一 owner bucket 校验后**创建新 thread** 并把选择持久化进 thread metadata；`/agent use lead_agent` 回到默认 agent
 - 其余 → 转发到 Gateway API → Agent 处理（命令本身是特殊的 Agent 交互）
+
+### 会话级 custom agent 选择 🆕（#5168）
+
+Agent 选择是**conversation-scoped** 的：`/agent use <name>` 开新对话并固定该 custom agent，**已有对话绝不在中途切换 agent**。实现要点（`manager.py`）：
+
+- 双 metadata 键：`channel_agent_name`（channel 重启键，manager 热路径缓存、重启后 reload 再路由恢复的 turn）+ **canonical `agent_name`**（Web 的标准路由 metadata，使 Web 端 thread-search 把该 thread 路由到 `/workspace/agents/<name>/chats/<thread_id>`，IM 创建的 thread 在 Web 里继续由同一 custom agent 接管）。`lead_agent` 刻意不写 canonical 键，保持普通 chat 路由。
+- 显式选择会在 run context 顶层 + RunnableConfig 的 `context`/`configurable` 三个 carrier 里同时归一化 `agent_name`（重置时三处清除）——Gateway 的兼容合并用 `setdefault` 保留旧值，不先归一化会被 channel 默认值悄悄盖掉。
+- 选择跨 Gateway 重启存活，跨 IM/Web 客户端一致。
 
 ## Session 配置层叠
 
