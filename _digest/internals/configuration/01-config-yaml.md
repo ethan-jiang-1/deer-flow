@@ -6,7 +6,7 @@ topics: [configuration, hot-reload, yaml-config]
 
 # AppConfig — config.yaml 内部机制
 
-`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:192`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 35 个顶层 section（含 `config_version`；`plugins:` 打包扩展由 operator 手工添加，不在 example 中）。
+`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:192`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 38 个顶层 section（🆕 同步 #6 +3：`projects` / `recursion_limit` / `task_continuity`）（含 `config_version`；`plugins:` 打包扩展由 operator 手工添加，不在 example 中）。
 
 ## from_file() 8 步流水线
 
@@ -145,7 +145,7 @@ pop_current_app_config()                   # 弹出
 | 🆕 `auth.oidc` | | OIDC SSO（Keycloak/Google/Azure/Okta） |
 | 🆕 `suggestions` | | 自动生成跟进问题建议 |
 
-注：当前 `config_version` = **36**；`checkpointer` 已废弃但后向兼容（统一由 `database` 接管）。
+注：当前 `config_version` = **45**（🆕 同步 #6，36→45：新增 `projects:`/`task_continuity:`/`sandbox.network:`/`request_admission` 等段）；`checkpointer` 已废弃但后向兼容（统一由 `database` 接管）。
 
 ## 🆕 Feature Gating
 
