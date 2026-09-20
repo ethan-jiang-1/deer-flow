@@ -17,26 +17,23 @@ DeerFlow 的日志本身是朴素的 Python `logging`，真正的价值在一个
 | `app/gateway/trace_middleware.py` | `TraceMiddleware`：HTTP 请求级绑定 + 写响应头 |
 | `deerflow/config/app_config.py` | `apply_logging_level()` / `is_trace_correlation_enabled()` |
 
-## 默认行为（`logging.enhance.enabled: false`）
+## ⚠️ Breaking（v2.1.0-rc0，#5119）：trace id 无条件下发
 
-- 输出 stderr（`logging.basicConfig`），Docker 中被容器 runtime 捕获
-- 格式：`%(asctime)s - %(name)s - %(levelname)s - %(message)s`（日期 `%Y-%m-%d %H:%M:%S`）
-- 级别：`config.log_level`（默认 `info`），`apply_logging_level()` **只改 `deerflow` / `app` 两个 logger 层级**，不动第三方（uvicorn / sqlalchemy）；根 handler 的阈值只降不升，避免挡住第三方日志的既有阈值
+此前 `X-Trace-Id` 响应头与 id 铸造都门在 `logging.enhance.enabled` 后面。**现在**：
+
+- **request trace id 无条件铸造**，每个 Gateway HTTP 响应都带 `X-Trace-Id` 头——**无法关闭**
+- `logging.enhance.enabled` 语义收窄为**只控日志输出**：是否在 log record 上带 `trace_id` 字段、什么格式（仍 restart-required）
+- Scheduled tasks、MCP task 通知 run、IM channel 消息、内嵌 `DeerFlowClient` 都按工作单元绑定 id——id 进 run 记录、checkpoint metadata、Langfuse traces（此前很多 trace 没有关联键）
+- 客户端 pin 关联 id 的方式变了：**请求 `X-Trace-Id` header**（见下文优先级）
+
+## 日志输出控制（`logging.enhance.enabled`）
+
+现在它只影响**日志**一件事：
+
+- **关闭（默认）**：`%(asctime)s - %(name)s - %(levelname)s - %(message)s`（日期 `%Y-%m-%d %H:%M:%S`），输出 stderr（`logging.basicConfig`），Docker 中被容器 runtime 捕获；`config.log_level` 经 `apply_logging_level()` **只改 `deerflow` / `app` 两个 logger 层级**，不动第三方（uvicorn / sqlalchemy）；根 handler 的阈值只降不升，避免挡住第三方日志的既有阈值
+- **打开**：日志注入 `trace_id` 字段（`TraceContextFilter` 设 `record.trace_id = get_current_trace_id() or "-"`），格式可选 `text`（`[trace_id=...]`）或 `json`（`JsonTraceFormatter`：`{timestamp, logger, level, trace_id, message, exc_info?, stack_info?}`，`ensure_ascii=False`）
 
 > **日志落哪 / 最佳位置**：DeerFlow 无内置文件 sink，日志走 **stderr**（不是 Workspace，Workspace 是 agent 的工作目录）。生产上由编排层（docker/k8s）把 stderr 送进集中日志系统。见 [08-direct-usage.md](08-direct-usage.md)。
-
-## 增强模式（`logging.enhance.enabled: true`）
-
-打开后发生三件事，全部由同一个 `trace_id`（`deerflow.trace_context` 的 ContextVar）驱动：
-
-1. **日志注入 `trace_id` 字段** — `TraceContextFilter` 在每个 log record 上设 `record.trace_id = get_current_trace_id() or "-"`
-2. **HTTP 响应头 `X-Trace-Id`** — `TraceMiddleware` 在 `http.response.start` 写入，覆盖 SSE/流式响应（不消费 body）
-3. **Langfuse metadata `deerflow_trace_id`** — `build_langfuse_trace_metadata()` 读同一个 ContextVar 注入
-
-格式可选 `text` 或 `json`（`logging.enhance.format`）：
-
-- **text**：`%(asctime)s - %(name)s - %(levelname)s - [trace_id=%(trace_id)s] - %(message)s`
-- **json**（`JsonTraceFormatter`）：`{timestamp, logger, level, trace_id, message, exc_info?, stack_info?}`，`ensure_ascii=False`
 
 ## trace_id 的生成与规范化（`trace_context.py`）
 
@@ -60,23 +57,25 @@ DeerFlow 的日志本身是朴素的 Python `logging`，真正的价值在一个
 
 ## trace_id 的来源优先级
 
-`resolve_deerflow_trace_id(metadata_trace_id)` 决定一次 run 的有效 `deerflow_trace_id`：
+`resolve_deerflow_trace_id(metadata_trace_id)` 决定一次 run 的有效 `deerflow_trace_id`（🆕 v2.1.0-rc0 起语义收紧）：
 
-1. **入站 `X-Trace-Id` 有效** → 用它（调用方既发 header 又发 metadata 时，header 赢）
-2. **caller metadata `config.metadata.deerflow_trace_id`** → 用它
-3. **环境请求 trace context** → 用它
+1. **入站 `X-Trace-Id` 有效** → 用它
+2. **环境请求 trace context** → 用它
+3. 其他情况 → 铸造新 id
+
+> ⚠️ **v2.1.0-rc0 起客户端 supplied 的 `metadata.deerflow_trace_id` / `config.context` 副本被忽略并覆盖**——响应头、日志、持久化 run 三者不能 disagree。跨服务钉关联 id 请发 **`X-Trace-Id` 请求头**。
 
 ## 嵌入式 / TUI / CLI 路径
 
-`DeerFlowClient.stream()` 每个 turn 铸造（或继承）一个请求级 trace id——但只在 flag 打开时。flag 关时**不**铸造新 id，调用方仍可显式用 `request_trace_context(...)` 包住 `stream()` 选择 opt-in。因为 `stream()` 是同步生成器（共享调用方 context），绑定在每次 `next()` 前后 set/reset，而不是包住整个 `yield from`——避免 yield 之间泄漏到调用方 context、以及被遗弃生成器 GC 关闭时的跨 context 报错。
+`DeerFlowClient.stream()` 每个 turn 铸造（或继承）一个请求级 trace id——**🆕 v2.1.0-rc0 起无条件绑定**（此前只在 flag 打开时）。`stream()` 是同步生成器（共享调用方 context），绑定在每次 `next()` 前后 set/reset，而不是包住整个 `yield from`——避免 yield 之间泄漏到调用方 context、以及被遗弃生成器 GC 关闭时的跨 context 报错；`close()` 驱动的 `GeneratorExit` 清理路径也在同一 id 下记录（清理与所属 turn 可关联）。
 
 ## 关联契约速查
 
 | 落点 | 字段 | 开关 |
 |------|------|------|
-| 日志 | `trace_id`（text 或 json 字段） | `logging.enhance.enabled` |
-| HTTP 响应头 | `X-Trace-Id` | 同上 |
-| Langfuse | `deerflow_trace_id` | 同上 |
+| 日志 | `trace_id`（text 或 json 字段） | 🆕 唯一还受 `logging.enhance.enabled` 控制的落点 |
+| HTTP 响应头 | `X-Trace-Id` | 🆕 无条件（v2.1.0-rc0 起无法关闭） |
+| Langfuse | `deerflow_trace_id` | 无条件（有 id 就注入） |
 
 > `deerflow_trace_id` 是 DeerFlow 自己的关联键，**不是** Langfuse 原生 trace id，**也不是** run_id。subagent 执行日志里的短 `trace_id` 字段是另一回事，仅用于 subagent 日志/状态。
 
