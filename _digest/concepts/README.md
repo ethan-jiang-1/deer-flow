@@ -18,6 +18,7 @@ DeerFlow 的六大核心抽象。理解这些就理解了 DeerFlow。
 | `memory/` | 🆕 Memory 系统：可插拔后端（deermem/mem0/noop/openviking）+ consolidation + staleness review |
 | `skills-tools/` | 🆕 Skills 系统（SKILL.md）+ SkillScan + deferred discovery + review gate |
 | `workspace-changes.md` | 🆕 Agent 文件改动追踪（pre/post run 快照 + diff 审查） |
+| `projects/` | 🆕 v2.1.0-rc0 项目工作区：pin-then-render 上下文注入 + document shelf + trash |
 
 ## 工具清单
 
