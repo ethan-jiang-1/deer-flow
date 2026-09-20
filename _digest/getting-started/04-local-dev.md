@@ -42,7 +42,7 @@ make dev
 # Python 3.12+
 uv sync --group dev
 
-# Node.js 22+
+# Node.js 24+（🆕 v2.1.0-rc0 起 CI 与开发环境从 22 升级到 24，#5063）
 pnpm install
 
 # config.yaml
