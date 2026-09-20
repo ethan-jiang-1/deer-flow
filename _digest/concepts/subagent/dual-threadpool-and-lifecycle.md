@@ -421,6 +421,41 @@ batch_task() → SubagentBatchService.submit()（校验 + create_batch 持久化
 
 ---
 
+## RFC #4651 Layer 2 — Delegation 验收体系 🆕（v2.1.0-rc0 完成）
+
+Layer 1（tool receipts，同步 #5）给每个 tool 结果盖了确定性收据；Layer 2 让父方**能核查**子方报告是否可信。四个 PR 全部落地：
+
+### PR2: Receipt Citation Verification（`receipt_verification.py`）
+
+- subagent 最终报告必须引用收据 id：`[rN]` 或锚定形式 `[rN tool_name]`
+- 父方纯函数核查：引用 vs 从子方消息流收割的执行记录交叉比对
+- 结论盖章到 `DelegationEntry.receipt_verdict`（**建议性证据**，不阻断）
+- 纯函数无 IO 无 LLM——永远不会成为新的故障点
+
+### PR3: Report Contract（`report_contract.py`，prompt 层）
+
+- `build_report_contract_section()` 由 executor 注入**每个** subagent 的 system prompt（内置和自定义一视同仁）——引用与可验证 handle 的要求不依赖 config 作者记得写
+- 引用条款跟随 `verification.receipts_enabled`（receipts 关闭时引用要求同步消失）
+- prompt 文本与 verifier 共用 `tool_receipt.py` 的单一所有者引用格式，永不漂移
+
+### PR4: Deterministic Acceptance Checklist（`acceptance_checks.py`，+1396 行）
+
+- lead 委派时可附 `acceptance_criteria`（自然语言清单）
+- **不可信通道处理**：criteria 是 model 提供的、最终用户可影响的数据——与 task prompt 同通道，`InputSanitizationMiddleware` 转义 framework tags 并边界框定；subagent 的 SystemMessage 只带框架指针（位置与权威性说明），**绝不带 criteria 文本**——注入"忽略报告契约"无法获得 system 通道权威
+- 确定性核查的 leaf 类型：文件存在性、大小上界、可读性探测（经 sandbox，作用域路径解析 + symlink 处理 + Windows 语义）、摘要形状检测等
+- 结论 → `DelegationEntry.acceptance_verdict`；batch item 也支持（migration `0021_batch_acceptance`）
+- 核查是**建议性**的：给父方（和用户）证据，不自动否决
+
+### Opt-in Parent Context Snapshots（#5367）
+
+`subagents/context_snapshot.py`：委派时可选择把父上下文快照传给子 agent——默认仍隔离，opt-in 才共享。
+
+### Historical Upload Discovery（#5170）
+
+subagent 可以发现当前 run 之前上传的历史文件（此前只能看到当次 run 的 uploads）。
+
+---
+
 ## 自定义 Subagent
 
 ```yaml
