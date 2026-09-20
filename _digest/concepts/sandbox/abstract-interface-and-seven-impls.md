@@ -126,14 +126,16 @@ sandbox:
   api_key: $TENKI_API_KEY      # 或 TENKI_AUTH_TOKEN 环境变量
   base_url: https://tenki.cloud
   image: my-base-image         # 可选
-  project_id: proj_...          # 可选
+  workspace_id: ws_...         # 可选；账号只有一个 workspace 时可省
   cpu_cores: 2                  # 可选
   replicas: 3                   # active+warm 上限
   idle_timeout: 600             # warm microVM 闲置终止
   max_duration: 14400           # 沙箱生命周期（默认 4h）
 ```
 
-Tenki 云 micro-VM（tenki.cloud），与 BoxLite（本地微 VM）平行的**云端**方案。SDK **同步**调用（无 event-loop bridge，与 BoxLite 不同）；`_import_client()` 懒加载 `tenki-sandbox`（`deerflow-harness[tenki]` 可选 extra）。
+> ⚠️ **breaking（v2.1.0-rc0）**：`project_id` 配置已移除——Tenki 1.x 删除了 projects 概念，scope 现在只由 workspace 决定。账号有多个 workspace 时设 `workspace_id`；遗留的 `project_id` 被忽略并在启动时告警。依赖也从 `tenki-sandbox` 改名为 `tenki`（#5087）。
+
+Tenki 云 micro-VM（tenki.cloud），与 BoxLite（本地微 VM）平行的**云端**方案。SDK **同步**调用（无 event-loop bridge，与 BoxLite 不同）；`_import_client()` 懒加载 `tenki` 包（`deerflow-harness[tenki]` 可选 extra）。
 
 - 文件传输用 Tenki 原生 `sandbox.fs` API（二进制安全、流式，无 base64/shell 跳板）；只有 `list_dir`/`glob`/`grep` 才 shell out 到 busybox `find`/`grep`（与 e2b 共享 `deerflow.sandbox.search` 解析层）
 - 沙箱以非特权 `tenki` 用户运行；`/mnt/user-data` 前缀重映射到可写 HOME，bootstrap 时 best-effort `sudo` 符号链接
@@ -231,7 +233,7 @@ Agent/tool 路径用这个判断来决定是否需要虚拟路径转换。
 |------|--------|------|
 | `bash` | `sandbox/tools.py` | 执行命令，虚拟路径翻译 |
 | `ls` | `sandbox/tools.py` | 目录列表（tree 格式，max 2 层） |
-| `read_file` | `sandbox/tools.py` | 文件读取，可选行范围（`start_line`/`end_line`） |
+| `read_file` | `sandbox/tools.py` | 文件读取，可选行范围（`start_line`/`end_line`）。🆕 v2.1.0-rc0：预算允许时截断落在**行边界**，截断标记标注下一 `start_line`——agent 可精确翻页长文件（配合 read offset 续读） |
 | `write_file` | `sandbox/tools.py` | 文件写入/追加，自动创建目录 |
 | `str_replace` | `sandbox/tools.py` | 子串替换（单次或全局） |
 | `glob` | `sandbox/tools.py` | 文件匹配 |
@@ -240,6 +242,40 @@ Agent/tool 路径用这个判断来决定是否需要虚拟路径转换。
 **`str_replace` 并发安全**：序列化 scope 为 `(sandbox.id, path)`，所以不同 sandbox 的同一虚拟路径不会在进程内竞争。
 
 **防御层**：即使有 path mapping，`tools.py` 中的 `replace_virtual_path()` / `replace_virtual_paths_in_command()` 仍然作为第二层防御进行路径验证。
+
+## 网络 Egress 控制 🆕（v2.1.0-rc0，#5152）
+
+针对**本地管理的 Docker sandbox**（AIO 模式）的出站流量策略：
+
+```yaml
+sandbox:
+  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  network:
+    mode: allowlist            # open（默认，行为不变）| isolated（全禁）| allowlist
+    allow_domains: [pypi.org, registry.npmjs.org]
+    approval: prompt           # deny | prompt——被拒公共域可经 Human Input 卡片临时批准
+    temporary_grant_ttl: 300   # 30-3600 秒
+    proxy_image: ghcr.io/bytedance/deer-flow-sandbox-network-proxy:latest
+```
+
+- **实现**：独立 sidecar 容器 `docker/sandbox-network-proxy/` 做 DNS + 流量门控；sandbox 容器的出站经 proxy 路由
+- **限制**：需要 **Docker Engine 28+**；不支持 Apple Container 与 provisioner 模式
+- **始终拒绝**：私有、loopback、link-local、多播、云 metadata 地址（SSRF 防线）
+- 人工审批通过 Human Input 卡片完成，授权带 TTL 自动过期
+
+## Sandbox 身份共享与获取串行化 🆕（#5089）
+
+- `sandbox/identity.py`：`sha256(user_id:thread_id)[:16]` 派生逻辑从各 provider 抽出为**单一实现**（此前 AIO/E2B/Tenki/OpenSandbox 各自为政）
+- `sandbox/acquire_serialization.py`：acquire 路径统一串行化，消除多 provider 的并发获取竞态（leases + keyed lock，见 `tests/test_sandbox_leases.py`）
+
+## 其他 v2.1.0-rc0 变更
+
+- **E2B structured mount upload result**（#4884）：挂载上传返回结构化结果而非静默；`mount_upload_deadline` 可配置（#4876）
+- **E2B replicas 收紧为进程本地容量**（breaking 边缘）：不再隐式跨进程共享预算
+- **AIO Apple Container 切换保护**：macOS 上同前缀仍有受管 Docker 容器待对账时保持 Docker，不急着切 Apple Container
+- **`MAX_SHELL_SESSIONS`**：AIO semver 镜像默认 10；`subagent_runtime.max_running + 1` 放不下时自动注入所需值（显式值必须 ≥ max_running+1）
+- **远程 `list_dir`/`glob` 保留文件名尾部空白**（#4980）；Windows 命令执行加上边界（#4946）；本地 Docker sandbox 容器与端口绑定加固（#4986）
+- **隐式 session 探测命令包 subshell**，防止 wedge shell 卡死 acquire（#5546，rc0 后 main，正式版随行）
 
 ## Docker-out-of-Docker（DooD）
 
