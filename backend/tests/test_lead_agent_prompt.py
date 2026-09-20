@@ -129,6 +129,7 @@ def test_apply_prompt_template_includes_memory_tool_guidance_only_in_tool_mode(m
     monkeypatch.setattr(prompt_module, "get_agent_soul", lambda agent_name=None, **kwargs: "")
 
     tool_prompt = prompt_module.apply_prompt_template(app_config=tool_config)
+    stateless_agent_prompt = prompt_module.apply_prompt_template(app_config=tool_config, memory_enabled=False)
     middleware_prompt = prompt_module.apply_prompt_template(app_config=middleware_config)
 
     assert "<memory_tool_system>" in tool_prompt
@@ -136,6 +137,7 @@ def test_apply_prompt_template_includes_memory_tool_guidance_only_in_tool_mode(m
     assert "memory_add" in tool_prompt
     assert "agent facts are not injected automatically" in tool_prompt
     assert "When present, the injected <memory> block contains only global user and history summaries" in tool_prompt
+    assert "<memory_tool_system>" not in stateless_agent_prompt
     assert "<memory_tool_system>" not in middleware_prompt
 
 
@@ -394,7 +396,38 @@ def test_get_memory_context_uses_explicit_app_config_without_global_config(monke
     }
 
 
-def test_get_memory_context_propagates_fail_closed_manager_error(monkeypatch):
+def test_get_memory_context_propagates_required_read_error_without_backend_config(monkeypatch):
+    from deerflow.agents.memory import MemoryReadError
+
+    explicit_config = SimpleNamespace(
+        memory=SimpleNamespace(
+            enabled=True,
+            injection_enabled=True,
+            backend_config={},
+        ),
+    )
+    manager = SimpleNamespace(get_context=lambda *args, **kwargs: (_ for _ in ()).throw(MemoryReadError("down")))
+    monkeypatch.setattr("deerflow.agents.memory.get_memory_manager", lambda: manager)
+    monkeypatch.setattr("deerflow.runtime.user_context.get_effective_user_id", lambda: "user-1")
+
+    with pytest.raises(MemoryReadError, match="down"):
+        prompt_module._get_memory_context("agent-a", app_config=explicit_config)
+
+
+def test_get_memory_context_swallows_ordinary_manager_error(monkeypatch):
+    from deerflow.agents.memory import MemoryManagerError
+
+    explicit_config = SimpleNamespace(
+        memory=SimpleNamespace(enabled=True, injection_enabled=True, backend_config={}),
+    )
+    manager = SimpleNamespace(get_context=lambda *args, **kwargs: (_ for _ in ()).throw(MemoryManagerError("down")))
+    monkeypatch.setattr("deerflow.agents.memory.get_memory_manager", lambda: manager)
+    monkeypatch.setattr("deerflow.runtime.user_context.get_effective_user_id", lambda: "user-1")
+
+    assert prompt_module._get_memory_context("agent-a", app_config=explicit_config) == ""
+
+
+def test_get_memory_context_preserves_legacy_fail_closed_contract(monkeypatch):
     from deerflow.agents.memory import MemoryManagerError
 
     explicit_config = SimpleNamespace(
@@ -406,23 +439,13 @@ def test_get_memory_context_propagates_fail_closed_manager_error(monkeypatch):
     )
     manager = SimpleNamespace(get_context=lambda *args, **kwargs: (_ for _ in ()).throw(MemoryManagerError("down")))
     monkeypatch.setattr("deerflow.agents.memory.get_memory_manager", lambda: manager)
-    monkeypatch.setattr("deerflow.runtime.user_context.get_effective_user_id", lambda: "user-1")
 
     with pytest.raises(MemoryManagerError, match="down"):
-        prompt_module._get_memory_context("agent-a", app_config=explicit_config)
-
-
-def test_get_memory_context_swallows_manager_error_without_fail_closed(monkeypatch):
-    from deerflow.agents.memory import MemoryManagerError
-
-    explicit_config = SimpleNamespace(
-        memory=SimpleNamespace(enabled=True, injection_enabled=True, backend_config={}),
-    )
-    manager = SimpleNamespace(get_context=lambda *args, **kwargs: (_ for _ in ()).throw(MemoryManagerError("down")))
-    monkeypatch.setattr("deerflow.agents.memory.get_memory_manager", lambda: manager)
-    monkeypatch.setattr("deerflow.runtime.user_context.get_effective_user_id", lambda: "user-1")
-
-    assert prompt_module._get_memory_context("agent-a", app_config=explicit_config) == ""
+        prompt_module._get_memory_context(
+            "agent-a",
+            app_config=explicit_config,
+            user_id="user-1",
+        )
 
 
 def test_get_memory_context_prefers_explicit_user_id(monkeypatch):
