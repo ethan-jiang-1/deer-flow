@@ -174,6 +174,8 @@ _ALLOWED_IMAGE_VIRTUAL_ROOTS = (
 |------|------|------|
 | `include_outline` | `bool \| list[str]` | 是否返回文档大纲/预览（`.md`-convertible 文件）。`False`（默认）只返回文件名+大小+路径；`True` 全部；`list[str]` 指定文件 |
 | `max_results` | `int` | 最大返回数（默认 20，max 100） |
+| `query` | `str` (opt) | 🆕 文件名子串过滤（casefold 包含匹配），在 mtime 截断**之前**应用——让更早的上传不被默认 20 条上限挤掉（#5341） |
+| `extensions` | `list[str]` (opt) | 🆕 扩展名过滤；token 归一化为小写点后缀（`"PDF"`→`.pdf`，模型给的 glob 形如 `*.pdf` 会剥掉 `*`），空集 = 不过滤 |
 
 ### LLM 使用场景
 

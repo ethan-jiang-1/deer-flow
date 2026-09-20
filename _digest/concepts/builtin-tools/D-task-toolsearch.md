@@ -25,6 +25,13 @@ topics: [tools, builtin, sandbox-tools]
 | `description` | `str` | 3-5 词任务描述，用于日志/展示。**必须第一个传** |
 | `prompt` | `str` | 完整的任务说明。**必须第二个传** |
 | `subagent_type` | `str` | 子 Agent 类型。**必须第三个传** |
+| `acceptance_criteria` | `list[str]` (opt) | 🆕 完成条件清单，交给 executor 并以不可信数据附在子 Agent 任务消息尾部（RFC #4651 layer 2） |
+
+### 🆕 验收清单（acceptance_criteria，#5109/#5289）
+
+`task_tool.py` 在委派时可携带 `acceptance_criteria`；子 Agent 终态后由 `subagents/acceptance_checks.py::check_acceptance_criteria` 在线程池中做**确定性验收**，可判定形如 `file:<path> exists|non-empty`、`file_written:<path>`、`tests_passed:<command>`。结果以 `acceptance_verdict` 附在返回内容末尾（`render_acceptance_section`），并透传到 durable batch item（migration 0021）暴露独立的 `acceptance_verdict` 字段。工具 docstring 明确告知 lead：`completed` 只表示**执行结束**，不等于验收通过——需逐条阅读 verdict；验收检查自身失败时结果**原样返回且不标注**（fail-open，仅记 warning）。
+
+同批变更还重写了 task 边界的中断收尾：共享 `_finalize_interrupted_subagent`（取消与异常路径统一）、状态读取器容错（`_peek_subagent_result`）、5s 宽限的通用错误回卷（不让 poller 故障拖住父 run 整个超时周期）、以及父 loop 中间件事件 recorder 代理（`_ParentLoopMiddlewareRecorderProxy`，子 Agent 的 journal 事件经 `call_soon_threadsafe` 回投到 RunJournal 属主 loop）。
 
 ### 内置子 Agent 类型
 
@@ -207,3 +214,33 @@ _registry_var: contextvars.ContextVar[DeferredToolRegistry | None] = \
 tool_search:
   enabled: true  # 默认 false
 ```
+
+---
+
+## read_conversation 🆕
+
+**源码**: `packages/harness/deerflow/tools/conversation.py`
+**加载条件**: opt-in——`config.yaml → tools[]` 声明 `use: deerflow.tools.conversation:read_conversation`（`group: conversation`，见 `config.example.yaml` 注释段"Read explicitly referenced conversations"）；仅 Gateway API 路径可用
+**Tool Name**: `read_conversation`
+
+### 用途
+
+读取**当前 run 显式引用的其他会话**的分页历史（Conversation References，#5463/#5463 系/#5398）。宿主在每个 run 的 context 里绑定受信 reader（`__conversation_reader` capability），工具本身不打开历史 store、不从工具参数/checkpoint/模型上下文推导授权。
+
+### 关键安全边界
+
+- **仅 lead 可用**：子 Agent（`context.is_subagent`）直接返回错误；默认/bootstrap/embedded 装配不绑定该工具
+- **归属校验每次读取都做**：host reader 在每次调用时校验 owner 与本 run 的 permitted references；不信任持久化消息中的 capability
+- 读的是**当前可见历史**：引用会话被删除/过期不会抹掉目标会话里已读到的副本
+- Gateway 按 `CONVERSATION_TOOL_NAME` 的 tool-output budget 分页，保证结果内联
+
+### 参数
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `thread_id` | `str` | 被引用会话的 thread ID |
+| `cursor` | `str` (opt) | 上一页返回的正整数序列 cursor；省略 = 读最新一页 |
+| `limit` | `int` (1–50，默认 20) | 每页消息数；续读单条消息时忽略 |
+| `message_seq` + `offset` | `int` (opt) | 续读被截断消息：从 continuation 原样复制两者且**必须省略 cursor**（#5434） |
+
+被 size limit 截断的消息携带 continuation；agent 应先读完整条再引用其内容，读不到时向用户声明缺漏。output budget 小于 envelope 时返回 `output_budget_too_small` 且不带 continuation（避免无限重复调用）。配套 Gateway 能力上报：`GET /api/features` 报告 `conversation_references {enabled, max_references}`，run 请求经 `context.conversation_references` 提交引用（top-level 同名字段与之互斥，422）。

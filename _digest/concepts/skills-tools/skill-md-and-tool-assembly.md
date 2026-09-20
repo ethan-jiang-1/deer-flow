@@ -73,10 +73,10 @@ apply_prompt_template()
 
 ```
 SkillCatalog（不可变，可搜索的内存索引）
-    │  三种查询模式：
+    │  三种查询模式（#5369 起排序语义与 tool search 分化）：
     │  - select:name1,name2  → 精确匹配，无结果上限
-    │  - +keyword rest       → name 必须含 keyword，其余项 regex 排序（上限 5）
-    │  - free text           → regex 搜 name+description（上限 5）
+    │  - +keyword rest       → name 必须含 keyword，其余项按 intent 排序（上限 5）
+    │  - free text           → 按 intent 匹配 name+description（上限 5）
     │
     ▼
 describe_skill 工具
@@ -100,6 +100,8 @@ describe_skill 工具
 | 发现方式 | 预加载 | 按需 fetch |
 
 源码：`deerflow/skills/catalog.py`（`SkillCatalog`），`deerflow/skills/describe.py`（`build_describe_skill_tool`，`build_skill_search_setup`）
+
+**Intent 排序 🆕（#5369）**：free-text 与 `+keyword` 查询不再做正则命中计数，改用**字面 intent 词排名**（`_rank_by_intent` / `_intent_score`）：从查询提取有界去重的字面词，按（词覆盖度、name 命中权重、词序相邻度等多级 score 元组）排序，未命中的 skill 仅在 `include_unmatched` 时追加在尾部。与 tool_search 共享查询语法但排名语义刻意不同。
 
 ## `/skill-name` 斜杠激活
 
@@ -152,6 +154,30 @@ LocalSkillStorage.load_skills()
 ## ⚠️ Breaking Change：SKILL.md 即 Package Boundary
 
 **2.1**：含有 `SKILL.md` 的目录现在是 runtime package boundary。该目录内的嵌套 `SKILL.md` 文件被视为 support data，不再注册为独立 skill。不寻常的自定义布局需将独立可加载 skill 移到不含自身 `SKILL.md` 的 namespace 目录下。
+
+## ⚠️ Breaking Change：`/mnt/skills` 收归 managed enabled-only projection 🆕（#4178）
+
+**2.1**：`/mnt/skills` 不再是 skills 目录的直接透传挂载，而是 `skills/projection.py` 物化的 **enabled-only 只读投影**——只有启用的 skill 才出现在 sandbox 视图里（public / custom / legacy / integrations 四个 scope，各 scope 独立 fail-closed：单个 scope 重建失败只清空该视图并自愈，不中止 Gateway 启动）。影响：
+
+- **operator 配置的 mounts 指向 `/mnt/skills`（或其子路径）会被跳过并告警**（E2B：`Skipping e2b mount that conflicts with managed skills projection`）——托管投影与操作者挂载不再叠加
+- 每个用户/线程的投影按全局 enable 状态重建；用户 projection **重读全局 enable 状态，跨 worker 生效**（启用/禁用即时反映到下一次 sandbox acquire）
+- 关闭 skill 后 sandbox 文件系统视图同步消失，而不是"文件还在、只是不激活"
+
+## 本地 skill 归档安装 🆕（#5039）
+
+`POST /api/skills/install` 支持上传 `.skill` ZIP 归档安装到 `custom/`。Gateway 侧用有界 multipart 解析器流式落盘（`_BoundedSkillArchiveMultiPartParser` + 双重字节上限：单文件 100 MiB，含 multipart 开销的请求级上限），超限在 Starlette 写盘前中止以便及时关闭 spool 文件；nginx/helm 相应放宽了 body size（`test_nginx_langgraph_body_size.py` + chart 脚本 `scripts/check_chart_skill_upload_size.sh` pin）。归档内容仍过 SkillScan 静态扫描。
+
+## 自定义 skill 包导出 🆕（#5332）
+
+`skills/export.py`（harness）+ `app/gateway/skill_export.py` + `routers/skills.py`：把自定义 skill 打包成可分发的 ZIP，**全程只读快照**——导出不会激活或执行 skill。硬边界：4096 entries / 单文件 64 MiB / 总量与 ZIP 各 100 MiB / 路径 1024 字节 / 深度 32 / 60s deadline，持 projection 读锁；拒绝敏感文件（`.env`、`id_rsa`、`credentials.json` 等）、Windows 保留名、非 `[a-z0-9-]` 名称。**revision-bound preview**：请求携带 skill 内容的 SHA-256 revision，预览与下载都绑定该 revision——skill 在导出过程中被修改则整个导出失败，不会产出半新半旧的包。
+
+## SKILL.md 空描述在写入门被拒 🆕（#4867）
+
+`_validate_skill_frontmatter` 之前只在 description **truthy** 时应用规则，空白描述能过写入门但被 loader 拒绝——PUT 编辑端点先写盘再 404（原本可用的 skill 直接消失且无回滚），`.skill` 安装路径与 `skill_manage` 工具同样报告一个永远加载不出来的 skill。现在空白/纯空白 description 在写入门被拒（400 "Description cannot be empty"），rollback 恢复含空描述历史条目同样被拒且**磁盘保持原样**。
+
+## `allowed-tools` portable 模式安全 token 化 🆕（#4984）
+
+Portable Agent Skills 的标量语法是空白分隔、允许带括号命令模式（如 `Bash(tvly *)`）。解析器（`skills/parser.py::parse_allowed_tools`）现在把含空格的括号模式**保持为单个字面条目**，不再 `raw.split()` 碎片化；YAML 列表形式仍逐字保留大小写敏感的 MCP/运行时工具名。DeerFlow 当前策略只匹配**精确工具名**：`Bash(...)` 条目保持字面且不生效（不会宽化为 unrestricted shell），直到有显式的命令模式授权模型。
 
 ## SkillScan 静态分析 🆕
 

@@ -16,7 +16,7 @@ DeerFlow 的扩展机制分两半：宿主侧实现（`deerflow/extensions/`，�
 |--------|------|--------|------|
 | `plugins:` | `config.yaml`（顶层） | **仅 operator**（文件只读挂载） | 打包 Python 扩展入口点，**会导致代码被 import** |
 | `extensions:` | `extensions_config.json` | Gateway HTTP API 可写 | MCP servers + skills 状态 + config 声明的 middleware |
-| `extensions.middlewares` | `extensions_config.json` | operator | 零参 `AgentMiddleware` 类路径（lead + subagent runtime） |
+| `extensions.middlewares` | `extensions_config.json` | operator | `AgentMiddleware` 类路径**或 🆕 `{class, kwargs}` 对象**（lead + subagent runtime） |
 
 关键分离：`plugins:` 必须留在 `config.yaml`，因为那一行列表 `module.path:install` 会在启动时被 import——这是**代码执行边界**，绝不能放进 Gateway 可重写的 `extensions_config.json`。打包扩展用 PEP 621 entry point：
 
@@ -89,10 +89,11 @@ lead run 与 subagent 只有在注册了 middleware / task-lifecycle / system-mo
 
 ## CLI 管理命令（`extensions/cli.py`）
 
-由现有 `deerflow` console script 分派到 `deerflow extensions` 子命令，只暴露五个表面：
+由现有 `deerflow` console script 分派到 `deerflow extensions` 子命令，只暴露六个表面：
 
 ```text
 deerflow extensions install <source> [--yes] [--required]
+deerflow extensions upgrade <source> [--yes]
 deerflow extensions list
 deerflow extensions enable <name>
 deerflow extensions disable <name>
@@ -100,9 +101,10 @@ deerflow extensions remove <name>
 ```
 
 - `install` 接受本地目录、PyPI requirement、或 Git URL；非交互式确认需 `--yes`；`--required` 记录 `required: true`（否则默认 `false`）。
+- 🆕 **`upgrade`（#5347，in-place upgrade）**：替换托管本地快照或重 pin 已装 requirement，**不再绕道 remove**——旧路径会丢掉 `plugins[].config` 私有配置。upgrade 保留私有 `config`、`required` 与 `enabled`；失败回滚以 staging_root 为键，快照 rename 失败不会 rmtree 活树；git 源重 pin 通过 `[tool.uv.sources]` 识别既有 plugin 记录（避免 uv 已切 revision 后 fail-closed）；对未安装的裸 `git+` URL 拒绝升级（不会退化成 install）。
 - `NAME` 同时解析 entry-point 名、发行名、或 `module:install` 值。
 - 根 `make extension-*` 是便捷包装，从 `backend/` 执行——本地源要用绝对 `SOURCE=`。
-- 每个 mutation（install/enable/disable/remove/config 编辑）都**需要 Gateway 重启**，因为 plugin 加载是 startup-only。
+- 每个 mutation（install/upgrade/enable/disable/remove/config 编辑）都**需要 Gateway 重启**，因为 plugin 加载是 startup-only。
 
 ## Manager 事务与锁（`extensions/manager.py`）
 
@@ -118,6 +120,8 @@ deerflow extensions remove <name>
 - **uv 版本固定**：`backend/Dockerfile` 的 `UV_IMAGE` 是唯一事实来源，compose 与 CI 都 pin 同一版本；host uv 过旧则在 mutation 前失败。
 
 ## 信任边界：为什么只能 operator 装
+
+🆕 **config 声明中间件的 constructor kwargs（#5312）**：`extensions.middlewares` 条目可以是类路径字符串（保持零参构造），也可以是 `{class, kwargs}` 对象。未知字段与空白 class path 在 **config 校验时**失败；构造函数报错仍在 agent 创建时失败。kwargs 在 config 加载时校验为 **JSON 类型**（YAML 时间戳被字符串化、NaN 等非 JSON 值被拒），保证构造函数与 `to_file_dict()` 的 `json.dump` 看到相同类型。
 
 Python build hook 和扩展运行时代码都以 **Gateway 权限**执行。所以：
 
@@ -139,6 +143,7 @@ Python build hook 和扩展运行时代码都以 **Gateway 权限**执行。所�
 | `compaction.py` | `CompactionEvent` + `ContextCompactionObserver`（lossy 上下文变换的唯一可描述时刻） |
 | `provenance.py` | 消息生产者盖章：`provenance_kwargs` / `read_provenance` / `ContentKind`，键名 `deerflow_*` 为 server-owned，host 从未信输入剥离 |
 | `release.py` | `ReleasePolicyProvider.release_policy_parameters()` + `canonical_json`/`canonical_hash`/`collect_release_policies`（middleware 自报行为参数，供指纹比对） |
+| 🆕 `run_evidence.py`（#5405） | 只读 run evidence 契约：`RunEvidenceReader` Protocol（`list_changed_runs` cursor 增量发现 / `list_run_events` 按 thread 内单调 `seq` 前翻页 / `get_run_status`）、frozen 视图 `RunStatusView` / `RunEventView` / `RunPage` / `RunEventPage`、`InvalidRunEvidenceCursor`。宿主绑定 scope，不暴露写路径；不支持运行 evidence 的 host 直接省略该 reader。增量消费规则：只有自身输出持久化后才保存 `next_cursor`，复用输入 cursor 合法（可能重放），空页 = 已追平，无删除 tombstone，消失的 run 以 `get_run_status(...) is None` 判定 |
 
 （`contracts.py` 的 `ExtensionRegistry`/`ExtensionInstall`/`@extension`、`placement.py` 的语义定位、`state.py` 的 `ExtensionData`、`runtime_bridge.py` 的 task-store bridge 为更早的既有模块。）
 
