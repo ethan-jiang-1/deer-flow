@@ -85,6 +85,29 @@ run_events:
 | `db` | 生产，SQL ORM，完整查询 |
 | `jsonl` | 轻量单机持久化，追加写 |
 
+### 🆕 events store 加固（sync #6）
+
+`runtime/events/` 新增两个支撑模块：
+
+- **`message_identity.py`** — 消息的稳定 UI 身份：`ToolMessage` 按 `tool_call_id` 而非自身 id 识别；
+  `DynamicContextMiddleware` 注入产生的 user 副本（`X__user` re-key）与原消息折叠为同一身份。
+  与前端 `frontend/src/core/threads/hooks.ts` 的 `messageIdentity` 必须保持同步。
+- **`message_seq.py`** — `stamp_messages_with_seq()`：checkpoint 里的消息本身没有 seq，REST 打开会话时
+  按 feed 身份批量回填 `deerflow_seq`（`additional_kwargs` key，服务端所有，客户端回传前会被剥掉），
+  修复分页 + 上下文压缩重叠时早期用户消息错位（#4696）。查不到/出错一律降级为"无 seq"，不抛异常。
+
+DB/JSONL store 的锁与取消修复：
+
+| 修复 | commit | 内容 |
+|------|--------|------|
+| DB 写锁 generation 跨删除保持 | #5462 | 删除事件期间保留 DB store 写锁 generation，避免并发写者持过期代 |
+| JSONL 锁 generation 跨删除保持 | #5455 | 同上，JSONL 版 |
+| cancellation 前排空 | #5439 | 传播取消前先排空在途 JSONL 变更，防止截断/丢失已接受写入 |
+| Unicode 分隔符 | #5429 | JSONL 事件记录保留 Unicode 分隔符（此前被规范化破坏） |
+
+测试锚点：`backend/tests/test_db_event_store_lock_lifecycle.py`、`test_jsonl_event_store_lock_lifecycle.py`、
+`test_jsonl_event_store_cancellation.py`、`test_jsonl_event_store_unicode.py`。
+
 ## Stream Bridge
 
 Gateway 和 Client 使用不同的 bridge 实现：
@@ -226,6 +249,7 @@ def to_dict(self, exclude: set[str] | None = None) -> dict[str, Any]:
 | `thread_id` | `String(64)` index | 所属 thread |
 | `assistant_id` | `String(128)` | 使用的 agent |
 | `user_id` | `String(64)` index | 所有者 |
+| `change_seq` | `BigInteger` | 🆕 单调变更序号（`0023_run_change_seq`，稳定分页游标） |
 | `status` | `String(20)` | pending/running/success/error/timeout/interrupted |
 | `model_name` | `String(128)` | 实际选用的模型 |
 | `multitask_strategy` | `String(20)` | reject/interrupt/rollback |
@@ -250,6 +274,7 @@ def to_dict(self, exclude: set[str] | None = None) -> dict[str, Any]:
 | `thread_id` | `String(64)` PK | |
 | `assistant_id` | `String(128)` index | |
 | `user_id` | `String(64)` index | NULL 表示无主（migration 共享） |
+| `incarnation` | `String(32)` nullable | 🆕 thread incarnation id（`0019_thread_incarnations`，expand-phase，暂无行为消费） |
 | `display_name` | `String(256)` | 会话标题 |
 | `status` | `String(20)` | 默认 `"idle"` |
 | `metadata_json` | `JSON` | 扩展元数据 |
@@ -473,15 +498,41 @@ _KEY_CHARSET_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 ```
 key 字符集限制为字母数字 + 下划线 + 连字符。这是注入防御 — key 直接插入编译的 SQL 字符串（`$."<key>"` / `->` 字面量）。
 
-## Alembic 迁移（`migrations/`）
+## Alembic 迁移（`migrations/versions/`）
 
-```
-migrations/
-├── alembic.ini
-├── env.py         # 迁移环境配置
-└── versions/
-    └── .gitkeep   # 目前无实际迁移（项目较新）
-```
+迁移链现为 **0001 → 0024**（`alembic_version.version_num` 为 VARCHAR(32)，revision id 不得超长）。
+sync #6（431892e1..769589e8）新增/触及的 0017–0024：
+
+| revision | 内容 |
+|----------|------|
+| `0017_personal_access_tokens` | PAT 表（auth，#5041） |
+| `0018_oauth_identity_pg_partial` | `idx_users_oauth_identity` 加 PostgreSQL 部分索引谓词 |
+| `0019_projects` | Projects 工作区表（#5265） |
+| `0019_thread_incarnations` | `threads_meta.incarnation` + `mcp_tasks.thread_incarnation` 可空列（#5216，expand-only；注意该 revision id 曾被早期 rollout 以不同父版本占用，本链中挂在 `0021` 之后幂等重放，见下节 forward revision） |
+| `0020_threads_meta_project_id` | `threads_meta.project_id`（Projects） |
+| `0021_batch_acceptance` | durable batch acceptance criteria / verdicts（subagent RFC #4651，#5289；用 `safe_add_column` 幂等加列） |
+| `0022_scheduled_occurrence_seq` | 每 task occurrence 顺序 + 幂等 launch 记账 |
+| `0023_run_change_seq` | `runs.change_seq` + 单例行 `run_change_clock`（稳定分页游标） |
+| `0023_user_preferences` | 按键独立持久化浏览器偏移偏好（表已存在则幂等跳过，#5397） |
+| `0024_project_documents` | project document shelf 表（Projects Phase 2 Slice B） |
+
+> 编号冲突约定：多个迁移同时以 0017 生成时，先合入者保留编号，其余 rebase 时重编
+> `revision`/`down_revision` 并调整 `tests/test_persistence_bootstrap*.py` 的 head 断言
+> （见 `0017`/`0018` 文件内的 numbering note）。
+
+### 🆕 Forward revision 兼容（incarnation rollout 恢复）
+
+早期 incarnation rollout 曾把 `0019_thread_incarnations` 盖在只有 `0018` + 两个可空 VARCHAR(32) 列的库上。
+`persistence/bootstrap.py` 现在识别这一形状（`_FORWARD_COMPATIBLE_REVISION` allowlist + 固定的
+canonical-0019 表/列下限校验）：启动时**拒绝该库但不动 schema/revision**，并报告缺失的表/列；正常链上的库自动升级。
+
+针对这个精确形状的离线恢复流程见 [docs/database-forward-revision-recovery.md](../../../docs/database-forward-revision-recovery.md)：
+停写、备份，校验 `alembic_version` 唯一行是 `0019_thread_incarnations` 且 schema 恰为"0018 + 两列"，
+然后用 `DEERFLOW_RECOVERY_DATABASE_URL` + `_get_alembic_config` 先
+`command.stamp(cfg, "0018_oauth_identity_pg_partial", purge=True)` 再 `upgrade head` ——
+purge 只替换版本行不碰应用数据，且**不能直接 stamp 到 head**（会跳过 Projects/batch-acceptance DDL）。
+回归测试：`backend/tests/test_persistence_forward_revision_compat.py`（构造原始 schema → 验证启动拒绝 →
+演练恢复 → 校验 thread 读写与 incarnation 数据保留）。bootstrap 自身从不做 re-stamp。
 
 ### env.py 关键配置
 

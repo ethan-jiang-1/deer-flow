@@ -126,3 +126,34 @@ RunRecord:
 - **进度**：运行中定期快照（token/消息计数），仅当 `status == running` 时持久化
 - **完成**：运行结束后一次性写入 token 统计 + 便利字段（`last_ai_message`、`first_human_message`）
 - 完成持久化失败时会尝试通过 `put` 重建行记录，然后重试 `update`
+
+## 🆕 稳定分页游标：run change_seq（sync #6）
+
+`GET /api/threads/{thread_id}/runs` 仍是裸数组（最新 100 条，LangGraph SDK 兼容，#5283）；翻页走
+`GET /runs/page`，游标基于 `(created_at, run_id)` keyset。仅给一边（只有 before 没有after 或反之）会 400。
+
+更深层的变化是 **每行一个单调 `change_seq`**（migration `0023_run_change_seq`）：
+`runs.change_seq BIGINT NOT NULL DEFAULT 0`，由单例行 `run_change_clock` 表在 SQL 内全局串行分配位置。
+这给了"变更 run 发现"一个稳定位置：重启/翻页期间 run 行被更新时游标不会漂移（时间戳相同或乱序更新不再漏行/重放）。
+`RunRepository`（`persistence/run/sql.py`）写入时递增，`RunStore` 接口与内存实现（`runs/store/base.py` / `memory.py`）同步暴露。
+测试锚点：`backend/tests/test_migration_0023_run_change_seq.py`。
+
+## 🆕 Thread incarnation（expand-phase，sync #6）
+
+migration `0019_thread_incarnations`（#5216）给 `threads_meta.incarnation` 与 `mcp_tasks.thread_incarnation`
+加**可空** `VARCHAR(32)` 列：新 thread 创建时获得稳定 incarnation id，新 task 行复制其归属（或共享）thread 的
+incarnation。这是 expand-only 一步——本阶段**没有任何读/claim/session/删除行为消费这两列**，混合版本写入保持兼容。
+注意该 revision id 曾被早期 rollout 以不同父版本占用过，迁移链里它挂在 `0021_batch_acceptance` 之后幂等重放（见
+persistence digest 的 forward revision 一节）。测试锚点：`backend/tests/test_migration_0019_thread_incarnations.py`。
+
+## 🆕 终态后的 Gateway 内存回收（#5112）
+
+run 到达终态后，worker/manager 现在主动释放闭环引用：清理终态 run 记录、丢弃 fenced journal 缓冲、
+`publish_end` 失败也会走清理路径；清理本身对 cancellation 加了防护（不能被半途取消留下悬挂状态）。
+长时间运行的 Gateway 不再随 run 数量累积内存。
+
+## 🆕 Worker trace binding（一句）
+
+trace id 无条件下发（#5119，详见 observability digest）的 runtime 侧落点是
+`runs/worker.py` 的 `_bind_trace_id()`：ContextVar 是唯一来源，调用方塞进 metadata 的
+`deerflow_trace_id` 不再被信任，运行结束后 run 行仍可凭 trace id 追溯。

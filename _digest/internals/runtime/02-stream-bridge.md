@@ -134,3 +134,9 @@ asyncio.create_task(bridge.cleanup(run_id, delay=60))
 ## 设计对齐
 
 `StreamBridge` 的设计对齐了 LangGraph Platform 的 Queue + StreamManager 架构，但不直接依赖其闭源实现。
+
+## 🆕 心跳间隔可配（#5017，sync #6）
+
+心跳不再硬编码 15s：`heartbeat_interval_seconds` 配置项（最大 86400）经 `stream_bridge/async_provider.py`
+传入 bridge 构造函数（memory/redis 实现均支持），`subscribe()` 也可按订阅覆盖。默认仍是
+`DEFAULT_HEARTBEAT_INTERVAL_SECONDS = 15`。
