@@ -110,14 +110,35 @@ headers = {
 `app/gateway/routers/auth.py:149` — 进程内 IP 字典：
 
 ```
-max 5 次失败 / 5 分钟 / IP
+默认 5 次失败 / 5 分钟 / IP
 → 超限返回 429 Too Many Requests
 → max 10,000 条记录，超出后淘汰最老
 ```
 
+🆕 v2.1.0-rc0：限流参数**可配置**（`auth.local.max_login_attempts` / `lockout_seconds`，#5110）：
+- 最低 2 次——一次失败永不能锁死 IP（共享出口 IP 场景：公司代理/NAT 提高阈值）
+- **live-read per login**：config 重载即生效，无需重启。降低 `lockout_seconds` 提前释放活动锁；收紧 `max_login_attempts` 保留已计数失败；延长 `lockout_seconds` 延长未过期锁但**不会复活已过期锁**
+
 IP 来源：`request.client.host`。只有配置了 `AUTH_TRUSTED_PROXIES` 才信任 `X-Real-IP`，**不使用 `X-Forwarded-For`**（防伪造）。
 
 **局限：** 进程内 dict，多 worker 共享同一 IP 可绕过。
+
+---
+
+## 🆕 Personal Access Tokens（PAT，v2.1.0-rc0 #5041）
+
+程序化 API 访问的长期令牌，补齐 JWT session 之外的第二种认证方式：
+
+- 核心：`app/gateway/auth/pat.py`（签发/校验/吊销），持久化 `persistence/personal_access_tokens/`（model + sql），migration `0017_personal_access_tokens`
+- 用途：脚本、CI、SDK 等非浏览器调用方（此前只能走登录 session + CSRF）
+- 前端 Settings 里管理（签发时一次性展示，服务端只存哈希）
+
+---
+
+## 🆕 Authz Phase 4 — UI 权限收敛（v2.1.0-rc0）
+
+- `GET /api/auth/me` 现在返回 **effective route permissions**（#5228）——前端不再猜权限
+- thread-delete / run-cancel UI 按 effective permissions 门控（#5294）：无权限的用户看不到可点的危险按钮，而不是点了才 403
 
 ---
 

@@ -187,3 +187,15 @@ securityContext:
 **文件操作加锁：** `str_replace` 和 `write_file` 对 `(sandbox_id, path)` 做细粒度锁，防止同一 sandbox 内并发写冲突。
 
 **TOCTOU race：** `download_file` 在 `getsize()` 和 `read()` 之间有竞争窗口。代码明确接受（`local_sandbox.py:400`）— 因为这是 "controlled sandbox environment"。
+
+---
+
+## 🆕 v2.1.0-rc0 安全增强
+
+**网络 egress 控制（#5152）**：本地 Docker sandbox 支持出站策略 `open | isolated | allowlist`，allowlist 被拒域可经 Human Input 卡片带 TTL 临时批准；私有/loopback/link-local/metadata 地址始终拒绝（SSRF 防线）。详见 [concepts/sandbox](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。
+
+**authz recheck before sandbox reuse（#5006）**：复用已有 sandbox（warm pool / 同 thread 重入）前重新求值 `sandbox:execute` 授权——权限在 session 生命周期内被撤销后，复用路径同样 fail-closed（`authz/sandbox_authz.py` 大改 +132 行）。
+
+**MCP 结果过信任边界（#4839）**：MCP 来源的 tool 结果经与远程内容相同的 injection 中性化管道，不再因为"来自已配置 server"而豁免。
+
+**Sandbox identity 共享 + acquire 串行化（#5089）**：身份派生单一实现 + 获取路径统一 lease/keyed-lock，消除跨 provider 并发竞态。
