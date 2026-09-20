@@ -171,7 +171,7 @@ async for chunk in agent.astream(graph_input, config=runnable_config, stream_mod
 return create_agent(
     model=create_chat_model(...),        # DeerFlow 的模型工厂
     tools=filtered_tools,                # DeerFlow 的 tool 组装
-    middleware=_build_middlewares(...),   # DeerFlow 的 36 个 middleware
+    middleware=_build_middlewares(...),   # DeerFlow 的 37 个 middleware
     system_prompt=apply_prompt_template(...),  # DeerFlow 的 prompt
     state_schema=ThreadState,            # DeerFlow 的 state schema
 )
@@ -459,7 +459,7 @@ Superstep 8:  [mN.after_agent] ... [m1.after_agent] (并行，反向)
 
 ## Layer E：Middleware Hook 总览 — DeerFlow 怎么利用 LangChain 的 hook 机制
 
-LangChain 提供 6 种 hook 点 + 2 种 wrap 洋葱。DeerFlow 的 36 个 middleware 全部基于这些 hook：
+LangChain 提供 6 种 hook 点 + 2 种 wrap 洋葱。DeerFlow 的 37 个 middleware 全部基于这些 hook：
 
 | LangChain Hook | 机制 | DeerFlow 利用者 |
 |---------------|------|----------------|
@@ -493,6 +493,6 @@ Run 生命周期        ✓ run_agent() + RunManager ✗ (没有)
 SSE 桥接            ✓ StreamBridge             ✗ (没有)
 ```
 
-**核心洞见**：DeerFlow 的 agent loop 不是自己写的循环，而是 **LangGraph Pregel 的 BSP superstep 机制 + LangChain 的 graph 节点/条件边 + DeerFlow 的 36 个 middleware 实现**。三层叠在一起，形成了完整的 agent 执行系统。
+**核心洞见**：DeerFlow 的 agent loop 不是自己写的循环，而是 **LangGraph Pregel 的 BSP superstep 机制 + LangChain 的 graph 节点/条件边 + DeerFlow 的 37 个 middleware 实现**。三层叠在一起，形成了完整的 agent 执行系统。
 
 下一步：回到 [[00-loop-anatomy]] 看三层循环的架构全貌，[[01-middleware-as-loop]] 深入 middleware 的设计哲学，[[02-extension-points]] 了解怎么往外扩。

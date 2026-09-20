@@ -46,7 +46,7 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 
 **每一步发生的事情：**
 
-| 阶段 | Hook 点 | 参与 middleware（共 36 个中的代表） |
+| 阶段 | Hook 点 | 参与 middleware（共 37 个中的代表） |
 |------|--------|----------|
 | 调用 LLM 前 | `wrap_model_call` | InputSanitization, ToolOutputBudget, ToolResultSanitization, DynamicContext, SkillActivation, SkillToolPolicy, DurableContext, ViewImage, McpRouting, DeferredToolFilter, SystemMessageCoalescing 等 11 个 MW |
 | 调用 LLM | — | `model.invoke(messages)` → AIMessage (text 或 tool_calls) |
@@ -56,7 +56,7 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 | Step 开始 | `before_agent` | ThreadData, Uploads, Sandbox, DanglingToolCall, LLMErrorHandling 等 5 个 MW |
 | Step 结束 | `after_agent` | Summarization, TodoList, TokenUsage, Title, Memory, Clarification 等 6 个 MW |
 
-> 完整 36 个 middleware 的 hook 分配见 [middleware/03-catalog.md](../internals/middleware/03-catalog.md)。
+> 完整 37 个 middleware 的 hook 分配见 [middleware/03-catalog.md](../internals/middleware/03-catalog.md)。
 
 **ThreadState** 是贯穿全程的状态对象：`messages` (对话历史)、`sandbox` (沙箱实例)、`artifacts` (产物)、`todos` (计划)、`viewed_images` (图片缓存)。
 
@@ -119,7 +119,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 2. 调用 `create_chat_model()` 创建 LLM 实例
 3. 调用 `get_available_tools()` 装配 tool 列表（config + MCP + builtins + ACP agents）
 4. 调用 `apply_prompt_template()` 生成 system prompt（注入 skills、memory、日期、subagent 指令）
-5. 调用 `_build_middlewares()` 构建 36 个 middleware
+5. 调用 `_build_middlewares()` 构建 37 个 middleware
 6. 调用 `create_agent(model, tools, middleware, state_schema, checkpointer)` 返回 CompiledStateGraph
 
 **`make_lead_agent` 是唯一对外暴露的 graph factory**，在 `langgraph.json` 中注册为 `"lead_agent"`。

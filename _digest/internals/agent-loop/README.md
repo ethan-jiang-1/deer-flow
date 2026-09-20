@@ -36,7 +36,7 @@ DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tool
 ## 核心结论（先看完再读详细篇）
 
 1. **DeerFlow 没有手写 while 循环** —— loop 在 LangGraph 的 `PregelLoop.tick()` 里（`langgraph/pregel/_loop.py`）。DeerFlow 的 `async for chunk in agent.astream()` 是**消费端**，不是循环本身
-2. **DeerFlow 100% 利用了 LangChain 的 middleware hook 体系** —— 36 个 middleware 全部是标准 `AgentMiddleware` 子类，没有自己发明 hook 协议
+2. **DeerFlow 100% 利用了 LangChain 的 middleware hook 体系** —— 37 个 middleware 全部是标准 `AgentMiddleware` 子类，没有自己发明 hook 协议
 3. **middleware 不是 loop 外面的装饰，它就是 loop 的**结构——每个 hook 点（before_model / after_model / wrap_tool_call 等）精确嵌入 graph 的执行路径
 4. **三层循环嵌套**：Pregel superstep loop（LangGraph）→ middleware 洋葱链（LangChain compose + DeerFlow 实现）→ subagent loop（DeerFlow 独立线程）
 5. **Loop Detection 的警告不放在 after_model 里**是有意为之——为了不破坏 OpenAI/Moonshot 的 tool-call pairing 校验
