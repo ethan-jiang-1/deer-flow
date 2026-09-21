@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="780" fill="#fafafa" rx="8"/>
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">各 harness 的上下文注入流水线：global → root → nested → scoped / JIT</text>
+
+  <!-- LEFT: repo tree -->
+  <text x="150" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a2e">仓库侧：指令文件的物理布局</text>
+  <rect x="40" y="100" width="220" height="560" rx="8" fill="none" stroke="#ccc"/>
+  <text x="60" y="128" font-size="11" font-family="monospace" fill="#37474f">~/</text>
+  <text x="140" y="128" font-size="10" fill="#888">← 全局层</text>
+  <text x="60" y="158" font-size="11" font-family="monospace" fill="#37474f">repo/</text>
+  <text x="60" y="178" font-size="11" font-family="monospace" fill="#1565c0">├── AGENTS.md</text>
+  <text x="200" y="178" font-size="10" fill="#888">根：地图</text>
+  <text x="60" y="198" font-size="11" font-family="monospace" fill="#1565c0">├── CLAUDE.md</text>
+  <text x="200" y="198" font-size="10" fill="#888">@import</text>
+  <text x="60" y="218" font-size="11" font-family="monospace" fill="#2e7d32">├── backend/</text>
+  <text x="60" y="238" font-size="11" font-family="monospace" fill="#2e7d32">│   └── AGENTS.md</text>
+  <text x="200" y="238" font-size="10" fill="#888">嵌套</text>
+  <text x="60" y="258" font-size="11" font-family="monospace" fill="#2e7d32">├── frontend/</text>
+  <text x="60" y="278" font-size="11" font-family="monospace" fill="#e65100">├── .claude/rules/</text>
+  <text x="215" y="278" font-size="10" fill="#888">paths:</text>
+  <text x="60" y="298" font-size="11" font-family="monospace" fill="#e65100">├── .cursor/rules/*.mdc</text>
+  <text x="60" y="318" font-size="11" font-family="monospace" fill="#7b1fa2">└── GEMINI.md</text>
+  <text x="60" y="348" font-size="10" fill="#888">另：skills / SKILL.md（DeerFlow）</text>
+  <text x="60" y="366" font-size="10" fill="#888">按需激活，不常驻上下文</text>
+
+  <!-- CENTER: injection pipeline -->
+  <text x="640" y="86" text-anchor="middle" font-size="13" font-weight="700" fill="#1a1a2e">harness 侧：拼接顺序（越往下优先级越高）</text>
+
+  <rect x="430" y="104" width="420" height="62" rx="8" fill="#eceff1" stroke="#90a4ae" stroke-width="1.2"/>
+  <text x="450" y="128" font-size="11" font-weight="700" fill="#37474f">① 全局层（每次启动）</text>
+  <text x="450" y="146" font-size="9" fill="#555">~/.codex/AGENTS.md · ~/.claude/CLAUDE.md · ~/.gemini/GEMINI.md</text>
+
+  <line x1="640" y1="166" x2="640" y2="186" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="430" y="190" width="420" height="62" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="450" y="214" font-size="11" font-weight="700" fill="#1565c0">② 项目根（root → cwd 向下拼接）</text>
+  <text x="450" y="232" font-size="9" fill="#555">AGENTS.md / CLAUDE.md / GEMINI.md —— 越近越后出现 = 优先级越高</text>
+
+  <line x1="640" y1="252" x2="640" y2="272" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="430" y="276" width="420" height="62" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.2"/>
+  <text x="450" y="300" font-size="11" font-weight="700" fill="#2e7d32">③ 嵌套 / 惰性层（读到匹配文件时注入）</text>
+  <text x="450" y="318" font-size="9" fill="#555">子目录 CLAUDE.md / AGENTS.md · Gemini CLI JIT 层</text>
+
+  <line x1="640" y1="338" x2="640" y2="358" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="430" y="362" width="420" height="62" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.2"/>
+  <text x="450" y="386" font-size="11" font-weight="700" fill="#e65100">④ 作用域规则（scoped rules）</text>
+  <text x="450" y="404" font-size="9" fill="#555">.claude/rules paths: glob · .cursor/rules globs/description 触发</text>
+
+  <line x1="640" y1="424" x2="640" y2="444" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="430" y="448" width="420" height="62" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.2"/>
+  <text x="450" y="472" font-size="11" font-weight="700" fill="#7b1fa2">⑤ 自动派生（repo map / skill index）</text>
+  <text x="450" y="490" font-size="9" fill="#555">Aider tree-sitter 图排序（默认 1k）· DeerFlow &lt;skill_index&gt; 紧凑索引</text>
+
+  <!-- Budget annotations -->
+  <text x="905" y="150" font-size="10" font-weight="700" fill="#b71c1c">预算上限</text>
+  <rect x="875" y="196" width="300" height="70" rx="6" fill="#ffebee" stroke="#c62828" stroke-width="1"/>
+  <text x="890" y="218" font-size="10" font-weight="700" fill="#c62828">Codex：32KiB 总量截断</text>
+  <text x="890" y="234" font-size="9" fill="#555">project_doc_max_bytes，超限后</text>
+  <text x="890" y="248" font-size="9" fill="#555">后面的文件直接不加载</text>
+  <rect x="875" y="278" width="300" height="70" rx="6" fill="#ffebee" stroke="#c62828" stroke-width="1"/>
+  <text x="890" y="300" font-size="10" font-weight="700" fill="#c62828">Claude Code：每文件 ≤200 行建议</text>
+  <text x="890" y="316" font-size="9" fill="#555">&gt;4MiB 整份跳过；MEMORY.md 前</text>
+  <text x="890" y="330" font-size="9" fill="#555">200 行 / 25KB；paths 预算 1000 pattern</text>
+  <rect x="875" y="360" width="300" height="70" rx="6" fill="#ffebee" stroke="#c62828" stroke-width="1"/>
+  <text x="890" y="382" font-size="10" font-weight="700" fill="#c62828">Gemini CLI：discoveryMaxDirs=200</text>
+  <text x="890" y="398" font-size="9" fill="#555">.geminiignore 排除；</text>
+  <text x="890" y="412" font-size="9" fill="#555">修改后需 /memory refresh</text>
+  <rect x="875" y="442" width="300" height="70" rx="6" fill="#ffebee" stroke="#c62828" stroke-width="1"/>
+  <text x="890" y="464" font-size="10" font-weight="700" fill="#c62828">Aider：--map-tokens 默认 1k</text>
+  <text x="890" y="480" font-size="9" fill="#555">随聊天状态动态伸缩；</text>
+  <text x="890" y="494" font-size="9" fill="#555">未选文件时扩大以覆盖全仓库</text>
+
+  <!-- RIGHT: failure modes -->
+  <text x="150" y="700" font-size="12" font-weight="700" fill="#b71c1c">典型失败模式：</text>
+  <text x="240" y="700" font-size="10" fill="#555">路径上有 CLAUDE.md → 默认不读 AGENTS.md（Claude Code）· 空文件被跳过 · 矛盾指令被任意取舍 · /compact 后仅 root 文件重注入</text>
+  <text x="150" y="722" font-size="10" fill="#555">强制层分离：要"必须执行"用 hooks / permissions.deny / sandbox——指令文件只是上下文，不是 enforced configuration。</text>
+  <line x1="150" y1="732" x2="1050" y2="732" stroke="#ddd" stroke-width="1"/>
+  <text x="150" y="756" font-size="9" fill="#999">来源：code.claude.com/docs/en/memory · learn.chatgpt.com/docs/agent-configuration/agents-md · mintlify.wiki/google-gemini/gemini-cli · cursor.com/docs/rules · aider.chat/docs/repomap.html · 本仓库 backend/packages/harness/deerflow/skills/AGENTS.md</text>
+</svg>
