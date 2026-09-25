@@ -106,3 +106,26 @@ type: index
 - 路由器异常映射的**逐端点**覆盖（本轮只集中了散落的状态码）；`integrations/lark_cli.py`（2846 行）与 `lark_broker.py`（457 行）的完整契约；`utils/*` 工具集；`tui/*` 细节；`skills/{skillscan,storage,projection,permissions,package_files}` 的逐模块契约（本轮补了 review 内核，其余按"是否非琐碎"判断后暂缓）。
 - 全仓 **in-range 错行**审计（行号合法但指向错误位置）：机械越界扫描抓不到，本轮只修了已知几处；建议下一轮用"行号处必须出现同句符号"的启发式 + 人工复核做一次专项。
 
+---
+
+## 第四批：把"仍未做"清单清空
+
+第三批列出的遗留项在这一批全部落地（新建 4 篇 + 追加/重写 12 个文件）：
+
+| 领域 | 落点 | 内容 |
+|------|------|------|
+| Lark CLI 托管集成 | **新建** `operations/integration/05-lark-cli-managed-integration.md`（233 行） | 安装事务与 guidance version marker、每用户凭据树事务切换（**先清 data 再 `config init`**，任务书里的顺序说反了）、`sandbox_runtime_mode` 四态 + capabilities/probe、Pattern A/B 边界、broker wire 契约、fail-open/closed 清单；并记录"无卸载入口""`kind:"shim"` 无消费者"两个上游缺口 |
+| 路由异常映射 | `operations/app-layer/01-api-reference.md`（351 → **1211 行**） | AST 导出 **180/180** 端点全表 + **417 条 `raise`** 按码穷举（400…504，含 409 五类语义、410 全仓零用）；§3 修正中间件顺序错误（`Trace → CORS? → CSRF → Auth` ⇒ 无 session 无 CSRF 的 POST 是 **403 不是 401**）；`02-upload-security.md` 修 3 处源码漂移 + 413 三个来源 |
+| TUI / 环境变量 | `getting-started/{06-tui,05-environment,02-configuration,01-quick-start,04-local-dev,03-python-sdk,00-config-overview,README}.md` | TUI 四模式（不是三种）+ 18 条 slash 命令全表 + 8 键位 + 持久化/输入历史/流式 reduce 契约 + 8 行降级表；env 表补齐 ~35 个变量并修正 `DEER_FLOW_INTERNAL_GATEWAY_BASE_URL`/LangSmith 别名；修 `make dev` 漏 `check.py`、backend `make test` 排除集、`make config` **不生成** `extensions_config.json`、`get_memory()` 形状（`userContext` 是编造的）等硬错误 |
+| 共享 utils | **新建** `internals/shared-utils-contract.md` | `custom_events` 双发不变量、`file_io`/`assembly_io` 专用池与 ContextVar 复制、消息身份与原人消息 deepcopy、`thread_id` 规则、端口预订单例、图外 `oneshot_llm`、outline/think-block 解析边界 |
+| skills 摄入链 | **新建** `concepts/skills-tools/skill-package-intake.md`；`skill-review-core.md` | `parser.py` 分词/别名/降级（含"安装门通过但 secret 永不生效"的不对称）、`installer.py` 全链路 + 失败清理 + 错误→HTTP、**SkillScan 全量 39 条规则表** + 上限常量 + 异常层级 |
+| 测试数字 | `testing/09` | 738 文件 / 约 14.4k `def test_`（AST 实测）；真实外部服务用例可数：client_live 19 + policy 11 + real_llm 1 + aio 3 |
+
+### 校验器固化
+`_upstream-sync/tools/check_digest.py`（+ `README.md`）把这一路的机械检查做成可重复运行的脚本：行数断言 / 行号越界 / 死链 / 锚点 / 路径 / 环境变量 / 类名 / `module:Class` / import / 围栏，共 10 项进默认门禁；另有两个 in-range 错行启发式（`line_symbol`、`line_symbol_strict`）默认不跑、只作人工复核提示（sync #7 实测 21 → 10 处，逐条核对**全部为误报**：文档常引用行区间或一句并列多个符号）。
+
+### 本轮仍未做（明确留档）
+- `harness/08` 的**评分**未按 v2.1.0 重算（只重核事实行数与行号；评分是 2026-06 的 rc0 快照，文档已标明）。
+- in-range 错行只做到"启发式 + 抽样人工复核"；批量判定需要先统一文档的引用写法。
+- 上游源码树内的文档/注释问题（`AGENTS.md` 的 `make config` 描述、`backend/docs/TUI.md` 两处、`skill_storage.py` docstring、`lark_broker` 的 `kind` 消费者、`noop_manager` 注释、同名 `ScanResult`）——`ethan` 只加 `_digest/`+`_faq_on_digested/`，已在 `SYNC_LOG.md` 列表留档，交上游处理。
+

@@ -150,7 +150,7 @@ Shutdown:
 | `app/channels/buzz_run_policy.py` | 12 | 🆕 Buzz run 策略（serialize_thread_runs） |
 | `app/channels/buzz_seen_events.py` | 385 | 🆕 连接层 seen-id 持久去重（`BuzzSeenEventStore`，事件循环外读写） |
 | `app/channels/dedupe_store.py` | 276 | 🆕 入站消息去重存储（Memory/Postgres 两级） |
-| `deerflow/integrations/lark_cli.py` | 1724 | 🆕 Lark CLI 托管集成安装器（27 个 lark-* 技能包） |
+| `deerflow/integrations/lark_cli.py` | 2846 | 🆕 Lark CLI 托管集成安装器（27 个 lark-* 技能包） |
 | `deerflow/integrations/lark_broker.py` | 457 | 🆕 Pattern B 凭据 broker（沙箱侧 sidecar） |
 | `app/gateway/routers/channels.py` | — | Channel 状态/重启 API |
 | `app/gateway/app.py` | — | lifespan 启动入口 |

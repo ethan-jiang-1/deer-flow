@@ -21,9 +21,11 @@ topics: [integration, sdk, docker-deploy]
 | # | 手段 | 一句话 | 适合 |
 |---|------|--------|------|
 | ① | **HTTP API** | 发 HTTP 请求调 Agent，SSE 收流式结果 | 任何语言、Web 前端 |
-| ② | **Python SDK** | `pip install` 后直接在代码里 `client.chat()` | Python 项目嵌入 |
+| ② | **Python SDK** | `deerflow-harness` 包内 `deerflow.client.DeerFlowClient`，直接在代码里 `client.chat()` | Python 项目嵌入 |
 | ③ | **Docker** | `make up` 一条命令，全套环境起来 | 生产部署、团队协作 |
-| ④ | **IM 频道** | Agent 直接接入飞书/Slack/Telegram | 企业内部、移动端 |
+| ④ | **IM 频道** | Agent 直接接入飞书/Slack/Telegram 等 8 个聊天平台 | 企业内部、移动端 |
+
+源码落点（自查用）：① `backend/app/gateway/app.py` + `backend/app/gateway/routers/`；② `backend/packages/harness/deerflow/client.py`（`DeerFlowClient`，`client.py:145`）；③ `docker/docker-compose.yaml`；④ `backend/app/channels/`。
 
 ---
 
@@ -80,8 +82,8 @@ topics: [integration, sdk, docker-deploy]
   │  ④ IM 频道   ──── langgraph-sdk ────┘                  │
   │       (内部也是 HTTP API)                               │
   │                                                         │
-  │  ③ Docker ──── 容器化 ① + Frontend + Nginx             │
-  │       (本质是部署了整套 ①)                               │
+  │  ③ Docker ──── 容器化 ① + Frontend + Nginx + Redis      │
+  │       (本质是部署了整套 ①；provisioner 可选)            │
   └─────────────────────────────────────────────────────────┘
 ```
 
@@ -89,7 +91,7 @@ topics: [integration, sdk, docker-deploy]
 - ① HTTP API — 通过网络调
 - ② Python SDK — 直接内存调（同进程）
 - ④ IM 频道 — IM 消息触发，内部用 langgraph-sdk 调 ①
-- ③ Docker — 把 ① 和前端打包成容器
+- ③ Docker — 把 ① 和前端、Nginx、Redis 打包成容器（provisioner 可选）
 
 ---
 
@@ -117,7 +119,7 @@ response = client.chat("Hello")
 print(response)
 ```
 
-只需要 3 行代码，不需要启动任何服务。
+只需要 3 行代码，不需要启动任何服务（`DeerFlowClient.chat(message, *, thread_id=None, **kwargs)`，`client.py:1193`）。
 
 ### ③ Docker
 
@@ -139,6 +141,8 @@ channels:
 ```
 
 然后用户直接在飞书里 @机器人 聊天。
+
+聊天平台共 8 个：Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、Buzz；另有 webhook 驱动的 GitHub 通道（`backend/app/channels/`）。频道实现内部用 `langgraph-sdk` 调 Gateway（`app/channels/manager.py:21,1788-1790`）。
 
 ---
 
@@ -176,3 +180,5 @@ channels:
 | ② Python SDK | [03-python-sdk.md](../../getting-started/03-python-sdk.md) | 同 config.yaml |
 | ③ Docker | [03-docker.md](03-docker.md) | `docker-compose.yaml` |
 | ④ IM 频道 | [04-im-channels.md](04-im-channels.md) | `config.yaml` channels |
+
+托管的第一方插件（Lark CLI 技能包 + 沙箱运行时 + broker）不属于上面四种手段，见 [05-lark-cli-managed-integration.md](05-lark-cli-managed-integration.md)。

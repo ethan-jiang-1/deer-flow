@@ -37,20 +37,25 @@ make dev
 
 ## 前置条件
 
+仓库根没有 `pyproject.toml` / `package.json`，后端依赖要在 `backend/`、前端要在 `frontend/` 安装：
+
 ```bash
-# Python 3.12+
-uv sync --group dev
+# Python 3.12+（backend/pyproject.toml 有 [dependency-groups] dev）
+cd backend && uv sync --group dev && cd ..
 
-# Node.js 22+（🆕 v2.1.0-rc0 起 CI 的 setup-node 从 22 升到 24，#5063；
-#              本地门槛与 frontend/Dockerfile 基础镜像仍是 22+）
-pnpm install
+# Node.js 22+（本地门槛与 frontend/Dockerfile 基础镜像 node:22-alpine 一致；
+#              CI 的 setup-node 用 24）
+cd frontend && pnpm install && cd ..
 
-# config.yaml
-make config    # 从 config.example.yaml 生成
+# config.yaml（scripts/configure.py；不生成 extensions_config.json）
+make config
 
-# 启动
+# 启动（等价：cd backend && uv sync --locked + cd frontend && pnpm install + pre-commit）
+# make install
 make dev
 ```
+
+Node 版本由 `scripts/check.py:94-107` 强制（`make dev` 第一步就跑它；< 22 直接 FAIL）。
 
 ## 访问地址
 
@@ -67,6 +72,6 @@ nginx 上的 `/api/langgraph/*` 会被 rewrite 到 Gateway 的原生 `/api/*` �
 ## 常见问题
 
 - **config_version mismatch：** 上游更新了配置 schema → 运行 `make config-upgrade` 合并新字段
-- **`/api/langgraph/*` 连不上：** Agent runtime 不在独立进程里，直接查 Gateway（`make gateway` / uvicorn，端口 8001）和 `backend/.deer-flow` 下的日志；`backend/langgraph.json` 只是 LangGraph Studio 的 graph 注册，不是本地开发要起的服务
+- **`/api/langgraph/*` 连不上：** Agent runtime 不在独立进程里，直接查 Gateway（`make gateway` / uvicorn，端口 8001）。前台 `make dev` 的日志在各服务的终端面板；daemon 模式写到仓库根 `logs/{gateway,frontend,nginx}.log`（`scripts/serve.sh:483,524`）。`backend/langgraph.json` 只是 LangGraph Studio 的 graph 注册，不是本地开发要起的服务
 - **Frontend 白屏：** 检查 `NEXT_PUBLIC_LANGGRAPH_BASE_URL`（默认 `/api/langgraph`，通过 nginx 代理到 Gateway 8001）
-- **Import 错误：** 运行 `uv sync` 重新安装依赖——harness 包通过 editable install 挂在虚拟环境中
+- **Import 错误：** 在 `backend/` 运行 `uv sync` 重新安装依赖——harness 包通过 editable install 挂在虚拟环境中

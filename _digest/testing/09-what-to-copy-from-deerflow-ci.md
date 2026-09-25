@@ -62,7 +62,7 @@ def test_agent_reviews_code():
     assert "security" in result.lower()
 ```
 
-DeerFlow 的 3451 个测试中，只有约 12 个用真实 LLM。其余全部用 fake model。
+DeerFlow 有 **738 个测试文件 / 约 14.4k 个 `def test_` 函数**（v2.1.0 用 AST 实测，含约 830 处 `parametrize`）。真正调用**外部真实服务**的用例集中且可数：`test_client_live.py`（19 个，模块级 `pytestmark = pytest.mark.live`）、`test_client_live_policy.py`（11 个，`DEER_FLOW_RUN_LIVE_TESTS=1` 门）、`test_deferred_tool_promotion_real_llm.py`（1 个，`ONEAPI_E2E` 门），以及 `test_aio_sandbox_local_backend.py` 里 3 个带 `@pytest.mark.live` 的用例（该文件 96 个用例中只有这 3 个真连 Docker）。其余全部用 fake model / 录制回放。`make test` 用 `-m "not live"` 排除它们，`make test-live` 显式跑。
 
 ## 3. FakeToolCallingModel（直接复制）
 
@@ -100,7 +100,7 @@ def isolated_env(tmp_path, monkeypatch):
     return tmp_path
 ```
 
-每个测试独立 `DEER_FLOW_HOME`，不污染全局状态。DeerFlow 194 个测试文件都这么用。
+每个测试独立 `DEER_FLOW_HOME`，不污染全局状态。DeerFlow 的 **738** 个测试文件（递归计数，其中 `blocking_io/` 47 个）都这么用。
 
 ## 5. Record/Replay E2E
 

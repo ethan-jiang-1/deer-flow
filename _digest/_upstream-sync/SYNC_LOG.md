@@ -43,6 +43,19 @@ type: index
 - 追加：Store 工厂、`postgres_schema` 双驱动固定、**Redis StreamBridge + `StreamGap`**（旧后端表本身写错）、对外 stream mode 词表、MiMo/StepFun 适配器 + `assistant_payload_replay`、`STARTUP_ONLY_FIELDS` 18 条单一来源、宿主侧组装投影/通知循环/anchors/run-evidence cursor scope、7 个缺失配置段（`llm_call`/`run_ownership`/`dedupe_storage`/`agent_storage`/`skill_scan`/`suggestions`/`input_polish`）、手动压缩宿主契约、scheduler 投影与领域异常、四类仓储契约（scheduled / channel connections + cipher / PAT / subagent batch）、tracing 三模块、extension-api `placement`/`state`/`runtime_bridge`、异常→HTTP 映射表、SQL 版 channel↔thread 映射。
 - **源码现状发现（非文档错误，按事实记录）**：`ChannelCredentialCipher` 已实现、`channel_credentials` 表已建，但生产构造点不传 `cipher` → 生产路径 `get_credentials()` 恒 `None`、`store_credentials()` 抛 `RuntimeError`（"已建表、已实现、尚未接线"）；已写入 `operations/channels/05-user-connections.md` 与 `operations/security/05-production-auth-setup.md`。
 
+**附：本轮发现的「上游源码树内的文档/注释问题」（`ethan` 只加 `_digest/`+`_faq_on_digested/`，故未改，留给上游）**：
+
+| 位置 | 问题 |
+|------|------|
+| 根 `AGENTS.md` 与 `backend/AGENTS.md` | 都写 `make config` 会复制 `extensions_config.example.json → extensions_config.json`；实际 `scripts/configure.py:24-45` 只产出 `config.yaml`/`.env`/`frontend/.env`，`extensions_config.json` 由 `scripts/docker.sh:388-395` 在 Docker 路径补建 |
+| `backend/docs/TUI.md:28` | 称 `--resume THREAD` 只按 id；`tui/session.py:37-64` 的 `resolve_ref` 也接受**标题** |
+| `backend/docs/TUI.md:85` | slash 命令清单缺 `/resume`（`tui/command_registry.py:44`） |
+| `skills/skill_storage.py:197` | docstring 引用不存在的 `installer.ainstall_skill_from_archive`（installer 只有 helper，编排在 storage 子类） |
+| `integrations/lark_broker.py` `kind:"shim"` | docstring 称"运行时校验器据此知道 `linux-*` 刻意缺席"，但树内只有写入方（`lark_broker.py:421-423`）、无读取方（`lark_cli.py:1420` 只读 `version`） |
+| `memory/backends/noop/noop_manager.py:23,176-189` | 注释称 base `warm` 默认 `True`；`manager.py:433-447` 实际返回 `None`（三态：None = 无可预热） |
+| `skills/` 包 | 两个同名 `ScanResult`：`security_scanner.py:23-26`（dataclass）vs `skillscan/models.py:29-32`（TypedDict）——import 陷阱 |
+| Lark 托管集成 | 无卸载入口（`install`/`replace` 之外 grep 无 `uninstall`）；guidance version marker 的 bump 纪律无测试保护 |
+
 ---
 
 ## #6 — 2026-09-21（同步）

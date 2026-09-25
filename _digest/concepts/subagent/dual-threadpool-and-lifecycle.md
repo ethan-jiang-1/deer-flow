@@ -569,7 +569,7 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 **跨语言契约**：`contracts/subagent_status_contract.json`（version 2）是 Python 与 TypeScript 消费方共享的 wire contract fixture——**task 结果文本只是展示内容，不属于该契约**，结构化事实一律走 `ToolMessage.additional_kwargs`：
 
 - `valid_status_values` = `completed` / `failed` / `cancelled` / `timed_out` / `polling_timed_out`（`status_contract.py:83-89`）
-- v2 新增可选 `subagent_stop_reason`（#3875 Phase 2），取值 `token_capped` / `turn_capped` / `loop_capped`；旧消费方只读 `subagent_status`，会忽略该字段（`status_contract.py:14-19`、常量 `:53`，见下节 Stop Reason）
+- v2 新增可选 `subagent_stop_reason`（#3875 Phase 2），取值 `token_capped` / `turn_capped` / `loop_capped`；旧消费方只读 `subagent_status`，会忽略该字段（`status_contract.py:14-19`、键常量 `SUBAGENT_STATUS_KEY` `:52`、`SUBAGENT_STOP_REASON_KEY` `:53`，见下节 Stop Reason）
 
 ## Stop Reason：三轴 Guard Cap 🆕
 

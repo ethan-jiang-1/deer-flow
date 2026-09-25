@@ -16,9 +16,9 @@ type: index
 | `03-python-sdk.md` | DeerFlowClient 嵌入式 SDK |
 | `04-local-dev.md` | 本地开发模式：`make dev` 进程拓扑 |
 | `05-environment.md` | 完整环境变量参考 |
-| `06-tui.md` | 🆕 `deerflow` 终端工作台：安装、三种模式、CI 集成 |
+| `06-tui.md` | 🆕 `deerflow` 终端工作台：安装、四种启动模式、命令全集、键位、持久化、CI 集成 |
 
 ## 补充
 
-- 🔰 纯本地零 Docker 一步步指南：`_faq_on_digested/cli-and-sdd/step-by-step-setup.md`
+- 🔰 纯本地零 Docker 一步步指南：`_faq_on_digested/06_cli-and-sdd/step-by-step-setup.md`
 - 模型配置详解：`_digest/internals/configuration/01-config-yaml.md`

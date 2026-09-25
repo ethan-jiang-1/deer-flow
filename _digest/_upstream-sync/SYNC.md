@@ -91,7 +91,24 @@ git checkout main && git reset --hard <新锚点>   # 或 git pull upstream main
 git checkout ethan && git merge main
 
 # 5. 更新这个文件：把「当前锚点」改成新的 main HEAD，并记一条 SYNC_LOG.md
+
+# 6. 跑机械校验（tools/check_digest.py，只读、有问题退出码 1）
+python3 _digest/_upstream-sync/tools/check_digest.py
+git diff <新锚点> ethan -- . ':(exclude)_digest' ':(exclude)_faq_on_digested'   # 必须为空
 ```
+
+## 两遍扫描（sync 的固定套路）
+
+单靠"跟着 diff 补文档"会漏掉**未被 diff 触碰但已过期**的内容——sync #7 的第二轮就是这么发现成片旧账的。所以每次 sync 固定跑两遍：
+
+| 遍 | 做什么 | 工具/方法 |
+|----|--------|-----------|
+| **第一遍：diff → digest** | 拿 `<旧锚点>..<新锚点>` 的变更文件，按上面的影响表逐域核对、补写 | `git log/diff` + 人工/agent 读源码 |
+| **第二遍：源码 → digest** | 从源码模块清单出发，反查 digest 的**每条断言**（行数/行号/路径/类名/变量/配置键/路由/命令），并找"源码有、digest 无"的覆盖缺口 | `tools/check_digest.py`（机械层）+ 分域 agent（语义层） |
+
+第三类是"少的"：digest 描述了、源码已不存在（改名/删除/远古架构）——同样靠第二遍的正则与符号扫描 + 逐条读源码判定。
+
+详见 [tools/README.md](tools/README.md)（脚本能力与已知盲区）。
 
 ## 上游变更 → 影响哪些 digest
 

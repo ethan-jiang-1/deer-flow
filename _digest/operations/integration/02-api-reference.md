@@ -36,6 +36,46 @@ Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口
 
 ---
 
+## 集成视角：异常 → HTTP 摘要
+
+> 这里**不穷举**。全量「领域异常 → HTTP 映射」表在 [operations/app-layer/01-api-reference.md](../app-layer/01-api-reference.md) 的「领域异常 → HTTP 映射」小节；本文只列**集成特有**的几条，出现分歧以 app-layer 那份为准。
+
+### Lark/Feishu 托管集成（`app/gateway/routers/integrations.py`）
+
+| 情况 | 状态码 | 依据 |
+|------|--------|------|
+| 非管理员调 `POST /api/integrations/lark/install` | 403 `Admin privileges required to install integrations.` | `integrations.py:38,271`（`require_admin_user` → `deps.py:894-902`） |
+| `lark-cli` 不存在（`FileNotFoundError`） | 404 | `integrations.py:276-277,296-297,321-322,346-347,369-370,394-395` |
+| 参数/流程异常（`ValueError`） | 400 | 同上各端点的 `except ValueError` |
+| 流程代际过期（`LarkFlowSupersededError`） | 409 | `integrations.py:323-324,371-372,396-397`（异常定义 `deerflow/integrations/lark_cli.py:266-267`） |
+| 轮询/流程超时（`TimeoutError`） | 504 | `integrations.py:300-301,327-328,350-351,375-376,400-401` |
+| 其它未预期异常 | 500（泛化 detail） | `integrations.py:264-266,282-284,302-304,329-331,352-354,377-379,402-404` |
+| 非管理员读 status/complete | 200，但 `cli.path`/`install_path` 被脱敏为空 | `integrations.py:41-51,182-207,263,320,345,393` |
+
+### GitHub webhook（`app/gateway/routers/github_webhooks.py`）
+
+| 情况 | 状态码 | 依据 |
+|------|--------|------|
+| 未配置 secret 且未开 `DEER_FLOW_ALLOW_UNVERIFIED_GITHUB_WEBHOOKS=1`，运行期拒绝投递 | 503 | `github_webhooks.py:223-241` |
+| `X-Hub-Signature-256` 校验失败/缺失 | 401 | `:249-252` |
+| 缺 `X-GitHub-Event` 头 | 400 | `:254-255` |
+| body 非合法 JSON（先验签后解析） | 400 | `:257-267` |
+| 已识别事件的 fan-out 运行期失败（可人工重投） | 503 | `:363-368` |
+| 未识别事件 / 频道未启用 / 载荷格式错误 / 频道服务不可用 | 200 + `handled=false`/skipped | `github_webhooks.py:269-320,375-382`；路由说明见 [integration/04-im-channels.md](04-im-channels.md) |
+
+### IM 频道连接（`app/gateway/routers/channels.py`、`channel_connections.py`）
+
+| 情况 | 状态码 | 依据 |
+|------|--------|------|
+| Channel 服务未运行（`GET /api/channels/...`） | 503 | `channels.py:50` |
+| 连接持久化不可用 | 503 | `channel_connections.py:202` |
+| 未认证访问连接端点 | 401 | `channel_connections.py:142` |
+| 未知 provider / 连接不存在 | 404 | `channel_connections.py:216-219,358,368,395,566` |
+| 连接功能未开启 / provider 未启用 / 缺必填配置 / 启动或停止失败 | 400 | `channel_connections.py:480,558,575-595,622-634,661-689` |
+| 单 provider 待处理绑定码超上限 | 429 | `channel_connections.py:346-349` |
+
+---
+
 ## 核心 API 详解
 
 ### 1. Thread Runs — 对话执行

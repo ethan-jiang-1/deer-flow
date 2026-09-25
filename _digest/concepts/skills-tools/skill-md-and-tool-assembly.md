@@ -240,7 +240,7 @@ LocalSkillStorage.load_skills()          # 同步纯扫描；调用方负责 off
 
 ## 本地 skill 归档安装 🆕（#5039）
 
-`POST /api/skills/install` 支持上传 `.skill` ZIP 归档安装到 `custom/`。Gateway 侧用有界 multipart 解析器流式落盘（`_BoundedSkillArchiveMultiPartParser` + 双重字节上限：单文件 100 MiB，含 multipart 开销的请求级上限），超限在 Starlette 写盘前中止以便及时关闭 spool 文件；nginx/helm 相应放宽了 body size（`test_nginx_langgraph_body_size.py` + chart 脚本 `scripts/check_chart_skill_upload_size.sh` pin）。归档内容仍过 SkillScan 静态扫描。
+`POST /api/skills/install` 支持上传 `.skill` ZIP 归档安装到 `custom/`。Gateway 侧用有界 multipart 解析器流式落盘（`_BoundedSkillArchiveMultiPartParser` + 双重字节上限：单文件 100 MiB，含 multipart 开销的请求级上限），超限在 Starlette 写盘前中止以便及时关闭 spool 文件；nginx/helm 相应放宽了 body size（`test_nginx_langgraph_body_size.py` + chart 脚本 `scripts/check_chart_skill_upload_size.sh` pin）。归档内容仍过 SkillScan 静态扫描。**完整安装链路（`installer.py` 的预检/抽取/内容扫描/原子落地/失败清理与错误→HTTP 映射）见** [`skill-package-intake.md`](skill-package-intake.md#2-skillsinstallerpy--skill-安装链路)。
 
 ## 自定义 skill 包导出 🆕（#5332）
 
@@ -267,6 +267,8 @@ Portable Agent Skills 的标量语法是空白分隔、允许带括号命令模�
 - `skill_scan.enabled` kill switch
 
 ### SkillScan 契约补深（v2.1.0 源码）
+
+> 全量 **39 条规则表**、全部上限常量与异常层级见 [`skill-package-intake.md`](skill-package-intake.md#3-skillscan-补深规则表--上限--异常类型)。
 
 - **规则表即契约**：`RULES: dict[rule_id, RuleSpec]`，Phase 1 共 **39** 条，severity 分布 CRITICAL 19 / HIGH 14 / MEDIUM 5 / LOW 1（`skillscan/orchestrator.py:46-93`）。`rule_id` 前缀编码类别与所属 analyzer（`package-` / `secret-` / `declaration-` / `python-` / `shell-` / `network-` / `resource-`），**没有**独立的 category/analyzer 字段（`skillscan/models.py:1-8`）。规则 spec 与匹配它的 analyzer 写在同一文件内，不引入 Semgrep/OpenGrep/YAML 规则引擎。
 - **阻断策略只有一个常量**：`_BLOCK_SEVERITY = "CRITICAL"`。`enforce_static_scan(skill_dir, *, skill_name=None, app_config=None)` 命中 CRITICAL 抛 `StaticScanBlockedError(findings, skill_name=...)`；其余 finding 只记 warning 并**原样返回**给调用方（交给 LLM 审核阶段）（`orchestrator.py:41,155-177`，锚 `tests/test_skillscan_native.py:201`）。

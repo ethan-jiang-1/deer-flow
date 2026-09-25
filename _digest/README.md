@@ -22,7 +22,7 @@ type: index
 | 🚀 部署和运维 | [operations/](operations/) | 安全、部署、追踪、IM 通道、IT 治理、API 参考 |
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化 |
-| 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程 |
+| 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程、机械校验器 `_digest/_upstream-sync/tools/check_digest.py` |
 
 ## 目录结构
 

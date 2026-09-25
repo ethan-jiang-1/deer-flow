@@ -15,7 +15,7 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 
 | 文件 | 用途 | 生成方式 |
 |------|------|----------|
-| `config.yaml` | 主配置（2900+ 行） | `make config` 从 `config.example.yaml` 生成 |
+| `config.yaml` | 主配置（模板 `config.example.yaml` = **3021 行**） | `make config` 从 `config.example.yaml` 生成（**不**生成 `extensions_config.json`；Docker 路径由 `scripts/docker.sh:388-395` 补建） |
 | `extensions_config.json` | 扩展配置 | 从 `extensions_config.example.json` 复制 |
 
 配置解析优先级：

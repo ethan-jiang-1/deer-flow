@@ -119,7 +119,12 @@ client.install_skill("/path/to/my-skill.skill")
 
 ```python
 memory = client.get_memory()
-# -> {"userContext": {...}, "history": {...}, "facts": [...]}
+# -> 文档形状由 memory.manager_class 的后端决定；默认 deermem 的兼容文档为
+#    {"version", "revision", "lastUpdated",
+#     "user": {"workContext", "personalContext", "topOfMind"},   # 各 {"summary", "updatedAt"}
+#     "history": {"recentMonths", "earlierContext", "longTermBackground"},
+#     "facts": [...]}
+# 源码：agents/memory/backends/deermem/deermem/core/storage.py:95-110
 
 client.reload_memory()          # 强制从文件重新加载
 

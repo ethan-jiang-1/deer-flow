@@ -178,7 +178,7 @@ def sanitize_log_param(value: str) -> str:
 | **Features** | `GET /api/features` | Config-gated feature flags（`agents_api`/`browser_control`/`mcp_tasks`/`subagent_batches`）供前端门控 |
 | **Console** | `GET /api/console/stats`, `/runs`, `/usage` | 跨 thread 可观测性面板（需 SQL backend） |
 | **Input Polish** | `POST /api/input-polish` | Composer 草稿润色（一次性 LLM，不创建 run） |
-| **Channel Connections** | `GET/POST/DELETE /api/channels/*` | 用户绑定的 IM channel 连接管理 |
+| **Channel Connections** | `GET /api/channels/providers`、`GET /api/channels/connections`、`POST /api/channels/{provider}/connect`、`DELETE /api/channels/connections/{id}`、`GET/POST/DELETE /api/channels/{provider}/runtime-config` | 用户绑定的 IM channel 连接管理；runtime-config 三个端点是 admin-only（与 `channels.py` 共用 `/api/channels` 前缀） |
 | **OIDC Auth** | `GET /api/v1/auth/oauth/{provider}`, `GET /api/v1/auth/callback/{provider}` | OIDC/SSO authorization code flow + session 管理 |
 | **GitHub Webhooks** | `POST /api/webhooks/github` | HMAC 验证的 GitHub event 接收 |
 | **Thread Branches** | `POST /api/threads/{id}/branches` | 从 checkpoint 分支创建新 main thread |
@@ -204,6 +204,46 @@ def sanitize_log_param(value: str) -> str:
 | **Readiness** | `GET /health/ready` | 公开无认证探针，探测 Gateway 实际使用的持久化（DB bootstrap 状态）——`make up` 就绪等待用它 |
 
 其他 rc0 Gateway 行为：**idempotent thread runs**（同 run key 重试不重复执行）、**paginated thread run history**（`thread_runs.py` 大改，migration `0023_run_change_seq` 支持稳定分页游标）、renamed thread title 全端同步。
+
+### Router 全表核对（v2.1.0，31 个 router 文件）
+
+上两张表只列「2.x 新增」的 router。下面对 `app/gateway/routers/` 的**全部 31 个文件**逐行核对；每条 `(方法, 路径)` 的穷举清单、鉴权与状态码见 [01-api-reference.md](01-api-reference.md#1-端点总览v210-穷举)（共 **180** 条）。
+
+| # | Router 文件 | 端点组（前缀 + 数量） | 关键点 | 此前是否已覆盖 |
+|---|------------|---------------------|--------|---------------|
+| 1 | `models.py` | `/api/models`（2） | 模型目录；`GET /{name}` 做 `model:use` 授权，fail-closed **403** | ❌ 本次补 |
+| 2 | `features.py` | `/api/features`（1） | 前端能力门控（`agents_api`/`browser_control`/`mcp_tasks`/`subagent_batches`/`conversation_references`） | ✅ |
+| 3 | `console.py` | `/api/console/*`（3） | 跨 thread 可观测性；无 SQL backend **503** | ✅ |
+| 4 | `mcp.py` | `/api/mcp/config`、`/config/server(s)`、`/cache/reset`（7） | 全部 admin-only（**403**）；配置非法 **400** | ⚠️ 只提 PATCH |
+| 5 | `mcp_tasks.py` | `/api/threads/{id}/mcp-tasks`（3） | owner-scoped 只读 + cancel；worker 未运行 **503** | ✅ |
+| 6 | `memory.py` | `/api/memory`、`/reload`、`/config`、`/status`、`/export`、`/import`、`/facts`（10） | 后端不支持 **501**；并发冲突 **409** | ⚠️ 只提 4 条 |
+| 7 | `skills.py` | `/api/skills`、`/custom/*`、`/install[/upload]`、`/reload`（14） | 管理端点 admin-only；扫描阻断 **400**；包体超限 **413** | ⚠️ 部分 |
+| 8 | `integrations.py` | `/api/integrations/lark/*`（7） | 写操作 admin-only；`GET /status` 对非 admin 只脱敏；CLI 超时 **504** | ❌ 本次补 |
+| 9 | `artifacts.py` | `/api/threads/{id}/artifacts/{path}`（2） | 编辑受 412/413/415；读取支持 `Range` **206/416** | ⚠️ 部分 |
+| 10 | `assistants_compat.py` | `/api/assistants/*`（4） | LangGraph Platform SDK 兼容 stub | ❌ 本次补 |
+| 11 | `browser.py` | `/api/threads/{id}/browser/navigate`（1）+ `WS .../browser/stream` | 受 `browser_control` 门控；未启用 **404**，依赖缺失 **501**，失败 **502** | ❌ 本次补 |
+| 12 | `uploads.py` | `/api/threads/{id}/uploads`（4） | 413 三个来源（文件数/单文件/总量） | ⚠️ 部分 |
+| 13 | `threads.py` | `/api/threads`、`/{id}`、`/{id}/state`、`/{id}/goal`、`/{id}/history`、`/{id}/branches`、`/{id}/compact`、`/{id}/move`、`/search`（14） | run 在跑统一 **409**；checkpoint 模式不匹配 **409**/切换中 **503** | ⚠️ 部分 |
+| 14 | `thread_runs.py` | `/api/threads/{id}/runs*`、`/messages*`、`/token-usage`（20） | 幂等键 **409**、策略不支持 **501**、GET stream `action` **405**、归档 **413/429/503** | ⚠️ 部分 |
+| 15 | `runs.py` | `/api/runs/stream`、`/api/runs/wait`、`/{id}/messages`、`/{id}/feedback`（4） | stateless；强制 `runs:create` | ⚠️ 部分 |
+| 16 | `feedback.py` | `/api/threads/{id}/runs/{rid}/feedback`（6） | rating 非法 **400**；run/反馈不存在 **404** | ✅ |
+| 17 | `suggestions.py` | `/api/suggestions/config`、`/api/threads/{id}/suggestions`（2） | 生成失败**静默降级**为空数组 | ⚠️ 部分 |
+| 18 | `input_polish.py` | `/api/input-polish`（1） | LLM 失败 **503** | ✅ |
+| 19 | `agents.py` | `/api/agents*`、`/api/user-profile`（8） | `agents_api.enabled` 关闭 **403**；已存在 **409**；未知 model **422** | ❌ 本次补 |
+| 20 | `scheduled_tasks.py` | `/api/scheduled-tasks*`、`/api/threads/{id}/scheduled-tasks`（11） | `_ensure_task_mutable` **409**；派发失败 **502** | ❌ 本次补 |
+| 21 | `projects.py` | `/api/projects*`（9） | 缺失/他人/已归档统一 **404** | ✅ |
+| 22 | `project_documents.py` | `/api/projects/{id}/documents*`（6） | 归档项目上架 **404**；内容缺失 **409**；超限 **413** | ✅ |
+| 23 | `project_thread_files.py` | `/api/projects/{id}/thread-files`（1） | `projects:read` + `threads:read` | ⚠️ 只提一句 |
+| 24 | `trash.py` | `/api/trash/*`（4） | 文件清理失败 **500**（行留回收站可重试） | ✅ |
+| 25 | `user_preferences.py` | `/api/v1/auth/preferences`（2） | 仅 session（PAT/内部 **403**）；账号切换 **409** | ✅ |
+| 26 | `channel_connections.py` | `/api/channels/providers`、`/api/channels/connections`、`/{provider}/connect`、`/{provider}/runtime-config`（6） | 连接码超限 **429**；503 在 read 路径被刻意吞掉降级 | ✅ |
+| 27 | `channels.py` | `/api/channels/`、`/{name}/restart`（2） | service 未运行 **503**；restart admin-only | ❌ 本次补 |
+| 28 | `auth.py` | `/api/v1/auth/*`（13） | 登录/注册/OIDC 公开；PAT 管理要 session；登录锁定 **429**；OIDC discovery 失败 **502** | ⚠️ 部分（OIDC/PAT） |
+| 29 | `github_webhooks.py` | `/api/webhooks/github`（1） | HMAC 失败 **401**；未配置 secret 时**不挂载 → 404** | ✅ |
+| 30 | `subagents.py` | `/api/subagents*`（4） | 名称保留/已存在 **409**；未知 model **422** | ✅ |
+| 31 | `subagent_batches.py` | `/api/threads/{id}/subagent-batches*`（8） | worker 未运行 **503**；retry 非 failed **409** | ✅ |
+
+非 `routers/` 的入口：`GET /health`、`GET /health/ready`（`app.py:981/990`）与 `WS /api/threads/{id}/browser/stream`（`browser.py:206`）。
 
 ### 🆕 v2.1.0 补丁版变更（同步 #7，upstream #5535 / #5517）
 

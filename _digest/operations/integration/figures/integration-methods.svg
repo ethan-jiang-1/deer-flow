@@ -112,7 +112,7 @@
   <text x="120" y="558" fill="#e2e8f0" font-size="12">localhost:2026</text>
 
   <text x="50" y="578" fill="#94a3b8" font-size="12">格式</text>
-  <text x="120" y="578" fill="#e2e8f0" font-size="12">完整 4 服务栈 (Nginx+FE+GW+Provisioner)</text>
+  <text x="120" y="578" fill="#e2e8f0" font-size="12">5 服务栈 (FE/GW/Nginx/Redis/Prov 可选)</text>
 
   <text x="50" y="598" fill="#94a3b8" font-size="12">语言</text>
   <text x="120" y="598" fill="#10b981" font-size="12">任何语言（HTTP 客户端）</text>
@@ -139,7 +139,7 @@
   <text x="880" y="558" fill="#e2e8f0" font-size="12">出站连接，无需公网 IP</text>
 
   <text x="810" y="578" fill="#94a3b8" font-size="12">格式</text>
-  <text x="880" y="578" fill="#e2e8f0" font-size="12">飞书/Slack/Telegram/WeChat/DingTalk/Discord</text>
+  <text x="880" y="578" fill="#e2e8f0" font-size="12">飞书/Slack/Telegram/Discord/钉钉/WeCom/微信/Buzz</text>
 
   <text x="810" y="598" fill="#94a3b8" font-size="12">语言</text>
   <text x="880" y="598" fill="#10b981" font-size="12">任何语言（IM SDK）</text>

@@ -15,7 +15,7 @@ DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、�
 | **几个配置文件？** | 两个 — `config.yaml`（AppConfig；`config.example.yaml` 里实际启用 38 个顶层键，另有 `plugins:` 等注释示例段）+ `extensions_config.json`（MCP servers + skills state + middlewares） |
 | **改 config.yaml 要重启吗？** | 分两半 — database/sandbox/channels 等基础设施字段要重启，model/tool/memory/prompt 等策略字段实时生效 |
 | **env var 怎么解析？** | `$VAR` → `os.getenv()`。AppConfig 严格模式（缺了就报错），ExtensionsConfig 宽松模式（缺了存空串） |
-| **配置优先级？** | 显式传参 > 环境变量 > 项目根目录 > legacy backend/ |
+| **配置优先级？** | 显式传参 > 环境变量 > project root（`DEER_FLOW_PROJECT_ROOT` 否则 cwd）> legacy `backend/` → `repo_root/`（`config/runtime_paths.py:7-16`、`config/app_config.py:156-160`） |
 | **怎么加载自定义 tool/model？** | `resolve_variable("module.path:name", BaseTool)` — 动态 import + type check |
 | **subagent 怎么覆盖配置？** | 三层 override: builtin defaults → config.yaml 全局 → per-agent overrides |
 
@@ -71,10 +71,10 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 |---|---|---|
 | 数据格式 | YAML → `AppConfig` (Pydantic) | JSON → `ExtensionsConfig` |
 | 必须存在 | ✓ 找不到报错 | ✗ 找不到返回空配置 |
-| 缓存策略 | mtime 自动 reload | 懒加载，无自动 reload |
+| 缓存策略 | `(mtime, size, sha256)` 内容指纹自动 reload | 懒加载，无自动 reload |
 | env var 缺失 | `raise ValueError` | 存空字符串 `""` |
 | 热更新 | 仅策略字段 | 需手动 `reload_extensions_config()` |
-| MCP cache | — | 独立 mtime 失效 (mcp/cache.py) |
+| MCP cache | — | 独立 `(mtime, size, sha256)` 失效 (`mcp/cache.py:15`) |
 
 两套文件的汇合点在 `get_available_tools()` 和 `make_lead_agent()`：
 - `config.yaml` → tool 列表（`resolve_variable` 解析）+ subagent 配置 + model 配置
@@ -98,9 +98,10 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ```
 ① 显式传参 config_path
-② DEER_FLOW_CONFIG_PATH 环境变量
-③ 项目根目录 config.yaml（最常用）
-④ legacy: backend/config.yaml → repo_root/config.yaml
+② DEER_FLOW_CONFIG_PATH 环境变量（设了但文件不存在 → FileNotFoundError，不回落搜索）
+③ project_root()/config.yaml（最常用）
+     project_root() = DEER_FLOW_PROJECT_ROOT（须为存在的目录）否则 cwd   # runtime_paths.py:7-16
+④ legacy: backend/config.yaml → repo_root/config.yaml                  # app_config.py:156-160
 ```
 
 ### extensions_config.json (`extensions_config.py:419`)

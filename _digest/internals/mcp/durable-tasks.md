@@ -16,7 +16,7 @@ MCP 服务器暴露的"提交 → 轮询 → 取结果"类工具（典型如 Ope
 
 - `deerflow/mcp/tasks/driver.py` (36 行) — `McpTaskDriver` 协议 + `McpTaskDriverRegistry`
 - `deerflow/mcp/tasks/models.py` (146 行) — 协议中立状态机、快照、任务引用
-- `deerflow/mcp/tasks/ordinary.py` (213 行) — 唯一内置 driver：普通 submit/status/cancel 三工具契约
+- `deerflow/mcp/tasks/ordinary.py` (218 行，v2.1.0 实测) — 唯一内置 driver：普通 submit/status/cancel 三工具契约
 - `deerflow/mcp/tasks/runtime.py` (124 行) — 进程内桥：`McpTaskSubmitter` 协议 + 启动快照冻结
 - `deerflow/mcp/task_tool_caller.py` (267 行) — 按精确名调用原始 MCP 工具、复用 stdio 会话
 - `deerflow/mcp/tools.py` (`_configure_task_tools_for_server`) — 隐藏 status/cancel、替换 submit 包装器
