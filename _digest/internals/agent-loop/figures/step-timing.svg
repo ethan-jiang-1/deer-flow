@@ -54,7 +54,7 @@
 
   <!-- Step 3 -->
   <rect x="590" y="150" width="250" height="26" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
-  <text x="715" y="168" text-anchor="middle" fill="#cbd5e1" font-size="8">3. agent_factory(config) → 构造 graph + 18 middleware</text>
+  <text x="715" y="168" text-anchor="middle" fill="#cbd5e1" font-size="8">3. agent_factory(config) → 构造 graph + 37 middleware</text>
 
   <!-- Step 4+5 -->
   <rect x="60" y="186" width="200" height="26" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
@@ -83,7 +83,7 @@
   <!-- before_agent hooks -->
   <rect x="100" y="280" width="740" height="34" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
   <text x="120" y="302" fill="#60a5fa" font-size="9" font-weight="bold">before_agent hooks</text>
-  <text x="270" y="302" fill="#94a3b8" font-size="8">18 条 middleware 逐个执行 before_agent (正向 1→18)  ·  每 run 仅一次</text>
+  <text x="270" y="302" fill="#94a3b8" font-size="8">各 middleware 的 before_agent hook（9 条实现，正向链 1→37）· 每 run 仅一次</text>
   <line x1="470" y1="314" x2="470" y2="332" stroke="#3b82f6" stroke-width="1.2" marker-end="url(#arrowDownBlue)"/>
 
   <!-- ========== ONE CYCLE ========== -->
@@ -94,13 +94,13 @@
   <!-- before_model -->
   <rect x="160" y="362" width="620" height="28" rx="4" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.8"/>
   <text x="180" y="381" fill="#4ade80" font-size="9" font-weight="bold">before_model hooks</text>
-  <text x="340" y="381" fill="#94a3b8" font-size="8">正向 1→18  ·  3-5 middleware 在此 hook：DynamicContext 注入日期记忆、Summarization 裁剪历史</text>
+  <text x="340" y="381" fill="#94a3b8" font-size="8">正向 1→37  ·  4 条 middleware 在此 hook：DynamicContext 注入日期记忆、Summarization 裁剪历史</text>
   <line x1="470" y1="390" x2="470" y2="406" stroke="#22c55e" stroke-width="1" marker-end="url(#arrowDownGreen)"/>
 
   <!-- wrap_model_call onion -->
   <rect x="160" y="410" width="620" height="40" rx="4" fill="#2a1a00" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,2"/>
   <text x="180" y="428" fill="#fbbf24" font-size="9" font-weight="bold">wrap_model_call 洋葱</text>
-  <text x="340" y="428" fill="#94a3b8" font-size="8">m1.wrap(m2.wrap(m3.wrap( ... m18.wrap(</text>
+  <text x="340" y="428" fill="#94a3b8" font-size="8">m1.wrap(m2.wrap(m3.wrap( ... m37.wrap(</text>
   <text x="642" y="428" fill="#f59e0b" font-size="8" font-weight="bold">LLM.call()</text>
   <text x="730" y="428" fill="#94a3b8" font-size="8">)...)))  内联嵌套，不是 graph node</text>
   <line x1="470" y1="450" x2="470" y2="466" stroke="#f59e0b" stroke-width="1" marker-end="url(#arrowDownOrange)"/>
@@ -108,7 +108,7 @@
   <!-- after_model -->
   <rect x="160" y="470" width="620" height="28" rx="4" fill="#2a0010" stroke="#ef4444" stroke-width="0.8"/>
   <text x="180" y="489" fill="#fca5a5" font-size="9" font-weight="bold">after_model hooks</text>
-  <text x="340" y="489" fill="#94a3b8" font-size="8">反向 18→1  ·  LoopDetection 检测重复调用、SubagentLimit 截断超限、Safety 处理 provider 拒绝</text>
+  <text x="340" y="489" fill="#94a3b8" font-size="8">反向 37→1  ·  LoopDetection 检测重复调用、SubagentLimit 截断超限、Safety 处理 provider 拒绝</text>
 
   <!-- branch point -->
   <line x1="470" y1="498" x2="470" y2="520" stroke="#64748b" stroke-width="1"/>

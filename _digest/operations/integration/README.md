@@ -14,5 +14,5 @@ type: index
 |------|------|
 | `01-overview.md` | 总览：4 种集成手段对比 + 决策树 + 最小示例 |
 | `02-api-reference.md` | 完整 HTTP API 端点详解 + SSE 流式协议 |
-| `03-docker.md` | Docker 部署：compose 结构、4 个服务 |
-| `04-im-channels.md` | IM 频道集成：7 个平台 |
+| `03-docker.md` | Docker 部署：compose 结构、5 个服务（redis/nginx/frontend/gateway/provisioner） |
+| `04-im-channels.md` | IM 频道集成：8 个聊天平台 + GitHub webhook 通道 |

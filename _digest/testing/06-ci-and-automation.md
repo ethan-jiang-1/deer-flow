@@ -13,11 +13,27 @@ topics: [testing, ci, automation, github-actions, isolation]
 ```yaml
 name: Unit Tests
 on:
+  push:
+    branches: [ 'main', '*-dev' ]
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
-  test:
+  default-install-collection:   # 证明文档里的 contributor 路径（uv sync --group dev，不带 extra）能收集全量测试
+    if: github.event.pull_request.draft == false    # 两个 job 都跳过 draft PR
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with: { python-version: '3.12' }
+      - uses: astral-sh/setup-uv@v7
+        with: { version: "0.11.1" }   # 与 backend/Dockerfile 的 UV_IMAGE 同版本，由 test_ci_uv_version_pin.py 钉住
+      - run: uv sync --group dev
+      - run: uv run pytest --collect-only -q
+
+  backend-unit-tests:
+    if: github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -25,14 +41,16 @@ jobs:
       matrix:
         shard: [1, 2, 3, 4]     # 🆕 后端单测拆 4 个并行分片（#5137）
     services:
-      postgres: ...
+      postgres: ...             # postgres:17
+      redis: ...                # redis:7-alpine
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with: { python-version: '3.12' }
-      - run: pip install uv
-      - run: cd backend && uv sync --group dev --extra postgres
-      - run: cd backend && make test-shard SPLITS=4 GROUP=${{ matrix.shard }}  # 🆕
+      - uses: astral-sh/setup-uv@v7
+        with: { version: "0.11.1" }
+      - run: uv sync --group dev --extra postgres   # working-directory: backend
+      - run: make test-shard SPLITS=4 GROUP=${{ matrix.shard }}  # 🆕 working-directory: backend
 ```
 
 三条关键规则：
@@ -70,7 +88,7 @@ jobs:
 
 - **动机**：release/dev 分支名带版本号，改成通配后新建 `2.1.x-dev`、未来 `2.2.x-dev` 等分支自动继承全部 push 门禁，不必再逐个 workflow 加分支名。
 - **例外**：`skill-review-ci.yml` 仍显式钉 `2.1.x-dev`（**有意为之**）——skill 审查与 waiver 的信任边界（见下节）需要精确控制生效分支，因此不跟随通配。
-- **未变**：`label-sync.yml`（`branches: [main]`）、`sandbox-image-smoke.yml`、`triage.yml`（`pull_request_target`）、`verify-versions.yml`（`workflow_call`）。
+- **未变**：`label-sync.yml`（`push.branches: [main]`）、`sandbox-network-proxy-image.yaml`（`push.branches: [main]`，只发布到 main）、`sandbox-image-smoke.yml`（根本没有 `push` 触发，只有 `workflow_dispatch` + `pull_request`）、`triage.yml`（`pull_request_target`）、`verify-versions.yml`（`workflow_call`）。
 
 ## 🆕 同步 #6：Skill review CI waivers 机制
 
@@ -85,6 +103,23 @@ jobs:
 **并行分片（#5137，同步 #6）**：unit tests 按 **4 个 shard** 跑（`matrix: shard: [1,2,3,4]`），分片不是随便均分——`make test-shard` 按 `backend/.test_durations` 里记录的**真实耗时**平衡各 shard（fail-fast 关闭，某个 shard 挂了仍完整报告该 shard 的测试）。
 
 **沙箱镜像冒烟（同步 #6 新增）**：`sandbox-image-smoke.yml` + `sandbox-network-proxy-image.yaml` 两个 workflow 把沙箱镜像的构建/拉起纳入 CI 验证。
+
+## 其他 workflow：lint / 前端 / 发行
+
+`.github/workflows/` 在 v2.1.0 共 16 个 workflow，上面的 sync 小节只覆盖了一部分。其余几个的触发与 job 内容：
+
+| workflow | 触发 | 内容 |
+|------|------|------|
+| `lint-check.yml` | `push.branches: ['main','*-dev']` + `pull_request`（`branches: ['*']`） | 3 个 job：`agent-guidance`（`python scripts/check_agent_guidance.py`——PR 传 `--base-ref/--head-ref`，push 传 `--before/--after`，都带 `--github-annotations`）· `lint-backend`（`uv lock --check` 后 `make lint` = `ruff check .` + `ruff format --check .`）· `lint-frontend`（`pnpm format` / `pnpm lint` / `pnpm typecheck` / `BETTER_AUTH_SECRET=local-dev-secret pnpm build`） |
+| `frontend-unit-tests.yml` | `push.branches: ['main','*-dev']` + 所有 PR | Node `24` + `corepack prepare pnpm@10.26.2 --activate` + `pnpm install --frozen-lockfile`，然后 `make test`（= `pnpm test` → rstest） |
+| `e2e-tests.yml` | `push.branches: ['main','*-dev']` + PR，`paths: frontend/**` | 同款 Node/pnpm 安装，`npx playwright install chromium --with-deps`，跑 `pnpm exec playwright test` 与 `-c playwright.auth.config.ts` 两套，上传 `playwright-report`（保留 7 天） |
+| `replay-e2e.yml` | `push.branches: ['main','*-dev']` + PR，`paths` 含 `frontend/**` 与 replay 相关后端文件 | 两个 job：`backend-replay-golden`（`uv run pytest tests/test_replay_golden.py -v`）与 `fullstack-replay-render`（真前端 + replay gateway + Chromium，`playwright.real-backend.config.ts`）；都不需要 API key |
+| `container.yaml` | `push.tags: ["v*"]` | 三个镜像（backend / frontend / provisioner）推 GHCR + build provenance attestation；backend 镜像 `build-args: UV_EXTRAS=postgres`；每个 job 都 `needs: verify-versions`，版本源漂移则整批不发布 |
+| `chart.yaml` | `push.tags: ["v*"]` + `pull_request`（`deploy/helm/deer-flow/**`、`config.example.yaml`、本文件、三个 check 脚本） | PR/tag 上跑 `validate-chart`（helm lint + template render + `check_chart_sandbox_service.sh` + `check_chart_skill_upload_size.sh` + `check_config_version.sh`）；tag 上再 `publish-chart` 推 OCI chart |
+| `verify-versions.yml` | `workflow_call`（**不可单独触发**） | 可复用 workflow：读出 tag 版本（`GITHUB_REF_NAME#v`）后调用 `scripts/verify_versions.sh "$TAG_VERSION"`；被 `container.yaml` 和 `chart.yaml` 在 `v*` tag 上调用 |
+| `lark-cli-images.yaml` | `workflow_dispatch`（输入 `lark_cli_version`）+ `push.tags: ["lark-cli-v*"]` | 发布两个 Lark sandbox 运行时镜像（Pattern A init / Pattern B broker）；跟随 `larksuite/cli` 版本而非 DeerFlow `v*`，因此**不**接 `verify-versions` |
+
+**版本号四处锁死**：`scripts/verify_versions.sh` 实际校验 **4 个值**——`deploy/helm/deer-flow/Chart.yaml` 的 `version` + `appVersion`、`backend/pyproject.toml` 的 `version`、`frontend/package.json` 的 `version`（无参数时要求四者互等；带参数时要求都等于该参数）。`scripts/bump_version.sh <version>` 一次改齐这四处并**自动回跑** `verify_versions.sh` 自检，但它刻意不碰 `CHANGELOG.md`、也不打 tag。v2.1.0 时四处都是 `2.1.0`。注意 `verify-versions` 只在 **tag 发布链路**上跑，普通 push/PR 不会校验版本一致。
 
 ## 为你的 DeerFlow 应用搭 CI
 
@@ -246,6 +281,8 @@ def test_agent_completes_within_timeout():
 | 🆕 Skill review CI | `.github/workflows/skill-review-ci.yml`（`push` 显式钉 `2.1.x-dev`，不用 `*-dev` 通配） |
 | 🆕 沙箱镜像验证 | `.github/workflows/sandbox-image-smoke.yml` + `sandbox-network-proxy-image.yaml` |
 | 🆕 Nightly build | `.github/workflows/nightly.yaml`（images + Helm chart） |
+| 发行镜像 / chart | `.github/workflows/container.yaml`、`.github/workflows/chart.yaml`、`.github/workflows/lark-cli-images.yaml` |
+| 版本一致性门禁 | `scripts/verify_versions.sh`（4 个值）+ `.github/workflows/verify-versions.yml`（`workflow_call`）+ `scripts/bump_version.sh` |
 | Makefile test 目标 | `backend/Makefile` |
 | conftest 全局 fixture | `backend/tests/conftest.py` |
 | e2e 环境隔离 fixture | `backend/tests/test_client_e2e.py` — `e2e_env` |

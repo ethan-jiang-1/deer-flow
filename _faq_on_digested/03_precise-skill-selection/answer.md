@@ -102,7 +102,7 @@ result = client.chat("执行长城任务", thread_id="task-001")
 
 ### `_digest/` 里已有的文档
 
-`_digest/integration/04-python-sdk.md` 已列出了全部 10 个 `__init__` 参数（在代码示例块中），但没有区分哪些可在 per-call 覆盖、哪些不能。**per-call kwargs 和 `__init__` 参数的不对称性是文档没有覆盖的。**
+`_digest/getting-started/03-python-sdk.md` 已列出了全部 10 个 `__init__` 参数（在代码示例块中），但没有区分哪些可在 per-call 覆盖、哪些不能。**per-call kwargs 和 `__init__` 参数的不对称性是文档没有覆盖的。**
 
 ### 为什么这很接近你的需求但还不够
 
@@ -180,7 +180,7 @@ def update_agent(
 ) -> Command:
 ```
 
-**但生效时机是下一个 turn**（见 `_digest/harness-hooks/08-agent-self-modification.md`）。当前 turn 继续用旧配置。
+**但生效时机是下一个 turn**（见 `_digest/internals/harness-hooks/08-agent-self-modification.md`）。当前 turn 继续用旧配置。
 
 ---
 
@@ -245,7 +245,7 @@ agent_name = validate_agent_name(cfg.get("agent_name"))
 ```
 Session 开始
   │
-  ├─ get_available_tools() → DeferredToolRegistry 注册所有 MCP tools
+  ├─ get_available_tools() → DeferredToolCatalog 注册所有 MCP tools
   │
   ├─ DeferredToolFilterMiddleware.wrap_model_call()
   │     → 从 bind_tools 中移除 deferred tool 的 schema
@@ -275,7 +275,7 @@ DeferredTool 模式解决的核心问题和你面对的问题**高度同构**：
 | ContextVar 隔离 per-request | 同样需要 per-request 隔离 |
 | `registry.promote()` 是确定性的 | 同样可以做到确定性选择 |
 
-**如果把 `DeferredToolRegistry` 模式套到 skill 上：**
+**如果把 `DeferredToolCatalog` 模式套到 skill 上：**
 
 > 🔄 同步 #6（v2.1.0-rc0）：这一设想已部分官方化——skill 侧的对应实现是 **deferred discovery**（`skills_config.skills.deferred_discovery`）：系统 prompt 只渲染 `<skill_index>` 名单，`describe_skill` 工具按需取详情；skill 搜索/排序由 `skills/catalog.py` 的 `_rank_by_intent`/`_intent_score` 字面 intent 排名承担（#5369），外部系统也可通过 `/skill-name` slash 激活（`skills/slash.py` + `SkillActivationMiddleware`）做确定性注入。详见 `_digest/concepts/skills-tools/skill-md-and-tool-assembly.md`。
 
@@ -369,13 +369,13 @@ if command == "task":
 
 ## 相关 digest 笔记
 
-- `_faq_on_digested/skill-selection-accuracy/` — Q1: skill 选取精度问题
-- `_faq_on_digested/command-skill-linkage/` — Q2: 任务 MD 与 skill 联动
-- `_digest/harness-hooks/04-agent-middleware-hooks.md` — DeferredToolFilterMiddleware 在 chain 中的位置
-- `_digest/harness-hooks/06-mcp-interceptors.md` — MCP 工具发现机制
-- `_digest/harness-hooks/07-context-config-override.md` — ContextVar 运行时覆盖 + 配置优先级
-- `_digest/harness-hooks/08-agent-self-modification.md` — `update_agent` 原子写入 + 生效时机
-- `_digest/middleware/03-catalog.md` — 完整 19 middleware 目录 + DeferredToolFilterMiddleware 位置
+- `_faq_on_digested/01_skill-selection-accuracy/` — Q1: skill 选取精度问题
+- `_faq_on_digested/02_command-skill-linkage/` — Q2: 任务 MD 与 skill 联动
+- `_digest/internals/harness-hooks/04-agent-middleware-hooks.md` — DeferredToolFilterMiddleware 在 chain 中的位置
+- `_digest/internals/harness-hooks/06-mcp-interceptors.md` — MCP 工具发现机制
+- `_digest/internals/harness-hooks/07-context-config-override.md` — ContextVar 运行时覆盖 + 配置优先级
+- `_digest/internals/harness-hooks/08-agent-self-modification.md` — `update_agent` 原子写入 + 生效时机
+- `_digest/internals/middleware/03-catalog.md` — 完整 37 middleware 目录 + DeferredToolFilterMiddleware 位置
 
 Sources:
 - DeerFlow 源码: `deerflow/client.py:179-194, 282-294, 296` — `DeerFlowClient.available_skills` 参数（v2.1.0 行号）
@@ -384,7 +384,7 @@ Sources:
 - DeerFlow 源码: `deerflow/agents/lead_agent/agent.py:219-225` — `_get_runtime_config()` 合并逻辑
 - DeerFlow 源码: `app/gateway/services.py:506-518, 611` — `_CONTEXT_CONFIGURABLE_KEYS` + `merge_run_context_overrides`
 - DeerFlow 源码: `app/gateway/services.py:866` — `build_run_config()`（v2.1.0-rc0 已重写，forward-all 行为收窄）
-- DeerFlow 源码: `deerflow/tools/builtins/tool_search.py` — `DeferredToolRegistry`（v2.1.0-rc0 重构：无 ContextVar，`select:`/`+` 搜索）
+- DeerFlow 源码: `deerflow/tools/builtins/tool_search.py` — `DeferredToolCatalog`（v2.1.0-rc0 重构：无 ContextVar，`select:`/`+` 搜索）
 - DeerFlow 源码: `deerflow/skills/catalog.py:76-96` — `_intent_score`/`_rank_by_intent` 字面 intent 排名（新增）
 - DeerFlow 源码: `deerflow/skills/slash.py` — slash skill 激活解析（新增）
 - DeerFlow 源码: `deerflow/agents/middlewares/deferred_tool_filter_middleware.py` — promote/filter 生命周期

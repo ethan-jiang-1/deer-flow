@@ -39,8 +39,9 @@ topics: [testing, ci, quality-assurance]
 | `test_get_memory_config` | `get_memory_config()` | `MemoryConfigResponse` |
 | `test_get_memory_status` | `get_memory_status()` | `MemoryStatusResponse` |
 | `test_upload_files` | `upload_files(...)` | `UploadResponse` |
+| `test_goal_methods` | `set_goal()` / `clear_goal()` | `ThreadGoalResponse` |
 
-共 10 个测试，覆盖所有 dict-returning client 方法。
+共 11 个测试，覆盖所有 dict-returning client 方法（`test_client.py:3540` 起）。
 
 ## 测试模式
 

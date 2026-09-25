@@ -30,11 +30,11 @@ RFC 体系（`backend/docs/rfc-*.md`）+ `docs/plans/` + `docs/pr-evidence/` 构
 
 文档明确声明"实验数字描述的是独立 replay 原型，不代表生产实现"——先划定证据边界再给结论。这种自我否定式写作对 agent 极友好：不需要反向工程"为什么不用 embedding"。
 
-`backend/scripts/benchmark/` 有 5 个常驻基准（checkpoint / concurrency / context_snapshot / deermem_eviction / sandbox），每个带 README + 结果文件 + 发布值校验测试（如 `test_bench_deermem_eviction_published_results.py`）——**基准结果也是被测试锁定的**。
+`backend/scripts/benchmark/` 有 5 个常驻基准（checkpoint / concurrency / context_snapshot / deermem_eviction / sandbox）。**形态并不统一**（v2.1.0 实测）：`context_snapshot/` 与 `deermem_eviction/` 带 README + 结果文件，其中 deermem 另有一整套发布值/契约/评分校验测试（`test_bench_deermem_eviction_published_results.py`、`_contracts`、`_grading`、`_policy`…，`backend/tests/` 下共 16 个 `test_bench_*.py`）；`checkpoint/` / `concurrency/` / `sandbox/` 是"bench 脚本 + summarize 脚本"形态，无独立 README/结果文件。**deermem 的基准结果确实被测试锁定**，不要把这句话推广到全部 5 个。
 
 ## 3. 测试工程
 
-- **迁移级测试**：每个 migration 配一个 `test_migration_00XX_*.py`（0017-0022 六个迁移全配齐），另有持久化前向兼容测试（`test_persistence_forward_revision_compat.py`）
+- **迁移级测试**：`0017–0025` 各 revision 基本都配 `test_migration_00XX_*.py`（v2.1.0 实测 13 个迁移测试文件；`0019_projects` 与 `0020_threads_meta_project_id` 合并为 `test_migration_0019_0020_projects.py`，`0023_user_preferences` 无独立测试；sync #7 新增 `test_migration_0025_repair_run_change_seq.py`），另有持久化前向兼容测试（`test_persistence_forward_revision_compat.py`）
 - **blocking_io 分离**：阻塞 I/O 测试独立成套（`make test-blocking-io`，#5105），默认套件不含——避免假阳性
 - **CI 分片**：backend unit tests 并行 shards（#5137）+ `.test_durations` 时长档案
 - **record/replay e2e**：外呼依赖录制回放（见 [testing/07-record-replay.md](../testing/07-record-replay.md)）

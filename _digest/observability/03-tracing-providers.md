@@ -46,3 +46,26 @@ Langfuse v4 只在 `on_chain_start(parent_run_id=None)` 时把 `RunnableConfig.m
 ## 共存
 
 Langfuse v4 与 Monocle 都基于 OTel——后初始化的复用已存在的 global `TracerProvider`，两边都不丢 span（有测试钉住）。LangSmith 是普通 callback，天然共存。设 `DEER_FLOW_ENV` 打环境标签，Langfuse UI 里按 tag 过滤。
+
+## 代码级契约（`tracing/` 三模块，v2.1.0 实测）
+
+包入口 `tracing/__init__.py` 只导出 4 个名字：`build_tracing_callbacks` / `build_langfuse_trace_metadata` / `inject_langfuse_metadata` / `setup_monocle_tracing_if_enabled`。三个模块分工明确：
+
+### `factory.py::build_tracing_callbacks()`（65 行）
+
+唯一的 callback 装配点（graph 根调用它）：
+
+1. 先 `validate_enabled_tracing_providers()` —— **凭证不全直接抛 `ValueError`**，不静默降级；
+2. `enabled_providers` 为空 → 返回 `[]`（LangSmith 本体没开时整条路径零开销）；
+3. 逐 provider 构造，**每家的构造异常被包成带 provider 名的 `RuntimeError`**（`LangSmith tracing initialization failed: …` / `Langfuse tracing initialization failed: …`），不会静默吞掉；
+4. Langfuse 的构造分两步：先用 `secret_key/public_key/host` 初始化 `Langfuse()` **客户端单例**（langfuse>=4 的凭证注入点），再把 `CallbackHandler(public_key=...)` 挂到该单例上——callback 本身不持密钥；
+5. **Monocle 不出现在返回的 callback 列表里**（它不是 callback provider）。若 `MONOCLE_TRACING` 开着但本进程没初始化过，这里只打一条 debug 提示，告诉 embedded/TUI 调用方要自己调 `setup_monocle_tracing_if_enabled()`。
+
+### `metadata.py`：两个入口 + 4 个保留键
+
+- `build_langfuse_trace_metadata(...)` **在 Langfuse 未启用时返回 `{}`**——所以调用方可以无条件 merge，不必自己判断 provider。返回的键就是 Langfuse v4 `_parse_langfuse_trace_attributes` 认识的那 4 个保留键（`langfuse_session_id` / `langfuse_user_id` / `langfuse_trace_name` / `langfuse_tags`），外加**总是**写入 `deerflow_trace_id`（来自 `resolve_trace_id()`，把 Langfuse trace 与日志行/`X-Trace-Id` 对上）。`user_id` 缺省回落 `DEFAULT_USER_ID`（no-auth 模式下 Users 页仍可用）；`langfuse_trace_name` 缺省 `"lead-agent"`；tags 只在有值时给出 `env:<…>` / `model:<…>`。
+- `inject_langfuse_metadata()` 是**就地 merge**（改 `config["metadata"]`），用 `setdefault` 让**调用方已提供的键优先**（外部系统可自行指定 `langfuse_session_id` 关联到外部 trace）。它被 `runtime/runs/worker.py` 与嵌入式 `client.py` **共用**，目的就是防止两条路径漂移；Langfuse 未启用时是 no-op。
+
+### `monocle.py`：一次性的进程级 setup
+
+`setup_monocle_tracing_if_enabled()` 用模块级 `_setup_completed` 标志保证**幂等**（返回 bool 表示是否真的执行了 setup），初始化时固定 `setup_monocle_telemetry(workflow_name="deer-flow", monocle_exporters_list=…)`；`is_monocle_setup_completed()` 供 `factory.py` 判断"要不要提示调用方自己初始化"。

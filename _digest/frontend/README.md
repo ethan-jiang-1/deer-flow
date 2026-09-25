@@ -26,7 +26,7 @@ Next.js 16 + React 19 + Tailwind CSS 4 构建的 Agent 工作台。核心挑战�
 
 > **同步 #6（431892e1..769589e8，v2.1.0-rc0）**：Capability Center 迁出 Settings（`/workspace/capabilities`）、Projects / Trash UI、conversation references picker、conversation outline、模型收藏、账号偏好跨浏览器同步、`message-order.ts`/`stream-state.ts` 排序重构、Artifacts 表格预览（Worker）/ zip 下载。各文件的 🆕 段落覆盖全部要点。
 
-> **同步 v2.1.0（769589e8..345f08be）**：本轮 10 个上游 commit 中与 frontend 相关的实质变更只有两处 —— ① Projects 侧栏分组模式下嵌套 `SidebarMenu` 的 kebab 裁切修复（#5681 → #5682）；② `src/content/{en,zh}/harness/` 的 `subagents/`（11 页）与 `extensions/`（10 页）双语手册重构与新增。分别见 [04-workspace-layout.md](./04-workspace-layout.md)、[06-architecture.md](./06-architecture.md)。
+> **同步 v2.1.0（769589e8..345f08be）**：本轮 10 个上游 commit 中与 frontend 相关的实质变更只有两处 —— ① Projects 侧栏分组模式下嵌套 `SidebarMenu` 的 kebab 裁切修复（#5681 → #5682）；② `src/content/{en,zh}/harness/` 的 `subagents/`（11 页）与 `extensions/`（10 页）双语手册重构与新增。分别见 [04-workspace-layout.md](./04-workspace-layout.md)、[06-architecture.md](./06-architecture.md)。（另：`frontend/package.json` 的 `version` 在 `345f08be` 由 `2.1.0-rc0` bump 到 `2.1.0`，依赖与 scripts 无变动。）
 
 ## 关键问题
 

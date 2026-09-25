@@ -24,6 +24,25 @@ type: index
 | **影响的 digest** | `internals/persistence/db-checkpointer-store-backends.md`（迁移链 0001→0025、模型注册、两个 `delete_by_thread`、新增 #7 小节）、`internals/runtime/{README,01-run-manager,05-run-ownership-and-rollback}.md`（reservation + 删除清理 + 不 bump clock）、`observability/02-run-events-and-journal.md`（mutation fence + 删除签名）、`operations/app-layer/{00-overview,01-api-reference}.md` + `operations/integration/02-api-reference.md`（DELETE 契约）、`testing/06-ci-and-automation.md`（`*-dev` 触发）、`frontend/{04-workspace-layout,06-architecture,README}.md`（kebab 约束 + content 手册）、`harness-engineering/01-agent-docs-system.md`（AGENTS 计数/预算/行号漂移案例）、`harness/08-deerflow-audit.md`（根 AGENTS 行号引用校正）、`internals/harness-hooks/09-packaged-extensions.md`（贡献类型措辞漂移 + run evidence 脱敏口径）、`_faq_on_digested/`（14 处基线标注 rc0→v2.1.0 + README 追加 #7 说明） |
 | **备注** | 本轮首次出现「tag 与 main 分叉」，同步流程本身被改写成先判分支（见 SYNC.md）。用户要求：`_digest/` 与 `_faq_on_digested/` 是源码消化的产物，源码增删改都要反映——本轮因此连**文档侧**漂移（上游 AGENTS.md 措辞、行号位移、AGENTS 数量/大小）也一并校正。更新计划见 UPDATE_PLAN_7.md。 |
 
+### #7 第二轮：源码 → digest 反向核对（同日追加）
+
+第一轮跟着 diff 走，第二轮**从 v2.1.0 源码出发**独立扫描，专找"新的 / 变的 / 少的"三类问题（10 路并行 + 机械脚本：路径存在性、文件行数、`file:line` 越界、死链、环境变量名、CamelCase 类名、依赖版本 pin、重复文档）。
+
+主要发现（都是 **rc0 甚至更早**的遗留漂移，与 v2.1.0 的 10 个 commit 无因果关系）：
+
+- **旧符号**：`DeferredToolRegistry`→`DeferredToolCatalog`；`InMemoryStreamBridge`→`MemoryStreamBridge`；`_build_middlewares`→`build_middlewares`（含 3 张 SVG）；`deerflow/auth/internal_token.py`→`app/gateway/internal_auth.py`；`langgraph_runtime.py`→`deps.py::langgraph_runtime()`。
+- **不存在的变量**：`DEER_FLOW_AUTH_ENABLED`（真值：认证默认开启，`DEER_FLOW_AUTH_DISABLED=1` 才关闭）；compose 文档的 `DATABASE_BACKEND`/`POSTGRES_URI`（真值 `database.backend` + `database.postgres_url`）。
+- **远古架构**：`operations/deployment/01-docker.md` 整篇（`langgraph` 服务 + postgres 服务 + `:8000`）按 `docker/docker-compose.yaml` 重写；`operations/integration/03-docker.md` 同类；`getting-started/04-local-dev.md` 的 4 进程拓扑（实为 3 服务）；`testing/06` 的 workflow 样例。
+- **计数过期**：ORM 表 6→**22**、middleware 18/19→**37**、测试文件 704/194→**738**、workflow 6→**16**、IM 平台 7→**8 + GitHub**、仓库行数十余处（`runs/manager.py` 655→**2424**、`journal.py` 572→**1300**…）。
+- **覆盖缺口已补写**：`contracts/run_event_stream_contract.json` → observability 新增「冻结契约」小节（并把 `known_gaps` 6 条写全）；`contracts/{slash_skill,subagent_status,skill_review}`；persistence 的 `create_thread_operation_atomic`/`reserve_checkpoint_write` 落点；runtime 读取契约分页边界；middleware hook 表按 AST 重建（删除不存在的 `after_tool`）。
+- **方法论结论**：跟随 diff 的同步会漏掉"未被 diff 触碰但已过期"的内容，**必须保留"源码→digest"这个方向的独立扫描**；机械脚本能覆盖的维度现已归零或只剩已声明例外。详见 UPDATE_PLAN_7.md「第二轮」。
+
+**第三批：按"源码有、digest 没有"补写覆盖缺口**（不跟 diff，从模块清单出发；新建 4 篇 + 追加十余处）：
+
+- 新建：`internals/persistence/checkpoint-dual-mode-and-history-cache.md`（full/delta 表示、进程冻结、fail-closed 门、`CachedHistorySaver`、state schema 适配）、`concepts/skills-tools/skill-review-core.md`（`skills/review/` 三管线与三个 JSON 契约）、`concepts/memory/manager-contract-and-backend-clients.md`（MemoryManager ABC / `get_memory_tools` / summarization hook / 5 个后端 client 的初始化与失败模式）、`concepts/skills-tools/README.md`（目录索引）。
+- 追加：Store 工厂、`postgres_schema` 双驱动固定、**Redis StreamBridge + `StreamGap`**（旧后端表本身写错）、对外 stream mode 词表、MiMo/StepFun 适配器 + `assistant_payload_replay`、`STARTUP_ONLY_FIELDS` 18 条单一来源、宿主侧组装投影/通知循环/anchors/run-evidence cursor scope、7 个缺失配置段（`llm_call`/`run_ownership`/`dedupe_storage`/`agent_storage`/`skill_scan`/`suggestions`/`input_polish`）、手动压缩宿主契约、scheduler 投影与领域异常、四类仓储契约（scheduled / channel connections + cipher / PAT / subagent batch）、tracing 三模块、extension-api `placement`/`state`/`runtime_bridge`、异常→HTTP 映射表、SQL 版 channel↔thread 映射。
+- **源码现状发现（非文档错误，按事实记录）**：`ChannelCredentialCipher` 已实现、`channel_credentials` 表已建，但生产构造点不传 `cipher` → 生产路径 `get_credentials()` 恒 `None`、`store_credentials()` 抛 `RuntimeError`（"已建表、已实现、尚未接线"）；已写入 `operations/channels/05-user-connections.md` 与 `operations/security/05-production-auth-setup.md`。
+
 ---
 
 ## #6 — 2026-09-21（同步）

@@ -159,6 +159,56 @@ cron 任务:
 - **每个 occurrence 独立 trace scope**：poller 是非 HTTP 入口，没有 TraceMiddleware——`_launch_queued_occurrence` 外包一层 `ensure_trace_context()`（#5119），每个 occurrence 有自己的 trace id 而不是共享整个 poll cycle；手动触发在 Gateway 请求内，保留请求的 trace。
 - 对应测试：`test_scheduler_completion_atomicity.py`、`test_scheduler_completion_consistency.py`（947 行）、`test_scheduled_occurrence_sequence.py`、`test_migration_0022_scheduled_occurrence_seq.py`。
 
+## 仓储层契约（投影 / 异常 / 关键 API）
+
+服务层（`app/scheduler/service.py`）与路由只依赖两个仓储的返回字典和领域异常，SQL 细节不向上泄漏。上文的队列/租约/预算语义是**行为**层；这一节记录**仓储 API 与异常**这一层。
+
+### 父投影：`projection.py`
+
+`deerflow/persistence/scheduled_task_runs/projection.py` 两个纯函数，**必须在持有父任务行锁的同一事务内调用**，自身不 commit（`projection.py:1` docstring）：
+
+| 函数 | 精确语义 | 谁调用 |
+|------|----------|--------|
+| `can_project(task, occurrence)`（`projection.py:14`） | occurrence 是否有资格写父任务的"当前投影"（`last_run_at`/`last_run_id`/`last_thread_id`/`next_run_at`/`status`/`last_error`）。`occurrence_seq is None` → 仅当 `task.last_occurrence_seq == 0` 返回 True：**未序号化的历史行只在任务完全没有序号化历史时才有投影权**（调用方时钟无法排序）；有 `occurrence_seq` → 要求 `occurrence_seq == task.last_occurrence_seq`，即只有该任务最新一次 admission 能投影。 | `scheduled_tasks/sql.py:379`（`release_queued_admission_lease`）、`:438`（`update_after_launch`）、`:490`（`complete_run`）、`:693`（`cancel_stuck_once_tasks`）、`:762`（`reconcile_stuck_once_tasks`）；`scheduled_task_runs/sql.py:112`（`_associate_task_with_run`）、`:445`（`expire_queued_runs`）、`:498`（`fail_launching_run`） |
+| `account_launch(task, occurrence, run_id)`（`projection.py:21`） | launch 记账，返回是否真的 `run_count += 1`。**记账与投影资格解耦**：`can_project` 为 False 的 stale occurrence 仍会记账（`scheduled_tasks/sql.py:434-440` 先记账、后判投影）。`launch_accounted is True` → 返回 False 不重复计数；`launch_accounted is None`（migration 0022 前的历史行）走**一次性 legacy 修复**：若 `task.last_run_id == run_id`，只把标志置 True 而**不**计数（旧的 `last_run_id` 推断已计过），否则计数；随后 `flag_modified(task, "updated_at")` **只标记脏、不改时间戳值**——stale occurrence 可以改计数，但不能改当前投影的时间戳。 | `scheduled_task_runs/sql.py:111`（`_associate_task_with_run`）、`scheduled_tasks/sql.py:436`（`update_after_launch`）、`:489`（`complete_run`） |
+
+新 occurrence 一律以 `launch_accounted=False` 落库（`scheduled_task_runs/sql.py:169`），只有 migration 0022 迁移过来的历史行是 NULL。
+
+### 领域异常与翻译
+
+| 异常 | 定义 | 抛出条件 | 调用方如何翻译 |
+|------|------|----------|----------------|
+| `ActiveScheduledRunConflict(task_id)` | `scheduled_task_runs/sql.py:36` | `ScheduledTaskRunRepository.create()` 中，**仅当 `coordinate_with_task=True`**：(a) 持有父行锁后主动查询发现该任务已有 `queued`/`launching`/`running` occurrence（`:191-201`，先于唯一索引报错的协调检查）；(b) INSERT commit 抛 `IntegrityError` 回滚后**复查**，只有"本次 status 属 active **且**任务确有 active 行"才翻译成它（`:219-228`），否则原样 re-raise——主键/序号冲突不等于活跃槽冲突。唯一索引 `uq_scheduled_task_run_active` 是 DB 兜底，直接调仓储的 legacy 交错得到同一异常。 | `service.py:178` 重读 `get_active_run()`；scheduled 触发额外 `_release_admission_lease()`（`release_dispatch_lease(status="enabled")`）；重读仍无活跃行 → `_active_run_conflict_result`（`outcome="conflict"`）→ 路由 **409**；有活跃行 → `_existing_active_result`：`queued` → `outcome="queued"`（HTTP 200 `triggered:true`，run 入队），`launching`/`running` → 409（`service.py:443-466`、`routers/scheduled_tasks.py:451-457`） |
+| `ScheduledTaskAdmissionRejected(task_id, reason=...)` | `scheduled_task_runs/sql.py:50` | 同样要求 `coordinate_with_task=True`，在父行锁下校验调用方拿到的任务快照：`reason="not_found"`——任务行不存在，或 `expected_task_user_id` 不匹配（`:177-179`）；`reason="stale"`——`expected_task_lease_owner` 已给且 `task.lease_owner` 不符（`:180-183`），或 `expected_task_status` 不符（`:185-187`），或 `coerce_iso(task.updated_at)` 与 `expected_task_updated_at` 不一致（`:188-190`）。手动触发传 status/updated_at 快照，scheduled 触发传 `lease_owner`（`service.py:172-176`）。 | `service.py:185`：`not_found` → `outcome="not_found"` → 路由 **404**；其余（stale）→ `outcome="conflict"` → **409**「scheduled task changed before trigger admission」（`service.py:186-200`） |
+| `ActiveScheduledTaskMutationConflict(status)` | `scheduled_tasks/sql.py:23` | `ScheduledTaskRepository.update(..., require_mutable=True)`（`:244`）在父行锁下：`task.status == "running"`（`:257-259`）或任一 active occurrence 存在（`:260-270`）时抛出。 | 路由直接捕获并返回 409，detail 由 `_active_occurrence_conflict_detail(status)` 生成（`routers/scheduled_tasks.py:40-44`、`:368`、`:428`）——`queued` 时额外提示"可 pause 取消排队中的 occurrence" |
+
+`create()` 还有两处非异常行为：只要父任务存在，就在同一事务里用 `UPDATE ... RETURNING last_occurrence_seq+1` **分配 occurrence 序号**（`:202-212`，故意不推进 `updated_at`）；`release_task_lease_status` 只在协调成功时把父任务从 `running` 释放（`:214-218`）。
+
+### `ScheduledTaskRepository` 关键方法
+
+| 方法 | file:line | 契约要点 |
+|------|-----------|----------|
+| `_lock_task` | `scheduled_tasks/sql.py:82` | 父行锁。SQLite 忽略 `FOR UPDATE`，先执行 `UPDATE ... SET updated_at = updated_at` 拿数据库写锁，再 `session.get(..., with_for_update=True)`；admission / mutation / pause / delete 共用这一个序列化点 |
+| `claim_due_tasks` | `:288` | 原子 claim 到期任务：FIFO（`next_run_at, id` 升序）+ `with_for_update(skip_locked=True)`；排除**任何**有 active occurrence 的任务；`status="running"` 且租约过期的分支用于回收"claim 后进程死亡"的任务；成功后写 `lease_owner`/`lease_expires_at`/`status="running"`。`limit <= 0` 直接返回空 |
+| `release_dispatch_lease` | `:344` | owner-fenced 释放短租约（`expected_lease_owner` 不符则 rollback + False），设父状态并清租约 |
+| `release_queued_admission_lease` | `:366` | 恢复"queue 行已插入但父租约未释放"的崩溃窗口；要求父任务 `running` 且有 `lease_owner`，且存在一个 `queued` 行**满足 `can_project`** |
+| `update_after_launch` | `:389` | owner-fenced；校验 occurrence 属于该任务且 `occurrence.run_id in (None, last_run_id)`，否则 fencing 掉（WARNING + False）；有 occurrence 时调 `account_launch` 并抑制无 occurrence 回退路径的 `run_count` 自增；`can_project` 为假时**提前 commit 返回 True**（记账已生效）；`protect_terminal` 防止快完成回调被 launch 写覆盖 |
+| `complete_run` | `:462` | **completion 原子化的唯一入口**：status 必须属 `TERMINAL_RUN_STATUSES` 否则 `ValueError`；occurrence 不存在/不属于该任务/`run_id` 不匹配/父任务 owner 不符 → rollback + False；同一事务内写 occurrence 终态 + `account_launch` + `can_project` 决定父任务推进（`once` 用 `ONCE_TASK_STATUS_BY_RUN_STATUS`） |
+| `claim_dispatch_lease` | `:512` | 手动触发的短 pre-launch 预留；`skip_locked`，只接受租约为空或已过期的行，不校验状态 |
+| `pause_with_queue_cancellation` / `delete_with_queue_cancellation` | `:157` / `:202` | 原子取消 `queued` occurrence 并 pause/delete；返回 `"not_found"` / `"executing"`（`launching`/`running`，拒绝操作）/ `"paused"` / `"deleted"` |
+| `cancel_stuck_once_tasks` / `reconcile_stuck_once_tasks` | `:647` / `:702` | 结果感知的 once 恢复：`_fetch_latest_run`（`:557`，有序号行则按 `occurrence_seq` 降序、否则 legacy 时钟排序）+ `_has_active_occurrence`（`:590`）+ `can_project` 三重门；`_finalise_once_task_from_run`（`:608`）只做 success→completed / failed→failed / interrupted→cancelled / skipped→cancelled 映射 |
+| `_coerce_datetime` | `:39` | 仓储边界把序列化时间戳（str，含 `Z` 后缀）还原为 UTC aware datetime 后再绑定 `DateTime` 字段；非法字符串抛 `ValueError`，其它类型抛 `TypeError`（`AGENTS.md` 的 "Repository boundaries coerce serialized timestamps" 即此） |
+
+### `ScheduledTaskRunRepository` 的预算与队列原语
+
+| 方法 | file:line | 契约要点 |
+|------|-----------|----------|
+| `EXECUTING_RUN_STATUSES` / `count_active_runs` | `scheduled_task_runs/sql.py:24` / `:248` | 预算只统计 `launching` + `running`；**等待中的 `queued` 行不占槽**（与上文"等待行不占用 max_concurrent_runs"一致） |
+| `claim_queued_run` | `:304` | 预算与状态迁移在同一事务：Postgres 先取 `pg_advisory_xact_lock(4694001)`（`:25`、`:317-320`）使多实例共享同一 cap；SQLite 用 `BEGIN IMMEDIATE` 先占写锁（`:331`，注释解释 deferred 事务会在 UPDATE 才占写锁、导致各 claimer 读到同一旧计数而集体超卖）。超预算或行不可认领（非 `queued`、或同线程有更早的 active 行）→ rollback + 返回 **None**（不抛异常）；成功则 `status="launching"`、写租约、`attempt_count += 1` |
+| `list_queued_runs` | `:255` | 队列 drain 视图：排除"同线程有更早 active 行"的 queued 行（同线程 FIFO blocker）；排序 `attempt_count` 升序 → `created_at` → `id`，避免永久繁忙的线程独占有限 drain 批次。服务层 `limit=max(16, max_concurrent_runs*4)`（`service.py:484`） |
+| `requeue_claimed_run` | `:371` | `launching` + 同 owner → 退回 `queued` 并清租约、记 error（reuse_thread 的 `ConflictError` 走这里，`service.py:315-321`）；owner 不符则不动 |
+| `renew`/`expire`/`fail`/`recover` 族 | `:396` `expire_queued_runs`、`:474` `fail_launching_run`、`:523` `reconcile_launched_run`、`:571` `recover_expired_launch_claims`、`:625` `update_status`、`:688` `mark_stale_active_runs`、`:738` `reconcile_active_runs` | 一律**父任务先锁**（`_lock_task` 或 `with_for_update`），occurrence 后锁；`update_status(protect_terminal=...)` 在终态行上只回填 `run_id`/`started_at` 这类"完成写入不可能知道"的字段，owner 不匹配但 `run_id` 相同的 stale launcher 仍被允许回填 |
+
 ## 调试
 
 | 症状 | 检查 |
@@ -203,4 +253,5 @@ cron 任务:
 
 ## 变更记录
 
+- 文档补充（源码消化，非 upstream 变更）：新增「仓储层契约（投影 / 异常 / 关键 API）」小节——`projection.py` 的 `can_project`/`account_launch` 精确语义与全部调用点、`ActiveScheduledRunConflict`/`ScheduledTaskAdmissionRejected`/`ActiveScheduledTaskMutationConflict` 的抛出条件与服务层/路由翻译、`ScheduledTaskRepository` 与 `ScheduledTaskRunRepository` 关键方法契约（原子 claim、advisory-lock 预算、queue drain 排序、owner fence）。
 - 同步 #6（431892e1..769589e8）：interval 调度类型（#5291）、任务固定 custom agent（#5288）、cron 下次执行预览（#5381）、run history 按 occurrence status 过滤（#5384）+ 前端分页浏览（#5363）、前端复制任务（#5064）、occurrence 序号迁移 0022 + completion 原子性/一致性（#5035）、`service.py` 每个 occurrence 独立 trace scope（#5119）。

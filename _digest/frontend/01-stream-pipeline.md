@@ -81,18 +81,25 @@ Runs 通过 TanStack Query 缓存（`["thread", threadId]`）。每个 run 的�
 
 ## streamdown 渲染管线
 
-`core/streamdown/plugins.ts` 定义了 4 套 remark/rehype 插件组合：
+`core/streamdown/plugins.ts` 是 remark/rehype 的唯一落点（**没有** `core/rehype/` 目录），导出 3 个可复用预设 + 动画配置：
 
 | 预设 | remark | rehype | 用途 |
 |------|--------|--------|------|
-| `streamdownPlugins` | remark-gfm, remark-math | rehype-raw, rehype-katex | 常规 AI 消息 |
-| `streamdownPluginsWithWordAnimation` | remark-gfm, remark-math | rehype-katex, rehypeSplitWordsIntoSpans | 流式动画（subtask 提示） |
-| `reasoningPlugins` | remark-gfm, remark-math | rehype-katex | 思考内容（无 rehype-raw：防止 LLM 幻觉 HTML 标签如 `<simd>` 被渲染） |
-| `humanMessagePlugins` | remark-math | rehype-katex | 用户消息（无 GFM autolink：防止 URL 渗入相邻文本） |
+| `streamdownPlugins` | remark-gfm (`singleTilde:false`), remark-math (`singleDollarTextMath:true`) | rehype-raw → `rehypeSanitizeStep` → `rehypeClobberFragments` → rehype-katex；streamdown `plugins: { code, mermaid }` | 常规 AI 消息、memory 摘要 |
+| `streamdownPluginsWithoutRawHtml` | 同上 | 同上但**去掉 rehype-raw**（原始 HTML 保持惰性文本） | `MarkdownContent` / `SubtaskCard` 默认链 |
+| `reasoningPlugins` | 同上 | 与 `streamdownPluginsWithoutRawHtml` 是同一个对象 | 思考内容（无 rehype-raw：防止 LLM 幻觉 HTML 标签如 `<simd>` 被渲染） |
+
+关键约束：一旦传入 `rehypePlugins`，streamdown@2.5 会**整链替换**掉自带的 `[rehype-raw, rehype-sanitize, rehype-harden]`，所以每条自定义链都必须在 `rehypeRaw` 之后、`rehype-katex` 之前重新插入 `rehypeSanitizeStep`（基于 sanitize `defaultSchema` 放宽 `tel:`、math className、`metastring`）。artifact 预览链（`markdown-preview-plugins.ts`）另加 `rehypeScopedSlug`，并靠 `rehypeClobberFragments` 修正 sanitize `user-content-` 前缀带来的脚注/片段链接问题。
 
 ### 词级动画
 
-`core/rehype/index.ts` — `rehypeSplitWordsIntoSpans`：自定义 rehype 插件，将文本拆分为单独的 `<span class="animate-fade-in">` 词级元素。CJK 文本使用 `Intl.Segmenter("zh", { granularity: "word" })`，非 CJK 按单词边界分割。仅在活跃流式期间启用。
+源码中**不存在**自定义拆词 rehype 插件（`core/rehype/`、`rehypeSplitWordsIntoSpans` 均已在 #4266 `bb008812` 移除）。词级渐显改由 streamdown 自身的 `animated` 能力完成：
+
+- `streamdownWordAnimation` = `{ animation: "fadeIn", duration: 200, sep: "word" }`（subtask card 用）
+- `streamdownSmoothStreamingAnimation` = 上一项 + `stagger: 0`（`MarkdownContent` 用，让每个新词与周围 marker 同时开始渐显，避免大 chunk 下后续文字延迟数秒）
+- `rehypeStreamingListItems` 仅在流式渲染时挂载：隐藏尾部空 `<li>`，给其余列表项打 `data-streaming-list-item`，让原生 marker 与文字同步
+
+CSS 侧对应 `globals.css` 的 `--animate-fade-in: fade-in 1.1s`。
 
 ### 思考内容提取
 

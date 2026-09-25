@@ -48,12 +48,12 @@ Config file has been modified (mtime: 1717012345.67 -> 1717012400.12), reloading
 
 ## 路径解析链
 
-`AppConfig.resolve_config_path()` (`app_config.py:113-141`) 按 4 级优先级：
+`AppConfig.resolve_config_path()` (`app_config.py:384-411`) 按 4 级优先级：
 
 1. **显式传参** — `get_app_config(config_path="/path/to/config.yaml")`
 2. **环境变量** — `DEER_FLOW_CONFIG_PATH`
 3. **项目搜索** — `existing_project_file(("config.yaml",))` 从调用方目录向上搜索
-4. **legacy 兼容** — `backend/config.yaml` 或 repo root `config.yaml`
+4. **legacy 兼容** — `_legacy_config_candidates()`（`app_config.py:156-160`）按序试 `backend/config.yaml` → repo root `config.yaml`
 
 路径变化触发重载——如果你通过环境变量把 `DEER_FLOW_CONFIG_PATH` 从 config-a.yaml 改成 config-b.yaml，下次调用时整个 config 会被替换。
 

@@ -10,9 +10,9 @@ topics: [hooks, extension, plugin-system]
 
 **核心文件：**
 - `deerflow/agents/features.py` — `RuntimeFeatures` + `@Next`/`@Prev` 装饰器
-- `deerflow/agents/factory.py:61-380` — SDK 路径的 `create_deerflow_agent()` + `_assemble_from_features()`
-- `deerflow/agents/lead_agent/agent.py:266+` — Lead Agent 路径的 `_build_middlewares()`
-- `deerflow/agents/middlewares/tool_error_handling_middleware.py:70-126` — `build_lead_runtime_middlewares()`
+- `deerflow/agents/factory.py:66-506` — SDK 路径的 `create_deerflow_agent()`（`:66`）+ `_assemble_from_features()`（`:197`）
+- `deerflow/agents/lead_agent/agent.py:484+` — Lead Agent 路径的 `build_middlewares()`（v2.1.0 起公开名；旧名 `_build_middlewares` 已不存在）
+- `deerflow/agents/middlewares/tool_error_handling_middleware.py:320` — `build_lead_runtime_middlewares()`（内部 `_build_runtime_middlewares` 在 `:161`）
 
 ## 两条装配路径
 
@@ -21,11 +21,11 @@ DeerFlow 有两个独立的 middleware 装配入口：
 | | Lead Agent（生产路径） | SDK（`create_deerflow_agent`） |
 |---|---|---|
 | 入口 | Gateway 的 `make_lead_agent()` | `factory.py:create_deerflow_agent()` |
-| 数量 | 37 个（全量） | ~10 个（精简） |
+| 数量 | 37 个条目位（35 内置类 + 2 通用槽位；默认配置下实际 25 个实例，口径见 [catalog](../middleware/03-catalog.md)） | `_assemble_from_features` 的文档自述 14 个（精简） |
 | 配置源 | `config.yaml` 各 section | `RuntimeFeatures` dataclass |
 | 用户注入 | `extra_middleware` 参数 | `extra_middleware` 参数 |
 
-Lead Agent 另有这 5 个生产级 middleware（SDK 精简路径不装配，全量清单见 [catalog](../middleware/03-catalog.md)）：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）。
+仅 Lead Agent 装配的生产级 middleware **至少**包括这 5 个（SDK 精简路径都不装，完整差异见 [catalog](../middleware/03-catalog.md)）：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）；此外入站三件套 `InputSanitization`/`ToolOutputBudget`/`ToolResultSanitization`、`ToolReceipt`、`ReadBeforeWrite`、`SkillActivation`/`SkillToolPolicy`、MCP 的 `McpRouting`/`DeferredToolFilter`、`TerminalResponse`/`ModelLengthFinishReason` 等同样只在 lead 链上。
 
 ## 用户挂自己的 middleware 的 3 种方式
 
@@ -43,7 +43,7 @@ agent = make_lead_agent(config, extra_middleware=extra_middleware)
 
 ```python
 from deerflow.agents.features import Next, Prev
-from deerflow.agents.middlewares.guardrail_middleware import GuardrailMiddleware
+from deerflow.guardrails.middleware import GuardrailMiddleware
 
 @Next(GuardrailMiddleware)
 class MyCustomAuditMiddleware(AgentMiddleware):
@@ -113,7 +113,7 @@ if circular:
 Lead Agent 路径（`make_lead_agent`）：
 - 在 `langgraph.json` 中注册为 graph factory
 - LangGraph runtime 在每次 run 开始时调用
-- `_build_middlewares()` 读取当前 `get_app_config()` 的各种 `.enabled` 开关
+- `build_middlewares()` 读取当前 `get_app_config()` 的各种 `.enabled` 开关
 - 所以配置热重载 → 下次 run → 新的 middleware 链
 
 SDK 路径（`create_deerflow_agent`）：
@@ -126,7 +126,7 @@ SDK 路径（`create_deerflow_agent`）：
 ```python
 from langchain.agents.middleware import AgentMiddleware
 from deerflow.agents.features import Next
-from deerflow.agents.middlewares.guardrail_middleware import GuardrailMiddleware
+from deerflow.guardrails.middleware import GuardrailMiddleware
 
 @Next(GuardrailMiddleware)
 class CustomAuditMiddleware(AgentMiddleware):

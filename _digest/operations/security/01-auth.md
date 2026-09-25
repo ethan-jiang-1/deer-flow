@@ -133,11 +133,29 @@ IP 来源：`request.client.host`。只有配置了 `AUTH_TRUSTED_PROXIES` 才�
 - 用途：脚本、CI、SDK 等非浏览器调用方（此前只能走登录 session + CSRF）
 - 前端 Settings 里管理（签发时一次性展示，服务端只存哈希）
 
+### 仓储层契约（`PersonalAccessTokenRepository`）
+
+`deerflow/persistence/personal_access_tokens/sql.py:25`，每个方法各开一个短 session。**明文 `dfp_…` token 由 app 层生成、只返回一次；仓储只持久化调用方传入的 SHA-256 digest**（模块 docstring `sql.py:1-6`）。
+
+| 维度 | 契约 | 证据 |
+|------|------|------|
+| 存储内容 | 只存 `token_digest`（64 字符 hex）；`scopes` 在 `create` 里 `sorted()` 后存 JSON 列 | `sql.py:41-63`；`model.py:21-27` |
+| 唯一索引 | `ix_personal_access_tokens_token_digest` 是**命名 unique index**（不是列级 `unique=True`）——目的是让 `create_all` 的产出与 migration `0017` 完全一致，bootstrapped DB 也能正常 downgrade | `model.py:16`、`:21-25` |
+| 摘要算法与比对 | app 层 `pat_token_digest = sha256(token).hexdigest()`；校验时先按 digest 查行，再 `hmac.compare_digest(stored_digest, digest)` **常量时间**复核 | `app/gateway/auth/pat.py:165-174`、`:210-211` |
+| 吊销 | `revoke(pat_id, user_id)`：条件 UPDATE（`id` + `user_id` + `revoked_at IS NULL`）置 `revoked_at`，`rowcount != 0` → True；**owner 过滤在 SQL 里**，非属主/不存在都返回 False（对外表现为 404，不泄露存在性）。软删除——行保留供审计 | `sql.py:89-102` |
+| 过期 | 在**读取时**判定：`get_active_by_digest` 对 `revoked_at is not None` 或 `expires_at <= now` 返回 `None`（SQLite 读回丢 tzinfo，先 `replace(tzinfo=UTC)` 再比较）。所以吊销/过期行永远无法通过认证，但仍存在于 `list_for_user` 输出中 | `sql.py:65-82` |
+| 列表 | `list_for_user(user_id)` 按 `created_at desc`，**不过滤 revoked/expired** | `sql.py:84-87` |
+| `last_used_at` 节流 | `touch_last_used(pat_id)` 按 token 进程内节流（`last_used_write_interval_seconds` 默认 300s），**永不抛异常**：写失败只记 DEBUG 并**回滚节流窗口**让下次立即重试；缓存超 4096 条整体清空以界定内存 | `sql.py:26`、`:104-132` |
+| 时间戳 | 输出统一 `coerce_iso`（SQLite 读回丢 tzinfo，归一成 tz-aware） | `sql.py:31-39` |
+| 认证端到端 | 分支点在 `AuthMiddleware`：`authorization is not None` 才进 PAT 路径（无头则继续看 session cookie），因此**present-but-invalid 的 Bearer 是硬 401，绝不静默回落 cookie**（这也是 CSRF Bearer skip 安全的前提；`is_auth_disabled()` 优先于该分支）。`authenticate_pat()` 内部把所有 token 判定失败——非 `dfp_` 前缀、store 未配置、查不到行、属主用户已删、digest 不符——**统一成 401 `"Invalid token"`**，不暴露是哪一步失败（防响应 oracle）；基础设施异常照常抛出并 fail closed；成功才 `touch_last_used` 并返回 `(user, frozenset(scopes))`。`extract_bearer_token` 对非 Bearer scheme/空凭证返回 `""`（≠ 缺失），所以它们走 401 而不是回落 | `pat.py:177-222`；`auth_middleware.py:110-141` |
+| 用户删除的连带语义 | 不靠 FK cascade：删用户后 PAT 行仍在，但 `get_user()` 返回 None → 401（`pat.py:216-220`） | — |
+| scope 校验 | `validate_scopes()` 拒绝未知 scope 与空列表，返回去重排序后的列表 | `pat.py:225-233` |
+
 ---
 
 ## 🆕 Authz Phase 4 — UI 权限收敛（v2.1.0-rc0）
 
-- `GET /api/auth/me` 现在返回 **effective route permissions**（#5228）——前端不再猜权限
+- `GET /api/v1/auth/me` 现在返回 **effective route permissions**（#5228）——前端不再猜权限
 - thread-delete / run-cancel UI 按 effective permissions 门控（#5294）：无权限的用户看不到可点的危险按钮，而不是点了才 403
 
 ---

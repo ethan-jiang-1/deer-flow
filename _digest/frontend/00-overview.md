@@ -17,13 +17,13 @@ DeerFlow 前端是一个 Next.js 16 App Router + React 19 应用，通过 SSE �
 | **样式** | Tailwind CSS | 4.x |
 | **服务端状态** | TanStack Query | 5.x |
 | **流式连接** | @langchain/langgraph-sdk | 1.5.x |
-| **Markdown 渲染** | streamdown | 1.4.0 |
+| **Markdown 渲染** | streamdown | 2.5.0 |
 | **语法高亮** | shiki | 3.x |
 | **面板拖拽** | react-resizable-panels | 4.x |
 | **动画** | motion (framer-motion) + GSAP | 12.x / 3.x |
 | **UI 原语** | Radix UI (20+ 组件) | various |
 | **主题** | next-themes | 0.4.x |
-| **测试** | Vitest + Playwright | 4.x / 1.x |
+| **测试** | Rstest + Playwright | 0.10.x / 1.x |
 | **i18n** | 自建 (en-US + zh-CN) | — |
 
 ## 目录结构
@@ -65,8 +65,7 @@ frontend/src/
 │   ├── trash/               # 🆕 回收站 api/hooks（分页列表 / restore / purge / empty）
 │   ├── conversation-references/ # 🆕 会话引用 metadata（display-only，权限在 Gateway）
 │   ├── messages/            # getMessageGroups, content extraction, usage
-│   ├── streamdown/          # remark/rehype 插件配置
-│   ├── rehype/              # 自定义 rehype 插件（词级动画）
+│   ├── streamdown/          # remark/rehype 插件配置（无独立 rehype/ 目录，见 01）
 │   ├── settings/            # localStorage 偏好 (useSyncExternalStore)
 │   ├── i18n/                # 国际化 (React context + 服务端检测)
 │   ├── tasks/               # Subtask 状态管理 (React context)
@@ -170,4 +169,4 @@ DOM (词级 fade-in 动画)
 | **服务端状态** | TanStack Query | Thread 列表、runs、token usage、models、MCP config |
 | **流式状态** | LangGraph SDK `useStream` | `thread.messages`, `thread.values`（artifacts, todos） |
 | **本地状态** | `useSyncExternalStore` + localStorage | Model 选择、mode、notification 偏好 |
-| **UI 上下文** | React Context (4 个) | Subtasks, Artifacts, PromptInput, i18n |
+| **UI 上下文** | React Context（核心 4 个 + Auth/Sidebar/Thread 等） | Subtasks, Artifacts, PromptInput, i18n；`createContext` 还出现在 `core/auth/AuthProvider.tsx`、`core/tasks/context.tsx`、`ui/sidebar.tsx`、`workspace/messages/context.ts`、`sidecar/context.tsx`、`browser-view/context.tsx`、`thread-delete-dialog.tsx` 等处 |

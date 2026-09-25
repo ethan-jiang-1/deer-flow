@@ -121,6 +121,26 @@ if previous_checkpointer_config != config.checkpointer:
 
 checkpointer 在 `_apply_singleton_configs()` 中有特殊处理——如果 checkpointer config 变化，会 `reset_checkpointer()` + `reset_store()`。但这**不是真正完整的热重载**：对于那些已经打开、正在运行的 agent run，它们的 checkpointer 和 store 是在 run 开始时获取的，不会感知到中途的 reset。只有新的 run 会使用新的 checkpointer/store。
 
+## 🆕 边界的单一来源：`config/reload_boundary.py::STARTUP_ONLY_FIELDS`
+
+上面"必须重启"那张表在代码里的**真值**是 `deerflow/config/reload_boundary.py`（139 行）。它存在的理由写在模块 docstring 里：Gateway 的 request-time 依赖每次都经 `get_app_config()` 解析 `AppConfig`，所以 per-run 字段天然下一条消息生效；真正需要重启的是 Gateway **在 startup 捕获一次**的基础设施子集（engine、单例、IM client、logging handler）。
+
+契约有三层：
+
+1. **注册表**：`STARTUP_ONLY_FIELDS: dict[str, str]` —— 字段路径 → **人类可读的"谁在 startup 捕获了它"理由**。理由文本会直接出现在对应 `Field(description=...)` 的 IDE hover 里，所以它必须解释*哪段代码冻结了这个值*，而不只是"需要重启"。
+2. **统一前缀**：`STARTUP_ONLY_PREFIX = "startup-only:"`；`format_field_description(field_path, field_doc=...)` 生成 `"startup-only: <理由>\n\n<原有字段文档>"`，未知路径抛 `KeyError`（**故意**——静默返回占位符会让拼写错误绕过漂移检查）。
+3. **漂移测试双向钉住**：`test_reload_boundary` 要求"注册过的字段在 schema 里必须带该前缀"且"带该前缀的字段必须在注册表里"。任何未来的"需要重启"扫描器（运维工具、lint、文档生成）都应当**驱动这个注册表**而不是重新解析散文。
+
+当前 18 条（v2.1.0）：`plugins` / `database` / `checkpointer` / `run_events` / `agent_storage` / `stream_bridge` / `sandbox` / `skills.container_path` / `log_level` / `logging` / `channels` / `channel_connections` / `scheduler` / `mcp_tasks` / `subagent_runtime` / `subagent_batches` / `run_ownership` / `dedupe_storage`。
+
+几个非显然点：
+
+- **两种条目来源**：大多数是 `AppConfig` 的顶层字段或显式登记的嵌套字段（`database`、`checkpointer`、`run_events`、`stream_bridge`、`sandbox`、`log_level`）；`channels` **不属于 `AppConfig` schema**（由 `start_channel_service()` 直接消费），所以注册表是它唯一的规范位置。
+- **嵌套路径只在"同一段落里有一片叶子边界不同"时才登记**：目前只有一个——`skills.container_path`（sandbox provider 单例启动时归一化并捕获 skills 挂载根）。同理 `scheduler.recursion_limit` 是**段内例外**（每次 dispatch 从 `get_app_config()` 读，改 YAML 下一个定时 run 即生效），因此它以散文写在 `scheduler` 条目的理由里，而不是单独登记。
+- **`llm_call.max_concurrent_calls` 是注册表外的 startup-only 字段**：它在自己的 schema description 里声明"首次 LLM run 冻结"，行为同类但未登记。
+- **`checkpoint_channel_mode` / `checkpoint_delta.snapshot_frequency` 也是同类**：它们在 `DatabaseConfig` 内以 description 声明 "Restart is required"，并靠 `freeze_checkpoint_channel_mode()` / `freeze_checkpoint_snapshot_frequency()` 在**进程内**强制（不一致直接抛 `CheckpointModeReconfigurationError`）。这是比注册表更强的保证——注册表只是文档 + 漂移测试，freeze 是运行时硬失败。
+- **`database` 整段 restart-required 但有两个刻意例外**：`database.checkpoint_graph_cache.accessor_graph_max`（每次淘汰检查重读）与 `database.checkpoint_cache.*`（纯性能、从不冻结、跨进程可不同）。
+
 ## 验证失败不污染
 
 最重要的安全保障：`_apply_singleton_configs()` 在 `AppConfig.from_file()` 中被调用，而 `from_file()` 先构造完整的 Pydantic model 再做传播。如果 Pydantic 验证失败（比如 `title.enabled` 类型不对），`from_file()` 本身就会抛异常——`_apply_singleton_configs()` 根本不会被调用，所有子配置单例保持旧值不变。

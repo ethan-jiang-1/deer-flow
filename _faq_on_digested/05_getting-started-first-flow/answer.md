@@ -67,14 +67,14 @@ DeerFlow 官方推荐：**Doubao-Seed-2.0-Code**、**DeepSeek V3.2**、**Kimi 2.
 
 | 主题 | 路径 |
 |------|------|
-| 系统架构全景 | `_digest/architecture/` |
-| Agent 循环执行流 | `_digest/agent-loop/` |
-| Middleware 完整链（37 个 + 时序） | `_digest/middleware/03-catalog.md` |
-| 配置系统（双文件 + 热加载边界） | `_digest/configuration/` |
-| 模型层（factory + provider patches） | `_digest/model-layer/` |
-| Gateway API 和应用层 | `_digest/app-layer/` |
-| MCP 工具注入和缓存 | `_digest/configuration/02-extensions-json.md` |
-| Sandbox（local vs Docker vs K8s） | `_digest/architecture/`（sandbox section） |
+| 系统架构全景 | `_digest/overview/` |
+| Agent 循环执行流 | `_digest/internals/agent-loop/` |
+| Middleware 完整链（37 个 + 时序） | `_digest/internals/middleware/03-catalog.md` |
+| 配置系统（双文件 + 热加载边界） | `_digest/internals/configuration/` |
+| 模型层（factory + provider patches） | `_digest/internals/model-layer/` |
+| Gateway API 和应用层 | `_digest/operations/app-layer/` |
+| MCP 工具注入和缓存 | `_digest/internals/configuration/02-extensions-json.md` |
+| Sandbox（local vs Docker vs K8s） | `_digest/concepts/sandbox/` |
 
 > 🔄 同步 #6（v2.1.0-rc0）：Node.js 要求升级为 24+（#5063）；Gateway 新增 `GET /health/ready` 就绪探针；`DeerFlowClient` 支持多用户内嵌复用（#5206）与流式修复（#5408/#5479）；前端新增 Projects / Trash / Capability Center 页面；seven sandbox 实现不变。
 
@@ -82,7 +82,7 @@ DeerFlow 官方推荐：**Doubao-Seed-2.0-Code**、**DeepSeek V3.2**、**Kimi 2.
 
 | 问题 | 路径 |
 |------|------|
-| Skill 太多了选不准怎么办？ | `_faq_on_digested/skill-selection-accuracy/` |
-| 任务 MD 文件能指定用哪个 skill 吗？ | `_faq_on_digested/command-skill-linkage/` |
-| 企业静默执行中如何精确选择 skill？ | `_faq_on_digested/precise-skill-selection/` |
-| MCP 工具管理最佳实践？ | `_faq_on_digested/mcp-best-practices/` |
+| Skill 太多了选不准怎么办？ | `_faq_on_digested/01_skill-selection-accuracy/` |
+| 任务 MD 文件能指定用哪个 skill 吗？ | `_faq_on_digested/02_command-skill-linkage/` |
+| 企业静默执行中如何精确选择 skill？ | `_faq_on_digested/03_precise-skill-selection/` |
+| MCP 工具管理最佳实践？ | `_faq_on_digested/04_mcp-best-practices/` |

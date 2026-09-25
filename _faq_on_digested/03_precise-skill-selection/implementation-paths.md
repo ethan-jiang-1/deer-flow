@@ -35,9 +35,9 @@ POST /api/threads/{id}/runs/stream
 
 ## 路径 C：Skill Deferred Registry 模式（中长期方案）
 
-**利用的积木：** `DeferredToolRegistry` + ContextVar 隔离 + `skill_search` tool
+**利用的积木：** `DeferredToolCatalog` + ContextVar 隔离 + `skill_search` tool
 
-创建 `DeferredSkillRegistry`，类似 `DeferredToolRegistry`：
+创建 `DeferredSkillRegistry`，类似 `DeferredToolCatalog`：
 - Session 开始：所有 skill 的 SKILL.md body 不注入 prompt，只注入 name+description
 - 外部系统（或 LLM）调用 `skill_search("k8s deploy")` → promote 匹配 skill
 - 已 promote 的 skill 的完整 instructions 被注入到后续 prompt

@@ -130,14 +130,18 @@ async def test_allow_blocking_io_marker_opts_out_of_gate(tmp_path):
 
 ## CI 集成
 
-```yaml
-# .github/workflows/backend-unit-tests.yml
-- name: Check harness boundary
-  run: pytest backend/tests/test_harness_boundary.py -v
+两个 gate 没有独立 step，都通过 workflow 里的 `make` 目标跑：
 
-# .github/workflows/backend-blocking-io-tests.yml  
-- name: Blocking IO runtime gate
-  run: pytest backend/tests/blocking_io/ -v
+```yaml
+# .github/workflows/backend-unit-tests.yml（job: backend-unit-tests，working-directory: backend）
+# harness 边界测试是普通单测，随分片套件一起跑；matrix.shard = 1..4
+- run: make test-shard SPLITS=4 GROUP=${{ matrix.shard }}
+
+# .github/workflows/backend-blocking-io-tests.yml（job: backend-blocking-io，working-directory: backend）
+- run: make test-blocking-io
 ```
 
-两个 gate 都在 PR 时硬失败。`detect-blocking-io` 是 `make detect-blocking-io` 的信息性命令，**不在 CI 中运行**（仅用于开发时手动审查）。
+- `make test-shard` = `uv run pytest -m "not live" --ignore=tests/blocking_io ... tests/`，所以 `tests/test_harness_boundary.py` 是**分片单测的一部分**，没有专门的 "Check harness boundary" step。
+- `make test-blocking-io` = `uv run pytest tests/blocking_io -q --tb=short`。
+- 触发面：unit tests 是 `push`（`main`/`*-dev`）+ 所有 PR；blocking IO 额外用 `paths: backend/**` 过滤（**只有后端改动才跑**）。
+- `detect-blocking-io` 是 `make detect-blocking-io` 的信息性命令，**不在 CI 中运行**（仅用于开发时手动审查）。

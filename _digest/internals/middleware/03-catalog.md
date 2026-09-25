@@ -6,7 +6,13 @@ topics: [middleware, hooks, interceptor-chain]
 
 # Middleware 完整目录
 
-37 个 middleware，分两阶段组装。来源：`build_lead_runtime_middlewares()`（前 14 个）+ `build_middlewares()`（后 23 个）。
+> 37 个 middleware，分两阶段组装。来源：`build_lead_runtime_middlewares()`（前 14 个）+ `build_middlewares()`（后 23 个）。
+
+> **"37" 的口径**（v2.1.0 用代码核实）：= **35 个内置 middleware 类** + **2 个通用槽位**（#32 caller 传入的 `custom_middlewares`、#33 config 声明的 `ConfiguredExtensionMiddleware`——`configured_extensions.py` 只提供 `load_configured_extension_middlewares()`，本身不定义类）。35 个内置类 = `agents/middlewares/` 里被 lead 链引用的 33 个类（该目录共 34 个 `class *Middleware` 定义，减去仅 subagent 使用的 `dynamic_context_middleware.py::SubagentDateContextMiddleware`）**+** `sandbox/middleware.py::SandboxMiddleware` **+** `guardrails/middleware.py::GuardrailMiddleware`。
+>
+> 与 `agents/middlewares/AGENTS.md` 的 **36** 号不冲突：AGENTS.md 不重排编号，只把 `ToolReceiptMiddleware`+`ToolErrorHandlingMiddleware` 合并成同一条 #13；本表把它们拆成 #9/#14（两个 `GuardrailMiddleware` 实例仍合并记作同一行 #10）。因此 **AGENTS.md 的 36 条与本表的 37 条之差只是合并口径差异**，不是能力差异。
+>
+> 单链**实际实例数**随配置变化（本表列的是"每种可能的条目"，不是某次装配的条数）。按各 Config 类的字段默认值，默认 lead 链 = **25 个实例**（基础层 12：三个 sanitization/budget wrapper + ThreadData/Uploads/Sandbox + Dangling/LLMError/ToolReceipt/SandboxAudit/ReadBeforeWrite/ToolErrorHandling；lead-only 13：9 个无条件 + TokenUsage/Memory/LoopDetection/SafetyFinishReason）——`tool_progress.enabled` / `token_budget.enabled` / `summarization.enabled` / `guardrails.enabled` / `authorization.enabled` 默认关，`verification.receipts_enabled` / `read_before_write.enabled` / `safety_finish_reason.enabled` / `loop_detection.enabled` / `token_usage.enabled` 默认开；模型支持 vision、开 plan mode / subagent / deferred setup / 自定义扩展时再加。两个 guardrail 门与所有可选项都打开时最多 **38 个实例**。
 
 ## 共享基础层（1-14，Lead 和 Sub-agent 共用）
 
@@ -70,16 +76,20 @@ topics: [middleware, hooks, interceptor-chain]
 
 ## Hook 点分组
 
+Hook 点共 6 种。下表按 **v2.1.0 源码里各 middleware 类自身定义（AST 扫描 `def`/`async def`）** 统计——数字为本表编号：
+
 | Hook | 参与 middleware |
 |------|---------------|
-| `wrap_model_call` (before LLM) | 1, 2, 3, 9, 15, 16, 17, 18, 19, 25, 26, 27, 28 |
-| `after_model` | 29, 30, 31, 34, 35, 36 |
-| `wrap_tool_call` (before tool) | 9, 10, 11, 12 |
-| `after_tool` | 13, 14 |
-| `before_agent` | 4, 5, 6, 7, 8 |
-| `after_agent` | 20, 21, 22, 23, 24, 37 |
+| `before_agent` | 4, 5, 6, 13, 15, 21, 30, 31, 34 |
+| `before_model` | 19, 20, 21, 26 |
+| `wrap_model_call` (before LLM) | 1, 2, 7, 8, 9, 12, 13, 15, 16, 18, 19, 21, 25, 27, 28, 30, 31, 34 |
+| `after_model` | 19, 21, 22, 23, 29, 30, 31, 34, 35, 36, 37 |
+| `wrap_tool_call` (before tool) | 2, 3, 6, 9, 10, 11, 12, 13, 14, 17, 18, 27, 37 |
+| `after_agent` | 6, 21, 24, 30, 31, 34 |
 
-> ConfiguredExtension（#32）是任意 hook 的透明包装——它实例化 config 声明的 middleware，钩子行为取决于被加载的类。
+> 口径说明：① 只统计 DeerFlow 侧类**自身**定义的 hook；从 LangChain 基类继承的（如 `DeerFlowSummarizationMiddleware` ← `SummarizationMiddleware`、`TodoMiddleware` ← `TodoListMiddleware` 的基类实现）不在此列，第 20/21 条因此偏低。② `AgentMiddleware` 没有 `after_tool` hook——旧表的 `after_tool` 行是过期条目，已删除（工具结果处理走 #13/#14 的 `wrap_tool_call`）。
+>
+> ConfiguredExtension（#33）是任意 hook 的透明包装——它实例化 config 声明的 middleware，钩子行为取决于被加载的类。Custom middlewares（#32）同理。
 
 ## 辅助模块（非 middleware，但被 middleware 使用）
 
@@ -95,3 +105,8 @@ topics: [middleware, hooks, interceptor-chain]
 | `_bounded_dict.py` | LoopDetection 窗口化 counter 的有界字典 |
 | `safety_termination_detectors.py` | SafetyFinishReason 的终止检测器 |
 | `model_length_termination_detectors.py` | 🆕 ModelLengthFinishReason 的 provider 终止检测器（`default_detectors()`） |
+| `tool_transform_meta.py` | 结果改写中间件的**声明式变换轨迹**：`append_tool_transform(additional_kwargs, kind, *, by, version="1")` 往 `deerflow_tool_transforms` 追加条目，`read_tool_transforms(message)` 读出元组。按**应用顺序**排列（最后一条产出最终可见字节），让观察者从事实而不是"嗅探输出措辞"来分类 raw→visible 变换 |
+| `audit_context.py` | 审计 recorder 的**窄作用域解析**：`resolve_audit_recorder(context, recorder_key=...)` 返回 `(recorder, is_subagent, agent_id)`。普通 lead run 拥有 `__run_journal`；task 子 agent 只拿到服务端安装的窄 recorder，**它的存在本身就是子 agent 归属的凭据**——调用方自报的 `is_subagent` 永不被采信。三个键：`__run_loop_detection_recorder` / `__run_tool_promotion_recorder` / `__run_tool_progress_recorder` |
+| `message_utils.py` | 消息列表共享助手：`is_genuine_user_message`（排除系统注入的 HumanMessage）、`requires_input_sanitization`、`insert_after_leading_system_messages`（保持 system 块在前的插入位置） |
+| `../../agents/human_input.py` | ClarificationMiddleware 的**回执读侧契约**：`HUMAN_INPUT_RESPONSE_KEY = "human_input_response"`，`read_human_input_response(additional_kwargs)` 严格校验 `version==1` + `kind=="human_input_response"` + 非空 `source`/`request_id`/`value`，再分派 `text` / `option`（后者额外要求非空 `option_id`）；任何不合规一律返回 `None`（不抛异常） |
+| `../../authz/outcome.py` | Guardrail → observer 的**中立授权结果契约**：`put_authorization_outcome(context, tool_call_id, outcome)` / `pop_authorization_outcome(...)`，键 `__authorization_outcome`（`__` 前缀 → Gateway `build_run_config` 会剥掉调用方伪造的同名值）。发布方与消费方**互不 import**，只依赖这个模块。`AuthorizationOutcome(decision, policy_id, policy_version, reason_codes)`；无 observer 时没人 pop，所以 store 有 `_MAX_TRACKED_OUTCOMES = 500` 上界（最旧的先淘汰），把"授权开启的部署按 run 生命周期无限增长"这一隐患钉死 |

@@ -47,7 +47,7 @@ DeerFlow 的日志本身是朴素的 Python `logging`，真正的价值在一个
 |------|------|
 | `request_trace_context(id)` | 绑定请求级 id；`None` → 生成新 id（Gateway 用） |
 | `ensure_trace_context(id)` | `id` → 继承当前 → 生成新 id（嵌入式/入口点用） |
-| `set_current_trace_id` / `reset` | 底层绑定/恢复（返回/接收 `Token`） |
+| `bind_trace_id(id)` / `reset_trace_id(token)` | 底层绑定/恢复（`trace_context.py:121,133`；返回/接收 `Token`）——旧文档曾写作 `set_current_trace_id`，该名字不存在 |
 
 ## TraceMiddleware：启动快照，不是每请求热读
 
@@ -156,7 +156,7 @@ logging:
 ```
 
 ```yaml
-# docker-compose.yml（gateway 服务）—— 容器 runtime 把 stderr 收进文件
+# docker-compose.yaml（gateway 服务）—— 容器 runtime 把 stderr 收进文件
 logging:
   driver: json-file
   options:
@@ -168,7 +168,7 @@ logging:
 
 ### 路 B（Python logging 机制）：挂一个 handler 到 root = 全收
 
-Python logging 的关键是 **propagation（传播）**：每个 logger（`deerflow.runtime.worker`、`langchain_core.callbacks.manager`…）默认 `propagate=True`，它产出的每条记录会一路向上传给所有祖先的 handler，最终到 root。DeerFlow / LangChain / LangGraph 全都用 `getLogger(...)` 挂在同一棵树上，**所以只要在 root 挂一个 handler，就能收到底下所有库登记的内容**。
+Python logging 的关键是 **propagation（传播）**：每个 logger（`deerflow.runtime.runs.worker`、`langchain_core.callbacks.manager`…）默认 `propagate=True`，它产出的每条记录会一路向上传给所有祖先的 handler，最终到 root。DeerFlow / LangChain / LangGraph 全都用 `getLogger(...)` 挂在同一棵树上，**所以只要在 root 挂一个 handler，就能收到底下所有库登记的内容**。
 
 最小例子：
 

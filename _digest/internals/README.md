@@ -13,10 +13,10 @@ type: index
 | 目录 | 内容 |
 |------|------|
 | `agent-loop/` | Agent 循环核心：三层嵌套、中间件即循环、扩展点、代码追踪 |
-| `middleware/` | 中间件体系：6 hook 点、链组装、33 middleware 目录、Claude Code 对比 |
+| `middleware/` | 中间件体系：6 hook 点、链组装、37 条目位（35 内置类 + 2 通用槽位）目录、Claude Code 对比 |
 | `model-layer/` | 模型抽象：`create_chat_model()` 工厂、thinking/vision、streaming |
 | `harness-hooks/` | 扩展点：配置热加载、单例传播、反射加载、Guardrail、MCP 拦截器、ContextVar 覆盖 |
 | `configuration/` | 配置系统：config.yaml 全字段参考、extensions_config.json、动态加载 |
 | `runtime/` | 自建运行时：RunManager、StreamBridge、Serialization、RunJournal |
-| `persistence/` | 持久化：DB/Checkpointer/Store 三后端（SQLite/Postgres/Memory） |
+| `persistence/` | 持久化：DB/Checkpointer/Store 三后端（SQLite/Postgres/Memory）、checkpoint full/delta 双模式与 delta 历史缓存 |
 | `mcp/` | MCP 深度：Session Pool、OAuth、缓存失效、按用户凭据、Durable Task |

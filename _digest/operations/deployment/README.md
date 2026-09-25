@@ -27,8 +27,9 @@ DeerFlow 支持 4 种部署模式：本地开发（`make dev`）、Docker 开发
 
 | 组件 | 路径 |
 |------|------|
-| Docker Compose (dev) | `docker/compose.dev.yaml` |
-| Docker Compose (prod) | `docker/compose.yaml` |
+| Docker Compose (dev) | `docker/docker-compose-dev.yaml` |
+| Docker Compose (prod) | `docker/docker-compose.yaml` |
+| DooD / CLI-auth / OpenViking overlay | `docker/docker-compose.dood.yaml`、`docker/docker-compose.cli-auth.yaml`、`docker/docker-compose.openviking.yaml` |
 | Nginx 配置 | `docker/nginx/nginx.conf` |
 | Provisioner | `docker/provisioner/` |
 | Makefile | `Makefile` |

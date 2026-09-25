@@ -29,7 +29,7 @@ topics: [middleware, hooks, interceptor-chain]
 | | Claude Code Hooks | DeerFlow Middleware |
 |---|---|---|
 | **面向谁** | 终端用户、团队 | 框架开发者、平台团队 |
-| **怎么配** | JSON 文件（`settings.json`） | Python 代码（`_build_middlewares()`） |
+| **怎么配** | JSON 文件（`settings.json`） | Python 代码（`build_middlewares()`） |
 | **怎么写** | 任意语言（shell/Python/Node/HTTP/MCP） | Python `AgentMiddleware` 子类 |
 | **怎么跑** | 外部进程（stdin JSON → stdout JSON） | 进程内 Python 对象 |
 | **怎么排** | 并行（无顺序保证） | 顺序链（正向 setup / 反向 teardown） |
@@ -204,7 +204,7 @@ Human Pause（人机交互）——两种模式:
 
 - **进程内 Python 类** — 零序列化开销，共享内存。但 middleware bug 可能影响 agent 稳定性。
 - **顺序执行** — 洋葱组合（`wrap_*`）+ 正向/反向图节点（`before_*`/`after_*`）。设计保证 setup/teardown 对称。
-- **代码装配** — 顺序硬编码在 `_build_middlewares()` 中。一目了然，但不够"开放"。
+- **代码装配** — 顺序硬编码在 `build_middlewares()` 中。一目了然，但不够"开放"。
 - **Python only** — 必须继承 `AgentMiddleware`。类型安全但限制了实现语言。
 - **@Next/@Prev 定位** — 显式声明位置相对于已知 anchor，带冲突检测。比 Claude Code 的"无顺序保证"精确但使用门槛高。
 

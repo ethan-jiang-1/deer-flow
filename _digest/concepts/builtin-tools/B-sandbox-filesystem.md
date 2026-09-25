@@ -19,7 +19,7 @@ topics: [tools, builtin, sandbox-tools]
 
 ## bash
 
-**源码**: `sandbox/tools.py:1328`
+**源码**: `sandbox/tools.py:2118`（`def bash_tool`，v2.1.0 实测）
 **Tool Name**: `bash`
 **Tool Group**: `bash`
 
@@ -41,6 +41,11 @@ topics: [tools, builtin, sandbox-tools]
 7. `sandbox.execute_command(command)` → 执行
 8. `mask_local_paths_in_output(output, thread_data)` — 输出中掩码宿主机路径回虚拟路径
 9. `_truncate_bash_output(output, max_chars)` — 中间截断（头尾各 50%）
+
+### 🆕 输出后处理的两条硬约束（`tools.py:1751-1797`）
+
+- **secret 脱敏**：输出经 `_SECRET_REDACTION = "[redacted]"` 处理，命令回显/日志里的密钥样式内容不会原样进模型上下文。
+- **截断必须保住退出标记**：中间截断保留头部与尾部各 50%，但**尾部保留量有下限 32 字符**——因为退出码/状态标记落在输出末尾，按比例截断可能把它切掉；下限保证"命令是否成功"这一判断永远可读。改动截断逻辑时不要移除这个下限。
 
 ### 安全扫描详解
 
@@ -76,7 +81,7 @@ topics: [tools, builtin, sandbox-tools]
 
 ## ls
 
-**源码**: `sandbox/tools.py:1384`
+**源码**: `sandbox/tools.py:2225`（`def ls_tool`）
 **Tool Name**: `ls`
 **Tool Group**: `file:read`
 
@@ -110,7 +115,7 @@ dir/
 
 ## read_file
 
-**源码**: `sandbox/tools.py:1606`
+**源码**: `sandbox/tools.py:2515`（`def read_file_tool`）
 **Tool Name**: `read_file`
 **Tool Group**: `file:read`
 
@@ -141,7 +146,7 @@ dir/
 
 ## write_file
 
-**源码**: `sandbox/tools.py:1674`
+**源码**: `sandbox/tools.py:2616`（`def write_file_tool`）
 **Tool Name**: `write_file`
 **Tool Group**: `file:write`
 
@@ -162,6 +167,11 @@ dir/
 - `append=False` → 覆盖写入
 - 成功返回 `"OK"`
 
+### 🆕 单次写入上限（`tools.py:95-96,2598-2612`）
+
+- 单次 `content` 上限 **80 KiB**（`_WRITE_FILE_CONTENT_MAX_BYTES = 80 * 1024`）；超限直接拒绝，不会截断后静默写半个文件。
+- 运维可覆盖：环境变量 **`DEERFLOW_WRITE_FILE_MAX_BYTES`**（`_WRITE_FILE_MAX_BYTES_ENV`），**在调用时读取而非 import 时**（改为 `0` 或负数则彻底关闭该保护）；超过上限时返回错误文本并提示可用该变量调整。
+
 ### 并发安全
 
 ```python
@@ -179,7 +189,7 @@ with get_file_operation_lock(sandbox, path):
 
 ## str_replace
 
-**源码**: `sandbox/tools.py:1734`
+**源码**: `sandbox/tools.py:2715`（`def str_replace_tool`）
 **Tool Name**: `str_replace`
 **Tool Group**: `file:write`
 
@@ -210,7 +220,7 @@ Tool description 告诉 LLM 在 `replace_all=False` 时 `old_str` 必须恰好�
 
 ## glob
 
-**源码**: `sandbox/tools.py:1438`
+**源码**: `sandbox/tools.py:2293`（`def glob_tool`）
 **Tool Name**: `glob`
 **Tool Group**: `file:read`
 
@@ -247,7 +257,7 @@ Found {N} paths under {path}
 
 ## grep
 
-**源码**: `sandbox/tools.py:1510`
+**源码**: `sandbox/tools.py:2373`（`def grep_tool`）
 **Tool Name**: `grep`
 **Tool Group**: `file:read`
 

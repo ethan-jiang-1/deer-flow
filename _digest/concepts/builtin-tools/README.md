@@ -98,7 +98,7 @@ DeerFlow 共有 **27 个唯一 tool name**（27 个 function call），其中 7 
 | `packages/harness/deerflow/tools/builtins/view_image_tool.py` | `view_image` |
 | `packages/harness/deerflow/tools/builtins/setup_agent_tool.py` | `setup_agent` |
 | `packages/harness/deerflow/tools/builtins/update_agent_tool.py` | `update_agent` |
-| `packages/harness/deerflow/tools/builtins/tool_search.py` | `tool_search` + `DeferredToolRegistry` |
+| `packages/harness/deerflow/tools/builtins/tool_search.py` | `tool_search` + `DeferredToolCatalog`（+ `DeferredToolSetup`，promotion 存 graph state） |
 | `packages/harness/deerflow/tools/builtins/task_tool.py` | `task` (subagent) |
 | `packages/harness/deerflow/tools/builtins/batch_task_tool.py` | `batch_task`, `batch_status`, `cancel_batch`（durable batch） |
 | `packages/harness/deerflow/tools/builtins/background_tasks_tool.py` | `list_background_tasks`, `cancel_background_task`（durable MCP task） |

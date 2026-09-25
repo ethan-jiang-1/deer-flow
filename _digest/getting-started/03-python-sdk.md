@@ -88,7 +88,7 @@ model = client.get_model("deepseek")
 
 ```python
 config = client.get_mcp_config()
-# -> {"mcp_servers": {...}, "mcp_interceptors": [...]}
+# -> {"mcp_servers": {...}}（McpConfigResponse 只有这一个键）
 
 client.update_mcp_config({
     "github": {

@@ -31,7 +31,7 @@ topics: [setup, configuration, quickstart]
 | `config_version` | Schema 版本号，`make config-upgrade` 合并新字段 | — |
 | `models` | LLM 模型列表，8 种 provider 适配器 | **否**（热加载） |
 | `models[].use` | Provider 类路径，reflection 加载 | 否 |
-| `tool_groups` | 工具分组（web/ file:read/ file:write/ bash） | 否 |
+| `tool_groups` | 工具分组（web/ file:read/ file:write/ bash/ browser/ knowledge） | 否 |
 | `tools` | 内置工具 provider 列表（web_search/web_fetch/image_search/ls/bash 等） | 否 |
 | `sandbox` | 沙箱实现选择（Local/Docker/K3s/BoxLite/E2B） | **是**（`sandbox.use`） |
 | `sandbox.allow_host_bash` | 主机 bash 开关，默认 false | 否 |
@@ -57,8 +57,9 @@ topics: [setup, configuration, quickstart]
 | 键 | 用途 |
 |----|------|
 | `mcpServers` | MCP 服务器注册（stdio/sse/http），含 OAuth 支持 |
-| `mcpInterceptors` | MCP 连接认证拦截器 |
+| `mcpInterceptors` | 自定义 MCP tool 拦截器 class path 列表（`extensions_config.py` 的 schema 外键，经 `model_extra` 读取并由 `mcp/interceptors.py` 解析） |
 | `skills` | Skill 启用/禁用开关 |
+| `middlewares` | `AgentMiddleware` 条目（class path 或 `{class, kwargs}`），作用于 lead + subagent 运行时 |
 
 运行时 API：`PUT /api/mcp/config`、`PUT /api/skills/{name}`。
 

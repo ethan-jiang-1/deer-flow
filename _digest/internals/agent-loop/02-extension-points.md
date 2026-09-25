@@ -170,19 +170,19 @@ DeerFlow 提供了 `@Next` / `@Prev` 定位装饰器：
 
 ```python
 from deerflow.agents.features import Next
-from deerflow.agents.middlewares import LoopDetectionMiddleware
+from deerflow.agents.middlewares.loop_detection_middleware import LoopDetectionMiddleware
 
 @Next(LoopDetectionMiddleware)
 class MyMiddleware(AgentMiddleware):
     ...
 ```
 
-这意味着你的 middleware 会被插入到 `LoopDetectionMiddleware` **之后**。也可以传实例到 `extra_middleware` 参数配合 `@Prev`。
+这意味着你的 middleware 会被插入到 `LoopDetectionMiddleware` **之后**；`@Prev` 则插到它之前。机制上装饰器只给类打标记（`cls._next_anchor` / `cls._prev_anchor`，`deerflow/agents/features.py:49-73`），真正的插入发生在装配期：SDK 路径是 `agents/factory.py::_insert_extra_middleware()`（`factory.py:429+`），按锚点算下标后再插进链。
 
 ### 第三步：注入到链中
 
-- **Lead agent 路径**：通过 `_build_middlewares()` 的 `custom_middlewares` 参数
-- **SDK 路径**：通过 `create_deerflow_agent(features=RuntimeFeatures(...))` 传递自定义实例
+- **Lead agent 路径**：`build_middlewares(..., custom_middlewares=[...])` —— 参数名就是 `custom_middlewares`（不是 `extra_middleware`）
+- **SDK 路径**：`create_deerflow_agent(..., extra_middleware=[...])` 传自定义实例列表；`features=RuntimeFeatures(...)` 是**另一件事**——它是按槽位开关/替换内置能力（例如 `loop_detection: bool | AgentMiddleware`），不是任意 middleware 的入口
 
 ### Middleware 扩展的注意事项
 
@@ -199,36 +199,38 @@ Subagent 是 Level 2 的一个特殊情况——它不只是加 middleware，而
 - `general-purpose`: 除了 `task` 以外的所有 tools
 - `bash`: 只有 sandbox tools（bash, ls, read, write, str_replace）
 
-注册新的 subagent 类型需要两个步骤：
+注册新的 subagent 类型是**声明式**的——**没有** `register_subagent()` 这类运行时注册 API。`SubagentConfig` 是解析结果的对象形态（`deerflow/subagents/config.py:11`），`subagents/registry.py` 只**查找**它，按下面的顺序解析：
 
-### 1. 定义 SubagentConfig
+| 顺序 | 来源 | 实现 |
+|------|------|------|
+| 1 | 内置 subagent（`general-purpose`、`bash`） | `subagents/builtins/` |
+| 2 | `config.yaml` 的 `subagents.custom_agents.<name>` | `subagents/registry.py:29` `_build_custom_subagent_config()` |
+| 3 | 管理员托管的 subagent 表（部署级目录） | `subagents/registry.py:88` `_build_managed_subagent_config()`；增删改走 Gateway 的 `GET/POST /api/subagents`、`PUT/DELETE /api/subagents/{name}` |
+| 4 | `config.yaml` 的 `subagents.agents.<name>` 逐 agent 覆盖（timeout / max_turns / model / skills / token_budget） | `SubagentsAppConfig.get_*_for()`（`config/subagents_config.py:185+`） |
 
-```python
-from deerflow.subagents.config import SubagentConfig
+公开查找入口（`subagents/__init__.py` 的 `__all__`）：`get_subagent_config(name)` / `list_subagents(allowed_subagents=...)` / `get_available_subagent_names()`。
 
-my_agent = SubagentConfig(
-    name="my-agent",
-    description="Specialized agent for X",
-    system_prompt="You are an expert at X...",
-    tools=["tool_a", "tool_b"],           # allowlist
-    disallowed_tools=["dangerous_tool"],   # denylist
-    skills=["my-skill"],                   # 加载哪些 skills
-    model="inherit",                       # 或指定具体 model name
-    max_turns=15,
-    timeout_seconds=300,
-)
+### 声明一个自定义 subagent
+
+```yaml
+# config.yaml（config.example.yaml:1757+ 有完整注释示例）
+subagents:
+  timeout_seconds: 600        # 全局默认
+  max_turns: 80
+  custom_agents:
+    my-agent:
+      description: "Specialized agent for X"
+      system_prompt: "You are an expert at X..."
+      tools: ["bash", "read_file", "write_file"]   # allowlist（null = 继承全部）
+      skills: ["my-skill"]                         # 发现/激活白名单（null = 全部，[] = 无）
+      model: inherit                               # 'inherit' 用父 agent 的模型
+      max_turns: 15
+      timeout_seconds: 300
 ```
 
-### 2. 注册
+声明后，lead agent 的系统 prompt 里会出现这个 subagent type，模型可通过 `task(subagent_type="my-agent", ...)`（durable 批量为 `batch_task`）调用它。直接用 `SubagentConfig(...)` 构造对象只出现在内置定义与 durable batch 的 spec 反序列化路径（`subagents/builtins/*.py`、`registry.py:44/92`、`batch_service.py:190`），**不是**对外的注册入口。
 
-```python
-from deerflow.subagents.registry import register_subagent
-register_subagent(my_agent)
-```
-
-注册后，lead agent 的系统 prompt 中会自动出现这个 subagent type，模型可以通过 `task(subagent_type="my-agent", ...)` 调用它。
-
-**对 loop 的影响：** Subagent 有自己的独立 agent loop（见 [[00-loop-anatomy]] Layer 3），有自己的 middleware 链（基础设施的 6-7 个）。它的 loop 不受主 agent 的 middleware 影响，只在 cancel/timing 上受主 agent 控制。
+**对 loop 的影响：** Subagent 有自己的独立 agent loop（见 [00-loop-anatomy.md](00-loop-anatomy.md) 的 Layer 3 与 [../concepts/subagent/dual-threadpool-and-lifecycle.md](../../concepts/subagent/dual-threadpool-and-lifecycle.md)），有自己的 middleware 链（复用 `build_subagent_runtime_middlewares()`：共享基础层 + 一小撮 lead-only 同类项，见 [01-middleware-as-loop.md](01-middleware-as-loop.md) 的装配段）。它的 loop 不受主 agent 的 middleware 影响，只在 cancel/timing 上受主 agent 控制。
 
 ## Level 3：加通道（外部接口）
 
@@ -301,13 +303,13 @@ class AuditLoggingMiddleware(AgentMiddleware):
 ```python
 # 情境: 想在 GuardrailMiddleware 之后、SandboxAuditMiddleware 之前
 from deerflow.agents.features import Next
-from deerflow.agents.middlewares.guardrails.middleware import GuardrailMiddleware
+from deerflow.guardrails.middleware import GuardrailMiddleware
 
 @Next(GuardrailMiddleware)
 class AuditLoggingMiddleware(AgentMiddleware):
     ...
 ```
 
-传给 `_build_middlewares()` 的 `custom_middlewares` 参数即可。
+传给 `build_middlewares()` 的 `custom_middlewares` 参数即可。
 
 这就是 DeerFlow 扩展体系的完整图景：**四层扩展，从改配置到写 middleware，从 tool 到 subagent，每一层都有明确的接口和定位规则**。

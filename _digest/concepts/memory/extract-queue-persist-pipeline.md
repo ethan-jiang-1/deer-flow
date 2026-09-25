@@ -63,6 +63,8 @@ topics: [memory, persistence, context-injection, pluggable-backend, consolidatio
 | | `export_memory(user_id, agent_name)` | 导出 memory document |
 | **Lifecycle** | `shutdown_flush(timeout)` | Graceful shutdown 时排空 pending updates |
 
+> 上表只列了 host 侧主要使用的成员。ABC 还包含 `cancel_by_agent`、`warm()`（三态）、`reload_memory`、`create_fact`/`delete_fact`/`update_fact`、`on_pre_compress`/`on_turn_start`、async 占位 `aadd`/`aget_context`/`asearch`、`close()` 与抽象 classmethod `from_config`，以及实例化期不变量与严格读（`MemoryReadError`）策略——见 [manager-contract-and-backend-clients.md](manager-contract-and-backend-clients.md)。
+
 ### 后端发现机制
 
 ```
@@ -216,7 +218,7 @@ Agent 决定何时调用 memory 工具
            → manager.delete_fact(...)  [backend-internal capability]
 ```
 
-> **注意**：`create_fact`/`update_fact`/`delete_fact` 不在 ABC 上（是 backend-internal capability）。Gateway 通过 `hasattr(manager, "<name>")` 探测，缺失时返回 501。
+> **注意**：`create_fact`/`update_fact`/`delete_fact` 是 ABC 上的 **tier-3 可选钩子**，默认 `raise NotImplementedError`——**不是** `hasattr` 探测。调用方直接调用并 catch `NotImplementedError`，Gateway 的 `_unsupported_501` 把它映射成 501（`manager.py:428-494`；`app/gateway/routers/memory.py:133-165`）。完整分层与不变量见 [manager-contract-and-backend-clients.md](manager-contract-and-backend-clients.md)。
 
 ---
 
@@ -244,7 +246,7 @@ memory:
 
 基于官方 `langchain-openviking` 包的**远程后端**（非裸 HTTP）。通过 `langchain-openviking==0.1.0` 的 `OpenVikingSessionRecorder`/`OpenVikingRetriever`/`OpenVikingCommitPolicy` 通信。
 
-- **单用户绑定**：一个 OpenViking USER API key 绑定一个 `owner_user_id`，其他 DeerFlow 用户被拒绝（`openviking_manager.py:452`）
+- **单用户绑定**：一个 OpenViking USER API key 绑定一个 `owner_user_id`，其他 DeerFlow 用户被拒绝（`openviking_manager.py:459-460`）
 - **Thread ↔ Session 确定性映射**：`_session_id()` 用 SHA-256 派生；agent 名冲突/非法时生成 `df-agent-<hash>` 前缀 peer ID
 - **捕获游标只存签名 hash + 计数器**，不存消息正文
 - **部分写入恢复**：`OpenVikingPartialWriteError` 携带 `input_messages_consumed` 和 `commit_pending` 标记
@@ -517,7 +519,7 @@ Memory prompts 已从代码中抽离为 YAML 模板文件，放在 `backends/dee
 
 ## Token Counting
 
-两种策略，由 `memory.token_counting` 控制：
+两种策略，由 `memory.backend_config.token_counting` 控制（旧写法 `memory.token_counting` 会被自动迁移进 `backend_config` 并告警，`memory_config.py:180-215`）：
 
 | 策略 | 说明 |
 |------|------|

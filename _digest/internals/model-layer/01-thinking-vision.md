@@ -187,7 +187,7 @@ thinking_budget = int(max_tokens * 0.8) if max_tokens else None
 
 ### vLLM 旧版兼容
 
-`_normalize_vllm_chat_template_kwargs()`（`vllm_provider.py:39`）处理 vLLM 0.19.0 之前的配置格式——`chat_template_kwargs.thinking` → `chat_template_kwargs.enable_thinking`。在 `_get_request_payload` 被调用时执行转换，不影响 config.yaml 中的声明。
+`_normalize_vllm_chat_template_kwargs()`（定义在 `vllm_provider.py:47`）处理 vLLM 0.19.0 之前的配置格式——`chat_template_kwargs.thinking` → `chat_template_kwargs.enable_thinking`。在 `_get_request_payload`（`:220`）里被调用（`:230`）执行转换，不影响 config.yaml 中的声明。
 
 ## Vision 启用链路的代码级 trace
 

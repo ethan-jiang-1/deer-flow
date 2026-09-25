@@ -37,7 +37,7 @@ Agent Loop 一轮 step:
   → 循环回到 before_model → ... → 没有 tool_calls 了 → after_agent hooks → END
 ```
 
-基类是 LangChain 的 `AgentMiddleware[State]`（不是 DeerFlow 自己发明的协议），来自 LangChain >= 1.2.15。这意味着 middleware 的核心约定（有哪些 hook、签名什么样）是 LangChain 定的，DeerFlow 做的是**选择和排序**。
+基类是 LangChain 的 `AgentMiddleware[State]`（不是 DeerFlow 自己发明的协议），来自 `langchain>=1.3`（`backend/packages/harness/pyproject.toml:23`；`langgraph>=1.2.9,<1.3` 见 `:30`，langgraph 1.2.9 传递依赖 langchain >=1.3）。这意味着 middleware 的核心约定（有哪些 hook、签名什么样）是 LangChain 定的，DeerFlow 做的是**选择和排序**。
 
 ## 为什么存在
 
@@ -96,7 +96,7 @@ after_agent[N] → after_agent[N-1] → ... → after_agent[0]    (teardown: fir
 
 | 维度 | Flask | DeerFlow |
 |------|-------|----------|
-| **注册方式** | `@app.before_request` 装饰器 | 列表 append，硬编码在 `_build_middlewares()` |
+| **注册方式** | `@app.before_request` 装饰器 | 列表 append，硬编码在 `build_middlewares()` |
 | **执行顺序** | 装饰器调用顺序 | 列表索引顺序 |
 | **Hook 粒度** | `before_request` / `after_request` / `teardown_request` | 6 种：`before_agent` / `before_model` / `after_model` / `after_agent` / `wrap_model_call` / `wrap_tool_call` |
 | **Request 修改** | 通过 `request` 全局对象（thread-local proxy） | 通过 `state` dict 或 `request.override()` 不可变模式 |
@@ -129,7 +129,7 @@ DeerFlow 更像**在 Flask 的 `before_request`/`after_request` 基础上，额�
 
 Flask 的 `@app.before_request` 装饰器顺序完全取决于 Python 文件的 import 顺序——脆弱、隐式、难以追踪。DeerFlow 的 `@Next(ClarificationMiddleware)` / `@Prev(GuardrailMiddleware)` 是**显式、声明式**的定位，带冲突检测（两个 middleware 抢同一个 anchor 会报错），支持交叉引用（A 跟在 B 后面，B 跟在 C 后面，最终 C→B→A）。
 
-这是这套系统最让我惊喜的设计。`_insert_extra()` 的实现（`factory.py:306-378`）用迭代插入 + 环形依赖检测，干净利落。
+这是这套系统最让我惊喜的设计。`_insert_extra()` 的实现（`deerflow/agents/factory.py:433-506`）用迭代插入 + 环形依赖检测，干净利落。
 
 ### 3. LoopDetection 的警告注入时机体现了对 LLM provider 的深刻理解
 
@@ -159,15 +159,15 @@ class RuntimeFeatures:
 
 ### 1. 扁平硬编码位置——没有优先级系统
 
-37 个 middleware 的位置是 `_build_middlewares()` 里的 append 顺序决定的。如果你想让自己的 middleware 插在 GuardrailMiddleware 和 SandboxAuditMiddleware 之间，你必须知道它们的类名并用 `@Next`/`@Prev`。
+37 个 middleware 的位置是 `build_middlewares()` 里的 append 顺序决定的。如果你想让自己的 middleware 插在 GuardrailMiddleware 和 SandboxAuditMiddleware 之间，你必须知道它们的类名并用 `@Next`/`@Prev`。
 
 Flask 后来也面临同样的问题——Blueprints 的 `before_request` 执行顺序取决于 blueprint 注册顺序，调试起来很痛苦。更成熟的方案是**优先级数字**（如 Django middleware 的 `MIDDLEWARE` 列表里每个元素有明确的序号），或者**阶段分组**（如 `SERVER`, `SECURITY`, `APPLICATION`, `OBSERVABILITY`）。
 
-DeerFlow 的 `@Next`/`@Prev` 部分解决了这个问题，但只要有人动了 `_build_middlewares()` 里的顺序（比如把一个 middleware 往上挪了三位），所有依赖那个 anchor 的第三方 middleware 的插入位置都会被意外改变。
+DeerFlow 的 `@Next`/`@Prev` 部分解决了这个问题，但只要有人动了 `build_middlewares()` 里的顺序（比如把一个 middleware 往上挪了三位），所有依赖那个 anchor 的第三方 middleware 的插入位置都会被意外改变。
 
 ### 2. 两条装配路径有重复代码
 
-`_build_middlewares()` (lead_agent/agent.py:266) 和 `_assemble_from_features()` (factory.py:155) 是两个独立的函数，各自维护一份 middleware 装配逻辑。两条路径的 middleware 集合不完全一致（factory 路径少了 LLMErrorHandling、SandboxAudit、DynamicContext、TokenUsage、DeferredToolFilter、SafetyFinishReason），而且同一 middleware 在两条路径中的位置也不同。
+`build_middlewares()` (lead_agent/agent.py:484) 和 `_assemble_from_features()` (deerflow/agents/factory.py:197) 是两个独立的函数，各自维护一份 middleware 装配逻辑。两条路径的 middleware 集合不完全一致（factory 路径少了 LLMErrorHandling、SandboxAudit、DynamicContext、TokenUsage、DeferredToolFilter、SafetyFinishReason），而且同一 middleware 在两条路径中的位置也不同。
 
 这就意味着：**你在 lead agent 路径下测试通过的 middleware 行为，在 SDK 路径下可能不一样。** 两条路径应该共享同一份 middleware 列表构建逻辑，只通过 config/feature flag 控制开关。
 
@@ -183,13 +183,15 @@ DeerFlow 的 `@Next`/`@Prev` 部分解决了这个问题，但只要有人动了
 
 目前所有内置 middleware 的 `wrap_model_call` 实现都是轻量的（LLMErrorHandling 的 retry 除外，但那是必要的），但第三方 middleware 不一定遵守这个约定。
 
-### 5. 基类来自 unreleased LangChain 版本
+### 5. 基类由上游 LangChain 定义（v2.1.0 已落地）
 
-`AgentMiddleware` 的 import 路径 `langchain.agents.middleware` 在当前安装的 langchain 0.3.x 中不存在。pyproject.toml 依赖 `langchain>=1.2.15`，但这是一个未来版本。这意味着：
+`AgentMiddleware` 的 import 路径 `langchain.agents.middleware` 是**现行**基类；`pyproject.toml` 依赖 `langchain>=1.3`（已发布版本），`langgraph>=1.2.9,<1.3` 会传递拉入它。也就是说这套 middleware 协议在 v2.1.0 里是可安装、可类型检查、可 IDE 补全的正常依赖，不是"未来版本"。
 
-- 如果 LangChain 改了 `AgentMiddleware` 的接口，DeerFlow 的所有 middleware 都得跟着改
-- 没法用当前 langchain 版本的 `AgentMiddleware` 做类型检查或 IDE 补全
-- 这是架构上的耦合风险——middleware 系统是 DeerFlow 最核心的扩展机制，但它的基类定义不在 DeerFlow 控制范围内
+剩下的耦合风险是真实的，但属于**上游接口演进**而非"不可用"：
+
+- `AgentMiddleware` 的 hook 集合/签名一旦变更，DeerFlow 的全部 middleware（以及第三方扩展）都得跟着改——这是架构上的上游耦合。
+- 更近的一层风险是 `langgraph>=1.2.9,<1.3` 与 `langchain>=1.3` 的下界：`backend/AGENTS.md` 与 [04 篇](04-claude-code-comparison.md) 记录的 hook 分发顺序（`after_model` 反向执行）是上游行为，DeerFlow 只能利用、不能自己保证。
+- 因此 middleware 系统是 DeerFlow 最核心的扩展机制，而它的基类定义不在 DeerFlow 控制范围内；升级 LangChain 时需要把它当作契约变更来 review。
 
 ## 总体评价
 

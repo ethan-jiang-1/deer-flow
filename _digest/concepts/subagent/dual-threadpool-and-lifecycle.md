@@ -16,7 +16,7 @@ LLM 不会凭空知道有哪些 subagent — 它通过**两个独立的信息源
 
 ### Channel 1: Tool Schema（`task` 工具的 description）
 
-在 `task_tool.py:186`，`@tool("task", parse_docstring=True)` 装饰器把函数的 docstring 提取为这个 tool 的 `description`，langchain 在 `create_agent()` 时把它绑到 model 的 function-calling schema 里。LLM 在决定调哪个 tool 时直接能看到它。
+在 `task_tool.py:650`，`@tool("task", parse_docstring=True)` 装饰器把函数的 docstring 提取为这个 tool 的 `description`，langchain 在 `create_agent()` 时把它绑到 model 的 function-calling schema 里。LLM 在决定调哪个 tool 时直接能看到它。
 
 **问题：** docstring 是写死的。builtins (`general-purpose`, `bash`) 的描述硬编码在源码里。自定义 agent 只泛泛提了一句 "may be defined in config.yaml" — LLM 无法通过这个 channel 知道自定义 subagent 的类型名。
 
@@ -122,7 +122,7 @@ _last_aimessage.tool_calls 中数 "task" 的数量
 
 ## Phase 2: 启动 — task_tool 装配并丢到后台
 
-`task_tool` 是一个 `async def`，用 `@tool("task")` 装饰。位于 `tools/builtins/task_tool.py:187`。
+`task_tool` 是一个 `async def`，用 `@tool("task")` 装饰。位于 `tools/builtins/task_tool.py:651`（装饰器在 `:650`）。
 
 **第一步：解析 subagent_type**
 
@@ -162,7 +162,7 @@ task_id = executor.execute_async(task=prompt, task_id=tool_call_id)
 # 立即返回 task_id，不等待 subagent 完成
 ```
 
-`execute_async` 做了三件事（`executor.py:1312`）：
+`execute_async` 做了三件事（`executor.py:1831`）：
 1. 生成服务端唯一 `execution_id`(uuid4)，创建 `SubagentResult(PENDING)` 存入全局 `_background_tasks[execution_id]`；provider `tool_call_id` 只存入 `external_task_id` 作关联，不作为 registry key
 2. `_submit_to_isolated_loop_in_context(run_with_timeout)` — 把 `asyncio.wait_for(_aexecute, timeout)` 包装的协程丢到持久 isolated loop
 3. 立即返回 `execution_id`
@@ -350,6 +350,57 @@ batch_task() → SubagentBatchService.submit()（校验 + create_batch 持久化
 
 `GET /api/features` 暴露 `subagent_batches.{enabled,repository_available,worker_running}`：历史在 worker 未运行时仍可读（repo 与 worker 状态分离）。
 
+### 仓储层 API 契约（`SubagentBatchRepository`）
+
+`deerflow/persistence/subagent_batches/sql.py:59`（ORM 在 `model.py`；建表 migration `0016_subagent_batches`，验收两列见 `0021_batch_acceptance`）。所有方法各开一个短 session，用 `with_for_update(skip_locked=True)` / `with_for_update()` 把"读-改-写"做成原子操作，**返回字典投影而不是 ORM 对象**。调用方：`deerflow/subagents/batch_service.py`（`claim_items :108`、`renew_item_lease :214/:270/:360`、`mark_item_running :259`、`requeue_item_after_admission_failure :292`、`finalize_item :312/:337`）与路由 `app/gateway/routers/subagent_batches.py:99`（`retry_item`）。
+
+**状态常量**（`sql.py:18-21`）：
+
+| 集合 | 取值 |
+|------|------|
+| batch active / terminal | `queued, running, paused` / `completed, failed, cancelled` |
+| item active / terminal | `queued, leased, running` / `succeeded, failed, cancelled` |
+
+另有 item 的 `pending`：条目已持久化但尚未晋升为 `queued`。
+
+**字段投影是白名单，owner 视图与 worker 视图分开**：
+
+| 函数 | file:line | 契约 |
+|------|-----------|------|
+| `_batch_dict` | `:66` | owner 可见的稳定投影 `_BATCH_PUBLIC_FIELDS`（`:22-35`）——**绝不含 `execution_spec` / `user_id` / `run_id` / `tool_call_id` / `submission_key`**（docstring：stable owner-facing projection, never execution context） |
+| `_execution_batch_dict` | `:75` | 只有 worker 能拿到的字段：`id`/`user_id`/`thread_id`/`run_id`/`execution_spec`，用于重建执行 |
+| `_item_dict` | `:86` | `_ITEM_PUBLIC_FIELDS`（`:37-55`）；`acceptance_verdict` 一律过 `validate_acceptance_verdict()` 归一；只有 `include_result=True` 才带完整 `result` |
+| `_with_counts` | `:178` | 在 batch 投影上挂 `counts`，七个 item 状态**全部补零**（`pending/queued/leased/running/succeeded/failed/cancelled`），调用方无需判空 |
+| 时间戳归一 | `:69-71`、`:91-93` | 所有时间字段经 `coerce_iso` 输出 |
+
+**提交幂等**（`create_batch`，`:96`）：
+
+- 先 `session.flush()` 父行再插 item（`:150-157`）——两个模型**故意不声明 ORM relationship**，显式 flush 是为了让 SQLite 的即时 FK 检查永远不会先看到 item 行；并且这个 flush 被刻意留在幂等 handler 内部（重复 submission key 会在 commit 之前就在这里失败）。
+- 唯一约束 `uq_subagent_batches_user_submission (user_id, submission_key)`（`model.py:34`）命中 `IntegrityError` → rollback → 按 `(user_id, submission_key)` 重查并返回**同一 batch_id + 真实 counts**（`:159-171`）；查不到则原样 re-raise。
+- **item 身份**：`id = f"batch-item-{uuid4().hex}"`，`item_key` 由调用方给，`position` 是提交顺序下标；`model.py:70-71` 对 `(batch_id, item_key)` 与 `(batch_id, position)` 各加唯一约束——item 身份在 batch 内既按 key 也按位置唯一。`acceptance_criteria` 落库前过 `normalize_acceptance_criteria(...) or None`（`:139`）。
+
+**claim / lease 恢复**（`claim_items`，`:236`）——一次调用对每个 active batch 顺序做四步，`limit` 是**跨 batch 的总量**：
+
+1. **过期租约恢复**：取 `status in (leased, running) AND lease_expires_at < now`（`skip_locked`）——有 `cancel_requested_at` → `cancelled`；`attempt >= max_attempts` → `failed`（error 保留原文或写固定文案）；否则回 `queued` 并写 `"Previous worker lease expired; retrying"`（`:254-280`）。
+2. **晋升 pending**：`promote_count = max(0, max_live_items - (queued+leased+running))`，按 `position` 把 pending 升为 `queued`（`:282-302`）。
+3. **认领窗口**：`batch_available = max(0, max_running_items - leased - running)`，`take = min(limit - len(claimed), batch_available)`；只取 `queued` 且 `cancel_requested_at IS NULL` 的行（`:304-323`）。
+4. **写租约**：`status="leased"`、`attempt += 1`、`lease_owner`/`lease_expires_at`、`started_at = now`、清 `error`；本 batch 有认领时置 batch `running`（`:324-339`）。
+
+   返回的每个 dict 额外带 **`prompt`**（执行必需）和 **`batch`**（`_execution_batch_dict`）——即 claim 的返回值才携带执行上下文，普通查询拿不到。
+
+**其余方法契约**：
+
+| 方法 | file:line | 契约 |
+|------|-----------|------|
+| `renew_item_lease(item_id, lease_owner, lease_seconds, now)` | `:343` | 只有 `status in (leased, running) AND lease_owner == 自己` 才续租；返回 `{"valid": bool, "cancel_requested": bool}`。`cancel_requested` = item 有 `cancel_requested_at` **或** batch 缺失/`cancelled`；取消中不续租、不 commit，返回 `valid=False` |
+| `mark_item_running(item_id, lease_owner, now)` | `:373` | `leased` + owner 匹配 + 未请求取消 → `running` 并覆盖 `started_at`；否则 `False` |
+| `finalize_item(...)` | `:394` | `leased`/`running` + owner 匹配才生效（否则 `False`）。顺序：清租约 → 无论成败都写 `model_name`/`stop_reason`/`token_usage` → 若 `cancel_requested_at` 或 batch `cancelled` 则 `cancelled`（error `"Cancelled by user"`，**结果不落库**）→ 成功则 `succeeded` + `validate_acceptance_verdict(acceptance_verdict)` + `result`/`result_preview`/`result_truncated` → 失败但 `attempt < max_attempts` 则回 `queued`（记 error、`started_at = None`，**保留 attempt**）→ 达到上限则 `failed`。最后调 `_refresh_batch_status` |
+| `requeue_item_after_admission_failure(...)` | `:458` | 容量准入在**执行前**被拒时撤销 claim：清租约 + `attempt = max(0, attempt-1)`（docstring 明确"归还重试预算，不消耗 batch 的 retry budget"）+ `started_at = None`；已请求取消则仍走 `cancelled`。对应上文"batch 场景会 requeue 且不消耗 attempt" |
+| `_refresh_batch_status` | `:506` | item 终态数 `>= total_items` → batch 终态：非 `cancelled` 时 `failed`（有 failed 且零 succeeded）否则 `completed`，写 `completed_at`；未全终态且 batch 不在 `paused/cancelled` → `running`。**`paused` 与 `cancelled` 不被本函数覆盖** |
+| `pause_batch` / `resume_batch` / `cancel_batch` | `:517`/`:520`/`:523`（实现 `_set_control` `:526`） | owner-scoped，非属主/不存在返回 `None`。`pause`：`queued`/`running` → `paused`；`resume`：`paused` → `queued`；`cancel`：batch 非终态 → `cancelled` + `completed_at`，并把**所有非终态 item** 置 `cancelled`（写 `cancel_requested_at` 作为 fence、清租约、`"Cancelled by user"`），使 stale worker 的 `finalize_item` 因 owner/状态不匹配而失败。返回带 counts 的 batch 投影 |
+| `retry_item(batch_id, item_id, user_id)` | `:563` | 只接受 `failed` item：重置为 `pending`、`attempt = 0`、清 `result`/`result_preview`/`result_truncated`/`acceptance_verdict`/`error`/`completed_at`/`cancel_requested_at`，并把父 batch 从终态拉回 `queued`、清 `completed_at`。非 failed 返回 `None`（路由 409） |
+| `get_batch` / `list_by_thread` / `list_items` | `:184`/`:191`/`:208` | 全部 owner-scoped（`user_id` 不符返回 `None`）；`list_by_thread` 按 `created_at desc, id desc` + `limit`（默认 20）；`list_items` 按 `position` 分页、可选 `status` 过滤，`include_prompt`/`include_result` 默认 `False`，batch 不存在/不属主返回 `None` |
+
 ## 批量专用 Builtin 工具 🆕
 
 `deerflow/tools/builtins/batch_task_tool.py` 定义三个工具，仅当进程内安装了 startup SQL-backed batch submitter 时加入 tools：
@@ -515,6 +566,11 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 
 `try_set_terminal()` 线程安全 first-terminal-wins。
 
+**跨语言契约**：`contracts/subagent_status_contract.json`（version 2）是 Python 与 TypeScript 消费方共享的 wire contract fixture——**task 结果文本只是展示内容，不属于该契约**，结构化事实一律走 `ToolMessage.additional_kwargs`：
+
+- `valid_status_values` = `completed` / `failed` / `cancelled` / `timed_out` / `polling_timed_out`（`status_contract.py:83-89`）
+- v2 新增可选 `subagent_stop_reason`（#3875 Phase 2），取值 `token_capped` / `turn_capped` / `loop_capped`；旧消费方只读 `subagent_status`，会忽略该字段（`status_contract.py:14-19`、常量 `:53`，见下节 Stop Reason）
+
 ## Stop Reason：三轴 Guard Cap 🆕
 
 **2.1 增强**：三个独立轴可以提前终止 subagent run，都通过 additive `stop_reason` 字段（而非新 status enum）暴露原因：
@@ -540,7 +596,7 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 
 🆕 **同步 #6（RFC #4651 layer 2）**：completed 结果的 `additional_kwargs` 现在携带两份**建议性**校验 verdict（读取侧结构校验、Gateway 剥离 caller 伪造值），随 delegation 条目持久化并在账本渲染：
 
-- `subagent_receipt_citations` — 收据引用校验（见下节），渲染为 `citations:` 段
+- `subagent_receipt_verdict` — 收据引用校验（见下节），渲染为 `citations:` 段（key 常量 `SUBAGENT_RECEIPT_VERDICT_KEY`，`subagents/status_contract.py:60`）
 - `subagent_acceptance_verdict` — 确定性验收清单（见下节），渲染为 `acceptance:` 段 + 未满足条件的 gap 列表
 
 即使 summarization 压缩掉原始 tool-call/result 消息（#5287），durable-context 的账本渲染仍会重新校验持久化 verdict 并显示 `acceptance:` 段与 actionable gaps——"completed 只代表执行结束，不是任务验收；保留有用工作、修复剩余缺口" 的指引在压缩后依然可见。

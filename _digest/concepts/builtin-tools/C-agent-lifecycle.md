@@ -13,7 +13,7 @@ topics: [tools, builtin, sandbox-tools]
 ## setup_agent
 
 **源码**: `packages/harness/deerflow/tools/builtins/setup_agent_tool.py:16`
-**加载条件**: bootstrap 模式（`configurable` 中 `is_bootstrap: true`，`agent.py:461` 将 `setup_agent` 追加到 `get_available_tools()` 返回值之后）
+**加载条件**: bootstrap 模式（`configurable` 中 `is_bootstrap: true`，`agent.py:1057` 将 `setup_agent` 追加到 `get_available_tools()` 返回值之后）
 **Tool Name**: `setup_agent`
 
 ### 用途
@@ -74,7 +74,7 @@ except Exception as e:
 ## update_agent
 
 **源码**: `packages/harness/deerflow/tools/builtins/update_agent_tool.py:70`
-**加载条件**: custom agent 模式（`configurable` 中 `agent_name` 已设置且非 bootstrap，`agent.py:479` 将 `update_agent` 追加到 `get_available_tools()` 返回值之后）
+**加载条件**: custom agent 模式（`configurable` 中 `agent_name` 已设置且非 bootstrap，`agent.py:1176` 将 `update_agent` 追加到 `get_available_tools()` 返回值之后）
 **Tool Name**: `update_agent`
 
 ### 用途
@@ -131,7 +131,7 @@ agent_dir = paths.user_agent_dir(user_id, agent_name)
 
 ## skill_manage
 
-**源码**: `packages/harness/deerflow/tools/skill_manage_tool.py:204`
+**源码**: `packages/harness/deerflow/tools/skill_manage_tool.py:262-263`（`@tool("skill_manage")` 装饰器 + `async def skill_manage_tool`；实现主体自 `:123` 起，v2.1.0 实测）
 **加载条件**: `skill_evolution.enabled: true`（`config.yaml` 中 `skill_evolution` 段）
 **Tool Name**: `skill_manage`
 
@@ -164,7 +164,10 @@ agent_dir = paths.user_agent_dir(user_id, agent_name)
 
 ### 安全扫描
 
-每次写入前过 `scan_skill_content()`：
+**两级扫描，静态的先跑**（`skill_manage_tool.py:91-101`）：
+
+1. **确定性静态扫描** `enforce_static_scan()` —— 在临时目录里对"**候选 skill 树**"（现有整棵 skill 树 + 本次改动覆盖其上的文件）跑静态规则；命中 `block` 直接抛 `StaticScanBlockedError`，**不进入**第 2 步的 LLM 审核。
+2. **LLM 审核** `scan_skill_content()`：
 
 ```python
 result = await scan_skill_content(content, executable=executable, location=location)
@@ -175,6 +178,9 @@ if result.decision == "block":
 - `action=create/edit/patch` → `executable=False`（SKILL.md 本身不可执行）
 - `action=write_file` + 路径在 `scripts/` 下 → `executable=True`（额外校验）
 - 决策三态：`allow`（放行）/ `warn`（警告但允许）/ `block`（拒绝）
+- `delete` / `remove_file` 不跑扫描，history 里固定记 `scanner={"decision":"allow","reason":"Deletion requested."}`（`:215,:249`）
+
+`patch` 的 `expected_count` 语义（`:188-190`）：**给了就必须精确相等**，否则 `ValueError("Expected N replacements but found M.")`；**不给则只替换 1 次**（不是全局替换）。附带文件路径走 `skill_storage.ensure_safe_support_path()` 白名单校验（`:225`）。
 
 ### 只读保护
 
@@ -183,11 +189,14 @@ if result.decision == "block":
 
 ### 并发
 
-同一 skill name 用 `asyncio.Lock` 串行化，防止并发的 create + edit 竞争。
+锁粒度是 **`(user_id, skill_name)`**（`skill_manage_tool.py:33-42`，`WeakValueDictionary[tuple[str,str], asyncio.Lock]`）——同一用户对同一 skill 串行化，**不同用户之间不互相阻塞**（早期文档写的"同一 skill name"会让人误以为跨用户互锁）。
 
 ### 历史记录
 
 每次操作记录到 skill 目录下的 history（含 action、author=`"agent"`、thread_id、prev_content、new_content、scanner 结果）。
+
+> 变更后刷新：**per-user** 版本 `refresh_skills_system_prompt_cache_async(user_id=…)`（`agents/lead_agent/prompt.py:265`）才是实际调用点；无参版本 `:238` 只服务 SDK/无用户上下文路径。cache 失效不重建 storage 单例（详见 [skills-tools 的存储契约](../../concepts/skills-tools/skill-md-and-tool-assembly.md)）。
+
 
 ### prompt 缓存刷新
 

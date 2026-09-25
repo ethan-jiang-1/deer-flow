@@ -66,7 +66,7 @@
   <text x="50" y="218" fill="#94a3b8" font-size="12">场景</text>
   <text x="120" y="218" fill="#e2e8f0" font-size="12">Web前端 / 外部系统 / 跨语言</text>
 
-  <text x="50" y="243" fill="#fbbf24" font-size="11" font-weight="bold">↳ 03-api-reference.md</text>
+  <text x="50" y="243" fill="#fbbf24" font-size="11" font-weight="bold">↳ 02-api-reference.md</text>
 
   <!-- arrow: HTTP → Core -->
   <line x1="170" y1="260" x2="170" y2="280" stroke="#3b82f6" stroke-width="2" marker-end="url(#arrow)"/>
@@ -93,7 +93,7 @@
   <text x="810" y="218" fill="#94a3b8" font-size="12">场景</text>
   <text x="880" y="218" fill="#e2e8f0" font-size="12">Python 应用嵌入 / 脚本 / 无服务</text>
 
-  <text x="810" y="243" fill="#fbbf24" font-size="11" font-weight="bold">↳ 04-python-sdk.md</text>
+  <text x="810" y="243" fill="#fbbf24" font-size="11" font-weight="bold">↳ 03-python-sdk.md (getting-started)</text>
 
   <!-- arrow: SDK → Core -->
   <line x1="930" y1="260" x2="930" y2="280" stroke="#10b981" stroke-width="2" marker-end="url(#arrow)"/>
@@ -120,7 +120,7 @@
   <text x="50" y="618" fill="#94a3b8" font-size="12">场景</text>
   <text x="120" y="618" fill="#e2e8f0" font-size="12">生产部署 / 团队共享 / 沙箱隔离</text>
 
-  <text x="50" y="643" fill="#fbbf24" font-size="11" font-weight="bold">↳ 05-docker.md</text>
+  <text x="50" y="643" fill="#fbbf24" font-size="11" font-weight="bold">↳ 03-docker.md</text>
 
   <!-- arrow: Docker → Core -->
   <line x1="170" y1="480" x2="170" y2="450" stroke="#8b5cf6" stroke-width="2" marker-end="url(#arrow)"/>
@@ -147,7 +147,7 @@
   <text x="810" y="618" fill="#94a3b8" font-size="12">场景</text>
   <text x="880" y="618" fill="#e2e8f0" font-size="12">企业内部 IM / 客服机器人 / 移动端</text>
 
-  <text x="810" y="643" fill="#fbbf24" font-size="11" font-weight="bold">↳ 07-im-channels.md</text>
+  <text x="810" y="643" fill="#fbbf24" font-size="11" font-weight="bold">↳ 04-im-channels.md</text>
 
   <!-- arrow: IM → Core -->
   <line x1="930" y1="480" x2="930" y2="450" stroke="#ec4899" stroke-width="2" marker-end="url(#arrow)"/>

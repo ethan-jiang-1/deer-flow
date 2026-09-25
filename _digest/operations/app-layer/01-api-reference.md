@@ -141,38 +141,41 @@ flowchart LR
 
 ### RunCreateRequest 完整模型
 
-之前 digest 仅显示了 4 个基本字段。完整模型有 55+ 字段：
+之前 digest 仅显示了 4 个基本字段。真值（`app/gateway/run_models.py:29-58`，`model_config = ConfigDict(extra="forbid")`）是 **20 个字段**，其中多个 LangGraph Platform 字段只是**兼容占位**（类型收窄为 `None` / 单一字面量，传旧值会 422）：
 
 ```python
-class RunCreateRequest:
+class RunCreateRequest(BaseModel):   # extra="forbid"
+    assistant_id: str | None
+    input: dict | None
+    command: dict | None
+    metadata: dict | None
+    config: dict | None
+    context: dict | None              # DeerFlow 上下文覆盖（model_name/thinking_enabled...）；没有顶层 model_name 字段
+    conversation_references: list[str] = []   # 上限 3（MAX_CONVERSATION_REFERENCES）
+
     # --- 流控制 ---
     interrupt_before: list[str] | Literal["*"] | None
     interrupt_after: list[str] | Literal["*"] | None
+    stream_mode: list[str] | str | None
     stream_subgraphs: bool = False
-    stream_resumable: bool = False
+    stream_resumable: Literal[False] | None    # 兼容占位：只接受 null/false
 
     # --- 断开连接行为 ---
-    on_disconnect: DisconnectMode = "cancel"  # cancel | continue
-    on_completion: Literal["delete", "keep"] = "keep"
+    on_disconnect: Literal["cancel", "continue"] = "cancel"
+    on_completion: None = None                 # 兼容占位：完成回调不支持
 
     # --- 多任务策略 ---
-    multitask_strategy: Literal["reject", "interrupt", "rollback", "enqueue"] = "reject"
+    multitask_strategy: Literal["reject", "rollback", "interrupt"] = "reject"   # 没有 enqueue
 
-    # --- 高级功能 ---
-    after_seconds: int | None              # 延迟执行
-    if_not_exists: Literal["create", "reject"] = "reject"
-    feedback_keys: list[str] | None
-    webhook: str | None
+    # --- 兼容占位 / 固定值 ---
+    webhook: None = None                       # 兼容占位：不支持完成回调
+    after_seconds: None = None                 # 兼容占位：不支持延迟执行
+    if_not_exists: Literal["create"] = "create"  # 兼容默认：缺 thread 一律创建
+    feedback_keys: None = None                 # 兼容占位：不支持
+
+    # --- checkpoint ---
     checkpoint_id: str | None
     checkpoint: dict | None
-
-    # --- 标准字段 ---
-    assistant_id: str | None
-    metadata: dict | None
-    input: dict | None
-    context: dict | None
-    stream_mode: list[str] | None
-    model_name: str | None
 ```
 
 ## 其他之前未记录的端点
@@ -190,6 +193,14 @@ class RunCreateRequest:
 | `GET` | `/api/threads/{id}/messages` | 跨运行消息（反馈附加到最后一条 AI 响应） |
 | `GET` | `/api/assistants/{id}/graph` | 图描述存根（SDK 兼容） |
 | `GET` | `/api/assistants/{id}/schemas` | Schema 存根（SDK 兼容） |
+| `GET` | `/api/projects/{id}/thread-files` | 项目下跨线程的对话文件视图（`project_thread_files.py:105`） |
+| `GET` | `/api/threads/{id}/scheduled-tasks` | 该线程的定时任务列表（`scheduled_tasks.py:505`） |
+| `POST` | `/api/scheduled-tasks/preview-cron` | cron 表达式预览（不占位、不派发；需 `threads:read`） |
+| `GET` | `/api/threads/{id}/runs/{rid}/workspace-changes` | 该 run 的工作区文件变更快照（`thread_runs.py:1749`） |
+| `POST` | `/api/threads/{id}/runs/regenerate/prepare`、`/runs/edit-regenerate/prepare` | 重新生成 / 编辑后再生成的前置准备（`thread_runs.py:903/914`） |
+| `POST` | `/api/threads/{id}/browser/navigate` | 浏览器自动化导航（`browser.py:81`；受 `browser_control` feature flag 门控） |
+| `PATCH` | `/api/mcp/config` | 部分更新 MCP 配置（另有 `PUT /api/mcp/config/server`、`POST /api/mcp/config/servers`、`DELETE /api/mcp/config/servers/{name:path}`、`POST /api/mcp/cache/reset`） |
+| `GET` | `/api/threads/{id}/uploads/limits` | 上传限额（`uploads.py:433`） |
 
 ## MCP 配置合并
 
@@ -198,7 +209,7 @@ class RunCreateRequest:
 ```
 1. 从磁盘加载现有 extensions_config.json
 2. 对用户提供的配置进行深度合并（保留掩码值 ***）
-3. 保留 raw JSON 用于 mcpInterceptors 和未知键
+3. 保留 raw JSON 的 schema 外顶层键（`mcpInterceptors`、`middlewares` 等）与未知键（`mcp.py:1191-1193`）
 4. 原子写入
 ```
 
@@ -228,6 +239,8 @@ Thread goal 自动续跑：
 - `PUT /goal` — 设置 goal（可配 `max_continuations`，上限 8）
 - `DELETE /goal` — 清除 goal
 
+`PUT` / `DELETE /goal` 都经 `services.reserve_checkpoint_write()` 写入（进程内 `goal_thread_lock()` + durable `checkpoint_write` reservation）：已有 run 进行中时返回 409，该 reservation 同时挡住新的 reject/interrupt/rollback run；`PUT` 还会为缺失 goal 的线程按需创建 checkpoint。
+
 设置后，每个 visible assistant turn 后，非思考 evaluator 模型评估 goal 是否满足。`goal_not_met_yet` → 注入隐藏 HumanMessage 让 agent 继续工作。No-progress breaker 在连续 2 次无新证据时停止。
 
 ### Channel Connections (`/api/channels`)
@@ -239,11 +252,11 @@ Thread goal 自动续跑：
 - `POST /{provider}/connect` — 发起绑定（返回一次性 connect code）
 - `DELETE /connections/{id}` — 撤销绑定
 
-支持 7 个 provider：Telegram（deep-link）、Slack、Discord、Feishu、DingTalk、WeChat、WeCom（binding code）。
+支持 8 个 provider（`_PROVIDER_META`，`channel_connections.py:87-96`）：Telegram（deep-link）、Slack、Discord、Feishu、DingTalk、WeChat、WeCom、Buzz（binding code）。
 
 ### Features (`/api/features`) 🆕
 
-`GET /` — 报告 config-gated feature availability（当前 `agents_api.enabled`），供前端 UI 门控。
+`GET /` — 报告 config-gated feature availability（`agents_api.enabled`、`browser_control.enabled`、`mcp_tasks.enabled`、`subagent_batches.*`、`conversation_references.*`，`routers/features.py:57-64`），供前端 UI 门控。
 
 ### Input Polish (`/api/input-polish`) 🆕
 
@@ -251,8 +264,8 @@ Thread goal 自动续跑：
 
 ### OIDC/SSO 🆕
 
-- `GET /api/auth/oidc/login` — 发起 OIDC authorization code flow
-- `GET /api/auth/oidc/callback` — 处理 Keycloak/通用 OIDC provider 回调
+- `GET /api/v1/auth/oauth/{provider}` — 发起 OIDC authorization code flow
+- `GET /api/v1/auth/callback/{provider}` — 处理 Keycloak/通用 OIDC provider 回调
 - Session cookie 管理 + "keep me signed in" 支持
 
 ### Thread Branches 🆕
@@ -261,7 +274,7 @@ Thread goal 自动续跑：
 
 ### Manual Compaction 🆕
 
-`POST /api/threads/{id}/compact` — 手动将旧上下文压缩为 `summary_text` 并保留最近消息窗口。Run 进行中时阻塞。
+`POST /api/threads/{id}/compact` — 手动将旧上下文压缩为 `summary_text` 并保留最近消息窗口。经 `services.reserve_checkpoint_write()` 持有 durable `checkpoint_write` reservation，Run 进行中时返回 409。
 
 ### GitHub Webhooks (`/api/webhooks/github`)
 
@@ -295,7 +308,7 @@ CRUD on scheduled task 定义（cron 或一次性），含 lease/status 列和�
 | `PATCH` | `/api/threads/{id}` | metadata 合并；`deerflow_archived` 布尔键做归档/恢复（非布尔 422），组织性 PATCH 不 bump `updated_at` |
 | `POST` | `/api/threads/{id}/move` | 移入/移出项目（`project_id: str \| null`，null = 未归属） |
 | `POST` | `/api/threads/search` | 新增三态过滤：`archived`（缺省含全部 / `false` 含 legacy 未归档）与 `project_id`（缺省不过滤 / 显式 null=仅未归属 / 字符串=成员）；`limit`(≤1000)/`offset` 分页 |
-| `DELETE` | `/api/threads/{id}` | 🆕 持 durable `delete` reservation 的**全量清理**（sync #7）：文件系统数据 → checkpoints → 历史 run 行（只删 `operation_kind="run"`）→ run events → feedback → `threads_meta`，每步 best-effort；owner 只解析一次全程共用 |
+| `DELETE` | `/api/threads/{id}` | 🆕 持 durable `delete` reservation 的**全量清理**（sync #7）：文件系统数据 → checkpoints → 历史 run 行（只删 `operation_kind="run"`）→ run events → feedback → `threads_meta` → 关闭残留 browser session；除文件系统那步外均 best-effort（filesystem 失败会 422/500 中止）；owner 只解析一次全程共用 |
 
 ### Runs 历史与归档 🆕
 
@@ -319,3 +332,20 @@ CRUD on scheduled task 定义（cron 或一次性），含 lease/status 列和�
 - Thread-scoped run 创建端点（`POST /api/threads/{id}/runs[/stream|/wait]`）接受 `Idempotency-Key` 头：同键复用返回原 run（input/assistant_id 不一致 → 409）
 - `POST /api/runs/stream|/wait`（stateless）强制 `runs:create` 权限；可选 body `thread_id` 做 owner 检查
 - `GET /api/threads/{id}/runs/{rid}/stream` 对 `action` 参数 405——取消动作仅 POST 支持，GET join 是只读观察
+
+### 领域异常 → HTTP 映射 🆕（v2.1.0 实测）
+
+散落在各 router 的"什么情况返回什么码"，集中在这里（每条都有源码锚点，改路由时不要只改一处）：
+
+| 场景 | 码 | 源码 |
+|------|----|------|
+| scheduled task / thread / run 不存在 | 404 | `scheduled_tasks.py:202,261,276,295,374,387,400,419` |
+| scheduled task 正在 `running`（任何变更/pause/trigger） | 409 | `_ensure_task_mutable()` `scheduled_tasks.py:90-104`；pause `:388-395` |
+| 已有活跃 occurrence（`queued`/`launching`/`running`）阻止变更 | 409 | `:99-104` 的 `_active_occurrence_conflict_detail(active_status)`；`ActiveScheduledTaskMutationConflict` → `:368-372` |
+| `POST /api/scheduled-tasks/{id}/trigger` 与活跃 run 冲突 | 409 | `:454`（`result["outcome"]=="conflict"`） |
+| `POST /api/scheduled-tasks/{id}/trigger` 派发失败 | **502** | `:456`（`outcome=="failed"`）——这是全仓少见的 5xx 业务码 |
+| IM 连接码生成超过上限 | 429 | `channel_connections.py:347` |
+| `cancel_batch` 时 batch worker 未运行 | **503** | `subagent_batches.py:87` |
+| `retry_item` 目标不是 failed item | 409 | `subagent_batches.py:101` |
+| run 未结束就取 artifact archive（manifest 或 ZIP） | 409 | archive 两端点（见上文「Runs 历史与归档」） |
+| 导出槽/并发构建槽已满 | 429 | skill export（每进程全用户 2 槽）、archive 并发构建上限 4 |

@@ -133,7 +133,7 @@ System prompt 包含：
 ### 7. 构建 Middleware 并 create_agent
 
 ```python
-middlewares = _build_middlewares(config, model_name, agent_name)
+middlewares = build_middlewares(config, model_name, agent_name)
 graph = create_agent(
     model=model,
     tools=tools,

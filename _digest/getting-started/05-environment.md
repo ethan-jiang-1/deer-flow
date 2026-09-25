@@ -20,6 +20,9 @@ topics: [setup, configuration, quickstart]
 | `NOVITA_API_KEY` | Novita.ai（OpenAI 兼容） |
 | `MINIMAX_API_KEY` | MiniMax（OpenAI 兼容） |
 | `VLLM_API_KEY` | vLLM 自部署（OpenAI 兼容） |
+| `STEPFUN_API_KEY` | 阶跃星辰 StepFun（OpenAI 兼容） |
+| `IMAGE_GENERATION_API_KEY` / `_BASE_URL` / `_MODEL` / `_SIZE` / `_PROVIDER` | 图像生成 skill 的 OpenAI 兼容图像 API |
+| `OPENVIKING_API_KEY` | OpenViking memory 后端（`memory.manager_class: openviking`） |
 
 ## 搜索/Web Fetch API Keys
 
@@ -57,6 +60,12 @@ topics: [setup, configuration, quickstart]
 | `DEER_FLOW_REPO_ROOT` | 仓库根目录（Docker DooD 中用于 Skills host path） |
 | `DEER_FLOW_DATE_TIMEZONE` | 🆕 注入 agent 的会话日期所用 IANA 时区（如 `Asia/Shanghai`；非 config schema 字段，date-context 中间件运行时读取） |
 
+## 认证（🆕 v2.1.0）
+
+| 变量 | 说明 |
+|------|------|
+| `DEER_FLOW_AUTH_DISABLED` | `1` = 关闭认证（认证**默认开启**），所有请求以合成 admin 用户 `"default"` 运行；在 `DEER_FLOW_ENV`/`ENVIRONMENT` = `prod`/`production` 时被忽略（`app/gateway/auth_disabled.py:11-40`） |
+
 ## 内部通信
 
 | 变量 | 说明 |
@@ -81,6 +90,11 @@ topics: [setup, configuration, quickstart]
 | `DINGTALK_CLIENT_SECRET` | 钉钉 |
 | `WECOM_BOT_ID` | 企业微信 |
 | `WECOM_BOT_SECRET` | 企业微信 |
+| `WECHAT_BOT_TOKEN` | 微信（WeChat） |
+| `WECHAT_ILINK_BOT_ID` | 微信（WeChat） |
+| `BUZZ_PRIVATE_KEY` | Buzz（hex 或 `nsec1…`） |
+
+> 这些变量由用户在 `config.yaml -> channels.<platform>` 里以 `$VAR` 形式引用（不是代码直接 `os.getenv`），由配置加载器解析。
 
 ## 可观测性
 
@@ -90,10 +104,12 @@ topics: [setup, configuration, quickstart]
 | `LANGSMITH_ENDPOINT` | LangSmith API 端点 |
 | `LANGSMITH_API_KEY` | LangSmith API Key |
 | `LANGSMITH_PROJECT` | LangSmith 项目名 |
+| `LANGFUSE_TRACING` | 启用 Langfuse 追踪（`true` / `false`） |
 | `LANGFUSE_PUBLIC_KEY` | Langfuse Public Key |
 | `LANGFUSE_SECRET_KEY` | Langfuse Secret Key |
-| `LANGFUSE_HOST` | Langfuse Host |
-| `DEER_FLOW_ENV` / `ENVIRONMENT` | 环境标签（`production` / `staging`），用于 trace metadata |
+| `LANGFUSE_BASE_URL` | Langfuse 服务地址（代码读取点；默认 `https://cloud.langfuse.com`） |
+| `MONOCLE_TRACING` / `MONOCLE_EXPORTERS` / `OKAHU_API_KEY` | Monocle OTel 观测（`file`/`console`/`okahu`/`s3`/`blob`/`gcs`） |
+| `DEER_FLOW_ENV` / `ENVIRONMENT` | 环境标签（`production` / `staging`），用于 trace metadata；同时是 `DEER_FLOW_AUTH_DISABLED` 的生产环境否决条件 |
 
 ## 数据库
 
@@ -106,20 +122,24 @@ topics: [setup, configuration, quickstart]
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `PORT` | `2026` | Nginx 对外端口 |
-| `GATEWAY_WORKERS` | `4` | uvicorn worker 数 |
+| `BIND_HOST` | `127.0.0.1` | Docker 入口发布地址（loopback 默认；`0.0.0.0` 才对外暴露） |
+| `GATEWAY_WORKERS` | `1` | uvicorn worker 数（compose 默认单 worker；仅 Redis stream bridge 下才建议调高） |
 | `UV_EXTRAS` | — | 如 `postgres` |
 | `BETTER_AUTH_SECRET` | — | Frontend session 加密密钥（生产必须） |
 | `PNPM_STORE_PATH` | — | pnpm store 路径 |
 | `APT_MIRROR` | — | APT 镜像源 |
-| `UV_IMAGE` | `ghcr.io/astral-sh/uv:0.7.20` | 构建用 UV 镜像 |
+| `UV_IMAGE` | `ghcr.io/astral-sh/uv:0.11.1` | 构建用 UV 镜像 |
 | `UV_INDEX_URL` | `https://pypi.org/simple` | PyPI 索引 |
+| `PROVISIONER_API_KEY` | — | provisioner/K8s 沙箱认证（需与 `sandbox.provisioner_api_key` 一致） |
+| `E2B_API_KEY` | — | E2B 云沙箱 API Key（仅 `E2BSandboxProvider` 需要） |
+| `GITHUB_WEBHOOK_SECRET` | — | GitHub webhook HMAC 校验密钥；未设则 `/api/webhooks/github` 不挂载 |
+| `DEER_FLOW_ALLOW_UNVERIFIED_GITHUB_WEBHOOKS` | — | `1` = 开发环境免密钥挂载 GitHub webhook 路由 |
 
 ## 其他
 
 | 变量 | 说明 |
 |------|------|
 | `GITHUB_TOKEN` | GitHub API Token（MCP GitHub server 等使用） |
-| `TAVILY_API_KEY` | Tavily 搜索 |
 
 ## 配置优先级总结
 

@@ -1,6 +1,6 @@
 ---
 title: "RunManager — 运行生命周期管理"
-description: "`backend/packages/harness/deerflow/runtime/runs/manager.py` (655 行)"
+description: "`backend/packages/harness/deerflow/runtime/runs/manager.py` (2424 行，v2.1.0 实测)"
 topics: [runtime, streaming, checkpointer]
 ---
 
@@ -8,7 +8,7 @@ topics: [runtime, streaming, checkpointer]
 
 ## 文件
 
-`backend/packages/harness/deerflow/runtime/runs/manager.py` (655 行)
+`backend/packages/harness/deerflow/runtime/runs/manager.py` (2424 行，v2.1.0 实测)
 
 ## 功能概述
 
@@ -147,7 +147,7 @@ RunRecord:
 
 migration `0019_thread_incarnations`（#5216）给 `threads_meta.incarnation` 与 `mcp_tasks.thread_incarnation`
 加**可空** `VARCHAR(32)` 列：新 thread 创建时获得稳定 incarnation id，新 task 行复制其归属（或共享）thread 的
-incarnation。这是 expand-only 一步——本阶段**没有任何读/claim/session/删除行为消费这两列**，混合版本写入保持兼容。
+incarnation。这是 expand-only 一步——列值只被**写入/复制**（新 MCP task 行插入时读取归属 thread 的 incarnation，`persistence/mcp_tasks/sql.py:157-169`），本阶段**没有任何 fencing/claim/session/删除逻辑读这两列做判断**，混合版本写入保持兼容。
 注意该 revision id 曾被早期 rollout 以不同父版本占用过，迁移链里它挂在 `0021_batch_acceptance` 之后幂等重放（见
 persistence digest 的 forward revision 一节）。测试锚点：`backend/tests/test_migration_0019_thread_incarnations.py`。
 

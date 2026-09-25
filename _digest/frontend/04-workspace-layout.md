@@ -111,12 +111,14 @@ ResizablePanelGroup (direction="horizontal")
 
 | 组件 | 路径 | 职责 |
 |------|------|------|
-| 侧边栏项目分组 | `components/workspace/projects-section.tsx` | 可折叠项目组，每组内用 `flattenThreadBranches` 投影成员 thread（与 flat 模式共用 `ThreadSidebarItem`）；标签行提供 **group/flat 显示切换**与新建项目对话框 |
+| 侧边栏项目分组 | `components/workspace/projects-section.tsx` | 可折叠项目组，每组内用 `flattenThreadBranches` 投影成员 thread（与 flat 模式共用 `ThreadSidebarItem`）；标签行提供 **group/flat 显示切换**、新建项目对话框与回收站入口（`projects-trash-link` → `/workspace/trash`） |
 | 项目详情页 | `app/workspace/projects/[id]/page.tsx` | header（归档徽标 / New Chat）+ `ProjectThreadsSection`（无限分页成员列表）+ 设置区（重命名/归档/恢复/删除确认对话框）；404 有专门 not-found 态 |
 | 移动菜单 | `components/workspace/move-to-project-menu.tsx` | thread 行菜单里把会话移入/移出项目，基于 `projectIdOfThread` 显示当前位置 |
 | 作用域新建 | `/workspace/chats/new?project=…` | 聊天页的 project pre-create 在 composer `onPrepareThread` 中先执行——goal 端点会自行物化缺失的 thread 行，未分配行会让幂等 create 返回无项目归属的 thread |
 
 项目详情页的 "New Chat" 链接为 `/workspace/chats/new?project={id}`（未归档项目才显示）。
+
+`GroupedProjectList` 只对已抓取的 infinite thread pages 做**客户端分组**，不额外发请求：`partitionableThreads` 以 `threadListModel.displayedThreads` 为输入，并在路径活跃 thread 超出展示上限时把它追加进来（否则该活跃会话在 flat 列表和项目组里都不显示）；传给各组的 `recentThreadId` 是全局最新 `threadListModel.threads[0]`（与 flat 模式一致），不是各项目组自己的首个 thread；`ArchivedProjectsGroup` 初始折叠。静态 demo 模式（`isStaticWebsiteOnly()`）下整个 section（含新建按钮与显示模式切换）返回 `null`。
 
 ### 嵌套 SidebarMenu 的宽度约束（v2.1.0，#5681 → #5682）
 

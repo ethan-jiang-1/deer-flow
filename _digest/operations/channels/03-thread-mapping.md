@@ -76,6 +76,17 @@ os.replace(tmp.name, store_path)  # 原子操作——写入要么完全成功�
 
 创建时在 thread metadata 中记录 channel 信息——方便调试时反向查找。
 
+### SQL 版映射（`ChannelConnectionRepository`，多实例/多用户连接场景）
+
+上面是**文件级** `ChannelStore`（单机、按 channel 分目录）。当 channel 以"用户连接"形态运行时，映射落在 **SQL 表 `channel_conversations`**（`persistence/channel_connections/model.py:101`），由 `ChannelConnectionRepository`（`persistence/channel_connections/sql.py:58`）读写：
+
+| 方法 | 契约 |
+|------|------|
+| `set_thread_id(*, connection_id, owner_user_id, provider, external_conversation_id, thread_id, external_topic_id=None)` | upsert：按 `(connection_id, external_conversation_id, external_topic_id or "")` 查行；不存在则 insert，存在则更新 `thread_id` + `owner_user_id` + `provider`（**owner 可转移**）。唯一约束在 `model.py:119` |
+| `get_thread_id(connection_id, external_conversation_id, external_topic_id?)` | 返回该外部会话当前绑定的 `thread_id`，无则 `None` |
+
+与文件版的差异：文件版按 `(channel, chat_id, topic_id)` 索引并带原子写；SQL 版按**连接**（`connection_id`，即某个用户绑定的某个 IM 账号）索引，因此同一个 IM 会话在不同用户连接下是不同 thread——这是"用户各自绑定自己的 IM 账号"这一形态的必然结果。两条路径的选择由 channel 是否走连接体系决定（用户连接形态见 [05-user-connections.md](05-user-connections.md)）。
+
 ## 命令系统
 
 `app/channels/commands.py` 定义了已知命令集：

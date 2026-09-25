@@ -122,7 +122,7 @@ Agent 空闲 10 分钟 → idle eviction → docker stop
 
 ## 孤儿回收（orphan reconciliation）🆕
 
-provider 启动时 + AIO 定期 `_cleanup_idle_resources` 调 `_reconcile_orphans()`：分页列出容器 → 对每个运行中的容器查 ownership store → **无主且 grace 已过** → `claim()` 成功后 adopt 入 warm pool。对账用 `claim()` 而非 `take()`——无主容器不会被销毁，只会被收养。测试 `test_sandbox_orphan_reconciliation.py`（2845 行）覆盖 store 故障 fail-closed、grace 重置、LAPSED vs LOST、Redis 状态丢失恢复等。
+provider 启动时 + AIO 定期 `_cleanup_idle_resources` 调 `_reconcile_orphans()`：分页列出容器 → 对每个运行中的容器查 ownership store → **无主且 grace 已过** → `claim()` 成功后 adopt 入 warm pool。对账用 `claim()` 而非 `take()`——无主容器不会被销毁，只会被收养。测试 `test_sandbox_orphan_reconciliation.py`（3028 行 / 90 个 test 函数，v2.1.0 实测）覆盖 store 故障 fail-closed、grace 重置、LAPSED vs LOST、Redis 状态丢失恢复等。
 
 ## 挂载体系
 

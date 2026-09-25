@@ -8,6 +8,8 @@ topics: [integration, sdk, docker-deploy]
 
 Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口为 `http://localhost:2026`。
 
+> **权威划分**：完整的端点清单与请求模型以 [operations/app-layer/01-api-reference.md](../app-layer/01-api-reference.md) 为准（本文只保留集成视角常用的端点摘要 + SSE 协议 + nginx 路由）。两份文档如有出入，以 app-layer 那份为准。
+
 ## 端点全景
 
 | 前缀 | 文件 | 关键端点 |
@@ -22,12 +24,13 @@ Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口
 | `/api/threads/{id}/token-usage` | `thread_runs.py` | `GET /` 聚合token用量 |
 | `/api/threads/{id}/messages` | `thread_runs.py` | `GET /` 含feedback的展示消息 |
 | `/api/threads/{id}/suggestions` | `suggestions.py` | `POST /` 生成后续问题建议 |
-| `/api/threads/{id}/artifacts` | `artifacts.py` | `GET /{path}` 文件下载 |
-| `/api/threads/{id}/uploads` | `uploads.py` | `POST /` 上传文件；`GET /list` 列表；`DELETE /{filename}` 删除 |
-| `/api/agents` | `agents.py` | `GET /` 自定义Agent列表；`GET /check` 名称检查；`GET/{name}` 获取；`POST /` 创建；`PUT /{name}` 更新；`DELETE /{name}` 删除；`GET/PUT /user-profile` USER.md管理 |
+| `/api/threads/{id}/artifacts` | `artifacts.py` | `GET /{path}` 文件下载；`PUT /{path}` 写入 |
+| `/api/threads/{id}/uploads` | `uploads.py` | `POST /` 上传文件；`GET /list` 列表；`GET /limits` 限额；`DELETE /{filename}` 删除 |
+| `/api/agents` | `agents.py` | `GET /` 自定义Agent列表；`GET /check` 名称检查；`GET/{name}` 获取；`POST /` 创建；`PUT /{name}` 更新；`DELETE /{name}` 删除 |
+| `/api/user-profile` | `agents.py` | `GET /` 读取 / `PUT /` 覆盖全局 `USER.md`（顶层路径，**不是** `/api/agents/user-profile`） |
 | `/api/v1/auth` | `auth.py` | `POST /login/local`；`POST /register`；`POST /logout`；`POST /change-password`；`GET /me`；`GET /setup-status`；`POST /initialize`；`GET /oauth/{provider}`；`GET /callback/{provider}` |
 | `/api/runs` | `runs.py` | `POST /stream` 无状态SSE运行；`POST /wait` 无状态阻塞运行；`GET /{rid}/messages`；`GET /{rid}/feedback` |
-| `/api/feedback` | `feedback.py` | Thread/Run feedback CRUD |
+| `/api/threads/{id}/runs/{rid}/feedback` | `feedback.py` | Thread/Run feedback CRUD（`feedback.py:20` 的 prefix 是 `/api/threads`，不存在独立 `/api/feedback` 挂载） |
 | `/api/channels` | `channels.py` | IM频道管理 |
 | `/api/assistants` | `assistants_compat.py` | OpenAI Assistants兼容层 |
 
@@ -134,8 +137,9 @@ SSE 事件类型：
 
 // DELETE /api/threads/{id}
 // 删除 LangGraph thread + 本地数据目录 + checkpoints + 历史 run 行
-// + run events（用户可见会话历史）+ feedback + threads_meta
-// 整个清理持一条 durable `delete` reservation，各步 best-effort；
+// + run events（用户可见会话历史）+ feedback + threads_meta + 关闭残留 browser session
+// 整个清理持一条 durable `delete` reservation；除文件系统那步外各步 best-effort
+// （filesystem 失败会以 422/500 中止）；
 // 历史 run 只删 operation_kind="run"（保留保护本次请求的 reservation 行）；
 // owner 在请求开头解析一次，所有步骤共用
 
@@ -147,7 +151,8 @@ SSE 事件类型：
 
 // POST /api/threads/{id}/state
 { "values": { "key": "value" } }
-// 更新 state
+// 更新 state：经 services.reserve_checkpoint_write() 持有 durable
+// `checkpoint_write` reservation，run 进行中返回 409
 ```
 
 ### 4. Memory — 用户记忆
@@ -201,7 +206,9 @@ SSE 事件类型：
 
 ```json
 // GET /api/mcp/config
-// Response: { "mcp_servers": {...}, "mcp_interceptors": [...] }
+// Response: { "mcp_servers": {...} }（McpConfigResponse 只返回 mcp_servers）
+// 注意：extensions_config.json 里还支持顶层 mcpInterceptors（自定义 MCP tool 拦截器
+// class path 列表），它不在响应模型里，但 PUT 合并时会原样保留（mcp.py:1191-1193）
 
 // PUT /api/mcp/config
 {
@@ -241,8 +248,8 @@ SSE 事件类型：
 // PUT /api/agents/{name}     — 更新 SOUL.md + config.yaml
 // DELETE /api/agents/{name}  — 删除
 
-// GET /api/agents/user-profile
-// PUT /api/agents/user-profile  — 更新 USER.md（用户档案）
+// GET /api/user-profile
+// PUT /api/user-profile  — 更新 USER.md（用户档案）
 ```
 
 `agents_api` 需在 config.yaml 中显式开启（默认禁用）。
@@ -303,7 +310,7 @@ curl http://localhost:8001/api/threads/{id}/artifacts/outputs/result.pdf -o resu
 
 ```json
 // PUT /api/threads/{id}/runs/{rid}/feedback
-{ "score": 1, "comment": "Good answer" }
+{ "rating": 1, "comment": "Good answer" }   // 字段名是 rating（1 或 -1），不是 score
 
 // GET /api/threads/{id}/runs/{rid}/feedback
 // GET /api/threads/{id}/runs/{rid}/feedback/stats
@@ -320,6 +327,7 @@ curl http://localhost:8001/api/threads/{id}/artifacts/outputs/result.pdf -o resu
 | `/api/langgraph/*` | Gateway:8001（rewrite 去掉 `/langgraph`） |
 | `/api/models`, `/api/memory`, `/api/mcp`, `/api/skills`, `/api/agents` | Gateway:8001 |
 | `/api/threads/*` (regex) | Gateway:8001 |
+| `/api/sandboxes` (regex) | **Provisioner:8002**（仅 provisioner/K8s 沙箱模式） |
 | `/docs`, `/redoc`, `/openapi.json`, `/health` | Gateway:8001 |
 | `/api/*` (catch-all) | Gateway:8001 |
 | `/` (其他所有) | Frontend:3000 |

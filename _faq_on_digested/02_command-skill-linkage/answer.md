@@ -170,7 +170,7 @@ DeerFlow **没有这个 `$` 触发语法**。它是 Codex 的独家功能（`cod
 最小的侵入性改动——在 `_CONTEXT_CONFIGURABLE_KEYS` 中加一个 `skills` key：
 
 ```python
-# services.py:124-136 — 新增 "skills"
+# services.py:506-518 — 新增 "skills"
 _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
     ...
     "skills",  # 新增
@@ -255,10 +255,10 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 
 ## 相关 digest 笔记
 
-- `_faq_on_digested/skill-selection-accuracy/` — Q1: skill 选取精度问题的根源分析
-- `_digest/harness-hooks/07-context-config-override.md` — ContextVar 运行时覆盖机制，`_CONTEXT_CONFIGURABLE_KEYS` 白名单模式
-- `_digest/harness-hooks/08-agent-self-modification.md` — `update_agent` 的自修改流程
-- `_digest/middleware/01-hooks-and-flow.md` — 中间件生命周期中如何处理上下文
+- `_faq_on_digested/01_skill-selection-accuracy/` — Q1: skill 选取精度问题的根源分析
+- `_digest/internals/harness-hooks/07-context-config-override.md` — ContextVar 运行时覆盖机制，`_CONTEXT_CONFIGURABLE_KEYS` 白名单模式
+- `_digest/internals/harness-hooks/08-agent-self-modification.md` — `update_agent` 的自修改流程
+- `_digest/internals/middleware/01-hooks-and-flow.md` — 中间件生命周期中如何处理上下文
 
 Sources:
 - DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-780, 947-962`（v2.1.0 行号）

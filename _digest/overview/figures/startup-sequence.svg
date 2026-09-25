@@ -61,7 +61,7 @@
 
   <rect x="100" y="428" width="650" height="52" rx="5" fill="#E1BEE7"/>
   <text x="425" y="448" text-anchor="middle" font-size="10" fill="#4A148C">from deerflow.client import DeerFlowClient  →  client = DeerFlowClient()  →  client.chat("hello", thread_id="t1")</text>
-  <text x="425" y="466" text-anchor="middle" font-size="8" fill="#6A1B9A">与 Gateway 共享同一套底层: get_app_config() → create_chat_model() → get_available_tools() → _build_middlewares() → create_agent() → agent.astream()</text>
+  <text x="425" y="466" text-anchor="middle" font-size="8" fill="#6A1B9A">与 Gateway 共享同一套底层: get_app_config() → create_chat_model() → get_available_tools() → build_middlewares() → create_agent() → agent.astream()</text>
   <text x="425" y="480" text-anchor="middle" font-size="7" fill="#CE93D8">无 HTTP · 无 Nginx · 无 FastAPI · 纯 Python 进程内 · 适合脚本和自动化</text>
 
   <!-- Config load note at bottom -->

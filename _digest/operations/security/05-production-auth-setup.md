@@ -9,8 +9,9 @@ topics: [auth, production, security, deployment]
 ## 快速清单
 
 ```bash
-# 1. 启用认证
-export DEER_FLOW_AUTH_ENABLED=true
+# 1. 认证默认就是开启的（不存在"启用认证"的开关变量）。
+#    仅本地/E2E 调试用下面这个关闭认证（生产禁用，见下文风险）：
+#    export DEER_FLOW_AUTH_DISABLED=1
 
 # 2. JWT 签名密钥（自动生成不安全——生产必须手动设）
 export AUTH_JWT_SECRET="$(openssl rand -base64 64)"
@@ -84,11 +85,16 @@ location /api/v1/auth/login {
 - JWT 密钥在所有 worker 间必须一致
 - 内部 token 在所有 worker 间必须一致
 
+## 另外两块凭据（PAT 与 IM 连接凭据）
+
+- **Personal Access Token（PAT）**：迁移 `0017_personal_access_tokens` 建表；**明文 token 不落库**，只存 SHA-256 digest（与 `token_digest` 唯一索引），认证时摘要比对，过期在**读取时**判定（不靠后台任务）。仓储契约见 [01-auth.md](01-auth.md) 的「仓储层契约」一节。
+- ⚠️ **IM channel 凭据加密尚未接线（v2.1.0 源码现状）**：`ChannelCredentialCipher`（Fernet，密钥由 `sha256(key)` 派生）已实现、`channel_credentials` 表也已建好，但生产构造点 `app/channels/service.py:110` 与 `app/gateway/routers/channel_connections.py:204` **都不传 `cipher`**——因此生产路径下 `repository.get_credentials()` 恒为 `None`（Slack 回落到 operator bot token），`store_credentials()` 会抛 `RuntimeError`。这是"已建表、已实现、尚未接线"的事实记录，不是配置项缺失；排障时不要把它当成密钥没配。详见 [../channels/05-user-connections.md](../channels/05-user-connections.md)。
+
 ## 环境变量参考
 
 | 变量 | 用途 | 默认 |
 |------|------|------|
-| `DEER_FLOW_AUTH_ENABLED` | 启用认证 | false |
+| `DEER_FLOW_AUTH_DISABLED` | **关闭**认证（仅本地/E2E；`DEER_FLOW_ENV`/`ENVIRONMENT` 为 `prod`/`production` 时被忽略） | 未设（= 认证开启） |
 | `AUTH_JWT_SECRET` | JWT HS256 签名密钥 | 自动生成到 `.jwt_secret` |
 | `DEER_FLOW_INTERNAL_AUTH_TOKEN` | 内部服务 token | 自动生成 `secrets.token_urlsafe(32)` |
 | `BETTER_AUTH_SECRET` | 前端 session 加密 | — |

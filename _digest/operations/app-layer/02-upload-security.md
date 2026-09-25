@@ -1,6 +1,6 @@
 ---
 title: "上传安全管道"
-description: "`deerflow/uploads/manager.py` (311 行) — 与 FastAPI 无关的纯业务逻辑"
+description: "`deerflow/uploads/manager.py` (390 行，v2.1.0 实测) — 与 FastAPI 无关的纯业务逻辑"
 topics: [gateway, api, rest]
 ---
 
@@ -8,7 +8,7 @@ topics: [gateway, api, rest]
 
 ## 文件
 
-`deerflow/uploads/manager.py` (311 行) — 与 FastAPI 无关的纯业务逻辑
+`deerflow/uploads/manager.py` (390 行，v2.1.0 实测) — 与 FastAPI 无关的纯业务逻辑
 
 ## 防御层次
 
@@ -60,11 +60,14 @@ def normalize_filename(filename: str) -> str:
 ### thread_id 白名单 (`validate_thread_id()`)
 
 ```python
-_SAFE_THREAD_ID = re.compile(r"^[a-zA-Z0-9._-]+$")
+# deerflow/utils/thread_id.py:11-23（不在 uploads/manager.py 里）
+THREAD_ID_PATTERN = r"^[A-Za-z0-9_-]{1,64}$"   # 无点号，长度 1-64
+_THREAD_ID_RE = re.compile(THREAD_ID_PATTERN)
 
-def validate_thread_id(thread_id: str) -> None:
-    if not thread_id or not _SAFE_THREAD_ID.match(thread_id):
-        raise ValueError(f"Invalid thread_id: {thread_id!r}")
+def validate_thread_id(thread_id: str) -> str:
+    if not isinstance(thread_id, str) or _THREAD_ID_RE.fullmatch(thread_id) is None:
+        raise ValueError("Invalid thread_id: expected 1-64 ASCII letters, digits, hyphens, or underscores")
+    return thread_id
 ```
 
 ## 层 2：路径遍历检测 (`validate_path_traversal()`)

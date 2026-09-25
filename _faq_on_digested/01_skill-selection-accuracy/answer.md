@@ -73,7 +73,7 @@ if available_skills is not None and not any(
 
 ### tool_search 不适用于 skill
 
-`deerflow/tools/builtins/tool_search.py` 的 `tool_search` 工具只对 **MCP deferred tools** 生效（通过 `DeferredToolRegistry` + `DeferredToolFilterMiddleware`）。Skills 不经过这个通道——skill 发现是通过 `read_file` 加载 SKILL.md，完全由 LLM 自主决定。
+`deerflow/tools/builtins/tool_search.py` 的 `tool_search` 工具只对 **MCP deferred tools** 生效（通过 `DeferredToolCatalog` + `DeferredToolFilterMiddleware`）。Skills 不经过这个通道——skill 发现是通过 `read_file` 加载 SKILL.md，完全由 LLM 自主决定。
 
 ---
 
@@ -172,7 +172,7 @@ class Skill:
 
 **4. 做 skill search tool（类似 tool_search 但给 skill 用）**
 
-参考 `deerflow/tools/builtins/tool_search.py` 的 `DeferredToolRegistry` + `tool_search` 模式：
+参考 `deerflow/tools/builtins/tool_search.py` 的 `DeferredToolCatalog` + `tool_search` 模式：
 
 - 注册一个 `skill_search` tool
 - Skill 不在系统 prompt 中全量列出，只列出 high-priority 的
@@ -208,10 +208,10 @@ Codex 的做法（budget 硬上限 + 渐进加载 + 显式/隐式双模式）是
 
 ## 相关 digest 笔记
 
-- `_digest/harness-hooks/04-agent-middleware-hooks.md` — middleware 链中的 `DeferredToolFilterMiddleware` 如何做 deferred tool 的 schema stripping
-- `_digest/harness-hooks/06-mcp-interceptors.md` — MCP tools 通过 `tool_search` 的延迟发现机制
-- `_digest/middleware/03-catalog.md` — `DeferredToolFilterMiddleware` 的两阶段工作（wrap_model_call 隐藏 schema + wrap_tool_call 拒绝未 promote 的 tool）
-- `_digest/harness-hooks/08-agent-self-modification.md` — `SkillEvolutionConfig` 控制 agent 能否创建/修改 skill
+- `_digest/internals/harness-hooks/04-agent-middleware-hooks.md` — middleware 链中的 `DeferredToolFilterMiddleware` 如何做 deferred tool 的 schema stripping
+- `_digest/internals/harness-hooks/06-mcp-interceptors.md` — MCP tools 通过 `tool_search` 的延迟发现机制
+- `_digest/internals/middleware/03-catalog.md` — `DeferredToolFilterMiddleware` 的两阶段工作（wrap_model_call 隐藏 schema + wrap_tool_call 拒绝未 promote 的 tool）
+- `_digest/internals/harness-hooks/08-agent-self-modification.md` — `SkillEvolutionConfig` 控制 agent 能否创建/修改 skill
 
 Sources:
 - [Agent Skills – Codex (OpenAI Developers)](https://developers.openai.com/codex/skills)

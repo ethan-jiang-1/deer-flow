@@ -9,7 +9,7 @@ topics: [setup, configuration, quickstart]
 ## 前提条件
 
 - Python 3.12+
-- Node.js 24+
+- Node.js 22+（CI 的 `setup-node` 用 24；`frontend/AGENTS.md`、README、CONTRIBUTING 与 `frontend/Dockerfile` 的基础镜像都是 22+）
 - pnpm
 - uv (Python 包管理器)
 - Docker (可选，沙箱隔离)
@@ -63,7 +63,7 @@ make docker-start
 # 访问 http://localhost:2026
 ```
 
-`make docker-start` 使用 `docker-compose-dev.yaml`，服务结构同生产但带 hot-reload 和源码挂载。
+`make docker-start` 使用 `docker/docker-compose-dev.yaml`，服务结构同生产但带 hot-reload 和源码挂载。
 
 ## Make 常用命令
 
@@ -98,9 +98,9 @@ make docker-start
 |------|------|
 | `make dev` | `pnpm dev` |
 | `make build` | `pnpm build` |
-| `make test` | 单元测试 |
-| `make test:e2e` | E2E (Playwright) |
-| `make typecheck` | TypeScript 检查 |
+| `make test` | 单元测试（`pnpm test` → rstest） |
+| `make test-e2e` | E2E (Playwright)（`pnpm test:e2e`） |
+| `pnpm typecheck` | TypeScript 检查（`frontend/Makefile` 没有这个 target） |
 
 ## 启动后验证
 

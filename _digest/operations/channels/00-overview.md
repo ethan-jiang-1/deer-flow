@@ -6,7 +6,7 @@ topics: [channels, im, messaging]
 
 # IM 通道系统全景
 
-DeerFlow 通过 8 个 IM 平台通道（Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、Buzz）让用户通过聊天消息与 Agent 交互。另有 **Lark CLI 托管集成**（harness 级，非 app/channels 通道）。
+DeerFlow 通过 8 个 IM 平台通道（Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、Buzz）让用户通过聊天消息与 Agent 交互。另有 **Lark CLI 托管集成**（harness 级，非 app/channels 通道）。`app/channels/` 下还有一个 **GitHub** 通道（webhook 驱动，非聊天平台，见 [../github-integration.md](../github-integration.md)）——通道能力表 `CHANNEL_CAPABILITIES` 因此共 **9 项**（`manager.py:139-149`）。
 
 ## 架构全景
 
@@ -59,14 +59,15 @@ DeerFlow 的 IM 通道使用两种完全不同的 Agent 响应策略：
 
 | 策略 | 通道 | 行为 |
 |------|------|------|
-| **增量流式** (supports_streaming=true) | Feishu, WeCom, DingTalk (Card mode), **Buzz** 🆕 | `client.runs.stream()` → 逐 chunk 更新消息（Buzz 用 kind-40003 原地编辑）→ `is_final=True` 时完成 |
-| **阻塞等待** (supports_streaming=false) | Slack, Telegram, Discord, WeChat, DingTalk (non-Card) | `client.runs.wait()` → 等 Agent 完成 → 一次性发送完整响应 |
+| **增量流式** (supports_streaming=true) | Feishu, WeCom, Telegram, **Buzz** 🆕, DingTalk (Card mode) | `client.runs.stream()` → 逐 chunk 更新消息（Buzz 用 kind-40003 原地编辑、Telegram 用 `edit_message_text` 原地编辑）→ `is_final=True` 时完成 |
+| **阻塞等待** (supports_streaming=false) | Slack, Discord, WeChat, DingTalk (non-Card) | `client.runs.wait()` → 等 Agent 完成 → 一次性发送完整响应 |
+| **fire-and-forget**（`ChannelRunPolicy.fire_and_forget`） | GitHub（webhook 驱动，非聊天平台） | `client.runs.create()` 返回后即结束，由通道自己在 issue/PR 上回帖；manager 不搬运回复 |
 
 两种策略的根本区别：增量流式在 Agent 执行期间持续更新消息（用户看到 "实时思考"），阻塞等待在所有 tool call 完成后才发送第一条响应（用户只看最终结果）。
 
 ## 连接方式
 
-所有通道使用 **无需公网 IP** 的连接方式——通过 WebSocket 或 long-polling 出站连接平台服务：
+8 个 IM 聊天平台通道都使用 **无需公网 IP** 的连接方式——通过 WebSocket 或 long-polling 出站连接平台服务（GitHub 通道例外：它走平台推来的入站 webhook，需要公网可达端点）：
 
 | 通道 | 连接方式 | 线程模型 |
 |------|---------|---------|

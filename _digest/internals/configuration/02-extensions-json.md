@@ -11,9 +11,12 @@ topics: [configuration, hot-reload, yaml-config]
 ## 数据结构
 
 ```python
-class ExtensionsConfig(BaseModel):
+class ExtensionsConfig(BaseModel):          # model_config = ConfigDict(extra="allow")
+    middlewares: list[str | ConfiguredMiddlewareSpec]  # config.yaml 的 extensions.middlewares 可覆盖
     mcp_servers: dict[str, McpServerConfig]  # alias: "mcpServers"
     skills: dict[str, SkillStateConfig]
+    # mcpInterceptors 不在 schema 里，落在 model_extra：
+    #   ["pkg.mod:build_interceptor", ...] 由 mcp/interceptors.py:47-53 解析成自定义 MCP tool 拦截器
 ```
 
 ### McpServerConfig
@@ -43,7 +46,7 @@ class ExtensionsConfig(BaseModel):
 }
 ```
 
-只有 `enabled: bool` 一个字段。未在 JSON 中列出的 skill，public 和 custom 类别默认为启用。
+只有 `enabled: bool` 一个字段。未在 JSON 中列出的 skill 默认启用（`public` / `custom` / `legacy` / `integrations` 四个类别，`extensions_config.py:567-584`）。
 
 ---
 
@@ -100,49 +103,44 @@ PUT /api/mcp/config
 
 ```python
 _mcp_tools_cache: list[BaseTool] | None = None
-_config_mtime: float | None = None
+_config_path: Path | None = None                          # 解析后的 extensions config 路径
+_config_signature: _ConfigSignature | None = None         # (mtime, size, sha256) 内容指纹
 ```
 
-**失效检测** (`_is_cache_stale()`，line 31)：
-- 取当前 extensions config 文件的 mtime
-- 与缓存时的 `_config_mtime` 比较
-- 当前 > 缓存 → stale → 返回 True
+**失效检测** (`_is_cache_stale()`，`cache.py:79`)：
+- 重新解析当前 extensions config 的路径 + `(mtime, size, sha256)` 内容指纹
+- 与初始化时记录的值用 `!=` 比较（不是只比 mtime "大于"），因此同秒编辑、mtime 回退（对象存储/网络挂载、`git checkout`、`cp -p`）都能检出；路径变了也判 stale
 
-**加载逻辑** (`get_cached_mcp_tools()`，line 82)：
-1. 检查 stale → 如果过期则 reset
-2. 如果缓存为空 → 初始化
-3. 初始化失败时重试 3 次
+**加载逻辑** (`get_cached_mcp_tools()`，`cache.py:197`)：
+1. 检查 stale → 过期则 reset
+2. 已初始化 → 直接返回缓存
+3. 未初始化 → 惰性初始化一次；失败只 log 并返回 `[]`（**没有**自动重试）
 
-**Event loop 兼容：**
+**Event loop 兼容** (`cache.py:225-243`)：
 ```python
-try:
-    loop = asyncio.get_running_loop()
-except RuntimeError:
-    loop = None
-
-if loop is not None and loop.is_running():
-    # 当前有 running loop → 用 loop.run_until_complete
-elif loop is not None:
-    # 有 loop 但没在跑 → asyncio.run()
+loop = asyncio.get_event_loop()
+if loop.is_running():
+    # 已有 running loop → 另起 ThreadPoolExecutor + asyncio.run()
 else:
-    # 主线程 → ThreadPoolExecutor + asyncio.run()
+    loop.run_until_complete(initialize_mcp_tools())
+# 取不到 loop（RuntimeError）→ asyncio.run(initialize_mcp_tools())
 ```
 
-三种情况分别处理，确保无论在 sync 还是 async 路径上都能正确初始化 MCP client。
+三条路径都确保 sync/async 调用方都能完成 MCP client 初始化。
 
 ---
 
 ## Skills 启用判断
 
-`ExtensionsConfig.is_skill_enabled()` (`extensions_config.py:193`)：
+`ExtensionsConfig.is_skill_enabled()` (`extensions_config.py:567`)：
 
 ```python
-def is_skill_enabled(self, name: str, category: str) -> bool:
-    state = self.skills.get(name)
-    if state is not None:
-        return state.enabled
-    # 未在 JSON 中列出 → 默认启用（仅 public/custom）
-    return category in ("public", "custom")
+def is_skill_enabled(self, skill_name: str, skill_category: str) -> bool:
+    skill_config = self.skills.get(skill_name)
+    if skill_config is None:
+        # 未在 JSON 中列出 → 默认启用
+        return skill_category in ("public", "custom", "legacy", "integrations")
+    return skill_config.enabled
 ```
 
 这意味着 `skills/custom/` 下的 skill 默认全部启用，除非在 `extensions_config.json` 显式禁用。

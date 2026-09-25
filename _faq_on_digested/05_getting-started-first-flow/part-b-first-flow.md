@@ -157,7 +157,7 @@ curl -X POST http://localhost:2026/api/threads/review-2/runs/stream \
   }'
 ```
 
-> Agent 配置加载见 `deerflow/config/agents_config.py:316`（`load_agent_config`），SOUL.md 注入系统 prompt 见 `deerflow/agents/lead_agent/prompt.py:955-985`（"Append SOUL.md" 段）。
+> Agent 配置加载见 `deerflow/config/agents_config.py:316`（`load_agent_config`），SOUL.md 注入系统 prompt 见 `deerflow/agents/lead_agent/prompt.py:954-965`（"Append SOUL.md" 段）。
 >
 > 🔄 同步 #6（v2.1.0-rc0）：原引用 `agents_config.py:80-126`、`prompt.py:659-664` 已漂移，符号仍在，行号按当前源码更新。
 
@@ -251,7 +251,7 @@ tools:
     mode: keyword      # exact | keyword | text
 ```
 
-启用后，agent 需要先调用 `tool_search("github")` 来发现相关工具，而不是一开始就面对几十个 tool schema。详见 `_faq_on_digested/mcp-best-practices/`。
+启用后，agent 需要先调用 `tool_search("github")` 来发现相关工具，而不是一开始就面对几十个 tool schema。详见 `_faq_on_digested/04_mcp-best-practices/`。
 
 ## B.5 完整示例：代码审查 Flow
 
@@ -323,6 +323,6 @@ Agent 循环（agent loop, 最多 N 轮）:
 Stream → SSE → 前端实时显示 / DeerFlowClient 逐 event 返回
 ```
 
-> Agent loop 的完整执行流（包括 graph.astream 的 3 个 stream_mode、37 个 middleware 的 hook 时序）见 `_digest/agent-loop/`。
+> Agent loop 的完整执行流（包括 graph.astream 的 3 个 stream_mode、37 个 middleware 的 hook 时序）见 `_digest/internals/agent-loop/`。
 >
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 数量 18 → 37（前 14 个共享层来自 `build_lead_runtime_middlewares()`，后 23 个来自 `build_middlewares()`，见 `_digest/internals/middleware/03-catalog.md`）。

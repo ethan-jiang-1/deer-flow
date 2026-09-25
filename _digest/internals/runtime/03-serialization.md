@@ -1,6 +1,6 @@
 ---
 title: "序列化层"
-description: "- `runtime/serialization.py` (79 行) — 规范序列化入口"
+description: "- `runtime/serialization.py` (148 行，v2.1.0 实测) — 规范序列化入口"
 topics: [runtime, streaming, checkpointer]
 ---
 
@@ -8,8 +8,8 @@ topics: [runtime, streaming, checkpointer]
 
 ## 文件
 
-- `runtime/serialization.py` (79 行) — 规范序列化入口
-- `runtime/converters.py` (137 行) — LangChain → OpenAI 格式转换
+- `runtime/serialization.py` (148 行，v2.1.0 实测) — 规范序列化入口
+- `runtime/converters.py` (136 行，v2.1.0 实测) — LangChain → OpenAI 格式转换
 
 ## serialization.py — 规范序列化
 

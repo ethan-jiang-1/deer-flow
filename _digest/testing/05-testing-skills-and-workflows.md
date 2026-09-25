@@ -183,9 +183,10 @@ def test_multi_turn_with_checkpointer():
 
 | 文件 | 内容 |
 |------|------|
-| `tests/test_lead_agent_prompt.py` | prompt 注入测试（15 个） |
-| `tests/test_lead_agent_skills.py` | skill 过滤测试（9 个） |
-| `tests/test_subagent_prompt_security.py` | sub-agent prompt 安全 |
-| `tests/test_deferred_tool_registry_promotion.py` | 图级别 tool_search 测试 |
+| `tests/test_lead_agent_prompt.py` | prompt 注入测试（29 个 `def test_`） |
+| `tests/test_lead_agent_skills.py` | skill 过滤测试（21 个 `def test_`） |
+| `tests/test_subagent_prompt_security.py` | sub-agent prompt 安全（9 个 `def test_`） |
+| `tests/test_deferred_promotion_integration.py` | 图级别 tool_search 测试（真跑 `create_agent`：turn 1 隐藏 MCP 工具 → `tool_search` 提升 → turn 2 schema 绑定） |
+| `tests/test_deferred_tool_promotion_real_llm.py` | 同一 hide/promote 回路的真实 LLM 版（`ONEAPI_E2E=1` 才跑） |
 | `tests/test_client_e2e.py` | 多轮对话 + 文件系统 e2e |
 | `tests/conftest.py` | SkillStorage + TitleConfig 单例自动重置 |

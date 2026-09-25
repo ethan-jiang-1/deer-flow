@@ -37,7 +37,7 @@ Evaluator 模型（非 thinking）评估
 | 参数 | 默认值 | 说明 |
 |------|--------|------|
 | `max_continuations` | 8 | 硬上限，超出被 clamp 或 reject（422） |
-| `no_progress_max` | 2 | 连续无新 evidence 停止 |
+| `max_no_progress_continuations` | 2 | 连续无新 evidence 停止（`runtime/goal.py:34,106`；旧文档曾写作 `no_progress_max`） |
 | Evaluator 模型 | non-thinking | 用 thinking_enabled=False 快速判断 |
 
 ## 并发控制
@@ -61,7 +61,7 @@ curl -X DELETE .../api/threads/{id}/goal
 
 DeerFlowClient 对应方法：`set_goal(thread_id, objective, max_continuations=8)`、`get_goal(thread_id)`、`clear_goal(thread_id)`。
 
-源码：`deerflow/runtime/goal.py`（522 行），`deerflow/runtime/runs/worker.py`（goal 续跑循环在 `run_agent` finally 块中）
+源码：`deerflow/runtime/goal.py`（569 行，v2.1.0 实测），`deerflow/runtime/runs/worker.py`（goal 续跑循环在 `run_agent` finally 块中）
 
 ## Evaluator 模型
 
@@ -102,11 +102,11 @@ def latest_visible_assistant_signature(messages):
 
 ## 测试覆盖
 
-`test_goal_worker.py`（689 行，13 个测试函数）用 fake evaluator（monkeypatch `evaluate_goal_completion`）覆盖全部状态转换：满足→清除、未满足→续跑、阻塞→stand down、无进展→停止、goal 在评估中被清除、abort 打断、用户消息在评估后被添加。不需要真实 LLM。
+`test_goal_worker.py`（1243 行，22 个测试函数，v2.1.0 实测）用 fake evaluator（monkeypatch `evaluate_goal_completion`）覆盖全部状态转换：满足→清除、未满足→续跑、阻塞→stand down、无进展→停止、goal 在评估中被清除、abort 打断、用户消息在评估后被添加。不需要真实 LLM。
 
-`test_goal_runtime.py`（236 行，18 个测试函数）是纯粹的单元测试：JSON 解析、对话格式化、续跑逻辑、evidence signature 计算。
+`test_goal_runtime.py`（300 行，19 个测试函数，v2.1.0 实测）是纯粹的单元测试：JSON 解析、对话格式化、续跑逻辑、evidence signature 计算。
 
-源码：`deerflow/runtime/goal.py`（522 行），`deerflow/runtime/runs/worker.py`（goal 续跑循环在 `run_agent` 的 finally 块中），`deerflow/client.py`（`set_goal`/`get_goal`/`clear_goal` 方法）
+源码：`deerflow/runtime/goal.py`（569 行，v2.1.0 实测），`deerflow/runtime/runs/worker.py`（goal 续跑循环在 `run_agent` 的 finally 块中），`deerflow/client.py`（`set_goal`/`get_goal`/`clear_goal` 方法）
 
 ---
 > **See also:** [TUI goal management](../../getting-started/06-tui.md) · [Goal source](../../../backend/packages/harness/deerflow/runtime/goal.py) · [Goal tests](../../../backend/tests/test_goal_runtime.py)

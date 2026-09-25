@@ -1,12 +1,12 @@
 ---
 title: "IM 频道集成"
-description: "DeerFlow 可以接入 7 个即时通讯平台。所有频道通过 outbound 连接（WebSocket 或 polling），不需要公网 IP。"
+description: "DeerFlow 可以接入 8 个即时通讯平台（外加 GitHub webhook 通道）。所有频道通过 outbound 连接（WebSocket 或 polling），不需要公网 IP。"
 topics: [integration, sdk, docker-deploy]
 ---
 
 # IM 频道集成
 
-DeerFlow 可以接入 7 个即时通讯平台。所有频道通过 outbound 连接（WebSocket 或 polling），不需要公网 IP。
+DeerFlow 可以接入 8 个即时通讯平台：Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、Buzz。另有第 9 个通道 **GitHub**（webhook 驱动，不是聊天平台，见 `operations/github-integration.md`）。`CHANNEL_CAPABILITIES`（`app/channels/manager.py:139-149`）共 9 项。所有聊天频道通过 outbound 连接（WebSocket 或 polling），不需要公网 IP。
 
 ## 架构
 
@@ -175,9 +175,13 @@ wechat:
 | `/status` | 查看当前状态 |
 | `/models` | 列出可用模型 |
 | `/memory` | 查看记忆 |
+| `/agent` | 切换/查看当前 Agent |
+| `/bootstrap` | 引导/初始化频道绑定 |
+| `/connect` | 连接账号（绑定码流程） |
+| `/goal` | 设置/查看当前 goal |
 | `/help` | 帮助信息 |
 
-命令在 `ChannelManager._dispatch_loop()` 中本地处理，不经过 Agent。
+命令在 `ChannelManager._worker_loop()`（`app/channels/manager.py:1922`）中本地处理，不经过 Agent。`/new`、`/status`、`/models`、`/memory`、`/help`、`/agent`、`/bootstrap`、`/goal` 来自 `KNOWN_CHANNEL_COMMANDS`（`app/channels/commands.py:11-20`）；`/connect <code>` 是单独的一次性绑定码路径（`extract_connect_code()`，`commands.py:67-81`），不在该集合内。
 
 ## 消息流总结
 
@@ -189,7 +193,7 @@ wechat:
                     MessageBus.publish_inbound()
                                 │
                         ┌───────▼───────┐
-                        │  _dispatch_loop │
+                        │  _worker_loop │
                         └───────┬───────┘
                                 │
                     ┌───────────┼───────────┐

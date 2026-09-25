@@ -70,7 +70,7 @@ async for chunk in agent.astream(graph_input, config=runnable_config, stream_mod
 
 ### before vs after 的正/反向
 
-注意：`before_model` 是正向遍历（1→18），`after_model` 是**反向**遍历（18→1）。这是 LangChain 的约定，原因很直观：
+注意：`before_model` 是正向遍历（链上 1→37），`after_model` 是**反向**遍历（37→1）。这是 LangChain 的约定，原因很直观：
 
 - before: 外层先准备上下文，内层才能用
 - after: 内层先处理结果，外层做收尾（最内层最接近 LLM 输出）

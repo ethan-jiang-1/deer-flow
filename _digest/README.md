@@ -13,9 +13,9 @@ type: index
 | 你想… | 去这里 | 重点文件 |
 |--------|--------|---------|
 | 🗺️ 快速理解 DeerFlow 是什么 | [overview/](overview/) | `01-system-overview.md` → 同心圆架构；`03-logical-architecture.md` → 逻辑三图 |
-| ⚡ 马上装起来跑 | [getting-started/](getting-started/) | `01-quick-start.md` → 最快上手；`04-python-sdk.md` → `DeerFlowClient` 入门 |
+| ⚡ 马上装起来跑 | [getting-started/](getting-started/) | `01-quick-start.md` → 最快上手；`03-python-sdk.md` → `DeerFlowClient` 入门 |
 | 🧱 理解核心概念 | [concepts/](concepts/) | Agent、Skill、Tool、Sandbox、Sub-agent、Memory 六大模块 |
-| 🛠️ 看怎么实际开发 | `_faq_on_digested/cli-and-sdd/` | CLI 实验、SDD 协作、subagent 编排、Step-by-Step |
+| 🛠️ 看怎么实际开发 | `_faq_on_digested/06_cli-and-sdd/` | CLI 实验、SDD 协作、subagent 编排、Step-by-Step |
 | 🔬 深入内部机制 | [internals/](internals/) | Agent Loop、Middleware Chain、Model Layer、Config、Runtime |
 | 🧪 测试策略和方法 | [testing/](testing/) | 测试金字塔、FakeToolCallingModel、CI 门禁、Agent 测试最佳实践 |
 | 🔭 诊断和观察 | [observability/](observability/) | 日志 + trace_id 关联、RunEvent 事件流、追踪、Console API、调试工具箱、上线清单 |
@@ -38,6 +38,7 @@ _digest/
 ├── observability/           # 诊断与观察（日志 / 事件流 / 追踪 / 控制台 / 调试）
 ├── operations/              # 安全、部署、运维
 ├── frontend/                # 前端架构
+├── harness/                 # Agent 工程实践（AX/DX、可验证性、审计清单）
 └── harness-engineering/     # harness 工程质量评估（coding agent 视角）
 ```
 

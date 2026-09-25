@@ -8,34 +8,44 @@ topics: [deployment, docker, kubernetes]
 
 ## Nginx 路由规则
 
-生产的 Nginx 配置负责将请求路由到 Gatewat 和 LangGraph Server：
+生产的 Nginx 配置（`docker/nginx/nginx.conf`）把 `/api/*` 与 `/api/langgraph/*` 都路由到 Gateway——**没有单独的 LangGraph Server 上游**：
 
 ### SSE 流的关键配置
 
 ```nginx
-location /api/ {
-    proxy_pass http://gateway:8000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto https;
+# docker/nginx/nginx.conf：上游在 server 块里用变量声明，避免容器重启后 IP 过期
+server {
+    listen 2026 default_server;
 
-    # 文件上传
-    client_max_body_size 100m;
-}
+    set $gateway_upstream gateway:8001;
+    set $frontend_upstream frontend:3000;
 
-location /api/langgraph/ {
-    proxy_pass http://langgraph:8123;
-
-    # SSE 流式响应 — 必须禁用缓冲
+    # SSE 必须禁用缓冲（server 级默认值）
     proxy_buffering off;
     proxy_cache off;
-    proxy_read_timeout 600s;    # Agent 执行可超过 60s
-    proxy_send_timeout 600s;
 
-    # 长连接
-    proxy_http_version 1.1;
-    proxy_set_header Connection '';
+    location /api/ {
+        proxy_pass http://$gateway_upstream;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $forwarded_proto;
+
+        # 文件上传
+        client_max_body_size 100M;
+    }
+
+    # LangGraph 兼容入口：rewrite 成 Gateway 原生 /api/*
+    location /api/langgraph/ {
+        rewrite ^/api/langgraph/(.*) /api/$1 break;
+        proxy_pass http://$gateway_upstream;
+
+        proxy_read_timeout 600s;    # Agent 执行可超过 60s
+    }
+
+    location / {
+        proxy_pass http://$frontend_upstream;
+    }
 }
 ```
 
@@ -48,16 +58,19 @@ SSE（Server-Sent Events）逐 chunk 推送数据。Nginx 默认开启 `proxy_bu
 
 ### Rate Limiting
 
+> ⚠️ **不是仓库现状**：`docker/nginx/nginx.conf` 与 `nginx.local.conf` 里**没有**任何 `limit_req` 指令（全仓 grep 零命中），也没有 `/api/auth/login` 这样单独的 location——认证请求走 catch-all `location /api/`（真实路径是 `/api/v1/auth/login/local`）。下面是**自建生产反向代理时可选的加装示例**，不是 DeerFlow 自带配置。
+
 ```nginx
+# 可选：自建反代时加装。真实登录路径是 /api/v1/auth/login/local
 limit_req_zone $binary_remote_addr zone=api:10m rate=10r/s;
 limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 
-location /api/auth/login {
-    limit_req zone=login burst=3 nodelay;  # 登录限流
+location /api/v1/auth/login/local {
+    limit_req zone=login burst=3 nodelay;
 }
 
 location /api/ {
-    limit_req zone=api burst=20 nodelay;    # 通用 API 限流
+    limit_req zone=api burst=20 nodelay;
 }
 ```
 
@@ -72,7 +85,7 @@ location /api/ {
                           │   K3s Cluster     │
 ┌─────────┐   ┌─────────┐ │  ┌────────────┐  │
 │  Nginx  │→  │ Gateway │→│  │ Provisioner│  │
-│ (:2026) │   │ (:8000) │ │  │  (:8002)   │  │
+│ (:2026) │   │ (:8001) │ │  │  (:8002)   │  │
 └─────────┘   └─────────┘ │  └────────────┘  │
                           │        │         │
                           │        ▼         │
@@ -167,7 +180,7 @@ Gateway 通过 `DEER_FLOW_SANDBOX_HOST` 环境变量连接 sandbox：
 
 ## 🆕 First-Class Helm Chart
 
-2.1 引入了正式的 Helm chart（`deer-flow/`），支持 Kubernetes 一键部署：
+2.1 引入了正式的 Helm chart（`deploy/helm/deer-flow/`），支持 Kubernetes 一键部署：
 
 - **Chart 发布**：GitHub Container Registry `charts/` namespace prefix
 - **Sandbox Service**：默认 `ClusterIP`（仅集群内可达），可选 `NodePort`

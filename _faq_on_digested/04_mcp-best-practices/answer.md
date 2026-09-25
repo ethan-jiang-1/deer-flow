@@ -133,7 +133,7 @@ PUT /api/mcp/config
 
 ### 位置
 
-`backend/packages/harness/deerflow/subagents/executor.py:739-766`（`_filter_tools`）
+`backend/packages/harness/deerflow/subagents/executor.py:741-768`（`_filter_tools`）
 
 ```python
 def _filter_tools(tools, allowlist, denylist):
@@ -327,7 +327,7 @@ DeerFlow 文档明确警告：**不要添加 MCP filesystem server**。DeerFlow 
 
 ## 结论
 
-**DeerFlow 对 MCP 工具噪声问题有清晰的设计回应：`tool_search` 延迟加载。** 这是代码库中能找到的、经过完整测试（610 行 `test_tool_search.py` + 391 行 promotion 回归测试）的机制。但它默认关闭，且仍然是 LLM 自主选择模式（决定何时搜索、搜什么）。
+**DeerFlow 对 MCP 工具噪声问题有清晰的设计回应：`tool_search` 延迟加载。** 这是代码库中能找到的、经过完整测试（92 行 `test_tool_search.py` + `test_deferred_promotion_integration.py`/`test_mcp_routing_auto_promote.py` 等 promotion 回归测试）的机制。但它默认关闭，且仍然是 LLM 自主选择模式（决定何时搜索、搜什么）。
 
 对于"企业自主静默执行"场景，**最务实的方案是将 MCP 工具纳入 subagent allowlist 或 skill allowed-tools 中**。这是两个**对 MCP 工具确定生效**的过滤机制，不需要依赖 LLM 判断。缺点是不能动态指定——需要预先在配置文件中声明。
 
@@ -337,11 +337,11 @@ DeerFlow 文档明确警告：**不要添加 MCP filesystem server**。DeerFlow 
 
 ## 相关 digest 笔记
 
-- `_digest/harness-hooks/04-agent-middleware-hooks.md` — DeferredToolFilterMiddleware 在中间件链中的位置
-- `_digest/harness-hooks/06-mcp-interceptors.md` — MCP 拦截器链 + Gateway API 写回机制
-- `_digest/middleware/03-catalog.md` — 18 middleware 目录
-- `_faq_on_digested/precise-skill-selection/` — Q3: 自主执行中的精准 skill 选择（subagent allowlist, skill allowed-tools）
-- `_faq_on_digested/skill-selection-accuracy/` — Q1: skill 选取精度问题
+- `_digest/internals/harness-hooks/04-agent-middleware-hooks.md` — DeferredToolFilterMiddleware 在中间件链中的位置
+- `_digest/internals/harness-hooks/06-mcp-interceptors.md` — MCP 拦截器链 + Gateway API 写回机制
+- `_digest/internals/middleware/03-catalog.md` — 37 middleware 目录
+- `_faq_on_digested/03_precise-skill-selection/` — Q3: 自主执行中的精准 skill 选择（subagent allowlist, skill allowed-tools）
+- `_faq_on_digested/01_skill-selection-accuracy/` — Q1: skill 选取精度问题
 
 Sources:
 - DeerFlow 源码: `deerflow/tools/builtins/tool_search.py:42-301` — `DeferredToolCatalog` + `tool_search` + prompt section（Registry→Catalog 重构，promote 状态入 graph state）
@@ -349,8 +349,8 @@ Sources:
 - DeerFlow 源码: `deerflow/tools/tools.py:73, 105` — `get_available_tools()` 中 groups 只过滤 config 工具 + deferred 装配（`assemble_deferred_tools`）
 - DeerFlow 源码: `deerflow/config/tool_search_config.py` — `ToolSearchConfig(enabled=False, auto_promote_top_k=3)`
 - DeerFlow 源码: `deerflow/agents/lead_agent/prompt.py:655` + `deerflow/tools/builtins/tool_search.py:282-301` — `<available-deferred-tools>` 注入
-- DeerFlow 源码: `deerflow/subagents/executor.py:739-766` — subagent tool allowlist/denylist
-- DeerFlow 源码: `deerflow/skills/tool_policy.py:28-66` — skill `allowed-tools` 过滤
+- DeerFlow 源码: `deerflow/subagents/executor.py:741-768` — subagent tool allowlist/denylist
+- DeerFlow 源码: `deerflow/skills/tool_policy.py:28-65` — skill `allowed-tools` 过滤
 - DeerFlow 源码: `deerflow/config/extensions_config.py:206-209, 559-565` — server `enabled` 过滤
 - DeerFlow 源码: `backend/app/gateway/routers/mcp.py:1110-1444` — Settings 页 MCP server 管理 API（同步 #6 大改）
 - DeerFlow 源码: `deerflow/mcp/context_headers.py` / `deerflow/mcp/headers.py` / `deerflow/mcp/session_pool.py` — request-scoped header secrets 与 loop 键控 session pool

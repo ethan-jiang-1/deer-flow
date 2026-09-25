@@ -136,7 +136,7 @@ flowchart LR
 | `require_existing=True` | 缺失行 → 404（静默拒绝，防止所有权枚举） |
 | `require_existing=False` | 允许缺失行（旧版未跟踪线程的向后兼容） |
 
-6 个已定义权限，所有已认证用户被授予全部。
+9 个已定义权限（`authz.py:149-158`：threads:read/write/delete、runs:create/read/cancel、projects:read/write/delete），授权关闭时所有已认证用户被授予全部。
 
 ## 内部认证 (通道 Worker)
 
@@ -179,7 +179,7 @@ def sanitize_log_param(value: str) -> str:
 | **Console** | `GET /api/console/stats`, `/runs`, `/usage` | 跨 thread 可观测性面板（需 SQL backend） |
 | **Input Polish** | `POST /api/input-polish` | Composer 草稿润色（一次性 LLM，不创建 run） |
 | **Channel Connections** | `GET/POST/DELETE /api/channels/*` | 用户绑定的 IM channel 连接管理 |
-| **OIDC Auth** | `GET/POST /api/auth/oidc/*` | OIDC/SSO callback + session 管理 |
+| **OIDC Auth** | `GET /api/v1/auth/oauth/{provider}`, `GET /api/v1/auth/callback/{provider}` | OIDC/SSO authorization code flow + session 管理 |
 | **GitHub Webhooks** | `POST /api/webhooks/github` | HMAC 验证的 GitHub event 接收 |
 | **Thread Branches** | `POST /api/threads/{id}/branches` | 从 checkpoint 分支创建新 main thread |
 | **Manual Compaction** | `POST /api/threads/{id}/compact` | 手动上下文压缩 |
@@ -207,9 +207,11 @@ def sanitize_log_param(value: str) -> str:
 
 ### 🆕 v2.1.0 补丁版变更（同步 #7，upstream #5535 / #5517）
 
-`DELETE /api/threads/{id}` 的清理语义被补全（此前只删文件系统数据 + checkpoints + thread_meta）：整个清理过程持有一条 **durable `delete` reservation**，然后按顺序 best-effort 清除
+`DELETE /api/threads/{id}` 的清理语义被补全（此前只删文件系统数据 + checkpoints + thread_meta）：整个清理过程持有一条 **durable `delete` reservation**，然后按顺序清除
 
-**文件系统 thread 数据 → checkpoints → 历史 run 行 → run events → feedback → `threads_meta` 行**
+**文件系统 thread 数据 → checkpoints → 历史 run 行 → run events → feedback → `threads_meta` 行 → 关闭残留 browser session**
+
+其中 filesystem 那步不是 best-effort（`_delete_thread_data()` 会把 `ValueError` 映射成 422、其他异常映射成 500 直接中止），其余各步 best-effort。
 
 关键点：
 
@@ -218,6 +220,8 @@ def sanitize_log_param(value: str) -> str:
 - 所有者身份在请求开头**解析一次**：文件系统 bucket、runs / events / feedback、`threads_meta` 用同一个 `user_id`，各步骤不得各自解析作用域。
 - 第三方（legacy）`RunEventStore` 的旧签名 `delete_by_thread(thread_id)` 仍兼容：Gateway 先 `inspect.signature` 探测，只有签名接受 `user_id` 时才传；探测失败或后端内部抛出的 `TypeError` 不会触发重试。
 - **边界**：本清理只删"已存在的行"，不负责阻止一个**已被准入**的写者在线程删除后把状态写回来——那是 thread incarnation 的独立契约。详见 [internals/runtime/05-run-ownership-and-rollback.md](../../internals/runtime/05-run-ownership-and-rollback.md)、[internals/persistence/db-checkpointer-store-backends.md](../../internals/persistence/db-checkpointer-store-backends.md)。
+
+同一套 thread-operation reservation 也覆盖 **run 之外的 checkpoint 写入**：`services.reserve_checkpoint_write()`（`app/gateway/services.py:98`）组合进程内 `goal_thread_lock()` 与 durable `checkpoint_write` reservation，被手动 compaction、`POST /api/threads/{id}/state`、`PUT`/`DELETE /api/threads/{id}/goal`、以及 `/history` 归因回写后台任务使用；已有 run 挡住写入，该 reservation 也挡住新的 reject/interrupt/rollback run（跨 worker），冲突返回 409。
 
 同一补丁版还把 `RunChangeClockRow` / `UserPreferenceRow` 补进 ORM 模型注册表，并用 `0025_repair_run_change_seq` 修复被"插队"的 `0023_run_change_seq` 留下的 schema 空洞（upstream #5517，见 persistence digest 迁移一节）。
 

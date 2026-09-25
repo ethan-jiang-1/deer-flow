@@ -270,14 +270,14 @@ HTTP 字段名大小写不敏感（RFC 9110 §5.1），但从配置到传输的�
 
 ## Settings 页管理 MCP servers 🆕 同步#6（#5022，`routers/mcp.py`）
 
-MCP server 管理从"整包替换 config"升级为 Settings 页的逐 server CRUD。`app/gateway/routers/mcp.py`（本轮 +715 行）在原 `GET /api/mcp/config`、`PUT /api/mcp/config`、`POST /api/mcp/cache-reset` 之上新增：
+MCP server 管理从"整包替换 config"升级为 Settings 页的逐 server CRUD。`app/gateway/routers/mcp.py`（prefix `/api`；本轮 +715 行）在原 `GET /api/mcp/config`、`PUT /api/mcp/config`、`POST /api/mcp/cache/reset` 之上新增（路径与行号按 v2.1.0 实测）：
 
-| 端点 | 行为 |
-|------|------|
-| `POST /api/mcp/servers` | 批量新增 server（`McpConfigUpdateRequest`） |
-| `PUT /api/mcp/servers/{name}` | 更新单个 server 的完整配置 |
-| `DELETE /api/mcp/servers/{name}` | 删除单个 server |
-| `PATCH /api/mcp/servers/state` | 只翻一个 server 的 `enabled` 位；启用时才做目标校验 |
+| 端点 | 源码 | 行为 |
+|------|------|------|
+| `POST /api/mcp/config/servers` | `:1499` | 批量新增 server（`McpConfigUpdateRequest`） |
+| `PUT /api/mcp/config/server` | `:1522` | 更新单个 server 的完整配置 |
+| `DELETE /api/mcp/config/servers/{server_name:path}` | `:1548` | 删除单个 server |
+| `PATCH /api/mcp/config` | `:1569` | 只翻一个 server 的 `enabled` 位；启用时才做目标校验 |
 
 要点：
 

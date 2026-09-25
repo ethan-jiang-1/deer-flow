@@ -151,19 +151,19 @@ channels:
 
 想写 Web 应用?
   → ① HTTP API (REST + SSE)
-  → 前端看: 03-api-reference.md
+  → 前端看: 02-api-reference.md
 
 想嵌入 Python 项目?
   → ② Python SDK
-  → 详看: 04-python-sdk.md
+  → 详看: ../../getting-started/03-python-sdk.md
 
 想部署到服务器?
-  → ③ Docker (docker-compose up)
-  → 详看: 05-docker.md
+  → ③ Docker (make up)
+  → 详看: 03-docker.md
 
 想接入企业 IM?
   → ④ IM 频道
-  → 详看: 07-im-channels.md
+  → 详看: 04-im-channels.md
 ```
 
 ---

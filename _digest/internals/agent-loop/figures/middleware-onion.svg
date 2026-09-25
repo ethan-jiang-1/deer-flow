@@ -32,7 +32,7 @@
   <text x="48" y="69" fill="#60a5fa" font-size="10" font-weight="bold">graph node "model"</text>
 
   <!-- before_model chain -->
-  <text x="60" y="100" fill="#94a3b8" font-size="9">before_model（正向 1→18）：</text>
+  <text x="60" y="100" fill="#94a3b8" font-size="9">before_model（正向 1→37）：</text>
   <rect x="240" y="86" width="55" height="22" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
   <text x="267" y="102" text-anchor="middle" fill="#60a5fa" font-size="8">m1</text>
   <text x="305" y="100" fill="#64748b" font-size="9">→</text>
@@ -45,7 +45,7 @@
   <text x="484" y="100" fill="#64748b" font-size="9">...</text>
   <text x="502" y="100" fill="#64748b" font-size="9">→</text>
   <rect x="518" y="86" width="55" height="22" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
-  <text x="545" y="102" text-anchor="middle" fill="#60a5fa" font-size="8">m18</text>
+  <text x="545" y="102" text-anchor="middle" fill="#60a5fa" font-size="8">m37</text>
 
   <!-- wrap_model_call ONION -->
   <text x="60" y="136" fill="#94a3b8" font-size="9">wrap_model_call 洋葱：</text>
@@ -62,24 +62,24 @@
   <rect x="140" y="195" width="800" height="65" rx="4" fill="#f59e0b" opacity="0.04" stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="4,2"/>
   <text x="155" y="210" fill="#94a3b8" font-size="7">m3.wrap_model_call( ...每层可以修改 request/response，或决定要不要调 handler... )</text>
 
-  <!-- Innermost: m18 + LLM -->
+  <!-- Innermost: m37 + LLM -->
   <rect x="180" y="228" width="740" height="28" rx="4" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
-  <text x="195" y="247" fill="#cbd5e1" font-size="7">m18.wrap_model_call(</text>
+  <text x="195" y="247" fill="#cbd5e1" font-size="7">m37.wrap_model_call(</text>
   <rect x="380" y="220" width="100" height="40" rx="6" fill="#f59e0b" opacity="0.3" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadow)"/>
   <text x="430" y="244" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">LLM.call()</text>
   <text x="495" y="247" fill="#cbd5e1" font-size="7">)  ← 最内层，真正调用模型</text>
 
   <!-- Return path annotations -->
   <text x="520" y="280" fill="#fbbf24" font-size="8">)  ← 返回 response，每层可以做后处理  →</text>
-  <text x="900" y="280" fill="#fbbf24" font-size="8">) ← 反向遍历：m1→m2→...→m18 进入，m18→...→m1 返回</text>
+  <text x="900" y="280" fill="#fbbf24" font-size="8">) ← 反向遍历：m1→m2→...→m37 进入，m137→...→m1 返回</text>
 
   <text x="920" y="164" fill="#fbbf24" font-size="8" font-weight="bold">)</text>
   <text x="990" y="265" fill="#fbbf24" font-size="8" font-weight="bold">)</text>
 
   <!-- after_model chain (reverse) -->
-  <text x="60" y="332" fill="#94a3b8" font-size="9">after_model（反向 18→1）：</text>
+  <text x="60" y="332" fill="#94a3b8" font-size="9">after_model（反向 37→1）：</text>
   <rect x="240" y="318" width="55" height="22" rx="4" fill="#2a0010" stroke="#ef4444" stroke-width="0.8"/>
-  <text x="267" y="334" text-anchor="middle" fill="#fca5a5" font-size="8">m18</text>
+  <text x="267" y="334" text-anchor="middle" fill="#fca5a5" font-size="8">m37</text>
   <text x="305" y="332" fill="#64748b" font-size="9">←</text>
   <text x="324" y="332" fill="#64748b" font-size="9">...</text>
   <text x="342" y="332" fill="#64748b" font-size="9">←</text>
@@ -115,7 +115,7 @@
 
   <!-- Inner layers -->
   <rect x="120" y="514" width="880" height="38" rx="4" fill="#22c55e" opacity="0.04" stroke="#22c55e" stroke-width="0.5" stroke-dasharray="4,2"/>
-  <text x="135" y="530" fill="#94a3b8" font-size="7">m2.m3....m18 依次包装  ·  ToolErrorHandling 转换异常为 ToolMessage  ·  Clarification 拦截 ask_clarification → goto=END</text>
+  <text x="135" y="530" fill="#94a3b8" font-size="7">m2.m3....m37 依次包装  ·  ToolErrorHandling 转换异常为 ToolMessage  ·  Clarification 拦截 ask_clarification → goto=END</text>
 
   <!-- Tool execution center -->
   <rect x="160" y="558" width="800" height="48" rx="4" fill="#1e293b" stroke="#22c55e" stroke-width="1"/>

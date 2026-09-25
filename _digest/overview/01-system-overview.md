@@ -119,7 +119,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 2. 调用 `create_chat_model()` 创建 LLM 实例
 3. 调用 `get_available_tools()` 装配 tool 列表（config + MCP + builtins + ACP agents）
 4. 调用 `apply_prompt_template()` 生成 system prompt（注入 skills、memory、日期、subagent 指令）
-5. 调用 `_build_middlewares()` 构建 37 个 middleware
+5. 调用 `build_middlewares()` 构建 37 个 middleware
 6. 调用 `create_agent(model, tools, middleware, state_schema, checkpointer)` 返回 CompiledStateGraph
 
 **`make_lead_agent` 是唯一对外暴露的 graph factory**，在 `langgraph.json` 中注册为 `"lead_agent"`。
@@ -238,9 +238,9 @@ deer-flow/
 
 | 层 | 关键依赖 |
 |----|----------|
-| Agent 框架 | LangGraph >= 1.1.9, LangChain >= 1.2.15 |
+| Agent 框架 | LangGraph >= 1.2.9,<1.3, LangChain >= 1.3 |
 | 模型 Provider | langchain-openai, langchain-anthropic, langchain-deepseek, langchain-google-genai |
-| 沙箱 | agent-sandbox >= 0.0.19（AIO）, agent-client-protocol >= 0.4.0（ACP） |
+| 沙箱 | agent-sandbox >= 0.0.30（AIO）, agent-client-protocol >= 0.4.0（ACP） |
 | MCP | langchain-mcp-adapters >= 0.2.2 |
 | 持久化 | SQLAlchemy 2.0 async, aiosqlite, alembic, duckdb |
 | 可观测 | langfuse >= 3.4.1, LangSmith |

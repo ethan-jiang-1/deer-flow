@@ -60,7 +60,7 @@ def create_chat_model(
 
 ## Provider 适配器全景
 
-DeerFlow 不是简单地把 LangChain 的 ChatModel 包一层——它在 8 个 provider 上做了**针对性的 patch**，解决跨 provider 的不兼容问题：
+DeerFlow 不是简单地把 LangChain 的 ChatModel 包一层——它在 **9 个** provider 上做了**针对性的 patch**，解决跨 provider 的不兼容问题：
 
 | Provider | Class | 基类 | 核心 patch |
 |----------|-------|------|-----------|
@@ -73,6 +73,8 @@ DeerFlow 不是简单地把 LangChain 的 ChatModel 包一层——它在 8 个 
 | **MiniMax** | `PatchedChatMiniMax` | ChatOpenAI | 强制 `reasoning_split=true`，解析 inline `<think>` 标签 |
 | **vLLM / Qwen** | `VllmChatModel` | ChatOpenAI | 保留非标 `reasoning` 字段，`enable_thinking` 归一化 |
 | **MindIE** | `MindIEChatModel` | ChatOpenAI | XML tool-call 解析、tool 时降级非流式、转义换行解码 |
+| **Xiaomi MiMo** | `PatchedChatMiMo` | ChatOpenAI | thinking 模式返回 `reasoning_content`，多轮 tool-call 历史里**必须回传**否则 400；流式与非流式两条路径都捕获 |
+| **StepFun（阶跃星辰）** | `PatchedChatStepFun` | ChatOpenAI | reasoning 字段双拼写兼容（`reasoning` 默认 / `reasoning_content` deepseek 式），两条路径捕获 + 历史回放 |
 
 ### 为什么要 patch？
 
@@ -83,6 +85,8 @@ LLM provider 各自实现了 thinking/reasoning 的返回格式，互不兼容�
 - **Gemini** 把思考签名放在 `additional_kwargs.thought_signature` — 不回传就 HTTP 400
 - **vLLM** 给 assistant message 加了非标 `reasoning` 字段 — 必须手动保留
 - **MiniMax** 把 reasoning 包在 `<think>` 标签里 — 需要解析提取
+- **MiMo** 把 reasoning 放在 `reasoning_content`（OpenAI 兼容 API）— 多轮 tool-call 历史里不回传就 HTTP 400
+- **StepFun** 可能用 `reasoning`（默认）或 `reasoning_content`（deepseek 式）两种拼写 — 两条都要认
 - **MindIE** 工具调用用 XML 格式 `<tool_call>`/`<tool_response>` — 与 LangChain 的 function-call 格式不同
 
 每个 patch 类的核心职责就是：**把 provider 特有的格式翻译成 LangChain 标准格式，并在多 turn 对话中保持这些特有字段不丢失。**
@@ -100,7 +104,27 @@ LLM provider 各自实现了 thinking/reasoning 的返回格式，互不兼容�
 | **火山引擎/豆包** | `deerflow.models.patched_deepseek:PatchedChatDeepSeek` | 复用 DeepSeek 适配器 |
 | **Kimi K2.5** | `deerflow.models.patched_deepseek:PatchedChatDeepSeek` | 复用 DeepSeek 适配器 |
 
-**总计**：7 个 DeerFlow 自定义适配器 + 2 个标准 LangChain 直通 = **9 条独立 provider 路由**，外加 4 个仅换 `base_url` 的变体。
+**总计**：9 个 DeerFlow 自定义适配器 + 2 个标准 LangChain 直通 = **11 条独立 provider 路由**，外加 4 个仅换 `base_url` 的变体。
+
+> 口径核对（v2.1.0）：`deerflow/models/` 下的适配器模块 = `claude_provider`（`ClaudeChatModel`）、`openai_codex_provider`（`CodexChatModel`）、`patched_openai`（`PatchedChatOpenAI`）、`patched_deepseek`（`PatchedChatDeepSeek`）、`patched_minimax`（`PatchedChatMiniMax`）、`patched_mimo`（`PatchedChatMiMo`）、`patched_stepfun`（`PatchedChatStepFun`）、`vllm_provider`（`VllmChatModel`）、`mindie_provider`（`MindIEChatModel`）。MiMo 与 StepFun 已在 `config.example.yaml`（MiMo 段在 `:381-398` 附近、StepFun 段在 `:478-490` 附近）与 setup wizard（`scripts/wizard/providers.py:361` 的 `mimo` 条目）里作为一等 provider 暴露——旧的"7 个适配器 / 9 条路由"是漏算这两个的口径。
+
+### 🆕 共享的历史回放内核：`models/assistant_payload_replay.py`
+
+`PatchedChatMiMo` 与 `PatchedChatStepFun`（以及别的需要"把 provider 私有字段塞回**请求** payload"的适配器）共用同一份匹配逻辑，而不是各写一份：
+
+```python
+restore_assistant_payloads(payload_messages, original_messages, restore: AssistantPayloadRestorer) -> None
+```
+
+契约（非平凡的部分全在**匹配**上，因为 LangChain 序列化可能丢/重排消息）：
+
+1. **长度相等 = 位置对齐**：`len(payload) == len(original)` 时逐位配对（`role == "assistant"` 且原消息是 `AIMessage` 才回放）。
+2. **长度不等 = 签名匹配**：先把两侧各筛成 assistant 列表，对每个 payload assistant 条目：
+   - 计算 payload 签名 `(stable_repr(content), "|".join(tool_call_ids))`，在**尚未使用**的 AI 消息里找**唯一**匹配；命中即标记已用；
+   - 签名歧义/缺失（`content` 为 `None`/`""` 且无 tool_call_ids → 签名 `None`）时**按 ordinal 向后找下一个未使用的 AI 索引**。
+3. **绝不回卷到更早的索引**：`_next_unused_index_at_or_after()` 只从 payload 的 ordinal 往后扫，因为更早的消息可能已被序列化丢弃、不存在于 payload 里——回卷会把 reasoning 贴到错误的历史 turn 上。这是测试 `test_restore_assistant_payloads_does_not_wrap_to_earlier_unused_message` 钉住的边界。
+4. `_stable_repr()` 用 `json.dumps(sort_keys=True, ensure_ascii=False)`，不可序列化时退回 `repr()`——签名必须是确定性的。
+5. 两个现成 restorer：`restore_reasoning_content(payload_msg, orig_msg)`（从 `additional_kwargs.reasoning_content` 拷到 payload 顶层同名键）与通用的 `restore_additional_kwargs_field(payload_msg, orig_msg, field_name)`（仅当原值 `is not None` 才写）。
 
 ## Factory 流程
 

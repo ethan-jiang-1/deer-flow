@@ -18,7 +18,7 @@ DeerFlow 没有可安装的 `deerflow` CLI 二进制（无 console_scripts、无
 | 4 | **status.sh (bash)** | `bash skills/.../status.sh [models/skills/agents]` | — | 资源列表 | 环境巡检 |
 | 5 | **Web UI** | `http://localhost:2026` | ✅ SSE → React | 全部：tool call 卡片、artifacts、todos、token | 交互体验、演示 |
 | 6 | **curl → Gateway API** | `curl -N -X POST :8001/api/runs/stream` | ✅ SSE raw | 全部原始 JSON | HTTP 集成 |
-| 7 | **IM Channels** | Feishu/Slack/Telegram/DingTalk/WeCom/Discord/WeChat | 部分（仅 Feishu/WeCom） | 仅文本 | 团队日常使用 |
+| 7 | **IM Channels** | Feishu/Slack/Telegram/DingTalk/WeCom/Discord/WeChat/Buzz | 部分（Feishu/WeCom/Telegram/Buzz） | 仅文本 | 团队日常使用 |
 | 8 | **Jupyter/脚本** | 普通 `.py` 文件 | ✅ `stream()` | 自定义 | 自动化流水线 |
 
 下面逐一详解。
@@ -68,7 +68,7 @@ DEER_FLOW_SKILLS_PATH=/Users/bowhead/deer-flow/skills \
 
 ## 2. debug.py REPL（最快上手）
 
-源码：`backend/debug.py`（169 行）
+源码：`backend/debug.py`（168 行）
 
 ```bash
 cd /Users/bowhead/deer-flow/backend
@@ -163,15 +163,15 @@ curl -N -X POST http://localhost:8001/api/threads/{id}/runs/stream -H "..." -d '
 - `POST /api/threads/{id}/runs/stream` — 有状态流式
 - `GET /api/threads/{id}/runs/{rid}/events` — 事后审计
 
-完整 API：`_digest/app-layer/01-api-reference.md`
+完整 API：`_digest/operations/app-layer/01-api-reference.md`
 
 ## 7. IM Channels
 
-7 个平台：Feishu、Slack、Telegram、DingTalk、WeCom、Discord、WeChat。
+8 个平台：Feishu、Slack、Telegram、DingTalk、WeCom、Discord、WeChat、Buzz（Nostr）。
 
 源码：`app/channels/`（manager.py 为入口，各平台有独立实现）
 - DM 机器人 → 消息进 MessageBus → ChannelManager 分发 → agent 响应
-- Feishu/WeCom 支持流式（卡片增量更新）
+- Feishu/WeCom/Telegram/Buzz 支持流式（卡片/消息增量更新）
 - 其他平台用 `runs.wait()` 阻塞等待
 
 **不适合做实验**——延迟大、无 tool call 可见性、响应可能被截断。
@@ -196,7 +196,7 @@ print(result)
 
 ### 三层测试金字塔
 
-源码：`_digest/testing/00-overview.md:113`
+源码：`_digest/testing/00-overview.md:11`
 
 | 层 | 内容 | 运行方式 |
 |----|------|---------|
@@ -214,8 +214,8 @@ print(result)
 | `test_subagent_executor.py` | `SubagentExecutor` 的 async/sync 执行、skill 加载 |
 | `test_subagent_limit_middleware.py` | 多余 task 调用的截断行为 |
 | `test_create_deerflow_agent.py` | 工厂装配、中间件排序、extra_middleware 定位 |
-| `test_tool_search.py`（610 行） | DeferredToolRegistry 的搜索、promote、ContextVar 隔离 |
-| `test_client.py`（77 个测试） | DeerFlowClient 全方法单元测试 |
+| `test_tool_search.py`（92 行，11 个 test） | `ToolSearchConfig` 默认值/clamp/加载、`config.example.yaml` 的 `tool_search` 段可解析、`<available-deferred-tools>` prompt 段的排序与转义（catalog 搜索/promote/filter 在 `test_deferred_catalog.py` 等） |
+| `test_client.py`（189 个 test 函数） | DeerFlowClient 全方法单元测试 |
 | `test_memory_updater.py` | Memory 提取、去重、原子写入 |
 | `test_tracing_factory.py` | LangSmith/Langfuse callback 构建 |
 | `test_harness_boundary.py` | AST 扫描 → deerflow.* 不 import app.*（CI 硬门禁） |
@@ -268,7 +268,7 @@ def build_single_tool_call_model(*, tool_name, tool_args, tool_call_id, final_te
 - `test_setup_agent_e2e_user_isolation.py` — fake LLM + 真实生产图 + 真实文件 IO
 - `test_setup_agent_http_e2e_real_server.py` — fake LLM + 真实 FastAPI + 真实 Gateway
 - `test_runtime_lifecycle_e2e.py` — fake LLM + 真实 `run_agent()` 完整生命周期
-- `test_deferred_tool_registry_promotion.py` — fake LLM + 真实 tool_search/promotion 循环
+- `test_deferred_promotion_integration.py` — fake LLM + 真实 tool_search/promotion 循环
 
 ## B.3 缺失的东西
 
@@ -383,7 +383,7 @@ DEER_FLOW_SKILLS_PATH=../deer-flow/skills \
 
 ## C.3 CI 阶段
 
-DeerFlow 自己的 CI 流水线（6 个 workflow）：
+DeerFlow 自己的 CI 流水线（`.github/workflows/` 下 16 个 workflow）：
 
 ```yaml
 # .github/workflows/agent-review.yml

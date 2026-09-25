@@ -47,7 +47,7 @@ DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tool
 |------|------|
 | Agent loop 入口 | `packages/harness/deerflow/runtime/runs/worker.py:run_agent()` |
 | Lead agent 工厂 | `packages/harness/deerflow/agents/lead_agent/agent.py:_make_lead_agent()` |
-| Middleware 装配 | `packages/harness/deerflow/agents/lead_agent/agent.py:_build_middlewares()` |
+| Middleware 装配 | `packages/harness/deerflow/agents/lead_agent/agent.py:build_middlewares()`（v2.1.0 公开名；旧 `_build_middlewares` 已不存在） |
 | Runtime middlewares | `packages/harness/deerflow/agents/middlewares/tool_error_handling_middleware.py:build_lead_runtime_middlewares()` |
 | Subagent 执行器 | `packages/harness/deerflow/subagents/executor.py:SubagentExecutor._aexecute()` |
 | Loop 检测 | `packages/harness/deerflow/agents/middlewares/loop_detection_middleware.py` |

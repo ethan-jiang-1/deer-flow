@@ -32,7 +32,7 @@ environment:
   - DEER_FLOW_CONFIG_PATH=/app/project/config-production.yaml
 
 # 方式 C：代码里显式传参
-from deerflow.config import AppConfig
+from deerflow.config.app_config import AppConfig   # 注意：deerflow.config 的 __init__ 不导出 AppConfig
 cfg = AppConfig.from_file(config_path="./my-custom-config.yaml")
 ```
 
@@ -55,7 +55,7 @@ models:
     base_url: $CUSTOM_OPENAI_BASE   # ← 也可以
 ```
 
-源码位置：`app_config.py:565-600` `resolve_env_variables()`
+源码位置：`app_config.py:565-587` `resolve_env_variables()`
 
 **这是递归的**——字典的每一层、列表的每个元素都会被扫描。找到 `$` 前缀的字符串就替换。找不到对应的环境变量 → 直接报错 `ValueError`。
 
@@ -110,7 +110,7 @@ Gateway 启动时就是利用这个机制来隔离不同请求间的 config 快�
 | 文件**内容签名**变了（sha256 + mtime + size） | ✅ 自动重载 |
 | 仅 mtime 变了 | ✅ 自动重载（兼容） |
 
-源码位置：`app_config.py:681-760` `get_app_config()`
+源码位置：`app_config.py:681-713` `get_app_config()`
 
 **注意**：只有 `STARTUP_ONLY_FIELDS` 里的字段（database、checkpointer、sandbox、channels 等基础设施）改后需要重启。其他字段（models、tools、summarization、memory、guardrails 等）改了就生效。
 
@@ -251,9 +251,9 @@ push_current_app_config(merged)
 | 想看什么 | 去这里 |
 |---------|--------|
 | 配置文件路径解析（3 优先级） | `app_config.py:384-411` `resolve_config_path()` |
-| `$ENV_VAR` 递归替换 | `app_config.py:565-600` `resolve_env_variables()` |
-| 启动时加载 + 传播到子系统 singleton | `app_config.py:414-463` `from_file()`（含 `_check_config_version` :520） |
-| 热加载检测（content signature） | `app_config.py:681-760` `get_app_config()` |
+| `$ENV_VAR` 递归替换 | `app_config.py:565-587` `resolve_env_variables()` |
+| 启动时加载 + 传播到子系统 singleton | `app_config.py:414-459` `from_file()`（含 `_check_config_version` :520） |
+| 热加载检测（content signature） | `app_config.py:681-713` `get_app_config()` |
 | ContextVar 运行时覆盖 | `app_config.py:768-783` `push/pop_current_app_config()` |
 | 哪些字段改后需要重启 | `reload_boundary.py:45` `STARTUP_ONLY_FIELDS` |
 | Extensions JSON 热加载 | `extensions_config.py:419-494` `resolve_config_path()` |

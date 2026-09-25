@@ -12,7 +12,7 @@ DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、�
 
 | 问题 | 答案 |
 |------|------|
-| **几个配置文件？** | 两个 — `config.yaml`（AppConfig，38 个顶层 section，含 `plugins:` 打包扩展）+ `extensions_config.json`（MCP servers + skills state） |
+| **几个配置文件？** | 两个 — `config.yaml`（AppConfig；`config.example.yaml` 里实际启用 38 个顶层键，另有 `plugins:` 等注释示例段）+ `extensions_config.json`（MCP servers + skills state + middlewares） |
 | **改 config.yaml 要重启吗？** | 分两半 — database/sandbox/channels 等基础设施字段要重启，model/tool/memory/prompt 等策略字段实时生效 |
 | **env var 怎么解析？** | `$VAR` → `os.getenv()`。AppConfig 严格模式（缺了就报错），ExtensionsConfig 宽松模式（缺了存空串） |
 | **配置优先级？** | 显式传参 > 环境变量 > 项目根目录 > legacy backend/ |
@@ -86,7 +86,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ![Config Hot Reload](../internals/configuration/figures/config-hot-reload.svg)
 
-`lifespan()`（`app/gateway/app.py:160`）是进程生命周期分界线。启动时 `get_app_config()` 的快照传给 `langgraph_runtime()`，构建所有长生命周期对象并存到 `app.state`。后续请求走另一条路径 — 直接调 `get_app_config()` 检测 mtime 决定要不要重新从磁盘加载。
+`lifespan()`（`app/gateway/app.py:272`）是进程生命周期分界线。启动时 `get_app_config()` 的快照传给 `langgraph_runtime()`，构建所有长生命周期对象并存到 `app.state`。后续请求走另一条路径 — 直接调 `get_app_config()` 检测 mtime 决定要不要重新从磁盘加载。
 
 **设计理由：** 数据库连接池、checkpointer、沙箱 provider、IM 长连接是进程的"骨架" — 热替换这些会导致连接断开、状态丢失。而 model、tool、memory 是"策略"，下次请求读新值即可。
 
@@ -94,7 +94,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ## 优先级链
 
-### config.yaml (`app_config.py:113`)
+### config.yaml (`app_config.py:384`)
 
 ```
 ① 显式传参 config_path
@@ -103,7 +103,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 ④ legacy: backend/config.yaml → repo_root/config.yaml
 ```
 
-### extensions_config.json (`extensions_config.py:72`)
+### extensions_config.json (`extensions_config.py:419`)
 
 ```
 ① 显式传参 config_path
@@ -116,7 +116,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ## env var 解析
 
-`AppConfig.resolve_env_variables()` (`app_config.py:270`) 在 YAML 解析后递归遍历整个 config dict。任何 string 值以 `$` 开头就调用 `os.getenv()`：
+`AppConfig.resolve_env_variables()` (`app_config.py:565`) 在 YAML 解析后递归遍历整个 config dict。任何 string 值以 `$` 开头就调用 `os.getenv()`：
 
 ```yaml
 # config.yaml
@@ -129,13 +129,13 @@ models:
 **AppConfig vs ExtensionsConfig 的差异：**
 
 ```python
-# AppConfig (app_config.py:280-286) — 严格模式
+# AppConfig (app_config.py:565-580) — 严格模式
 value = os.getenv(env_key)
 if value is None:
-    raise ValueError(f"Environment variable '{env_key}' not found")
+    raise ValueError(f"Environment variable {env_key} not found for config value ...")
 
-# ExtensionsConfig (extensions_config.py:163-172) — 宽松模式
-value = os.getenv(env_key, "")   # 缺了就是空串，不报错
+# ExtensionsConfig (extensions_config.py:526-545) — 宽松模式
+value = os.getenv(env_key)       # 缺了就是 None/空，不报错
 ```
 
 MCP server 的 env 字段设计为宽松是因为 server 可能用 `env` 传 fallback 默认值，缺失不应阻止启动。
@@ -146,8 +146,8 @@ MCP server 的 env 字段设计为宽松是因为 server 可能用 `env` 传 fal
 
 | 缓存 | 位置 | 失效方式 |
 |------|------|----------|
-| `_app_config` | `app_config.py:332` | mtime 自动检测，path 变更也触发 |
-| `_extensions_config` | `extensions_config.py:210` | 懒加载，需手动 `reload_extensions_config()` |
-| `_mcp_tools_cache` | `mcp/cache.py:11` | 独立 mtime 比较，3 次重试加载 |
+| `_app_config` | `app_config.py:651` | `(mtime, size, sha256)` 内容指纹 + path 变更自动重载 |
+| `_extensions_config` | `extensions_config.py:589` | 懒加载，需手动 `reload_extensions_config()` |
+| `_mcp_tools_cache` | `mcp/cache.py:15` | 独立 path + `(mtime, size, sha256)` 指纹比较，失败不重试 |
 
 三者互不依赖，各自管理生命周期。`PUT /api/mcp/config` 是唯一同时触发后两者更新的路径 — 保存 JSON → `reload_extensions_config()` → `reset MCP cache`。

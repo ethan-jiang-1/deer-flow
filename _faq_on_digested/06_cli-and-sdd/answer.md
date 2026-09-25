@@ -150,7 +150,7 @@ curl -N -X POST http://localhost:8001/api/runs/stream \
   }'
 ```
 
-> 完整 Gateway API 参考见 `_digest/app-layer/01-api-reference.md`。
+> 完整 Gateway API 参考见 `_digest/operations/app-layer/01-api-reference.md`。
 
 ## A.7 推荐实验路径
 
@@ -345,11 +345,11 @@ client.chat("继续之前的工作，实现 spec-3", thread_id="sdd-project")
 
 | 主题 | 路径 |
 |------|------|
-| Sandbox 三种实现 + 路径映射 | `_digest/architecture/06-sandbox.md` |
-| Gateway API 完整参考 | `_digest/app-layer/01-api-reference.md` |
+| Sandbox 三种实现 + 路径映射 | `_digest/concepts/sandbox/` |
+| Gateway API 完整参考 | `_digest/operations/app-layer/01-api-reference.md` |
 | 系统 prompt 组装 | `deerflow/agents/lead_agent/prompt.py:1070`（`apply_prompt_template()`） |
 | 中间件全链（37 个） | `_digest/internals/middleware/03-catalog.md` |
-| Agent 循环执行流 | `_digest/agent-loop/` |
+| Agent 循环执行流 | `_digest/internals/agent-loop/` |
 
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 总数现为 37 个（新增 `ToolReceiptMiddleware` 与 `DeferredToolPromotionAuditMiddleware`），digest 目录迁移为 `_digest/internals/middleware/`。本 FAQ 描述的 CLI/REPL/SDD 工作流本身不受影响，但上表源码行号已按 v2.1.0-rc0 更新。
 
@@ -363,10 +363,10 @@ client.chat("继续之前的工作，实现 spec-3", thread_id="sdd-project")
 
 | 问题 | 路径 |
 |------|------|
-| 不依赖 Docker 可以跑吗？ | `_faq_on_digested/getting-started-first-flow/no-docker.md` |
-| 本地文件系统和 Git 集成 | `_faq_on_digested/getting-started-first-flow/filesystem-and-git.md` |
-| Agent 专属工作目录 | `_faq_on_digested/getting-started-first-flow/agent-workspace.md` |
-| 入门完整指南 | `_faq_on_digested/getting-started-first-flow/` |
+| 不依赖 Docker 可以跑吗？ | `_faq_on_digested/05_getting-started-first-flow/no-docker.md` |
+| 本地文件系统和 Git 集成 | `_faq_on_digested/05_getting-started-first-flow/filesystem-and-git.md` |
+| Agent 专属工作目录 | `_faq_on_digested/05_getting-started-first-flow/agent-workspace.md` |
+| 入门完整指南 | `_faq_on_digested/05_getting-started-first-flow/` |
 
 Sources:
 - `backend/debug.py` — prompt_toolkit REPL 实现

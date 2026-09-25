@@ -7,6 +7,8 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 > 审计日期：2026-06。方法：按 [07 篇](07-audit-checklist.md)的「怎么查」栏在仓库根执行只读命令（`find`/`wc -l`/`grep`/读 Makefile 与 CI 配置），每条给证据。局限见文末「审计方法说明」。
 
+> **v2.1.0 复核**（sync #7，`345f08be`）：本表所有行数、文件数、`AGENTS.md` 行号引用已按该 tag 重新核对；评分与结论未变（原审计为 2026-06 的 rc0 快照）。diff 增量类断言（`+N 行`）按本轮同步口径保留。
+
 ## 结论速览
 
 **总评：A-（加权 126/148，85%）**。deer-flow 在指令文件体系、验证闭环、可执行环境三个维度接近范本级；主要失分在：缺集中式安全边界（Never/Ask-first）与远程操作 guardrails、深层 AGENTS.md 超行数预算、无量化模块大小规则。
@@ -28,7 +30,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 |---|------|----------|----------|
 | P1 | 无远程操作 guardrails：没有"只推 fork / 禁 force push / AI 贡献披露"类规则 | #59 | 参照 [airflow AGENTS.md](https://github.com/apache/airflow/blob/main/AGENTS.md) 增加 Commits/PRs 区块；或用 agent hooks 硬禁 `push --force` |
 | P2 | 缺集中 Boundaries 区块（Never / Ask first 两档） | #52/#53 | 在根 AGENTS.md 增加 "Boundaries" 节：Never（提交密钥、手改生成物、破坏性 git）+ Ask first（跨包重构、新依赖）；禁令附安全替代路径 |
-| P3 | 深层 AGENTS.md 超预算：backend 397 行、extensions 379、runtime 351、agents/memory 302 | #5 | 按 Claude Code `/doctor` 标准修剪"可从代码推导"的内容；专项细节下沉或转 skills |
+| P3 | 深层 AGENTS.md 超预算：backend 397 行、extensions 380、runtime 364、agents/memory 302、scripts 269（另根 238 行） | #5 | 按 Claude Code `/doctor` 标准修剪"可从代码推导"的内容；专项细节下沉或转 skills |
 | P4 | 无量化模块边界规则；已有 3061 行的 `runtime/runs/worker.py` 等巨文件 | #39/#40 | 参照 [codex AGENTS.md](https://github.com/openai/codex/blob/main/AGENTS.md)：模块 ≤500 LoC 目标、>800 LoC 新功能开新文件；巨文件列入拆分 backlog |
 | P5 | 未使用 path-scoped rules 机制（无 `.claude/rules/`、`.cursor/rules/`） | #9/#10 | 把模块专属细则从嵌套 AGENTS.md 拆到 `paths:`/`globs:` 作用域规则，进一步省常驻上下文 |
 | P6 | 仓库不携带共享 agent 强制层（`.claude/` 整体 gitignored，无版本化 hooks/permissions） | #51 | 可加版本化的 `.claude/settings.json`（deny 危险命令）供团队共享；注意与"settings.local 不入库"的既有约定区分 |
@@ -43,12 +45,12 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 | # | 条目 | 评分 | 证据 |
 |---|------|------|------|
-| 1 | 规范指令入口 | ✅ | `find -name AGENTS.md` 命中 **29 个**文件；根 `AGENTS.md` 239 行 |
+| 1 | 规范指令入口 | ✅ | 计数口径：`*AGENTS*.md` 共 **29 个** = 恰为 `AGENTS.md` 的 **28 个**（`scripts/check_agent_guidance.py` 自报 "28 AGENTS.md"）+ 变体 `backend/docs/GITHUB_AGENTS.md`；根 `AGENTS.md` 238 行 |
 | 2 | 推荐章节覆盖 | ✅ | 根 AGENTS.md 章节：What is DeerFlow / Service Topology / Repository Map / **Commands** / Cross-Cutting Conventions（含安全注意）；backend/AGENTS.md 另有 Commands/Architecture/Code Style |
-| 3 | 根文件=定位层 | ✅ | 根 AGENTS.md 自述 "monorepo orientation layer… read that module's guide"；`backend/AGENTS.md`、`frontend/AGENTS.md` 等 29 个嵌套文件承接深度 |
+| 3 | 根文件=定位层 | ✅ | 根 AGENTS.md 自述 "monorepo orientation layer… read that module's guide"；`backend/AGENTS.md`、`frontend/AGENTS.md` 等 27 个非根文件承接深度（28 个 `AGENTS.md` 减去根） |
 | 4 | 嵌套就近生效 | ✅ | 嵌套覆盖达模块级：`harness/deerflow/{agents,mcp,sandbox,skills,config,runtime,…}/AGENTS.md` 共 19 个（含 `agents/memory/`、`persistence/migrations/` 三层深度） |
-| 5 | 单文件长度 | ⚠️ | `wc -l`：根 239 ✅；但 **backend/AGENTS.md 397、extensions/AGENTS.md 379、runtime/AGENTS.md 351、agents/memory 302**，超 200 行建议（[Claude Code](https://code.claude.com/docs/en/memory#my-claude-md-is-too-large)） |
-| 6 | 无矛盾指令 | ⚠️ | 抽查根/backend/frontend/extensions 四文件的命令与格式规则未见冲突；**未做全 29 文件系统比对（受限）** |
+| 5 | 单文件长度 | ⚠️ | `wc -l`：v2.1.0 实测超 200 行的共 **6 份**——根 238、backend 397、extensions 380、runtime 364、agents/memory 302、scripts 269（[Claude Code 建议 ≤200 行](https://code.claude.com/docs/en/memory#my-claude-md-is-too-large)）；按文件自身的 context 预算（`check_agent_guidance.py` 的 KiB 软/硬线）另见 [harness-engineering/01](../harness-engineering/01-agent-docs-system.md) |
+| 6 | 无矛盾指令 | ⚠️ | 抽查根/backend/frontend/extensions 四文件的命令与格式规则未见冲突；**未做全 28 文件系统比对（受限）** |
 | 7 | 不复述可推导内容 | ⚠️ | 根文件含 "Repository Map" ASCII 目录树——但为带注释的导航地图（服务端口、模块归属），属高信号；backend/AGENTS.md 的架构综述篇幅偏大，`/doctor` 口径下可修剪 |
 | 8 | 指令具体可验证 | ✅ | 全是命令式："cd backend && make test"、"python -m pytest tests/path/to/test.py::test_func -q"、"根 PORT 值仅是 Docker ingress 配置" |
 | 9 | path-scoped rules | ⚠️ | 无 `.claude/rules/`；**但** Claude Code 原生"子目录 AGENTS.md 读到时按需加载"部分达成同等效果（[memory docs](https://code.claude.com/docs/en/memory)） |
@@ -66,7 +68,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 |---|------|------|------|
 | 17 | 命令文档化 | ✅ | 根 AGENTS.md "Commands" 节：setup/doctor/install/dev/stop/docker 全套 + per-module（`make test`/`lint`、`pnpm check`/`test`） |
 | 18 | 单测入口 | ✅ | 根 AGENTS.md 明文：`python -m pytest tests/path/to/test.py::test_func -q`、`pnpm rstest run <pattern>` |
-| 19 | 快速默认子集 | ✅ | `backend/Makefile` L23：`make test` = `pytest -m "not live" --ignore=tests/blocking_io`（离线子集）；704 个测试文件在 `backend/tests/` |
+| 19 | 快速默认子集 | ✅ | `backend/Makefile` L21-23：`make test` = `pytest -m "not live" --ignore=tests/blocking_io tests/ -v`（离线子集）；`backend/tests/` 下 738 个 `test_*.py`（含 `blocking_io/`，顶层 690）——v2.1.0 实测 |
 | 20 | 测试确定性 | ✅ | `pyproject.toml` L85 marker `"live: tests that call real external APIs and require explicit opt-in"`；`backend/tests/AGENTS.md` 明文要求"explicit synchronization such as threading.Event rather than sleep-based timing" |
 | 21 | 外部依赖替身 | ✅ | `backend/tests/_replay_fixture.py`、`replay_provider.py` 存在；`frontend/tests/` 有 `e2e-record/`；CI 有 `replay-e2e.yml` |
 | 22 | 测试布局镜像 | ✅ | `backend/tests/test_compose_default_bind_host.py` 等按 `test_<模块>.py` 平铺于 `tests/`；`tests/AGENTS.md` 就近说明不变量与边界 |
@@ -101,25 +103,25 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 | 41 | API 冻结策略 | ⚠️ | `packages/extension-api/` 被根 AGENTS.md 定为 "public extension contract"，五类贡献点有 reference example；但无 temporal 式"public/internal 分界 + 禁改签名"明文 |
 | 42 | 契约显式 | ✅ | `contracts/`：run_event_stream、subagent_status、slash_skill、skill_review 四组 JSON 契约；版本四源 lockstep + CI 阻断 |
 | 43 | 生成物隔离 | ✅ | frontend/AGENTS.md L69-70/96："`ui/`、`ai-elements/` auto-generated, ESLint-ignored… **don't manually edit these**" |
-| 44 | 命名空间消歧 | ✅ | 工具命名 `bash/web_fetch/glob/...` 与 portable 拼写映射表成文（skills/AGENTS.md L4）；MCP/skills/extensions/integrations 边界清晰 |
+| 44 | 命名空间消歧 | ✅ | 工具命名 `bash/web_fetch/glob/...` 与 portable 拼写映射表成文（`packages/harness/deerflow/skills/AGENTS.md` L4）；MCP/skills/extensions/integrations 边界清晰 |
 | 45 | 高频操作聚合 | ✅ | `make setup`（交互式向导）、`make doctor`、`make support-bundle`（红acted 诊断 + AI issue 草稿一键生成）均为复合任务单入口 |
 | 46 | 文档与代码同源 | ✅ | "Documentation update policy… in the same change set"；版本 lockstep 由脚本+CI 强制 |
 | 47 | 组件复用路径 | ✅ | frontend/AGENTS.md 技术栈节 + Code Style 节指明组件来源与生成流程 |
 | 48 | 涟漪可枚举 | ✅ | 仓库地图 + 模块归属 + contracts + "新发布端口需测试钉住"等显式关联 |
-| 49 | 危险区前置成文 | ✅ | extensions/AGENTS.md 379 行专讲"扩展代码以 Gateway 权限执行"的信任边界；sandbox/AGENTS.md、middlewares/AGENTS.md 各覆盖其危险区 |
-| 50 | 工具面数量 | ⚠️ | 根 Makefile 39 target + `scripts/` 34 个脚本 ≈ 73 个入口；有 `make help` 聚合，但超出"一屏可枚举" |
+| 49 | 危险区前置成文 | ✅ | extensions/AGENTS.md 380 行专讲"扩展代码以 Gateway 权限执行"的信任边界；sandbox/AGENTS.md、middlewares/AGENTS.md 各覆盖其危险区 |
+| 50 | 工具面数量 | ⚠️ | 根 Makefile 39 target（`^[a-zA-Z_][a-zA-Z0-9_-]*:` 实测）+ `scripts/` 下 35 个文件（`-maxdepth 1 -type f`，不含 `AGENTS.md`；另有 `scripts/wizard/` 子目录）≈ 74 个入口；有 `make help` 聚合，但超出"一屏可枚举" |
 
 ### 维度五：安全护栏（13/20）
 
 | # | 条目 | 评分 | 证据 |
 |---|------|------|------|
 | 51 | 软/硬约束分离 | ⚠️ | 硬约束主要由 CI 承担（format check、verify-versions、skill-review-ci）；**仓库不带版本化 agent hooks/permissions**（`.claude/` 整体 gitignored，实测 `.claude/settings.local.json` 仅个人 allow 规则）——设计上可辩护，但团队共享强制层缺位 |
-| 52 | 集中 Never 清单 | ⚠️ | 禁令散落："never commit them"（根 L186 config）、"Never commit upstream dataset text, credentials…"（backend L101）；**无集中 Boundaries 区块** |
+| 52 | 集中 Never 清单 | ⚠️ | 禁令散落："never commit them"（根 L185 config）、"Never commit upstream dataset text, credentials…"（backend L101）；**无集中 Boundaries 区块** |
 | 53 | 禁令带替代路径 | ⚠️ | 多数禁令有上下文说明（如 extensions 信任源、skill UTF-8），但无 electron 禁 npx 式"禁 X→用 Y"标准格式 |
 | 54 | 禁令就近 | ✅ | 模块专属规则在嵌套文件：skills 的 symlink/嵌套拒绝在 `skills/`、compose bind 规则在根、IM 通道规则在 `app/channels/` |
-| 55 | 指令文件攻击面 | ✅ | `.claude/` gitignored（个人设置不入库）；skill 安装器拒绝嵌套 SKILL.md 与 symlink 逃逸（源码印证）；extensions 配置"deliberately kept out of the API-writable extensions_config.json"（根 AGENTS.md L77） |
+| 55 | 指令文件攻击面 | ✅ | `.claude/` gitignored（个人设置不入库）；skill 安装器拒绝嵌套 SKILL.md 与 symlink 逃逸（源码印证）；extensions 配置"deliberately kept out of the API-writable extensions_config.json"（根 AGENTS.md L76-77） |
 | 56 | agent 环境限制成文 | ✅ | extensions 节："both build hooks and extension code execute with Gateway privileges, so only trusted operator sources belong in this path"；scheduled-task 非交互模式的凭证丢弃规则明文 |
-| 57 | 凭证声明式注入 | ✅ | SKILL.md frontmatter `required-secrets`（skills/AGENTS.md L23："name is both the lookup key and the env var name"） |
+| 57 | 凭证声明式注入 | ✅ | SKILL.md frontmatter `required-secrets`（`packages/harness/deerflow/skills/AGENTS.md` L23："name is both the lookup key and the env var name"） |
 | 58 | 高危 human-in-the-loop | ⚠️ | 扩展变更需 Gateway 重启 + 仅信任源（软性门禁）；merge/discard 类操作有审批；但无成文的"高危操作清单+确认流程" |
 | 59 | 远程操作 guardrails | ❌ | grep 三份主 AGENTS.md：**无** push/force-push/fork/AI 披露类规则（对照 airflow 的 "Push only to the user's fork… Never list an agent as a commit co-author"） |
 | 60 | 安全模型文档化 | ⚠️ | `SECURITY.md` 存在；extensions/scheduled-task 的威胁模型在对应 AGENTS.md 内有成文；但无 airflow 式"漏洞/已知限制/加固机会"三分法总纲 |
@@ -130,7 +132,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 | 亮点 | 证据 | 对应条目 |
 |------|------|----------|
-| **29 个嵌套 AGENTS.md 的三层体系**（根定位层 → backend/frontend → harness 模块级） | `find` 实测；根文件自述 orientation layer | #1/#3/#4/#54 |
+| **28 个分层 AGENTS.md 的三层体系**（根定位层 → backend/frontend → harness 模块级） | `find`/`git ls-files` 实测（恰为 `AGENTS.md` 者 28 个，另有 `backend/docs/GITHUB_AGENTS.md` 变体）；根文件自述 orientation layer | #1/#3/#4/#54 |
 | **CLAUDE.md 薄 shim + "Don't edit" 明文** | 5 行文件，`@AGENTS.md` import | #11 |
 | **CI 与本地同源的时长感知分片** | CI 直接跑 `make test-shard`，`.test_durations` 基线共享 | #23 |
 | **离线默认子集 + 显式 flaky 出口** | `-m "not live"`、blocking_io 隔离、live 需 env opt-in | #19/#26 |
@@ -152,7 +154,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 **中期（1-2 周）**
 
-4. 按 `/doctor` 口径修剪超 200 行的四份深层 AGENTS.md（v2.1.0 实测 397 / 380 / 364 / 302 行 = `backend/`、`extensions/`、`runtime/`、`agents/memory/`；rc0 为 397/379/351/302，本轮 runtime +13、extensions +1），可推导内容删、专项下沉——P3。
+4. 按 `/doctor` 口径修剪超 200 行的 6 份 AGENTS.md（v2.1.0 实测 397 / 380 / 364 / 302 / 269 / 238 行 = `backend/`、`extensions/`、`runtime/`、`agents/memory/`、`scripts/`、根；rc0 为 397/379/351/302/260/239，本轮 runtime +13、extensions +1、scripts +9、根 −1），可推导内容删、专项下沉——P3。
 5. 引入模块大小规则并建巨文件清单（worker.py 3061 行等 top5 列入拆分 backlog）——P4。
 6. 把 skills/extensions 等模块细则拆到 `.claude/rules/`（`paths:` 作用域），验证注入生效——P5。
 
@@ -164,6 +166,6 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 ## 审计方法说明
 
 - **日期**：2026-06，单次只读扫描。
-- **harness 口径**：Claude Code（CLAUDE.md shim → AGENTS.md，import 在工作目录内、无需外部审批）与 Codex（根 AGENTS.md 原生发现，239 行 < 32KiB 上限）两个入口均验证成立；未实际启动 agent 会话验证注入（**未验证/受限**，#6/#27 为抽查或间接证据）。
-- **局限**：① 未做 29 个 AGENTS.md 的全量矛盾比对；② 未实跑测试套件验证 #27；③ Cursor/Gemini CLI 口径未实测（依赖文档行为推断）；④ `.claude/settings.local.json` 为审计会话自身产物，不计入仓库评分。
+- **harness 口径**：Claude Code（CLAUDE.md shim → AGENTS.md，import 在工作目录内、无需外部审批）与 Codex（根 AGENTS.md 原生发现，238 行 < 32KiB 上限）两个入口均验证成立；未实际启动 agent 会话验证注入（**未验证/受限**，#6/#27 为抽查或间接证据）。
+- **局限**：① 未做 28 个 AGENTS.md 的全量矛盾比对；② 未实跑测试套件验证 #27；③ Cursor/Gemini CLI 口径未实测（依赖文档行为推断）；④ `.claude/settings.local.json` 为审计会话自身产物，不计入仓库评分。
 - 评分与依据的权威来源见 [07 篇](07-audit-checklist.md)各条目"依据"列。

@@ -68,40 +68,58 @@ Agent middleware 思维（deerflow）:
 
 ## 装配逻辑：为什么分散在两处
 
-18 个 middleware 不是在同一个函数里一次性组装的。它们分两段：
+**37 个** middleware 不是在同一个函数里一次性组装的（口径见 [../middleware/03-catalog.md](../middleware/03-catalog.md)：**35 个内置类 + 2 个通用槽位**）。它们分两段：
 
 ```
-build_lead_runtime_middlewares(app_config)  ← 基础设施层（不可跳过）
-    ├─ ThreadDataMiddleware     # per-thread 目录
-    ├─ UploadsMiddleware        # 上传文件追踪
-    ├─ SandboxMiddleware        # 沙箱 acquire
-    ├─ DanglingToolCallMiddleware
-    ├─ LLMErrorHandlingMiddleware
-    ├─ GuardrailMiddleware
-    ├─ SandboxAuditMiddleware
-    └─ ToolErrorHandlingMiddleware
+build_lead_runtime_middlewares(app_config)  ← 共享基础层（14 条，subagent 也复用）
+    ├─  1. InputSanitizationMiddleware        # 最外层 wrap_model_call
+    ├─  2. ToolOutputBudgetMiddleware
+    ├─  3. ToolResultSanitizationMiddleware
+    ├─  4. ThreadDataMiddleware
+    ├─  5. UploadsMiddleware                  # lead=true / subagent=false
+    ├─  6. SandboxMiddleware
+    ├─  7. DanglingToolCallMiddleware
+    ├─  8. LLMErrorHandlingMiddleware
+    ├─  9. ToolReceiptMiddleware              # verification.receipts_enabled（默认开，最外层 wrap_tool_call）
+    ├─ 10. GuardrailMiddleware                # authorization.enabled + guardrails.enabled 两个独立实例，本表并作一条
+    ├─ 11. SandboxAuditMiddleware             # 无条件
+    ├─ 12. ReadBeforeWriteMiddleware          # read_before_write.enabled（默认开）
+    ├─ 13. ToolProgressMiddleware             # tool_progress.enabled
+    └─ 14. ToolErrorHandlingMiddleware        # 无条件，基础层最后
 
     ↓ append ↓
 
-_build_middlewares(config)  ← 用户功能层（可选/可配置）
-    ├─ DynamicContextMiddleware     # 日期 + memory 注入
-    ├─ SummarizationMiddleware      # (if enabled)
-    ├─ TodoMiddleware               # (if plan_mode)
-    ├─ TokenUsageMiddleware          # (if enabled)
-    ├─ TitleMiddleware
-    ├─ MemoryMiddleware
-    ├─ ViewImageMiddleware           # (if model supports vision)
-    ├─ DeferredToolFilterMiddleware  # (if tool_search enabled)
-    ├─ SubagentLimitMiddleware       # (if subagent_enabled)
-    ├─ LoopDetectionMiddleware       # (if enabled)
-    ├─ [custom_middlewares]          # user injected
-    ├─ SafetyFinishReasonMiddleware  # (if enabled)
-    └─ ClarificationMiddleware       # always last
+build_middlewares(config)  ← lead-only 层（23 条）
+    ├─ 15. DynamicContextMiddleware           # 日期 + memory（始终）
+    ├─ 16. SkillActivationMiddleware          # 始终
+    ├─ 17. DeferredToolPromotionAuditMiddleware  # deferred setup 存在时
+    ├─ 18. SkillToolPolicyMiddleware          # 始终
+    ├─ 19. DurableContextMiddleware           # 始终
+    ├─ 20. SummarizationMiddleware            # summarization.enabled
+    ├─ 21. TodoMiddleware                     # is_plan_mode
+    ├─ 22. TokenUsageMiddleware               # token_usage.enabled
+    ├─ 23. TitleMiddleware                    # 始终
+    ├─ 24. MemoryMiddleware                   # memory_enabled（tool 模式下按 backend 白名单）
+    ├─ 25. ViewImageMiddleware                # model supports_vision
+    ├─ 26. McpRoutingMiddleware               # tool_search + routing metadata
+    ├─ 27. DeferredToolFilterMiddleware       # tool_search.enabled
+    ├─ 28. SystemMessageCoalescingMiddleware  # 始终
+    ├─ 29. SubagentLimitMiddleware            # subagent_enabled
+    ├─ 30. LoopDetectionMiddleware            # loop_detection.enabled
+    ├─ 31. TokenBudgetMiddleware              # token_budget.enabled
+    ├─ 32. Custom middlewares                 # caller 传入的 custom_middlewares
+    ├─ 33. ConfiguredExtensionMiddleware      # extensions.middlewares 配置项
+    ├─ 34. TerminalResponseMiddleware         # 始终
+    ├─ 35. ModelLengthFinishReasonMiddleware  # 始终
+    ├─ 36. SafetyFinishReasonMiddleware       # safety_finish_reason.enabled
+    └─ 37. ClarificationMiddleware            # 始终、必须最后
 ```
 
-**为什么分开？** 基础设施层（前 8 个）是一个 subagent 也需要的——subagent 也要有 Sandbox、Error Handling、DanglingToolCall 修复。用户功能层（后面那些）是 lead agent 特有的——subagent 不需要 Title、Memory、TodoList 这些"人机交互"层的东西。
+**为什么分开？** 基础层是**任何 agent 运行时都需要的**——subagent 也要有 InputSanitization、ToolOutputBudget、Sandbox、Error Handling、DanglingToolCall 修复、tool 收据、写前读门。lead-only 层是 lead agent 特有的编排/交互层（DynamicContext、Skill 激活与策略、DurableContext、Summarization、Todo、Title、Memory、Vision、MCP 路由/延迟、Subagent 限额、LoopDetection、TokenBudget、安全/长度终止、Clarification）。
 
-所以 `build_subagent_runtime_middlewares()` 只拿前 6-7 个基础设施 middleware，不附加功能层。这是一个**复用两层分离**的干净设计。
+"基础层也是 subagent 的"不等于"subagent 只拿基础层"：`build_subagent_runtime_middlewares()` 复用同一份基础层（`include_uploads=False`，所以没有 #5；`receipts_render_mode="always"`），然后**再挂一小组 lead-only 同类项**——SkillActivation(#16)+DeferredToolPromotionAudit(#17)+SkillToolPolicy(#18)、ViewImage(#25)、McpRouting(#26)+DeferredToolFilter(#27)、LoopDetection(#30)、TokenBudget(#31)、configured extensions(#33)、SafetyFinishReason(#36)、DurableContext(#19)、Summarization(#20)，以及 subagent 专属的 `SubagentDateContextMiddleware`（替代 lead 的 #15），最后是 `SystemMessageCoalescingMiddleware`(#28)。subagent **不挂**的是 lead 的交互/终端尾巴：Title(#23)、Memory(#24)、Todo(#21)、TokenUsage(#22)、SubagentLimit(#29)、TerminalResponse(#34)、ModelLengthFinishReason(#35)、Clarification(#37)。
+
+subagent 链里的两点**刻意不与 lead 完全镜像**（源码注释明说）：① Summarization 在 lead 链里排在 guard 三元组（LoopDetection/TokenBudget/Safety）**之前**，在 subagent 链里排在**之后**——无害，因为 compaction 走 `before_model`、guard 记账走 `after_model`，但相对顺序确实不同；② subagent 的 summarization 用 `skip_memory_flush=True`，否则 subagent 内部轮次会写进**父线程**的持久记忆（subagent 与父共享上下文里的 `thread_id`）。
 
 ## 装配顺序 = loop 行为的精确编排
 
@@ -134,12 +152,20 @@ ClarificationMiddleware 做的事很简单：当 model 调用 `ask_clarification
 因为 middleware chain 的反向执行。`after_model` 是从最后一个 middleware 开始向前执行的：
 
 ```
-after_model 执行序:
-  ClarificationMiddleware.after_model   ← 第 18 个先执行
-  SafetyFinishReasonMiddleware.after_model
+after_model 执行序（只列自身定义了 after_model 的，编号按 03-catalog 的 37 条口径）:
+  ClarificationMiddleware.after_model            ← #37 先执行
+  SafetyFinishReasonMiddleware.after_model       ← #36
+  ModelLengthFinishReasonMiddleware.after_model  ← #35
+  TerminalResponseMiddleware.after_model         ← #34
+  TokenBudgetMiddleware.after_model              ← #31
+  LoopDetectionMiddleware.after_model            ← #30
   ...
-  ThreadDataMiddleware.after_model       ← 第 1 个最后执行
+  DurableContextMiddleware.after_model           ← #19（链上最早注册的 after_model 参与者，最后执行）
 ```
+
+> 注意 `ThreadDataMiddleware`（#4）**只定义 `before_agent`**，不参与 `after_model`——旧版这里写"ThreadData 第 1 个最后执行"是错的。链上最早注册的 `after_model` 参与者是 #19 `DurableContextMiddleware`（#21 `TodoMiddleware` 紧随其后）。
+>
+> LangChain 的 `after_model` 按**注册顺序的逆序**派发，所以"列表里越靠后 = after_model 越先跑"。#36 `SafetyFinishReasonMiddleware` 因而刻意注册在 #30 `LoopDetectionMiddleware` **之后**——Safety 先剥掉被安全终止的 tool_calls，LoopDetection 再在**已清洗**的消息上记账。这正是 `safety_finish_reason_middleware.py` docstring 要求的 "register after LoopDetection"（subagent 链用同一放置规则）。
 
 ClarificationMiddleware 的 `wrap_tool_call` 拦截 tool 执行并 goto=END。如果它不是最后一个，前面注册的 middleware 的 `after_model` 还会继续执行，可能会产生副作用。排在最后，它的 hook 最先触发，后面的 middleware 就不会对 clarification 请求做额外处理。
 

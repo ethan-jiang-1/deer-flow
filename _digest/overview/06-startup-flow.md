@@ -64,7 +64,7 @@ topics: [architecture, system-overview]
 | Docker 启动脚本 | `scripts/docker.sh` |
 | Gateway create_app | `backend/app/gateway/app.py:create_app()` |
 | Gateway lifespan | `backend/app/gateway/app.py:lifespan()` |
-| langgraph_runtime | `backend/app/gateway/langgraph_runtime.py` |
+| langgraph_runtime | `backend/app/gateway/deps.py:langgraph_runtime()`（async context manager，由 `lifespan()` 进入） |
 | stream_run handler | `backend/app/gateway/routers/thread_runs.py:stream_run()` |
 | start_run | `backend/app/gateway/services.py:start_run()` |
 | build_run_config | `backend/app/gateway/services.py:build_run_config()` |
@@ -74,7 +74,7 @@ topics: [architecture, system-overview]
 | _make_lead_agent | `deerflow/agents/lead_agent/agent.py:_make_lead_agent()` |
 | get_available_tools | `deerflow/tools/tools.py:get_available_tools()` |
 | create_chat_model | `deerflow/models/factory.py:create_chat_model()` |
-| _build_middlewares | `deerflow/agents/lead_agent/agent.py:_build_middlewares()` |
+| build_middlewares | `deerflow/agents/lead_agent/agent.py:build_middlewares()`（v2.1.0 公开名） |
 | apply_prompt_template | `deerflow/agents/lead_agent/prompt.py:apply_prompt_template()` |
 | sse_consumer | `backend/app/gateway/routers/thread_runs.py:sse_consumer()` |
 | Config 加载 | `deerflow/config/app_config.py:AppConfig.from_file()` |

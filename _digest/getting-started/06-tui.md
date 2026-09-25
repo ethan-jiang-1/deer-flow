@@ -45,10 +45,10 @@ echo "scan files" | deerflow --json | while read line; do process "$line"; done
 
 ## TUI 功能
 
-- **Slash palette**：输入 `/` 打开命令面板（`/goal`、`/models`、`/new`），Tab 补全
+- **Slash palette**：输入 `/` 打开命令面板（`/goal`、`/model`、`/new` 等），Tab 补全
 - **Goal 管理**：`/goal set "目标描述"` → agent 自动续跑到完成
-- **Model switcher**：`Ctrl+P` 切换模型
-- **Thread switcher**：`Ctrl+T` 切换/创建线程
+- **Model switcher**：`/model` 打开模型选择器（无快捷键）
+- **Thread switcher**：`/threads`（或 `/switch`）打开线程切换器（无快捷键）
 - **流式渲染**：60ms flush 间隔，100ms spinner
 - **键盘**：`Ctrl+C` 中断/退出，`Ctrl+L` 重绘，`Ctrl+U` 清空输入
 - **Web UI 可见**：TUI session 写入 `threads_meta` 表，在 Web UI 左侧栏显示
@@ -58,7 +58,7 @@ echo "scan files" | deerflow --json | while read line; do process "$line"; done
 - **🆕 `/help`**：从命令注册表派生帮助文本（#4327）
 - **🆕 Transcript 滚动位置保持**（#4975，v2.1.0-rc0）：流式更新不再把 transcript 视口拉回底部——用户上翻阅读历史时滚动位置保持不变
 
-源码：`deerflow/tui/`（14 个文件），`pyproject.toml [project.scripts]`
+源码：`deerflow/tui/`（15 个 `.py` 文件），`pyproject.toml [project.scripts]`
 
 ## 支持 headless CI
 
@@ -74,7 +74,7 @@ Headless 模式使用 `persistence=False`（不写 threads_meta，无后台 DB l
 
 ## 架构
 
-TUI 14 个源文件的分层：
+TUI 15 个源文件的分层：
 
 | 层 | 文件 | 职责 |
 |----|------|------|
@@ -87,7 +87,7 @@ TUI 14 个源文件的分层：
 | UI | `widgets/composer.py`, `render.py`, `theme.py` | 输入框、Rich 渲染、颜色 |
 | 辅助 | `command_registry.py`, `input_history.py`, `message_format.py` | Slash 命令、↑↓ 历史、工具摘要 |
 
-纯层（无 Textual 依赖）全部可单元测试：`test_tui_cli.py`、`test_tui_view_state.py`、`test_tui_runtime.py` 等 12 个测试文件。
+纯层（无 Textual 依赖）全部可单元测试：`test_tui_cli.py`、`test_tui_view_state.py`、`test_tui_runtime.py` 等 16 个测试文件。
 
 ## 持久化与 Web UI 集成
 

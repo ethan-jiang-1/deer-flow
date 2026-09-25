@@ -92,7 +92,7 @@
   <text x="450" y="894" text-anchor="middle" font-size="9" fill="#7B1FA2">c. load_agent_config(name) — custom agent SOUL.md + config.yaml</text>
   <text x="450" y="908" text-anchor="middle" font-size="9" fill="#7B1FA2">d. inject tracing callbacks e. get_available_tools() — 4 来源组装</text>
   <text x="450" y="922" text-anchor="middle" font-size="9" fill="#7B1FA2">f. create_chat_model(name, thinking) g. available_skill_names</text>
-  <text x="450" y="936" text-anchor="middle" font-size="9" fill="#7B1FA2">h. filter tools by skill allowed-tools i. _build_middlewares() — 19 个有序链</text>
+  <text x="450" y="936" text-anchor="middle" font-size="9" fill="#7B1FA2">h. filter tools by skill allowed-tools i. build_middlewares() — 37 个 middleware 有序链</text>
   <text x="450" y="950" text-anchor="middle" font-size="9" fill="#7B1FA2">j. apply_prompt_template() k. create_agent(model, tools, middleware, prompt, ThreadState)</text>
   <text x="450" y="963" text-anchor="middle" font-size="8" fill="#CE93D8">→ CompiledStateGraph (LangGraph)</text>
 

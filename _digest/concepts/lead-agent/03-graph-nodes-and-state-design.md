@@ -13,11 +13,11 @@ topics: [langgraph, agent-design, state-management, nodes]
 DeerFlow 的图就是 LangGraph 的图——`create_agent()` 构建，DeerFlow 只管往里填参数（model、tools、middleware、system_prompt、state_schema）。
 
 ```python
-# agent.py:482 — DeerFlow 的角色是参数装配
+# agent.py:484 — DeerFlow 的角色是参数装配
 return create_agent(
     model=create_chat_model(name=model_name),
     tools=filter_tools_by_skill_allowed_tools(tools),
-    middleware=_build_middlewares(config),
+    middleware=build_middlewares(config),
     system_prompt=apply_prompt_template(),
     state_schema=ThreadState,
 )

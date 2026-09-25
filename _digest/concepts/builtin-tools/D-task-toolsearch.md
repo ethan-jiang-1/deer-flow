@@ -121,7 +121,10 @@ polling_timeout = (subagent_execution_timeout + 60s) / 5 次轮询
   MCP tools JSON schema
       │
       ▼
-  DeferredToolRegistry.register(tool)
+  assemble_deferred_tools() → DeferredToolCatalog(tuple(deferred))（不可变，纯搜索）
+      │
+      ▼
+  DeferredToolSetup(tool_search_tool, deferred_names, catalog_hash)
       │
       ▼
   System Prompt 注入 <available-deferred-tools> 列表（仅 name）
@@ -136,13 +139,13 @@ polling_timeout = (subagent_execution_timeout + 60s) / 5 次轮询
   LLM → tool_search("select:GitHub_create_issue")
       │
       ▼
-  DeferredToolRegistry.search(query)
+  catalog.search(query)（select: / 关键字 / +required 三种查询形态）
       │
       ▼
-  DeferredToolRegistry.promote({tool_name})
+  tool_search 返回 Command，把 {"promoted": {catalog_hash, names}} 写进 graph state
       │
       ▼
-  DeferredToolFilterMiddleware 不再过滤这些工具
+  DeferredToolFilterMiddleware 读 state["promoted"]，catalog_hash 匹配时不再过滤这些工具
       │
       ▼
   下一轮 LLM 调用：工具完整 schema 可见 + 可调用
@@ -194,18 +197,15 @@ JSON 数组，每个元素是 OpenAI function calling 格式：
 ]
 ```
 
-### ContextVar 隔离
+### 提升状态的隔离：graph state，不是 ContextVar
 
-```python
-_registry_var: contextvars.ContextVar[DeferredToolRegistry | None] = \
-    contextvars.ContextVar("deferred_tool_registry", default=None)
-```
+`tool_search.py:15` 的模块注释明确写着 "graph state — there is no ContextVar"（v2.1.0-rc0 起重构完成，旧名字 `DeferredToolRegistry` 已不存在）。现在的机制：
 
-- 每个请求有独立的 registry（ContextVar），并发安全
-- 子 Agent 创建时复用父的 registry → 已 promote 的工具不会被重新 deferred
-- 这是 #2884 号 bug 修复的核心：
-  > 之前 `get_available_tools` 每次重建 registry，导致父 Agent promote 的工具被子 Agent 重建时 wipe，
-  > LLM 能看见工具名但无法调用
+- `DeferredToolCatalog`（frozen dataclass，`tool_search.py:64`）是不可变的纯搜索目录，`search()` 支持 `select:` / 关键字 / `+required` 三种查询形态；`DeferredToolSetup`（`:121`）把 `tool_search_tool` / `deferred_names` / `catalog_hash` 作为整体传递，并保持不变量 `tool_search_tool is None ⟺ deferred_names 为空 ⟺ catalog_hash is None`。
+- `tool_search` 工具是**闭包**（`build_tool_search_tool(catalog)`），返回 `Command` 把 `{"promoted": {"catalog_hash": …, "names": [...]}}` 写进 `graph state`（`:162-172`）。
+- `DeferredToolFilterMiddleware._promoted(state)` 只在 `promoted["catalog_hash"]` 与本次构建的 catalog hash **相等**时采信（`deferred_tool_filter_middleware.py:49-52`）；工具集变化导致 hash 变化时，旧提升自动失效。
+- **隔离语义（#2884）**：lead 与 subagent 各自 assemble 自己的 `DeferredToolSetup`，第二次构建不再影响 lead 的 middleware/promotion——这正是旧 ContextVar/进程内 registry 实现会 wipe 掉父已 promote 工具的失败模式。
+- **跨上下文**：在 A 上下文构图、在 B 上下文运行也能正确隐藏 deferred 工具（closure + graph state 取代 ContextVar 的回归锚点是 `backend/tests/test_deferred_tool_crosscontext.py`）。
 
 ### 配置
 

@@ -41,7 +41,7 @@ topics: [tools, community, external-integration]
 
 ### Jina AI（默认）
 
-- **文件：** `community/jina_ai/tools.py:12`
+- **文件：** `community/jina_ai/tools.py:45`
 - **签名：** `async def web_fetch_tool(url: str) -> str`
 - **认证：** `JINA_API_KEY` env var → `Authorization: Bearer <key>`（可选——无 key 也能用但有限速）
 - **端点：** `POST https://r.jina.ai/`，header `X-Return-Format: html`

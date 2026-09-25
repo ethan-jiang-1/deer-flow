@@ -6,7 +6,7 @@ topics: [configuration, hot-reload, yaml-config]
 
 # AppConfig — config.yaml 内部机制
 
-`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:192`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。共 38 个顶层 section（🆕 同步 #6 +3：`projects` / `recursion_limit` / `task_continuity`）（含 `config_version`；`plugins:` 打包扩展由 operator 手工添加，不在 example 中）。
+`AppConfig` 是一个 Pydantic `BaseModel`（`app_config.py:187`），`model_config = ConfigDict(extra="allow")` 意味着未知 key 自动忽略。它是 49 个字段的顶层模型（`app_config.py:190-353`）；而 `config.example.yaml` 里**实际启用**的顶层键是 38 个（🆕 同步 #6 起新增 `projects` / `recursion_limit` / `task_continuity` 等）。二者不等价：`plugins` / `auth` / `checkpointer` / `stream_bridge` / `subagents` / `guardrails` / `circuit_breaker` / `llm_call` / `channel_connections` / `tool_progress` / `dedupe_storage` / `acp_agents` 是已声明字段但在 example 中只以注释示例出现；`config_version` 与 `uploads`、`channels` 则是 `extra="allow"` 的 schema 外键。
 
 ## from_file() 8 步流水线
 
@@ -68,18 +68,16 @@ load_checkpointer_config_from_dict(config.checkpointer)
 
 ## get_app_config() 缓存
 
-`get_app_config()` (`app_config.py:360`) 维护三个模块级全局变量：
+`get_app_config()` (`app_config.py:681`) 维护四个模块级全局变量：
 
 ```python
-_app_config: AppConfig | None = None      # 缓存的实例
-_app_config_path: Path | None = None      # 加载时的路径
-_app_config_mtime: float | None = None    # 加载时的文件 mtime
+_app_config: AppConfig | None = None          # 缓存的实例
+_app_config_path: Path | None = None          # 加载时的路径
+_app_config_mtime: float | None = None        # 加载时的文件 mtime
+_app_config_signature: _ConfigSignature | None = None  # (mtime, size, sha256) 内容指纹
 ```
 
-**触发 reload 的三个条件**（`should_reload`，line 380）：
-1. `_app_config is None` — 首次调用
-2. `_app_config_path != resolved_path` — 路径变了（环境变量切换）
-3. `_app_config_mtime != current_mtime` — 文件被编辑过
+**触发 reload 的条件**（`should_reload`，`app_config.py:702`）：路径变化、或 `(mtime, size, sha256)` 内容指纹变化即重载（不再只比较 mtime，避免同秒编辑 / mtime 回退漏检）；`_app_config is None` 时首次加载。
 
 **测试注入保护：** `set_app_config()` 设 `_app_config_is_custom = True`，永久禁止 auto-reload。
 
@@ -99,7 +97,7 @@ pop_current_app_config()                   # 弹出
 
 ---
 
-## 38 Section 速览
+## AppConfig 顶层字段速览
 
 | Section | 类型 | 作用 |
 |---------|------|------|
@@ -115,7 +113,7 @@ pop_current_app_config()                   # 弹出
 | `title` | `TitleConfig` | 自动标题生成 |
 | `summarization` | `SummarizationConfig` | 上下文摘要 |
 | `memory` | `MemoryConfig` | 🆕 可插拔记忆系统（`manager_class` + `mode` + `backend_config`），5 个后端：`deermem`/`mem0`/`noop`/`openviking`/`honcho` |
-| `authz` 🆕 | `AuthorizationConfig` | 可插拔授权 provider（Phase 0 scaffolding） |
+| `authorization` 🆕 | `AuthorizationConfig` | 可插拔授权 provider（RBAC 等） |
 | `agents_api` | `AgentsApiConfig` | 自定义 agent 管理 API |
 | `acp_agents` | `dict[str, ACPAgentConfig]` | ACP 外部 agent |
 | `subagents` | `SubagentsAppConfig` | subagent 运行时 + override |
@@ -148,9 +146,9 @@ pop_current_app_config()                   # 弹出
 | 🔄 🆕 `projects` | `ProjectsConfig` | 项目工作区：instructions 字节上限、document shelf 索引渲染上限、回收站保留天数 |
 | 🔄 🆕 `task_continuity` | `TaskContinuityConfig` | 任务笔记 + 已压缩消息关键词召回（默认关闭） |
 
-注：当前 `config_version` = **45**（🆕 同步 #6，36→45：新增 `projects:`/`task_continuity:`/`sandbox.network:`/`request_admission` 等段）；`checkpointer` 已废弃但后向兼容（统一由 `database` 接管）。
+注：当前 `config_version` = **45**（`config.example.yaml:23`）。历史（用 git 逐个锚点核对）：初始锚点 `162fb214` = 10 → `4915b5e` = 19 → `cd34a1a5` = 28 → `e5c62cab` = 33 → `431892e1`（锚点 #5）= **36** → `v2.1.0-rc0`/`v2.1.0` = **45**（即 sync #6 的 36→45）。`checkpointer` 已废弃但后向兼容（统一由 `database` 接管）。
 
 ## 🆕 Feature Gating
 
-`GET /api/features` — 运行时特性门控端点。当前暴露 `agents_api.enabled`、`browser_control.available`、`mcp_tasks`（`app.state.mcp_tasks_available`）、`subagent_batches`（`repository_available` / `worker_running` / `max_running`）供前端条件渲染 UI 组件。模式：config.yaml 定义 flag → Gateway 端点暴露 → 前端 `useQuery` 读取 → UI 条件渲染。新增 flag 只需扩展 `FeaturesResponse` schema，无需改前端路由逻辑。
+`GET /api/features` — 运行时特性门控端点。当前暴露 `agents_api.enabled`、`browser_control.enabled`、`mcp_tasks.enabled`（`app.state.mcp_tasks_available`）、`subagent_batches`（`repository_available` / `worker_running` / `max_running`）、`conversation_references`（`enabled` / `max_references`）供前端条件渲染 UI 组件（`app/gateway/routers/features.py:57-64`）。模式：config.yaml 定义 flag → Gateway 端点暴露 → 前端 `useQuery` 读取 → UI 条件渲染。新增 flag 只需扩展 `FeaturesResponse` schema，无需改前端路由逻辑。
 

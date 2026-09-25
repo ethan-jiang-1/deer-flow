@@ -123,7 +123,7 @@ uv run pytest tests/test_replay_golden.py
 | 测什么 | 方法 | 来源 |
 |--------|------|------|
 | Agent wiring（中间件链） | `@patch create_agent` + 列表断言 | `test_create_deerflow_agent.py` |
-| Agent 图行为（tool call） | `FakeToolCallingModel` + real `create_agent` | `test_deferred_tool_registry_promotion.py` |
+| Agent 图行为（tool call） | Fake chat model（`GenericFakeChatModel` 子类）+ real `create_agent` | `test_deferred_promotion_integration.py` |
 | Gateway e2e（shape drift） | Hermetic replay + golden JSON | `test_replay_golden.py` |
 | LLM-based 功能 | Fake evaluator + guardrail-at-apply | `test_goal_worker.py` |
 | Router 端点 | `make_authed_test_app` | `test_console_router.py` |

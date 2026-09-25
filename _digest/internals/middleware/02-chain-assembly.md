@@ -12,7 +12,7 @@ Middleware 链在两个函数中按严格顺序构建：
 
 ### Phase 1：共享基础层（`build_lead_runtime_middlewares()`）
 
-文件：`deerflow/agents/middlewares/tool_error_handling_middleware.py:259`
+文件：`deerflow/agents/middlewares/tool_error_handling_middleware.py:320`（`build_lead_runtime_middlewares`；其内部 `_build_runtime_middlewares` 在 `:161`）
 
 ```python
 def build_lead_runtime_middlewares(*, app_config, lazy_init=True) -> list[AgentMiddleware]:
@@ -28,17 +28,19 @@ def build_lead_runtime_middlewares(*, app_config, lazy_init=True) -> list[AgentM
 
 ```
 outer_wrappers: [InputSanitization, ToolOutputBudget, ToolResultSanitization]
-    + thread_hooks: [ThreadData, Uploads, Sandbox, Dangling, LLMError, Guardrail(cond), SandboxAudit]
-    + tail: [ToolReceipt(cond), ReadBeforeWrite(cond), ToolProgress(cond), ToolErrorHandling]
+    + thread_hooks: [ThreadData, Uploads(仅 lead), Sandbox]
+    + tail: [Dangling(仅 include_dangling), LLMError, ToolReceipt(cond),
+             Guardrail(authz, cond), Guardrail(guardrails, cond), SandboxAudit,
+             ReadBeforeWrite(cond), ToolProgress(cond), ToolErrorHandling]
 ```
 
-共 14 个。🆕 `ToolResultSanitization` 位于 `ToolOutputBudget` 之后——先中性化远程内容标签，再做预算截断。🆕 `ToolReceipt`（同步 #5，`verification.receipts_enabled` 默认开）是**最外层 `wrap_tool_call`**，排在 Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress 之外，防止短路/重建结果漏记账。**顺序变更**：`ThreadData` 移到 `Uploads` 之前运行。使用**声明式分层构建器**。
+（以上即 `_build_runtime_middlewares` 中三个列表的拼接顺序；Guardrail 最多两个实例——authorization 与显式 guardrail provider 各一。共 14 个条目位。）🆕 `ToolResultSanitization` 位于 `ToolOutputBudget` 之后——先中性化远程内容标签，再做预算截断。🆕 `ToolReceipt`（同步 #5，`verification.receipts_enabled` 默认开）是**最外层 `wrap_tool_call`**，排在 Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress 之外，防止短路/重建结果漏记账。**顺序变更**：`ThreadData` 移到 `Uploads` 之前运行。使用**声明式分层构建器**。
 
-Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含 Uploads 和 Dangling）；额外附加 `DurableContextMiddleware` + `SystemMessageCoalescingMiddleware` + guard middlewares（TokenBudget/LoopDetection/SubagentLimit/Summarization）。
+Sub-agent 通过 `build_subagent_runtime_middlewares()` 使用缩减版（不含 Uploads；Dangling 保留——`include_dangling_tool_call_patch=True`）；额外附加 `DurableContextMiddleware` + `SystemMessageCoalescingMiddleware` + guard middlewares（TokenBudget/LoopDetection/SubagentLimit/Summarization）。
 
 ### Phase 2：Lead-only 层（`build_middlewares()`）
 
-文件：`deerflow/agents/lead_agent/agent.py:269`
+文件：`deerflow/agents/lead_agent/agent.py:484`
 
 在上面的 14 个之后，依次追加 23 个（同步 #6 新增 `DeferredToolPromotionAuditMiddleware`，插在 SkillActivation 与 SkillToolPolicy 之间）：
 

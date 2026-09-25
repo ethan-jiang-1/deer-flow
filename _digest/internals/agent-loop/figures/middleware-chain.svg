@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" font-family="system-ui, -apple-system, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1180" font-family="system-ui, -apple-system, sans-serif">
   <defs>
     <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
       <polygon points="0 0, 10 7, 5 7, 5 0" fill="#64748b"/>
@@ -15,23 +15,23 @@
     </filter>
   </defs>
 
-  <rect width="1200" height="1000" rx="12" fill="url(#bg)"/>
+  <rect width="1200" height="1180" rx="12" fill="url(#bg)"/>
 
-  <text x="600" y="36" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="bold">Middleware 链：19 个 Middleware × 6 种 Hook 点</text>
+  <text x="600" y="36" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="bold">Middleware 链：37 个 Middleware（35 内置类 + 2 通用槽位）× 6 种 Hook 点</text>
 
   <!-- Legend -->
   <rect x="30" y="52" width="14" height="14" rx="3" fill="#3b82f6"/>
-  <text x="50" y="64" fill="#94a3b8" font-size="10">before_agent (5)</text>
+  <text x="50" y="64" fill="#94a3b8" font-size="10">before_agent (9)</text>
   <rect x="155" y="52" width="14" height="14" rx="3" fill="#22c55e"/>
-  <text x="175" y="64" fill="#94a3b8" font-size="10">before_model (3)</text>
+  <text x="175" y="64" fill="#94a3b8" font-size="10">before_model (4)</text>
   <rect x="290" y="52" width="14" height="14" rx="3" fill="#f59e0b"/>
-  <text x="310" y="64" fill="#94a3b8" font-size="10">wrap_model_call (5)</text>
+  <text x="310" y="64" fill="#94a3b8" font-size="10">wrap_model_call (18)</text>
   <rect x="450" y="52" width="14" height="14" rx="3" fill="#ef4444"/>
-  <text x="470" y="64" fill="#94a3b8" font-size="10">after_model (6)</text>
+  <text x="470" y="64" fill="#94a3b8" font-size="10">after_model (11)</text>
   <rect x="590" y="52" width="14" height="14" rx="3" fill="#8b5cf6"/>
-  <text x="610" y="64" fill="#94a3b8" font-size="10">wrap_tool_call (5)</text>
+  <text x="610" y="64" fill="#94a3b8" font-size="10">wrap_tool_call (13)</text>
   <rect x="730" y="52" width="14" height="14" rx="3" fill="#ec4899"/>
-  <text x="750" y="64" fill="#94a3b8" font-size="10">after_agent (3)</text>
+  <text x="750" y="64" fill="#94a3b8" font-size="10">after_agent (6)</text>
   <rect x="870" y="52" width="14" height="14" rx="3" fill="#1e293b" stroke="#475569" stroke-width="1"/>
   <text x="890" y="64" fill="#94a3b8" font-size="10">core node</text>
 
@@ -47,21 +47,21 @@
   <rect x="190" y="95" width="200" height="60" rx="8" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="290" y="115" text-anchor="middle" fill="#60a5fa" font-size="11" font-weight="bold">before_agent</text>
   <text x="290" y="132" text-anchor="middle" fill="#94a3b8" font-size="9">0→N 正向 · Graph Node</text>
-  <text x="290" y="147" text-anchor="middle" fill="#64748b" font-size="8">5 middleware</text>
+  <text x="290" y="147" text-anchor="middle" fill="#64748b" font-size="8">9 middleware</text>
   <line x1="390" y1="125" x2="425" y2="125" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowRight)"/>
 
   <!-- before_model node -->
   <rect x="430" y="95" width="200" height="60" rx="8" fill="#0a1a0a" stroke="#22c55e" stroke-width="1.5"/>
   <text x="530" y="115" text-anchor="middle" fill="#4ade80" font-size="11" font-weight="bold">before_model</text>
   <text x="530" y="132" text-anchor="middle" fill="#94a3b8" font-size="9">0→N 正向 · Graph Node</text>
-  <text x="530" y="147" text-anchor="middle" fill="#64748b" font-size="8">3 middleware</text>
+  <text x="530" y="147" text-anchor="middle" fill="#64748b" font-size="8">4 middleware</text>
   <line x1="630" y1="125" x2="665" y2="125" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowRight)"/>
 
   <!-- wrap_model_call onion -->
   <rect x="670" y="92" width="220" height="66" rx="8" fill="#2a1a00" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2"/>
   <text x="780" y="114" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="bold">wrap_model_call</text>
   <text x="780" y="132" text-anchor="middle" fill="#94a3b8" font-size="9">内联洋葱 · 正向 0→N</text>
-  <text x="780" y="148" text-anchor="middle" fill="#64748b" font-size="8">5 middleware</text>
+  <text x="780" y="148" text-anchor="middle" fill="#64748b" font-size="8">18 middleware</text>
   <line x1="890" y1="125" x2="920" y2="125" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowRight)"/>
 
   <!-- LLM Call -->
@@ -76,7 +76,7 @@
   <rect x="770" y="185" width="200" height="60" rx="8" fill="#2a0000" stroke="#ef4444" stroke-width="1.5"/>
   <text x="870" y="205" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="bold">after_model</text>
   <text x="870" y="222" text-anchor="middle" fill="#94a3b8" font-size="9">N→0 反向 · Graph Node</text>
-  <text x="870" y="237" text-anchor="middle" fill="#64748b" font-size="8">6 middleware</text>
+  <text x="870" y="237" text-anchor="middle" fill="#64748b" font-size="8">11 middleware</text>
 
   <!-- Decision -->
   <line x1="870" y1="245" x2="870" y2="270" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowDown)"/>
@@ -90,7 +90,7 @@
   <!-- wrap_tool_call onion -->
   <rect x="1005" y="258" width="170" height="60" rx="8" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,2"/>
   <text x="1090" y="280" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="bold">wrap_tool_call</text>
-  <text x="1090" y="296" text-anchor="middle" fill="#94a3b8" font-size="9">内联洋葱 · 5 mw</text>
+  <text x="1090" y="296" text-anchor="middle" fill="#94a3b8" font-size="9">内联洋葱 · 13 mw</text>
   <text x="1090" y="310" text-anchor="middle" fill="#64748b" font-size="8">可短路不调handler</text>
 
   <!-- Tool Execute -->
@@ -112,7 +112,7 @@
   <rect x="640" y="399" width="220" height="60" rx="8" fill="#1a0020" stroke="#ec4899" stroke-width="1.5"/>
   <text x="750" y="419" text-anchor="middle" fill="#f9a8d4" font-size="11" font-weight="bold">after_agent</text>
   <text x="750" y="436" text-anchor="middle" fill="#94a3b8" font-size="9">N→0 反向 · Graph Node</text>
-  <text x="750" y="451" text-anchor="middle" fill="#64748b" font-size="8">3 middleware</text>
+  <text x="750" y="451" text-anchor="middle" fill="#64748b" font-size="8">6 middleware</text>
 
   <!-- END -->
   <line x1="750" y1="459" x2="750" y2="490" stroke="#64748b" stroke-width="1.5" marker-end="url(#arrowDown)"/>
@@ -128,122 +128,158 @@
   <text x="75" y="261" fill="#64748b" font-size="9">setup/teardown 对称：Sandbox=before_agent(acquire) + after_agent(release)，LoopDetection=before_agent(清理) + after_model(检测) + after_agent(清理)</text>
 
   <!-- ===== RIGHT: middleware catalog ===== -->
-  <rect x="60" y="540" width="1080" height="440" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-  <text x="600" y="566" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="bold">Middleware 目录（按编号 × Hook 点）</text>
-
-  <!-- Row 1: 0-4 -->
-  <rect x="78" y="580" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
-  <text x="178" y="598" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">0. ThreadData</text>
-  <text x="178" y="614" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_agent</text>
-  <text x="178" y="628" text-anchor="middle" fill="#64748b" font-size="8">per-thread 目录 · user_id</text>
-
-  <rect x="285" y="580" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
-  <text x="385" y="598" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">1. Uploads</text>
-  <text x="385" y="614" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_agent</text>
-  <text x="385" y="628" text-anchor="middle" fill="#64748b" font-size="8">上传文件注入</text>
-
-  <rect x="492" y="580" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
-  <text x="592" y="598" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">2. Sandbox</text>
-  <text x="592" y="614" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_agent · after_agent</text>
-  <text x="592" y="628" text-anchor="middle" fill="#64748b" font-size="8">acquire/release · lazy_init</text>
-
-  <rect x="699" y="580" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
-  <text x="799" y="598" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">3. DanglingToolCall</text>
-  <text x="799" y="614" text-anchor="middle" fill="#94a3b8" font-size="8.5">wrap_model_call</text>
-  <text x="799" y="628" text-anchor="middle" fill="#64748b" font-size="8">修复消息序列</text>
-
-  <rect x="906" y="580" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
-  <text x="1006" y="598" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">4. LLMErrorHandling</text>
-  <text x="1006" y="614" text-anchor="middle" fill="#94a3b8" font-size="8.5">wrap_model_call</text>
-  <text x="1006" y="628" text-anchor="middle" fill="#64748b" font-size="8">重试 · 熔断器</text>
-
-  <!-- Row 2: 5-9 -->
-  <rect x="78" y="640" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
-  <text x="178" y="658" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="bold">5. Guardrail</text>
-  <text x="178" y="674" text-anchor="middle" fill="#94a3b8" font-size="8.5">wrap_tool_call</text>
-  <text x="178" y="688" text-anchor="middle" fill="#64748b" font-size="8">可插拔授权 · fail_closed</text>
-
-  <rect x="285" y="640" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
-  <text x="385" y="658" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="bold">6. SandboxAudit</text>
-  <text x="385" y="674" text-anchor="middle" fill="#94a3b8" font-size="8.5">wrap_tool_call</text>
-  <text x="385" y="688" text-anchor="middle" fill="#64748b" font-size="8">bash regex · block/warn</text>
-
+  <rect x="60" y="540" width="1080" height="504" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
+  <text x="600" y="566" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="bold">Middleware 目录（37 条 = 35 内置类 + 2 通用槽位；#1-14 基础层，其余 lead-only；按组装顺序编号）</text>
+  <rect x="78" y="580" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="178" y="598" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">1. InputSanitization</text>
+  <text x="178" y="613" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call</text>
+  <text x="178" y="626" text-anchor="middle" fill="#64748b" font-size="8">转义 XML tag · 防注入</text>
+  <rect x="285" y="580" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="385" y="598" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">2. ToolOutputBudget</text>
+  <text x="385" y="613" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call · wrap_tool_call</text>
+  <text x="385" y="626" text-anchor="middle" fill="#64748b" font-size="8">超大输出外置 · 淘汰写省略</text>
+  <rect x="492" y="580" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
+  <text x="592" y="598" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="bold">3. ToolResultSanitization</text>
+  <text x="592" y="613" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_tool_call</text>
+  <text x="592" y="626" text-anchor="middle" fill="#64748b" font-size="8">远程内容 tag 中性化</text>
+  <rect x="699" y="580" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="799" y="598" text-anchor="middle" fill="#60a5fa" font-size="9.5" font-weight="bold">4. ThreadData</text>
+  <text x="799" y="613" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_agent</text>
+  <text x="799" y="626" text-anchor="middle" fill="#64748b" font-size="8">per-thread 目录 · user_id</text>
+  <rect x="906" y="580" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="1006" y="598" text-anchor="middle" fill="#60a5fa" font-size="9.5" font-weight="bold">5. Uploads</text>
+  <text x="1006" y="613" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_agent</text>
+  <text x="1006" y="626" text-anchor="middle" fill="#64748b" font-size="8">上传文件注入</text>
+  <rect x="78" y="640" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="178" y="658" text-anchor="middle" fill="#60a5fa" font-size="9.5" font-weight="bold">6. Sandbox</text>
+  <text x="178" y="673" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_agent · wrap_tool_call · after_agent</text>
+  <text x="178" y="686" text-anchor="middle" fill="#64748b" font-size="8">acquire/release · lazy_init</text>
+  <rect x="285" y="640" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="385" y="658" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">7. DanglingToolCall</text>
+  <text x="385" y="673" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call</text>
+  <text x="385" y="686" text-anchor="middle" fill="#64748b" font-size="8">修复消息序列</text>
   <rect x="492" y="640" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
-  <text x="592" y="658" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="bold">7. ToolErrorHandling</text>
-  <text x="592" y="674" text-anchor="middle" fill="#94a3b8" font-size="8.5">wrap_tool_call</text>
-  <text x="592" y="688" text-anchor="middle" fill="#64748b" font-size="8">异常→error ToolMessage</text>
-
-  <rect x="699" y="640" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
-  <text x="799" y="658" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">8. DynamicContext</text>
-  <text x="799" y="674" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_agent</text>
-  <text x="799" y="688" text-anchor="middle" fill="#64748b" font-size="8">日期 · memory 上下文</text>
-
-  <rect x="906" y="640" width="200" height="52" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
-  <text x="1006" y="658" text-anchor="middle" fill="#4ade80" font-size="10" font-weight="bold">9. Summarization</text>
-  <text x="1006" y="674" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_model</text>
-  <text x="1006" y="688" text-anchor="middle" fill="#64748b" font-size="8">压缩 · skill rescue</text>
-
-  <!-- Row 3: 10-14 -->
-  <rect x="78" y="700" width="200" height="52" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
-  <text x="178" y="718" text-anchor="middle" fill="#4ade80" font-size="10" font-weight="bold">10. Todo</text>
-  <text x="178" y="734" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_model · after_model · wrap_model_call</text>
-  <text x="178" y="748" text-anchor="middle" fill="#64748b" font-size="8">plan mode · 防提前退出</text>
-
-  <rect x="285" y="700" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
-  <text x="385" y="718" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">11. TokenUsage</text>
-  <text x="385" y="734" text-anchor="middle" fill="#94a3b8" font-size="8.5">after_model</text>
-  <text x="385" y="748" text-anchor="middle" fill="#64748b" font-size="8">token 统计 · todo diff</text>
-
-  <rect x="492" y="700" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
-  <text x="592" y="718" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">12. Title</text>
-  <text x="592" y="734" text-anchor="middle" fill="#94a3b8" font-size="8.5">after_model</text>
-  <text x="592" y="748" text-anchor="middle" fill="#64748b" font-size="8">自动标题</text>
-
-  <rect x="699" y="700" width="200" height="52" rx="5" fill="#1a0020" stroke="#ec4899" stroke-width="0.5"/>
-  <text x="799" y="718" text-anchor="middle" fill="#f9a8d4" font-size="10" font-weight="bold">13. Memory</text>
-  <text x="799" y="734" text-anchor="middle" fill="#94a3b8" font-size="8.5">after_agent</text>
-  <text x="799" y="748" text-anchor="middle" fill="#64748b" font-size="8">异步 memory update</text>
-
-  <rect x="906" y="700" width="200" height="52" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
-  <text x="1006" y="718" text-anchor="middle" fill="#4ade80" font-size="10" font-weight="bold">14. ViewImage</text>
-  <text x="1006" y="734" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_model</text>
-  <text x="1006" y="748" text-anchor="middle" fill="#64748b" font-size="8">vision 自动注入</text>
-
-  <!-- Row 4: 15-19 -->
+  <text x="592" y="658" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="bold">8. LLMErrorHandling</text>
+  <text x="592" y="673" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call</text>
+  <text x="592" y="686" text-anchor="middle" fill="#64748b" font-size="8">provider 错误归一 · 熔断</text>
+  <rect x="699" y="640" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="799" y="658" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">9. ToolReceipt</text>
+  <text x="799" y="673" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call · wrap_tool_call</text>
+  <text x="799" y="686" text-anchor="middle" fill="#64748b" font-size="8">确定性收据 + ledger</text>
+  <rect x="906" y="640" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
+  <text x="1006" y="658" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="bold">10. Guardrail</text>
+  <text x="1006" y="673" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_tool_call</text>
+  <text x="1006" y="686" text-anchor="middle" fill="#64748b" font-size="8">授权/鉴权 · fail_closed</text>
+  <rect x="78" y="700" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
+  <text x="178" y="718" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="bold">11. SandboxAudit</text>
+  <text x="178" y="733" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_tool_call</text>
+  <text x="178" y="746" text-anchor="middle" fill="#64748b" font-size="8">bash/file 审计</text>
+  <rect x="285" y="700" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="385" y="718" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">12. ReadBeforeWrite</text>
+  <text x="385" y="733" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call · wrap_tool_call</text>
+  <text x="385" y="746" text-anchor="middle" fill="#64748b" font-size="8">写前读门 · 读戳</text>
+  <rect x="492" y="700" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="592" y="718" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">13. ToolProgress</text>
+  <text x="592" y="733" text-anchor="middle" fill="#94a3b8" font-size="7.4">before_agent · wrap_model_call · wrap_tool_call</text>
+  <text x="592" y="746" text-anchor="middle" fill="#64748b" font-size="8">停滞状态机</text>
+  <rect x="699" y="700" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
+  <text x="799" y="718" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="bold">14. ToolErrorHandling</text>
+  <text x="799" y="733" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_tool_call</text>
+  <text x="799" y="746" text-anchor="middle" fill="#64748b" font-size="8">异常→error ToolMessage</text>
+  <rect x="906" y="700" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="1006" y="718" text-anchor="middle" fill="#60a5fa" font-size="9.5" font-weight="bold">15. DynamicContext</text>
+  <text x="1006" y="733" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_agent · wrap_model_call</text>
+  <text x="1006" y="746" text-anchor="middle" fill="#64748b" font-size="8">日期 · memory · project</text>
   <rect x="78" y="760" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
-  <text x="178" y="778" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">15. DeferredToolFilter</text>
-  <text x="178" y="794" text-anchor="middle" fill="#94a3b8" font-size="8.5">wrap_model_call · wrap_tool_call</text>
-  <text x="178" y="808" text-anchor="middle" fill="#64748b" font-size="8">MCP deferred tools</text>
-
-  <rect x="285" y="760" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
-  <text x="385" y="778" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">16. SubagentLimit</text>
-  <text x="385" y="794" text-anchor="middle" fill="#94a3b8" font-size="8.5">after_model</text>
-  <text x="385" y="808" text-anchor="middle" fill="#64748b" font-size="8">截断过多 task 调用</text>
-
-  <rect x="492" y="760" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
-  <text x="592" y="778" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">17. LoopDetection</text>
-  <text x="592" y="794" text-anchor="middle" fill="#94a3b8" font-size="8.5">before_agent · after_model · wrap_model_call · after_agent</text>
-  <text x="592" y="808" text-anchor="middle" fill="#64748b" font-size="8">hash+频率 · 延迟警告</text>
-
-  <rect x="699" y="760" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
-  <text x="799" y="778" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">18. SafetyFinishReason</text>
-  <text x="799" y="794" text-anchor="middle" fill="#94a3b8" font-size="8.5">after_model（最先）</text>
-  <text x="799" y="808" text-anchor="middle" fill="#64748b" font-size="8">检测 safety 终止</text>
-
-  <rect x="906" y="760" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
-  <text x="1006" y="778" text-anchor="middle" fill="#c4b5fd" font-size="10" font-weight="bold">19. Clarification</text>
-  <text x="1006" y="794" text-anchor="middle" fill="#94a3b8" font-size="8.5">wrap_tool_call（永远最后）</text>
-  <text x="1006" y="808" text-anchor="middle" fill="#64748b" font-size="8">Command(goto=END)</text>
-
-  <!-- Summary bar -->
-  <rect x="78" y="825" width="1045" height="72" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
-  <text x="600" y="848" text-anchor="middle" fill="#94a3b8" font-size="9.5">5 个条件性 middleware: Guardrail · Summarization · TokenUsage · LoopDetection · SafetyFinishReason（由 config.yaml 开关）</text>
-  <text x="600" y="866" text-anchor="middle" fill="#94a3b8" font-size="9.5">2 个运行时决定: TodoMiddleware(is_plan_mode) · SubagentLimitMiddleware(subagent_enabled)</text>
-  <text x="600" y="884" text-anchor="middle" fill="#64748b" font-size="9">ClarificationMiddleware 强制最后 · extra_middleware 在 Clarification 之前插入 · @Next/@Prev 定位系统控制自定义 middleware 位置</text>
-
-  <!-- Hook point summary -->
-  <rect x="78" y="905" width="1045" height="36" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
-  <text x="600" y="922" text-anchor="middle" fill="#64748b" font-size="9.5">Hook 点分布: before_agent=5 · before_model=3 · wrap_model_call=5 · after_model=6(反向) · wrap_tool_call=5 · after_agent=3(反向)</text>
-  <text x="600" y="936" text-anchor="middle" fill="#64748b" font-size="9">注: 部分 middleware 注册在多个 hook 点 (Sandbox=2, Todo=3, DeferredToolFilter=2, LoopDetection=4)</text>
-
+  <text x="178" y="778" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">16. SkillActivation</text>
+  <text x="178" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call</text>
+  <text x="178" y="806" text-anchor="middle" fill="#64748b" font-size="8">/skill 触发 · SKILL.md</text>
+  <rect x="285" y="760" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
+  <text x="385" y="778" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="bold">17. DeferredToolPromotionAudit</text>
+  <text x="385" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_tool_call</text>
+  <text x="385" y="806" text-anchor="middle" fill="#64748b" font-size="8">promotion 决策持久化</text>
+  <rect x="492" y="760" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="592" y="778" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">18. SkillToolPolicy</text>
+  <text x="592" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call · wrap_tool_call</text>
+  <text x="592" y="806" text-anchor="middle" fill="#64748b" font-size="8">allowed-tools 策略</text>
+  <rect x="699" y="760" width="200" height="52" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
+  <text x="799" y="778" text-anchor="middle" fill="#4ade80" font-size="9.5" font-weight="bold">19. DurableContext</text>
+  <text x="799" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_model · wrap_model_call · after_model</text>
+  <text x="799" y="806" text-anchor="middle" fill="#64748b" font-size="8">durable 上下文注入</text>
+  <rect x="906" y="760" width="200" height="52" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
+  <text x="1006" y="778" text-anchor="middle" fill="#4ade80" font-size="9.5" font-weight="bold">20. Summarization</text>
+  <text x="1006" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_model</text>
+  <text x="1006" y="806" text-anchor="middle" fill="#64748b" font-size="8">上下文压缩</text>
+  <rect x="78" y="820" width="200" height="52" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="178" y="838" text-anchor="middle" fill="#60a5fa" font-size="9.5" font-weight="bold">21. Todo</text>
+  <text x="178" y="853" text-anchor="middle" fill="#94a3b8" font-size="7.4">before_agent · before_model · wrap_model_call · after_model · after_agent</text>
+  <text x="178" y="866" text-anchor="middle" fill="#64748b" font-size="8">plan mode 任务跟踪</text>
+  <rect x="285" y="820" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="385" y="838" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">22. TokenUsage</text>
+  <text x="385" y="853" text-anchor="middle" fill="#94a3b8" font-size="8.4">after_model</text>
+  <text x="385" y="866" text-anchor="middle" fill="#64748b" font-size="8">token 统计</text>
+  <rect x="492" y="820" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="592" y="838" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">23. Title</text>
+  <text x="592" y="853" text-anchor="middle" fill="#94a3b8" font-size="8.4">after_model</text>
+  <text x="592" y="866" text-anchor="middle" fill="#64748b" font-size="8">自动标题</text>
+  <rect x="699" y="820" width="200" height="52" rx="5" fill="#1a0020" stroke="#ec4899" stroke-width="0.5"/>
+  <text x="799" y="838" text-anchor="middle" fill="#f9a8d4" font-size="9.5" font-weight="bold">24. Memory</text>
+  <text x="799" y="853" text-anchor="middle" fill="#94a3b8" font-size="8.4">after_agent</text>
+  <text x="799" y="866" text-anchor="middle" fill="#64748b" font-size="8">异步 memory update</text>
+  <rect x="906" y="820" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="1006" y="838" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">25. ViewImage</text>
+  <text x="1006" y="853" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call</text>
+  <text x="1006" y="866" text-anchor="middle" fill="#64748b" font-size="8">vision 自动注入</text>
+  <rect x="78" y="880" width="200" height="52" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
+  <text x="178" y="898" text-anchor="middle" fill="#4ade80" font-size="9.5" font-weight="bold">26. McpRouting</text>
+  <text x="178" y="913" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_model</text>
+  <text x="178" y="926" text-anchor="middle" fill="#64748b" font-size="8">deferred MCP promote</text>
+  <rect x="285" y="880" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="385" y="898" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">27. DeferredToolFilter</text>
+  <text x="385" y="913" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call · wrap_tool_call</text>
+  <text x="385" y="926" text-anchor="middle" fill="#64748b" font-size="8">MCP deferred tools</text>
+  <rect x="492" y="880" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
+  <text x="592" y="898" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">28. SystemMessageCoalescing</text>
+  <text x="592" y="913" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call</text>
+  <text x="592" y="926" text-anchor="middle" fill="#64748b" font-size="8">合并 system message</text>
+  <rect x="699" y="880" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="799" y="898" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">29. SubagentLimit</text>
+  <text x="799" y="913" text-anchor="middle" fill="#94a3b8" font-size="8.4">after_model</text>
+  <text x="799" y="926" text-anchor="middle" fill="#64748b" font-size="8">截断过多 task 调用</text>
+  <rect x="906" y="880" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="1006" y="898" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">30. LoopDetection</text>
+  <text x="1006" y="913" text-anchor="middle" fill="#94a3b8" font-size="7.4">before_agent · wrap_model_call · after_model · after_agent</text>
+  <text x="1006" y="926" text-anchor="middle" fill="#64748b" font-size="8">hash+频率 · 延迟警告</text>
+  <rect x="78" y="940" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="178" y="958" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">31. TokenBudget</text>
+  <text x="178" y="973" text-anchor="middle" fill="#94a3b8" font-size="7.4">before_agent · wrap_model_call · after_model · after_agent</text>
+  <text x="178" y="986" text-anchor="middle" fill="#64748b" font-size="8">per-run token 上限</text>
+  <rect x="285" y="940" width="200" height="52" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.5"/>
+  <text x="385" y="958" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-weight="bold">32. Custom middlewares</text>
+  <text x="385" y="973" text-anchor="middle" fill="#94a3b8" font-size="8.4">caller-supplied</text>
+  <text x="385" y="986" text-anchor="middle" fill="#64748b" font-size="8">custom_middlewares=[]</text>
+  <rect x="492" y="940" width="200" height="52" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.5"/>
+  <text x="592" y="958" text-anchor="middle" fill="#94a3b8" font-size="9.5" font-weight="bold">33. ConfiguredExtension</text>
+  <text x="592" y="973" text-anchor="middle" fill="#94a3b8" font-size="8.4">config-declared</text>
+  <text x="592" y="986" text-anchor="middle" fill="#64748b" font-size="8">extensions.middlewares</text>
+  <rect x="699" y="940" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="799" y="958" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">34. TerminalResponse</text>
+  <text x="799" y="973" text-anchor="middle" fill="#94a3b8" font-size="7.4">before_agent · wrap_model_call · after_model · after_agent</text>
+  <text x="799" y="986" text-anchor="middle" fill="#64748b" font-size="8">空终态恢复</text>
+  <rect x="906" y="940" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="1006" y="958" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">35. ModelLengthFinishReason</text>
+  <text x="1006" y="973" text-anchor="middle" fill="#94a3b8" font-size="8.4">after_model</text>
+  <text x="1006" y="986" text-anchor="middle" fill="#64748b" font-size="8">长度截断 stop_reason</text>
+  <rect x="78" y="1000" width="200" height="52" rx="5" fill="#2a0000" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="178" y="1018" text-anchor="middle" fill="#fca5a5" font-size="9.5" font-weight="bold">36. SafetyFinishReason</text>
+  <text x="178" y="1033" text-anchor="middle" fill="#94a3b8" font-size="8.4">after_model</text>
+  <text x="178" y="1046" text-anchor="middle" fill="#64748b" font-size="8">检测 safety 终止</text>
+  <rect x="285" y="1000" width="200" height="52" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.5"/>
+  <text x="385" y="1018" text-anchor="middle" fill="#c4b5fd" font-size="9.5" font-weight="bold">37. Clarification</text>
+  <text x="385" y="1033" text-anchor="middle" fill="#94a3b8" font-size="8.4">after_model · wrap_tool_call</text>
+  <text x="385" y="1046" text-anchor="middle" fill="#64748b" font-size="8">Command(goto=END)</text>
+  <rect x="78" y="1065" width="1045" height="32" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+  <text x="600" y="1085" text-anchor="middle" fill="#94a3b8" font-size="9.5">条件性条目（由 config.yaml 开关或 runtime 决定）: ToolOutputBudget/read_before_write/verification/authorization/guardrails/tool_progress/summarization/token_usage/title 无条件或默认开；Todo=is_plan_mode · SubagentLimit=subagent_enabled · ViewImage=supports_vision · 17/27=tool_search deferred setup</text>
+  <rect x="78" y="1105" width="1045" height="32" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
+  <text x="600" y="1125" text-anchor="middle" fill="#64748b" font-size="9.5">Hook 点分布（类自身定义，口径见 internals/middleware/03-catalog.md）: before_agent=9 · before_model=4 · wrap_model_call=18 · after_model=11（反向）· wrap_tool_call=13 · after_agent=6（反向）· 单个 middleware 可注册多个 hook 点</text>
 </svg>

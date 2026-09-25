@@ -171,7 +171,7 @@ async for chunk in agent.astream(graph_input, config=runnable_config, stream_mod
 return create_agent(
     model=create_chat_model(...),        # DeerFlow 的模型工厂
     tools=filtered_tools,                # DeerFlow 的 tool 组装
-    middleware=_build_middlewares(...),   # DeerFlow 的 37 个 middleware
+    middleware=build_middlewares(...),   # DeerFlow 的 37 个 middleware
     system_prompt=apply_prompt_template(...),  # DeerFlow 的 prompt
     state_schema=ThreadState,            # DeerFlow 的 state schema
 )
@@ -262,7 +262,7 @@ m1.wrap_model_call(request,
 )
 ```
 
-DeerFlow 的 middleware 在链中的位置由它们在 `_build_middlewares()` 返回列表中的顺序决定——**第一个 middleware 是最外层**。
+DeerFlow 的 middleware 在链中的位置由它们在 `build_middlewares()` 返回列表中的顺序决定——**第一个 middleware 是最外层**。
 
 ### 第四步：compose wrap_tool_call 洋葱链
 
@@ -484,7 +484,7 @@ Graph 构建          ✗ (没有)                   ✓ create_agent() → Stat
 条件路由            ✗ (没有)                   ✓ _make_model_to_tools_edge
 Middleware 协议     ✗ (没有)                   ✓ AgentMiddleware 基类 + 6 hook
 Middleware 实现     ✓ 33 个 AgentMiddleware 子类  ✗ (没有)
-Middleware 装配     ✓ _build_middlewares()      ✓ _chain_model_call_handlers
+Middleware 装配     ✓ build_middlewares()      ✓ _chain_model_call_handlers
 State Schema        ✓ ThreadState              ✓ AgentState (基类)
 模型调用            ✓ create_chat_model()      ✓ model.invoke() in _execute_model_sync
 Tool 系统           ✓ get_available_tools()    ✓ ToolNode + ToolCallRequest

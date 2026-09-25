@@ -108,7 +108,7 @@ sequenceDiagram
         │   │     - 注入 date, memory, skills,          │   │
         │   │       subagent 指令                       │   │
         │   │                                          │   │
-        │   │  e) _build_middlewares()                  │   │
+        │   │  e) build_middlewares()                  │   │
         │   │     - 8 runtime middlewares               │   │
         │   │     - DynamicContext, Summarization,      │   │
         │   │       TodoList, TokenUsage, Title,        │   │

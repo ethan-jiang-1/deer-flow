@@ -23,7 +23,7 @@ DeerFlow（Deep Exploration and Efficient Research Flow）是字节跳动开源�
 
 > 🔄 同步 #6（v2.1.0-rc0）：Node.js 要求 22+ → 24+（#5063，CI 与开发环境同步升级）。
 
-> 架构全景见 `_digest/architecture/`，middleware 完整链见 `_digest/middleware/03-catalog.md`。
+> 架构全景见 `_digest/overview/`，middleware 完整链见 `_digest/internals/middleware/03-catalog.md`。
 
 ## A.2 环境准备
 
@@ -79,7 +79,7 @@ make docker-logs-frontend
 make docker-logs-gateway
 ```
 
-> 服务架构（nginx 统一入口 2026，反代到 gateway:8001 和 web:3000）见 `_digest/architecture/01-system-overview.md`。
+> 服务架构（nginx 统一入口 2026，反代到 gateway:8001 和 web:3000）见 `_digest/overview/01-system-overview.md`。
 >
 > 🔄 同步 #6（v2.1.0-rc0）：生产启动除 `make docker-start` 外还支持本地 `make start`（`SKIP_FRONTEND_BUILD=1` 可复用上次前端构建，跳过重新打包）；Gateway 提供就绪探针 `GET /health/ready`（除进程存活外还探测持久化后端可达性），`make up` 会等待该探针通过才打印成功横幅。
 
@@ -167,7 +167,7 @@ cd backend
 python -c "from deerflow.config import get_app_config; c = get_app_config(); print('模型数量:', len(c.models)); print('第一个:', c.models[0].name)"
 ```
 
-> 模型配置的完整说明（thinking/vision/reasoning effort/热加载边界）见 `_digest/configuration/01-config-yaml.md` 和 `_digest/model-layer/`。
+> 模型配置的完整说明（thinking/vision/reasoning effort/热加载边界）见 `_digest/internals/configuration/01-config-yaml.md` 和 `_digest/internals/model-layer/`。
 
 ## A.6 首次体验
 
@@ -196,7 +196,7 @@ curl http://localhost:2026/api/models | python -m json.tool
 curl http://localhost:2026/api/skills | python -m json.tool
 ```
 
-> 完整 API 参考见 `_digest/app-layer/` 和 `backend/docs/API.md`。
+> 完整 API 参考见 `_digest/operations/app-layer/` 和 `backend/docs/API.md`。
 
 ### 方式 3：Python 嵌入式客户端
 

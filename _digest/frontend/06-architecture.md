@@ -21,7 +21,7 @@ topics: [frontend, nextjs, react]
 | 编辑器 | CodeMirror | — |
 | 图表 | @xyflow/react | — |
 | E2E | Playwright | — |
-| 单元测试 | Vitest | — |
+| 单元测试 | Rstest | 0.10 |
 
 ## 目录结构
 
@@ -107,7 +107,7 @@ frontend/src/
 | `harness/subagents/` | 11（`index` + 10 章） | 子 Agent 用户手册：`quick-start`、`catalog`、`delegation`、`results`、`limits`、`sandbox`、`observability`、`troubleshooting`、`developers`、`reference` |
 | `harness/extensions/` | 10（`index` + 9 章） | 扩展包开发者手册：`quick-start`、`runtime`、`middleware`、`observers`、`services-and-routes`、`run-evidence`、`operations`、`troubleshooting`、`reference` |
 
-v2.1.0 前 `subagents` 是单文件 `subagents.mdx`；改为目录后 `index.mdx` 用 `asIndexPage: true` 充当章节首页（`/docs/harness/subagents` 链接不变，因此 `_meta.ts` 不列 `index`，否则 Nextra `_meta` 校验失败、所有 docs 页面返回 500）；en/zh 的 `middlewares.mdx` 各有一个锚点改指 `.../subagents/limits#runaway-guards`。`extensions` 为 v2.1.0 新增目录，harness 的 `_meta.ts` 同时新增 `extensions` 条目（en `"Extensions"` / zh `"扩展包"`）。
+v2.1.0 前 `subagents` 是单文件 `subagents.mdx`；改为目录后 `index.mdx` 用 `asIndexPage: true` 充当章节首页（`/docs/harness/subagents` 链接不变，`configuration.mdx` / `tools.mdx` / `sandbox.mdx` 仍指向该目录路径，因此 `_meta.ts` 不列 `index`，否则 Nextra `_meta` 校验失败、所有 docs 页面返回 500 —— 见 `d818a083` commit body）；en/zh 的 `middlewares.mdx` 各有一个锚点改指 `.../subagents/limits#…`（en `#runaway-guards`、zh `#失控行为防护`，zh 用本地化标题锚点）。`extensions` 为 v2.1.0 新增目录，harness 的 `_meta.ts` 同时新增 `extensions` 条目（en `"Extensions"` / zh `"扩展包"`）。
 
 ## 关键数据流
 

@@ -15,7 +15,7 @@ Agent 测试是所有 AI 应用中最棘手的部分。这里分两层：DeerFlo
 | `00-overview.md` | 测试金字塔：Boundary / Unit / Gate / E2E |
 | `01-harness-boundary.md` | Harness/App 边界检查（AST 扫描）+ Blocking IO 检测 |
 | `02-gateway-conformance.md` | SDK ↔ Gateway 格式一致性 |
-| `03-e2e-and-unit.md` | Playwright E2E + Vitest 前端 + pytest 后端 |
+| `03-e2e-and-unit.md` | Playwright E2E + Rstest 前端 + pytest 后端 |
 
 ## 开发者测试模式（写 DeerFlow 应用时用）
 

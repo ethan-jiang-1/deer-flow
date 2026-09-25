@@ -36,9 +36,9 @@ LangGraph agent loop 和 LLM/tool 执行之间的中间层。37 个 middleware�
 
 | 组件 | 路径 |
 |------|------|
-| 基类 | `langchain.agents.middleware.AgentMiddleware` (LangChain >= 1.2.15) |
-| Lead agent 装配 | `deerflow/agents/lead_agent/agent.py:_build_middlewares()` |
-| SDK 装配 | `deerflow/agents/factory.py:_assemble_from_features()` |
+| 基类 | `langchain.agents.middleware.AgentMiddleware` (`langchain>=1.3`，见 `backend/packages/harness/pyproject.toml:23`) |
+| Lead agent 装配 | `deerflow/agents/lead_agent/agent.py::build_middlewares()` （v2.1.0 起为公开名；旧的 `_build_middlewares` 已不存在） |
+| SDK 装配 | `deerflow/agents/factory.py::_assemble_from_features()` |
 | RuntimeFeatures | `deerflow/agents/features.py` |
 | @Next/@Prev 装饰器 | `deerflow/agents/features.py:42-63` |
 | 所有 middleware 实现 | `deerflow/agents/middlewares/` + `deerflow/guardrails/middleware.py` + `deerflow/sandbox/middleware.py` |

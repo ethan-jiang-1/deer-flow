@@ -24,7 +24,7 @@ Sandbox 如何挂入 Agent 执行流？核心是 **SandboxMiddleware** + **lazy 
 |---------|---------|
 | 用本地沙箱（默认，零隔离） | 无需配置 |
 | 换成 Docker 沙箱 | `config.yaml` → `sandbox.use: "deerflow.community.aio_sandbox:AioSandboxProvider"` |
-| 换成 K3s 生产沙箱 | `config.yaml` → `sandbox.use: "deerflow.sandbox.k3s:K3sSandboxProvider"` |
+| 换成 K3s 生产沙箱 | `config.yaml` → `sandbox.use: "deerflow.community.aio_sandbox:AioSandboxProvider"` + `sandbox.config.provisioner_url: http://provisioner:8002`（K3s/Pod 模式是 AIO provider 的 `RemoteSandboxBackend`，不是独立 provider 类，`aio_sandbox_provider.py:257-269`） |
 | 允许 host 上执行 bash | `config.yaml` → `sandbox.allow_host_bash: true` |
 | 调整 Docker warm pool 大小 | `config.yaml` → `sandbox.config.replicas: 5` |
 | 看 sandbox 创建/复用日志 | 日志级别 DEBUG，搜索 `ensure_sandbox_initialized` |
@@ -186,7 +186,7 @@ securityContext:
 
 **文件操作加锁：** `str_replace` 和 `write_file` 对 `(sandbox_id, path)` 做细粒度锁，防止同一 sandbox 内并发写冲突。
 
-**TOCTOU race：** `download_file` 在 `getsize()` 和 `read()` 之间有竞争窗口。代码明确接受（`local_sandbox.py:400`）— 因为这是 "controlled sandbox environment"。
+**TOCTOU race：** `download_file`（`local_sandbox.py:847`）在 `getsize()` 和 `read()` 之间有竞争窗口。代码明确接受（`local_sandbox.py:861-862` 的 TOCTOU note）— 因为这是 "controlled sandbox environment"。
 
 ---
 

@@ -71,33 +71,41 @@ sequenceDiagram
 
 ### 文件索引
 
-| 文件 | 行数 | 职责 |
+| 文件 | 行数（v2.1.0 实测） | 职责 |
 |------|------|------|
-| `runs/manager.py` | 2254 | RunManager — 运行 CRUD、状态机、多任务策略、SQLite 事务保护、孤儿协调、multi-worker lease |
-| `runs/worker.py` | 2359 | run_agent() — 后台图执行、流式发布、Langfuse 注入、checkpoint 回滚、delivery receipt、workspace 快照 |
-| `journal.py` | 982 | RunJournal — LangChain 回调处理器、token 累计（按 lead/subagent/middleware 分桶）、消息去重、进度刷盘、delivery receipt |
-| `serialization.py` | 79 | serialize() — 规范序列化，支持 values/messages/custom 三种模式 |
-| `converters.py` | 137 | LangChain → OpenAI Chat Completions 格式转换 |
-| `stream_bridge/base.py` | 73 | StreamBridge ABC — publish/subscribe/cleanup 协议、心跳/结束哨兵 |
-| `stream_bridge/memory.py` | ~80 | InMemoryStreamBridge — asyncio.Queue 实现 |
-| `stream_bridge/async_provider.py` | ~80 | 后端感知工厂（memory/SQLite/Postgres） |
-| `user_context.py` | 196 | ContextVar 用户上下文（set/get/require）、effective_user_id 三级解析 |
-| `runs/schemas.py` | 30 | RunStatus、DisconnectMode 枚举 |
-| `runs/naming.py` | ~30 | 根运行名解析 |
-| `store/async_provider.py` | 115 | LangGraph async store 工厂（匹配 checkpointer 后端） |
-| `goal.py` | 522 | Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker |
+| `runs/manager.py` | 2424 | RunManager — 运行 CRUD、状态机、多任务策略、SQLite 事务保护、孤儿协调、multi-worker lease |
+| `runs/worker.py` | 3061 | run_agent() — 后台图执行、流式发布、Langfuse 注入、checkpoint 回滚、delivery receipt、workspace 快照 |
+| `journal.py` | 1300 | RunJournal — LangChain 回调处理器、token 累计（按 lead/subagent/middleware 分桶）、消息去重、进度刷盘、delivery receipt |
+| `serialization.py` | 148 | serialize() — 规范序列化，支持 values/messages/custom 三种模式 |
+| `converters.py` | 136 | LangChain → OpenAI Chat Completions 格式转换 |
+| `stream_bridge/base.py` | 115 | StreamBridge ABC — publish/subscribe/cleanup 协议、心跳/结束哨兵 |
+| `stream_bridge/memory.py` | 192 | InMemoryStreamBridge — asyncio.Queue 实现 |
+| `stream_bridge/async_provider.py` | 101 | 后端感知工厂（memory/SQLite/Postgres） |
+| `user_context.py` | 295 | ContextVar 用户上下文（set/get/require）、effective_user_id 三级解析 |
+| `runs/schemas.py` | 32 | RunStatus、DisconnectMode 枚举 |
+| `runs/naming.py` | 16 | 根运行名解析 |
+| `store/async_provider.py` | 124 | LangGraph async store 工厂（匹配 checkpointer 后端）；sync 孪生见 `store/provider.py`（`get_store()` 单例 / `store_context()`）与 `store/_sqlite_utils.py` |
+| `goal.py` | 569 | Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker |
 | `goal-continuation.md` | — | 开发者文档：Goal 续跑循环完整说明 |
 | `05-run-ownership-and-rollback.md` | — | Multi-worker ownership / rollback / delivery receipt 完整说明 |
 | `keyed_lock.py` | 147 | 🆕 按键串行化锁表 — `AsyncKeyedLockTable`（asyncio，按 loop 分桶）+ `KeyedLockTable`（线程版），waiter-aware 空闲条目回收 |
 | `events/message_identity.py` | 60 | 🆕 消息稳定身份规则的后端半边 — ToolMessage 按 `tool_call_id`、human 的 `X`/`X__user` 副本折叠为同一身份 |
 | `events/message_seq.py` | 52 | 🆕 REST 读路径（GET state / POST history）批量盖 `deerflow_seq` 章 — 流式 values 帧的 request-scoped 对应物 |
+| `checkpoint_mode.py` | 146 | 🆕 full/delta 双模式的进程冻结、`deerflow_checkpoint_channel_mode` 元数据标记、fail-closed 门（`CheckpointModeMismatchError`）— 见 [../persistence/checkpoint-dual-mode-and-history-cache.md](../persistence/checkpoint-dual-mode-and-history-cache.md) |
+| `checkpoint_state.py` | 209 | 🆕 `CheckpointStateAccessor`（状态读写唯一咽喉）+ `build_state_mutation_graph()`（只做状态变更的 idle 图） |
+| `checkpoint_cache/`（base/memory/provider/redis） | 80/79/101/116 | 🆕 delta 历史缓存契约与 memory/redis 后端、`make_checkpoint_cache()` 工厂、部署身份键前缀 |
+| `checkpointer/cached_saver.py` | 328 | 🆕 `CachedHistorySaver` — 只覆写 delta channel history 的 read-through 包装（递归 compose + 线程级 purge） |
+| `stream_bridge/redis.py` | 384 | 🆕 `RedisStreamBridge` — 每 run 一个 Redis Stream、`StreamGap` 落后检测、TTL/MAXLEN 保留 |
+| `stream_modes.py` | 47 | 🆕 对外 stream mode 词表 + `messages-tuple → messages` 映射（`UnsupportedStreamModeError`） |
+| `context_compaction.py` | 224 | 🆕 手动 compaction 工作核心：`ThreadCompactionResult`、`ContextCompactionDisabled`/`Failed`、checkpoint agent binding |
+| `context_keys.py` | 33 | 🆕 checkpoint 级 server-owned 键（agent binding 元数据） |
 | `task-continuity.md` | — | 🆕 任务连续性子系统文档：task notes + compacted history recall（见下方同步 #6） |
 
 ### 同步 #6（ce635b7d）：线程生命周期、幂等与事件循环卫生
 
 #### 1. Thread incarnations（expand-phase 存储，#5216）
 
-迁移 `0019_thread_incarnations` 给 `threads_meta` 加可空 `incarnation`、`mcp_tasks` 加可空 `thread_incarnation`（均 VARCHAR(32)，无 server default）——**纯 expand 步骤，本阶段无任何运行时行为消费这两列**。新 thread 行写入随机 32 字符 incarnation；内存变更按 thread 串行化，覆写继承现有 incarnation，删除重建才有新值。迁移链细节：该 revision 复用回滚底线 binary 已审计的 revision id，按 `down_revision` 链在 `0021_batch_acceptance` 之后（Alembic 按 down_revision 而非数字前缀排序）；DDL 前先对两表做 preflight（拒绝窄型/NOT NULL/带默认值的既有列）。
+迁移 `0019_thread_incarnations` 给 `threads_meta` 加可空 `incarnation`、`mcp_tasks` 加可空 `thread_incarnation`（均 VARCHAR(32)，无 server default）——**expand 步骤**：新 thread 行写入随机 32 字符 incarnation；新 MCP task 行在插入时**读取归属 thread 的 incarnation** 并盖章到 `thread_incarnation`（`persistence/mcp_tasks/sql.py:157-169`）。内存变更按 thread 串行化，覆写继承现有 incarnation，删除重建才有新值。当时仍**没有任何 fencing/claim/session/删除逻辑读这两列做判断**。迁移链细节：该 revision 复用回滚底线 binary 已审计的 revision id，按 `down_revision` 链在 `0021_batch_acceptance` 之后（Alembic 按 down_revision 而非数字前缀排序）；DDL 前先对两表做 preflight（拒绝窄型/NOT NULL/带默认值的既有列）。
 
 **回滚安全性（#5219）**：0020 回滚底线 binary 把且仅把 incarnation revision 视为前向兼容——反射确认自身 ORM schema 后允许 stamp 存在；0021 接受列同样可空可省略。原有 0018+incarnation 形状的库走 [docs/database-forward-revision-recovery.md](../../../docs/database-forward-revision-recovery.md) 离线恢复。线程生命周期不变量（branch/regenerate 的 checkpoint lineage、settled checkpoint 规则）见 `backend/docs/THREAD_LIFECYCLE.md`。
 
@@ -139,7 +147,7 @@ Thread 级 run 创建端点（`POST /{thread_id}/runs`、`/stream`、`/wait`）�
 ### 🆕 sync #6（431892e1..769589e8）要点
 
 - **run change_seq**（migration `0023_run_change_seq`）— 稳定分页游标，`GET /runs/page` keyset 翻页（`01-run-manager.md`）
-- **thread incarnations**（migration `0019_thread_incarnations`，#5216）— expand-phase 可空列，暂无行为消费（`01-run-manager.md`）
+- **thread incarnations**（migration `0019_thread_incarnations`，#5216）— expand-phase 可空列；值只被写入/复制（含 MCP task 行插入时复制），无 fencing 消费点（`01-run-manager.md`）
 - **events store 加固** — `runtime/events/` 新增 `message_identity.py`（消息稳定身份：ToolMessage 按 `tool_call_id`、注入副本折叠）与 `message_seq.py`（checkpoint 消息批量回填 `deerflow_seq`，修复分页+压缩重叠时早期消息错位 #4696）；DB/JSONL store 的 lock 生命周期修复（删除期间保持锁 generation 稳定 #5462/#5455）、cancellation 前先排空 JSONL 变更（#5439）、JSONL 记录保留 Unicode 分隔符（#5429）
 - **Gateway 内存回收**（#5112）— 终态 run 释放引用、丢弃 fenced journal 缓冲（`01-run-manager.md`）
 - **keyed lock 安全回收**（#5176）— waiter-aware 锁表，计数持有者+排队者后才回收空闲项

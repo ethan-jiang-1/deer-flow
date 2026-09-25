@@ -518,6 +518,6 @@ DeerFlow 处理"反问用户"的机制。当模型调用 `ask_clarification` 工
 - `langchain/agents/factory.py`：`model_node` L1296-1314, `_execute_model_sync` L1269-1294, `_get_bound_model` L1140-1267, `_handle_model_output` L1036-1138, `_build_commands` L177-216, `model_to_tools` L1701-1753, `tools_to_model` L1790-1816
 - `langgraph/prebuilt/tool_node.py`：`ToolNode.__init__` L620-784, `_func` L791-824, `_run_one` L1012-1065, `_execute_tool_sync` L920-1010, `_parse_input` L1222-1264
 - `langchain/agents/middleware/types.py`：`AgentState.jump_to` L354, `JumpTo` L69
-- `deerflow/agents/lead_agent/agent.py`：`_make_lead_agent` L842 起（`create_agent` 调用在 L1239-1245）, `build_middlewares` L484-746
+- `deerflow/agents/lead_agent/agent.py`：`_make_lead_agent` L842 起（`create_agent` 调用在 L1239-1245）, `build_middlewares` L484-771
 
 > 🔄 同步 #6（v2.1.0-rc0）：以上行号对照 backend/.venv 中 langchain 1.2.15 / langgraph-prebuilt 1.0.11 与当前 `deerflow/agents/lead_agent/agent.py` 逐一核实；LangChain/LangGraph 侧基本未漂移，DeerFlow 侧 `agent.py` 因重构行号大幅前移。

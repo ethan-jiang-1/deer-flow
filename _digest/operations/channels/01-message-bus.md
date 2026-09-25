@@ -26,7 +26,7 @@ class MessageBus:
         return await self._inbound_queue.get()  # 阻塞等待
 ```
 
-所有 8 个 channel（+Buzz）向同一个队列推送——`ChannelManager._dispatch_loop()` 在队列另一侧阻塞等待。
+所有 9 个 channel（8 个 IM 聊天平台 + GitHub）向同一个队列推送——`ChannelManager._dispatch_loop()` 在队列另一侧阻塞等待。
 
 ### Outbound 方向（Dispatcher → Channel）
 
@@ -76,7 +76,7 @@ class OutboundMessage:
 
 ## ChannelManager Dispatch Loop
 
-`app/channels/manager.py` — 1024 行核心调度器：
+`app/channels/manager.py` — 2958 行核心调度器（v2.1.0 实测）：
 
 ```python
 class ChannelManager:

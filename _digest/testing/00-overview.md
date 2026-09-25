@@ -16,9 +16,9 @@ DeerFlow 有三层测试体系：边界测试（CI 强制执行）、Gateway 一
           │  (~15) │
           ├──────┤
           │ Gate │  TestGatewayConformance — SDK/Gateway 格式一致性
-          │ (~8)  │
+          │ (~11) │
           ├──────┤
-          │ Unit │  Vitest (frontend) + pytest (backend provider/middleware)
+          │ Unit │  Rstest (frontend) + pytest (backend provider/middleware)
           │(100+)│
           ├──────┤
           │Bound │  test_harness_boundary.py — CI-enforced import rules
@@ -49,15 +49,15 @@ harness 文件有少量被批准的豁免（如测试辅助代码），通过注
 
 ## Gateway 一致性测试
 
-`backend/tests/test_gateway_conformance.py` — 验证 SDK 路径和 Gateway 路径产出相同的结果：
+`backend/tests/test_client.py::TestGatewayConformance` — 验证 SDK 路径和 Gateway 路径的结果格式一致（`test_client_live.py` 只有 `TestLive*` 系列的真实 API 测试，不含 conformance）：
 
 ### 测试原理
 
-同一个 Agent 配置，通过两条路径执行相同的输入：
-1. **SDK 路径：** 直接在 Python 进程中使用 `create_chat_model()` + `create_agent()` 
-2. **Gateway 路径：** 通过 HTTP API `POST /api/threads/{id}/runs` + SSE stream
+不是真的同时跑两条路径（那样要起 Gateway），而是**用 Gateway 的 Pydantic response model 解析 `DeerFlowClient` 返回的 dict**：
+1. **SDK 路径：** 在 Python 进程里直接调 `DeerFlowClient` 的方法
+2. **Gateway 契约：** 把返回的 dict 交给对应的 Gateway Pydantic response model 解析
 
-比较两者的输出——确保 Gateway 的序列化/反序列化层没有改变 Agent 行为。
+字段缺失或类型不符时 Pydantic 抛 `ValidationError`，CI 因此能抓到 drift。
 
 ### 覆盖范围
 
@@ -87,7 +87,7 @@ harness 文件有少量被批准的豁免（如测试辅助代码），通过注
 
 ## 单元测试
 
-### Frontend (Vitest)
+### Frontend (Rstest)
 
 `frontend/tests/unit/` — 镜像 `src/` 结构：
 
@@ -110,11 +110,12 @@ harness 文件有少量被批准的豁免（如测试辅助代码），通过注
 | `test_mindie_provider.py` | MindIE tool+stream 降级、XML 解析、message 格式修复 |
 | `test_codex_provider.py` | Codex SSE 解析、response 合并、message 格式转换 |
 | `test_patched_openai.py` | Gemini thought_signature 保留 |
-| `test_claude_provider.py` | auto_thinking_budget、thinking 模式切换 |
+| `test_claude_provider_prompt_caching.py` | prompt cache breakpoint ≤4 上限、候选位置选择 |
+| `test_claude_provider_oauth_billing.py` | OAuth billing block 注入、metadata.user_id、cache_control 剥离 |
 
 ### Runner 配置
 
-- **Frontend：** Vitest 4.x，jsdom 环境，`vitest.config.ts`
+- **Frontend：** Rstest（`@rstest/core` 0.10.x，`pnpm test` → `rstest`），`rstest.config.ts` 分两个 project——`node`（多数纯逻辑测试）与 `dom`（`*.dom.test.*`，happy-dom）
 - **Backend：** pytest，`pyproject.toml` 中 `[tool.pytest.ini_options]`
 - **CI：** 通过 GitHub Actions（如果配置）或手动 `make test`
 

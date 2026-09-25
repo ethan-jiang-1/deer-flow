@@ -1,12 +1,12 @@
 ---
 title: "E2E + 单元测试"
-description: "## Frontend 单元测试（Vitest）"
+description: "## Frontend 单元测试（Rstest）"
 topics: [testing, ci, quality-assurance]
 ---
 
 # E2E + 单元测试
 
-## Frontend 单元测试（Vitest）
+## Frontend 单元测试（Rstest）
 
 `frontend/tests/unit/` — 镜像 `src/` 的结构：
 
@@ -121,13 +121,14 @@ pnpm test:e2e -- --grep "thinking block"
 
 | 文件 | 测试数量 | 覆盖重点 |
 |------|---------|---------|
-| `test_vllm_provider.py` | 7 | reasoning 字段提取、chat template 兼容、thinking 开关、streaming chunk |
-| `test_patched_minimax.py` | 4 | reasoning_split 强制启用、reasoning_details 映射、<think> 剥离、delta 拼接 |
-| `test_patched_deepseek.py` | 5 | reasoning_content 重注入、多轮保持、positional fallback |
-| `test_mindie_provider.py` | 5 | tool+stream 降级、XML 解析、message 修复、timeout 归一化 |
-| `test_codex_provider.py` | 5 | SSE 解析、response 合并、message 转换、tool arg 处理 |
-| `test_patched_openai.py` | 3 | thought_signature 重注入、snake_case/camelCase 双检测 |
-| `test_claude_provider.py` | 3 | auto_thinking_budget、thinking 模式切换 |
+| `test_vllm_provider.py` | 16 | reasoning 字段提取、chat template 兼容、thinking 开关、streaming chunk |
+| `test_patched_minimax.py` | 5 | reasoning_split 强制启用、reasoning_details 映射、<think> 剥离、delta 拼接 |
+| `test_patched_deepseek.py` | 10 | reasoning_content 重注入、多轮保持、positional fallback |
+| `test_mindie_provider.py` | 47 | tool+stream 降级、XML 解析、message 修复、timeout 归一化 |
+| `test_codex_provider.py` | 24 | SSE 解析、response 合并、message 转换、tool arg 处理 |
+| `test_patched_openai.py` | 8 | thought_signature 重注入、snake_case/camelCase 双检测 |
+| `test_claude_provider_prompt_caching.py` | 13 | cache_control breakpoint ≤4 上限、候选位置选择 |
+| `test_claude_provider_oauth_billing.py` | 11 | OAuth billing block 注入顺序、metadata.user_id、cache_control 剥离 |
 
 ### 运行
 

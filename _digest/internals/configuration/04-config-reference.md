@@ -105,14 +105,21 @@ models:
 | Provider | `use` 值 |
 |----------|----------|
 | OpenAI | `langchain_openai:ChatOpenAI` |
+| OpenAI（DeerFlow 补丁版） | `deerflow.models.patched_openai:PatchedChatOpenAI` |
 | Anthropic | `langchain_anthropic:ChatAnthropic` |
+| Claude（订阅凭据） | `deerflow.models.claude_provider:ClaudeChatModel` |
+| Codex（订阅凭据） | `deerflow.models.openai_codex_provider:CodexChatModel` |
 | DeepSeek | `deerflow.models.patched_deepseek:PatchedChatDeepSeek` |
 | Google Gemini | `langchain_google_genai:ChatGoogleGenerativeAI` |
 | Ollama | `langchain_ollama:ChatOllama`（推荐，支持 thinking 透传） |
 | vLLM | `deerflow.models.vllm_provider:VllmChatModel` |
-| MiniMax | `deerflow.models.minimax:PatchedChatMiniMax` |
-| MindIE | `deerflow.models.mindie:ChatMindIE` |
+| MiniMax | `deerflow.models.patched_minimax:PatchedChatMiniMax` |
+| MindIE | `deerflow.models.mindie_provider:MindIEChatModel` |
+| Xiaomi MiMo | `deerflow.models.patched_mimo:PatchedChatMiMo` |
+| StepFun（阶跃星辰） | `deerflow.models.patched_stepfun:PatchedChatStepFun` |
 | Novita | `langchain_openai:ChatOpenAI`（OpenAI 兼容） |
+
+（`deerflow/models/` 下共 9 个自研适配器类：`claude_provider` / `openai_codex_provider` / `patched_openai` / `patched_deepseek` / `patched_minimax` / `patched_mimo` / `patched_stepfun` / `vllm_provider` / `mindie_provider`；OpenAI/Anthropic/Gemini/Ollama 直接复用 LangChain provider。）
 
 **Ollama 重要提示**：如果用 `langchain_openai:ChatOpenAI` 连 Ollama，thinking/reasoning_content 不会正确返回。必须用 `langchain_ollama:ChatOllama`，它走原生 `/api/chat` 路径。
 
@@ -147,10 +154,12 @@ OpenAI Responses API 模型可开（默认 false）：请求只带最新 turn + 
 
 ```yaml
 tool_groups:
-  web: ~       # web_search, web_fetch, image_search 的归属
-  file:read: ~ # ls, read_file, glob, grep
-  file:write: ~ # write_file, str_replace
-  bash: ~      # bash
+  - name: web         # web_search, web_fetch, image_search 的归属
+  - name: file:read   # ls, read_file, glob, grep
+  - name: file:write  # write_file, str_replace
+  - name: bash        # bash
+  - name: browser
+  - name: knowledge
 ```
 
 ### 内置工具配置
@@ -414,8 +423,9 @@ ACP agent 通过 `invoke_acp_agent` 工具调用。每个 ACP agent 使用 per-t
 
 ```yaml
 skills:
-  # path: /absolute/path/to/skills    # 覆盖 Skill 路径
-  container_path: /mnt/skills         # 沙箱中的虚拟路径
+  # path: /absolute/path/to/skills    # 覆盖 Skill 路径（也可用 DEER_FLOW_SKILLS_PATH 环境变量）
+  container_path: /mnt/skills         # 沙箱中的虚拟路径（restart-required）
+  deferred_discovery: false           # true = 系统提示只留 <skill_index> 名称，详情靠 describe_skill 工具按需取
 ```
 
 Skill 位于 `skills/public/`(已提交) 和 `skills/custom/`(gitignored)。启停状态在 `extensions_config.json`。
@@ -450,9 +460,9 @@ summarization:
     value: 10           # 保留最近 10 条消息
   trim_tokens_to_summarize: 15564
   summary_prompt: null
-  preserve_recent_skill_count: 5       # 保留最近加载的 Skill
-  preserve_recent_skill_tokens: 25000
-  preserve_recent_skill_tokens_per_skill: 5000
+  # 旧 preserve_recent_skill_count / _tokens / _tokens_per_skill 已废弃（config.example.yaml
+  # 明确标注 "no longer used"）；skill 保留改由 durable skill-reference channel 承担：
+  skill_file_read_tool_names: [read_file, read, view, cat]   # set [] 关闭该捕获
 ```
 
 ## Memory（用户记忆）🔄 2.1 重构
@@ -586,7 +596,22 @@ auth:
 database:
   backend: sqlite            # memory | sqlite | postgres
   sqlite_dir: .deer-flow/data
+  postgres_url: $DATABASE_URL
+  postgres_schema: ""        # 空=服务端默认 search_path；只允许小写 plain identifier
+  checkpoint_channel_mode: full   # full | delta（restart-required）
+  checkpoint_delta:
+    snapshot_frequency: 10   # delta 快照节奏（restart-required）
+  checkpoint_graph_cache:
+    accessor_graph_max: 64   # Gateway accessor 图缓存上限（唯一热重载的 checkpoint_* 项）
+  checkpoint_cache:          # delta 模式专有；纯性能，跨进程可不同
+    type: memory             # memory | redis（sync/TUI 路径拒绝 redis）
+    max_entries: 128         # 0 = 关闭缓存
+    redis_url: null          # 缺省回落 DEER_FLOW_CHECKPOINT_CACHE_REDIS_URL → REDIS_URL → redis://localhost:6379/0
+    ttl_seconds: 86400       # 泄漏兜底，不是正确性机制；0 = 显式不过期
+    key_prefix: ""           # 缺省 = ckpt-hist:v1:<部署身份 hash>
 ```
+
+**checkpoint_channel_mode（🆕 v2.1.0 起的一等配置）**：`full` 存整快照 `channel_values`；`delta` 对累积 channel（`messages`）改用 LangGraph `DeltaChannel`（哨兵 blob + 每步 writes，每 `snapshot_frequency` 步落一次全量快照）。模式与节奏**都被编译进图的 channel 表**，所以：restart-required、共享同一 checkpoint 库的所有进程必须同值、迁移方向只有 `full → delta`。legacy 扁平键 `checkpoint_delta_snapshot_frequency` 会被自动搬到 `checkpoint_delta.snapshot_frequency`（不搬的话旧 YAML 会**静默**退回新默认节奏）。完整契约（进程冻结、`deerflow_checkpoint_channel_mode` 元数据标记、full 进程读 delta thread 的 fail-closed 报错、`CheckpointStateAccessor`、delta 历史缓存后端）见 [../persistence/checkpoint-dual-mode-and-history-cache.md](../persistence/checkpoint-dual-mode-and-history-cache.md)。
 
 三个选项：
 - **memory** — 进程内，无持久化，重启丢失
@@ -594,6 +619,8 @@ database:
 - **postgres** — 多 worker 生产，需安装 `[postgres]` extra
 
 **注意**：`database.*`、`checkpointer.*` 等基础设施字段改后需重启才生效（见 `CLAUDE.md` 热加载表）。
+
+**迁移**：`database.backend` 为 sqlite/postgres 时，Gateway 启动会在 `init_engine` 里自动跑 `persistence/bootstrap.py::bootstrap_schema()`（空库 `create_all` + `stamp head`；legacy 库只回填 baseline 表再 `upgrade head`；已版本化库直接 `upgrade head`），日常升级不需要手工执行 alembic。revision 从 `0001_baseline` 串到当前 head **`0025_repair_run_change_seq`**（`persistence/migrations/versions/`）；未知 revision、空版本表或多行版本表会拒绝启动。见 [internals/persistence/db-checkpointer-store-backends.md](../persistence/db-checkpointer-store-backends.md)。
 
 ## Run Events
 
@@ -663,7 +690,7 @@ circuit_breaker:
 
 ## IM Channels
 
-详见 [../integration/07-im-channels.md](../../operations/integration/04-im-channels.md)。
+详见 [operations/integration/04-im-channels.md](../../operations/integration/04-im-channels.md)。
 
 ## Verification（tool 结果确定性收据）🆕
 
@@ -710,22 +737,111 @@ mcp_tasks:
 
 持久化运行时承载普通 MCP submit/status/cancel 工具集；`task_toolsets` 按 server 在 `extensions_config.json` 里配置。所有字段 restart-required（Gateway lifespan 启动时捕获）。
 
+## llm_call（LLM 并发与重试整形）🆕
+
+```yaml
+llm_call:
+  max_concurrent_calls: 0        # 进程内同时在飞的 LLM 调用上限；0 = 不限制（默认）
+  retry_max_attempts: 3          # 可重试暂态错误的最大尝试次数（1 = 不重试）
+  retry_base_delay_ms: 1000      # decorrelated-jitter 退避基数
+  retry_cap_delay_ms: 8000       # 单次退避硬上限
+  burst_retry_base_delay_ms: 5000  # provider 突发限流（limit_burst_rate）429 的退避基数
+```
+
+- 与 `circuit_breaker`（处理**已失败**的 provider）、`models[].request_admission`（per-model RPM）正交：这一节管的是"同时跑多少、退避怎么走"。限并发等于压住请求速率的**斜率**，而 provider 的突发速率限制正是打在斜率上的。
+- **`max_concurrent_calls` 是 startup-only**：上限在第一次 LLM run 时被捕获并冻结到进程生命周期——一个进程级、跨 loop 的限制器如果在运行时可变，会引入缩容/配置新鲜度竞态。改它必须重启 Gateway；`llm_call.*` 的其它字段仍热重载。
+- **进程内、不是集群级**：`GATEWAY_WORKERS > 1` 时实际总上限是 `max_concurrent_calls × worker 数`（多节点再乘）。要真正的集群级斜率上限，得配一个 nginx `limit_req`。
+
+## run_ownership（多 worker run 租约）
+
+```yaml
+run_ownership:
+  lease_seconds: ...        # run lease 时长
+  grace_seconds: ...        # 租约宽限（回收过期 lease、判定孤儿 run 用）
+  heartbeat_enabled: false  # 是否启用心跳续租
+```
+
+`heartbeat_enabled=true` 是 `scheduler.multi_instance=true` 的前置条件之一（另两个：共享 Postgres、`run_events.backend=db`），否则启动直接拒绝该组合。scheduler digest 里的租约回收/接管语义见 [../../operations/scheduler.md](../../operations/scheduler.md)。restart-required。
+
+## dedupe_storage（入站 webhook 去重存储）🆕
+
+```yaml
+dedupe_storage:
+  backend: auto     # auto | memory | postgres
+```
+
+ChannelManager 的入站去重状态放哪（issue #4120 的跨 pod 去重）：
+
+| 值 | 行为 |
+|----|------|
+| `auto`（默认） | `database.backend=postgres` 时用共享 Postgres 应用库；否则进程内 memory（单 pod） |
+| `memory` | 强制进程内 store——**per-pod，不跨副本共享**；`GATEWAY_WORKERS>1` 时会记 warning（跨 pod 重投不会被去重） |
+| `postgres` | 用应用库跨 pod 共享；但 `database.backend != postgres` 时**降级**回 memory 并记 warning |
+
+解析逻辑在 `app/channels/dedupe_store.py`，每种降级都有明确日志。
+
+## agent_storage（自定义 Agent SOUL 存哪）🆕
+
+```yaml
+agent_storage:
+  backend: file     # file | db
+```
+
+`file` = 每个自定义 agent 一个 SOUL 文件；`db` = 走 `persistence/agents/` 的 `agents` 表（`AgentRow`，`migration 0006_agents`）。两条实现路径分别是 `persistence/agents/file.py::FileAgentStore` 与 `sql.py::SqlAgentStore`，入口是 `get_agent_store()` / `make_agent_store()`。
+
+## skill_scan（原生技能安全扫描）🆕
+
+```yaml
+skill_scan:
+  enabled: ...
+```
+
+`skills/skillscan/` 的原生确定性扫描开关（`SkillScanConfig`）。它与 skill-reviewer skill 的 `review_skill_package` 路径不是同一套：前者是 harness 侧静态规则扫描（`SecurityFinding`/`ScanResult`/`RuleSpec`），后者是技能质量审查契约。
+
+## suggestions（回复后追问建议）🆕
+
+```yaml
+suggestions:
+  enabled: true           # 是否在 AI 回复末尾生成 follow-up 追问建议
+  max_suggestions: ...
+```
+
+前端通过 `POST /api/threads/{thread_id}/suggestions` 生成、`GET /api/suggestions/config` 读配置（没有 `GET /api/suggestions` 这个端点）。
+
+## input_polish（发送前润色）🆕
+
+```yaml
+input_polish:
+  enabled: true       # composer 的 pre-send 润色
+  max_chars: 4000     # 草稿字符上限（≥1）
+  model_name: null    # 可选模型覆盖；缺省用默认模型
+```
+
+`POST /api/input-polish` 是一次性 LLM 调用，**不创建 run**，也不写 thread 状态。
+
 ---
 
 ## 配置热加载备忘
 
-| 无需重启 | 需重启 |
-|----------|--------|
-| models（模型列表/参数） | database.backend |
-| summarization | checkpointer |
-| title | run_events |
-| memory | stream_bridge |
-| subagents | sandbox.use |
-| verification | log_level |
-| tools | channels 凭证 |
-| agent system prompt | scheduler.*（`recursion_limit` 除外） |
-| guardrails | mcp_tasks / subagent_runtime / subagent_batches / plugins |
-| auth.local 限流（live-read，逐次登录读取） | |
+**真值来源是代码**：`config/reload_boundary.py::STARTUP_ONLY_FIELDS`（18 条）是热加载边界的**单一来源**，且被 `test_reload_boundary` 双向钉住——注册过的字段在 schema 里必须带 `startup-only:` 前缀，带该前缀的字段必须在注册表里。下面这张表是它的可读镜像（字段级理由见 [../harness-hooks/02-singleton-propagation.md](../harness-hooks/02-singleton-propagation.md)）：
+
+| 需重启（`STARTUP_ONLY_FIELDS`） | 无需重启（`get_app_config()` 每次请求重读） |
+|--------------------------------|------------------------------------------|
+| `plugins`（`load_extensions()` 只在 `create_app()` 跑一次） | `models`（列表 / 参数）· `summarization` · `title` · `memory` |
+| `database`（engine + 连接池，`langgraph_runtime()` 启动时建一次） | `tools[*]` · `tool_groups` · `tool_search` · `tool_output` · `tool_progress` |
+| `checkpointer` · `run_events` · `stream_bridge` | `subagents.*` · `subagent_runtime`（见右栏例外说明） · `authorization` |
+| `sandbox` · `skills.container_path` | `guardrails` · `verification` · `read_before_write` · `safety_finish_reason` |
+| `log_level` · `logging`（`configure_logging()` 只在 startup 跑） | `loop_detection` · `token_budget` · `token_usage` · `circuit_breaker` |
+| `channels` · `channel_connections` | system prompt（每次构建 agent 重新生成） |
+| `scheduler`（`recursion_limit` **除外**，每次 dispatch 重读） | `projects` · `suggestions` · `input_polish` · `title` 等 per-run 字段 |
+| `mcp_tasks` · `subagent_batches` · `run_ownership` · `dedupe_storage` | `skills.*`（**除** `container_path`）· `auth.local` 限流（逐次登录 live-read） |
+| `agent_storage`（与 `database.backend` 的匹配在 startup 校验一次） | `database.checkpoint_graph_cache.accessor_graph_max` · `database.checkpoint_cache.*`（delta 缓存两处刻意可热改） |
+| `llm_call.max_concurrent_calls`（首次 LLM run 冻结；该字段**不在**注册表里，靠自身 schema 文档声明） | `llm_call.*` 其余字段（重试/退避）· `extensions.middlewares`（下次 agent 构建） |
+
+**两个反直觉点**：
+
+1. `database` 整段被登记为 restart-required（理由是 engine/连接池），但 `database.checkpoint_graph_cache.accessor_graph_max` 与 `database.checkpoint_cache.*` 是**刻意的例外**——前者在每次淘汰检查时从新 `AppConfig` 重读，后者是纯性能、跨进程都可不同、从不被冻结。
+2. `checkpointer.*` 变化时 `_apply_singleton_configs()` 会 `reset_checkpointer()` + `reset_store()`，但这**不是完整热重载**：已开始的 run 在 run 起点拿到 checkpointer/store，感知不到中途 reset；只有新 run 用新的。
 
 ---
 
@@ -733,6 +849,11 @@ mcp_tasks:
 
 ```json
 {
+  "middlewares": [
+    "my_company.deerflow_middlewares:DomainGuardMiddleware",
+    { "class": "my_company.deerflow_middlewares:LatencyStampingMiddleware",
+      "kwargs": { "header": "X-DeerFlow-Latency" } }
+  ],
   "mcpInterceptors": ["my_package.mcp.auth:build_auth_interceptor"],
   "mcpServers": {
     "github": {
@@ -758,7 +879,8 @@ mcp_tasks:
 }
 ```
 
-- `mcpInterceptors`：MCP 认证拦截器，在创建 MCP 连接时注入 auth header
+- `middlewares`：`AgentMiddleware` 条目（class path 或 `{class, kwargs}`），作用于 lead 与 subagent 运行时；`config.yaml -> extensions.middlewares` 可覆盖同名字段（replace-per-field）
+- `mcpInterceptors`：自定义 MCP tool 拦截器 class path 列表（字符串或字符串数组）。不在 `ExtensionsConfig` schema 里，经 `extra="allow"` 落在 `model_extra`，由 `mcp/interceptors.py:47-53` 解析并追加到内置 OAuth/user-scoped/context-headers 拦截器之后
 - `mcpServers`：MCP 服务器配置，type 可为 `stdio` / `sse` / `http`
   - SSE/HTTP 支持 OAuth（client_credentials、refresh_token 自动刷新）
 - `skills`：Skill 的启用/禁用状态
