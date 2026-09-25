@@ -146,6 +146,12 @@ Thread 级 run 创建端点（`POST /{thread_id}/runs`、`/stream`、`/wait`）�
 - **心跳间隔可配**（#5017）— `heartbeat_interval_seconds`（`02-stream-bridge.md`）
 - worker trace binding（#5119 配套，trace id 无条件下发详见 observability digest）
 
+### 🆕 sync #7（v2.1.0-rc0..v2.1.0）要点
+
+- **事件存储变更串行域**（#5535）— `put` / `put_batch` / `put_if_absent` / `delete_by_thread` / `delete_by_run` 共享同一临界区：每线程 `asyncio` 锁 +（PostgreSQL）事务级 advisory lock（`DbRunEventStore._acquire_thread_mutation_fence()`）；删除签名统一为 owner-scoped（`user_id` 三态，memory/JSONL 只为接口一致性接受并忽略）。详见 observability digest。
+- **线程删除清理**（#5535）— `RunRepository.delete_by_thread()` 只删 `operation_kind == "run"` 的历史 run（保留保护本次 `DELETE` 的 reservation 行），且**不 bump change clock**；`MemoryRunStore.delete_by_thread()` 同规则。详见 `05-run-ownership-and-rollback.md`。
+- **0025 修复型迁移**（#5517）— 幂等重放被"插队"的 `0023_run_change_seq` 的 DDL，并把 `RunChangeClockRow` / `UserPreferenceRow` 补进 ORM 注册表。详见 persistence digest。
+
 ### 关键设计决策
 
 1. **RunJournal 不在 `on_llm_new_token` 中写事件** — 只在 `on_llm_end` 写入完整消息，避免部分数据污染存储。

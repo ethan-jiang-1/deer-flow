@@ -176,7 +176,7 @@ for m in middleware:
 
 ## DeerFlow 实际上有多少 node？
 
-DeerFlow 有 37 个 middleware（v2.1.0-rc0；组装分两阶段：`tool_error_handling_middleware.py` 的 `build_lead_runtime_middlewares()` 前 14 个共享基础层 + `lead_agent/agent.py` 的 `build_middlewares()` 后 23 个 lead-only 层，后者现在从 L484 起），但不是每个都覆写了所有 4 个 hook。实际情况：
+DeerFlow 有 37 个 middleware（v2.1.0；组装分两阶段：`tool_error_handling_middleware.py` 的 `build_lead_runtime_middlewares()` 前 14 个共享基础层 + `lead_agent/agent.py` 的 `build_middlewares()` 后 23 个 lead-only 层，后者现在从 L484 起），但不是每个都覆写了所有 4 个 hook。实际情况：
 
 - 大部分 middleware 只覆写 `after_model` → 每个产生 1 个 node
 - 少数覆写 `before_agent`（如 `UploadsMiddleware`、`SandboxMiddleware`）
@@ -190,7 +190,7 @@ DeerFlow 有 37 个 middleware（v2.1.0-rc0；组装分两阶段：`tool_error_h
 
 ## 边的连接规则
 
-### 关键节点定义（factory.py L1455-1481，v2.1.0-rc0 中位置基本未变）
+### 关键节点定义（factory.py L1455-1481，v2.1.0 中位置基本未变）
 
 ```python
 # 入口：第一个 before_agent，或第一个 before_model，或 "model"
@@ -351,14 +351,14 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 | middleware 和 node 是什么关系？ | middleware 的 **hook 方法** 被编译成 node。不是 "middleware 就是 node"，而是 "hook → node" |
 | 哪些 hook 变 node？ | `before_agent`、`before_model`、`after_model`、`after_agent` |
 | 哪些 hook 不变 node？ | `wrap_model_call`、`wrap_tool_call`（在 node 内部，洋葱模式） |
-| DeerFlow 图上有多少 node？ | 2 固定 + ~44 middleware node ≈ 46 个（37 个 middleware，v2.1.0-rc0） |
+| DeerFlow 图上有多少 node？ | 2 固定 + ~44 middleware node ≈ 46 个（37 个 middleware，v2.1.0） |
 | 为什么 after_model 反向？ | 后加的 middleware 先看到模型输出。ClarificationMiddleware 必须最后加，最先执行 |
 | 每个 middleware node 能跳转吗？ | 能。每个 node 后都有条件边检查 `jump_to` |
 | 三类概念的层次？ | LangGraph Node（图顶点）← LangChain AgentMiddleware（抽象接口）← DeerFlow Middleware（业务实现） |
 
 ## 关键源码
 
-- `langchain/agents/factory.py`（LangChain 库源码）：middleware node 创建 L1372-1436，关键节点定义 L1455-1481，before_model 边 L1578-1597，after_model 反向边 L1600-1614，after_agent 反向边 L1619-1641，`_add_middleware_edge` L1819（以上为 v2.1.0-rc0 锁定的 langchain 版本行号，位置基本未变）
+- `langchain/agents/factory.py`（LangChain 库源码）：middleware node 创建 L1372-1436，关键节点定义 L1455-1481，before_model 边 L1578-1597，after_model 反向边 L1600-1614，after_agent 反向边 L1619-1641，`_add_middleware_edge` L1819（以上为 v2.1.0 锁定的 langchain 版本行号，位置基本未变）
 - `langchain/agents/middleware/types.py`：`AgentMiddleware` 抽象类定义
 - `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` L484 起，展示 lead-only 层 23 个 middleware 的添加顺序（`ClarificationMiddleware` L740 必须最后）；共享基础层 14 个由 `deerflow/agents/middlewares/tool_error_handling_middleware.py` 的 `build_lead_runtime_middlewares()` L320 组装
 

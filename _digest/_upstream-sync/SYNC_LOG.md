@@ -8,6 +8,24 @@ type: index
 
 ---
 
+## #7 — 2026-09-24（同步，锚点 = 正式版 tag）
+
+| 项目 | 值 |
+|------|-----|
+| **操作** | 同步（v2.1.0-rc0 → v2.1.0，release 收尾窗口） |
+| **旧锚点** | `769589e8`（tag `v2.1.0-rc0`） |
+| **新锚点** | `345f08be`（**tag `v2.1.0`**，打在 release 分支 `2.1.x-dev` 上） |
+| **上游新增 commits** | 10（相对 rc0） |
+| **变更规模** | 90 files, +9,097 / −450 |
+| **提交构成** | 3 fix（persistence / threads / frontend）+ 2 docs（subagents / extensions 用户手册）+ 1 chore(ci) + 4 chore(doc)（1 个版本号 bump：`pyproject.toml` / `uv.lock` / `Chart.yaml` / `package.json`；3 个 CHANGELOG en/zh） |
+| **时间跨度** | 2026-09-18 → 2026-09-24 |
+| **⚠️ 分叉警告** | `v2.1.0` **不是 `upstream/main` 的祖先**：两者在 rc0 处分叉，main 线另有 **189 commits**（925 files, +94,219 / −4,795，2.2 开发线，最新 `3a862780`）。本次 `main` 镜像指向 release tag；main 线留作下次同步（相当于一次"预支"了 #6 备注里预告的"正式版小同步"） |
+| **代码层实质变更** | ① **`0025_repair_run_change_seq`**（#5517 / 修 #5516）：`0023_run_change_seq` 曾被插到已发布的 `0023_user_preferences` 之前，stamp 在 0023 及之后的库把它当"已应用祖先"而**永不执行**，永久缺 `run_change_clock` 表/`runs.change_seq` 列/游标索引，首次 bump clock 的写操作（如线程删除）报 `no such table`；0025 幂等重放 0023 的 guarded DDL，downgrade 故意 no-op；`RunChangeClockRow`/`UserPreferenceRow` 补进 ORM 注册表。② **线程删除清理**（#5535）：`DELETE /api/threads/{id}` 在 durable `delete` reservation 内依次清理文件系统数据 → checkpoints → 历史 run 行（**只删 `operation_kind="run"`**，保住保护本次请求的 reservation）→ run events → feedback → `threads_meta`，全部 best-effort，owner 只解析一次。③ **事件存储变更串行域**（#5535）：`put`/`put_batch`/`put_if_absent`/`delete_by_thread`/`delete_by_run` 共享每线程锁 + PG 事务级 advisory lock；删除签名统一 owner-scoped（三态 `user_id`，memory/JSONL 接受并忽略）。④ **CI**（#5765）：6 个 workflow 的 push 触发改为 `*-dev` 通配，`skill-review-ci` 显式钉 `2.1.x-dev`。⑤ **frontend**（#5682 / 修 #5681）：Projects 侧栏嵌套 `SidebarMenu` 加 `w-auto`，修复 kebab 被 16/32px 溢出裁掉。⑥ **文档**：#5761 subagents 单文件 → 11 页手册、#5769 extensions 10 页手册，root `AGENTS.md` 净减 1 行并新增手册路径。 |
+| **影响的 digest** | `internals/persistence/db-checkpointer-store-backends.md`（迁移链 0001→0025、模型注册、两个 `delete_by_thread`、新增 #7 小节）、`internals/runtime/{README,01-run-manager,05-run-ownership-and-rollback}.md`（reservation + 删除清理 + 不 bump clock）、`observability/02-run-events-and-journal.md`（mutation fence + 删除签名）、`operations/app-layer/{00-overview,01-api-reference}.md` + `operations/integration/02-api-reference.md`（DELETE 契约）、`testing/06-ci-and-automation.md`（`*-dev` 触发）、`frontend/{04-workspace-layout,06-architecture,README}.md`（kebab 约束 + content 手册）、`harness-engineering/01-agent-docs-system.md`（AGENTS 计数/预算/行号漂移案例）、`harness/08-deerflow-audit.md`（根 AGENTS 行号引用校正）、`internals/harness-hooks/09-packaged-extensions.md`（贡献类型措辞漂移 + run evidence 脱敏口径）、`_faq_on_digested/`（14 处基线标注 rc0→v2.1.0 + README 追加 #7 说明） |
+| **备注** | 本轮首次出现「tag 与 main 分叉」，同步流程本身被改写成先判分支（见 SYNC.md）。用户要求：`_digest/` 与 `_faq_on_digested/` 是源码消化的产物，源码增删改都要反映——本轮因此连**文档侧**漂移（上游 AGENTS.md 措辞、行号位移、AGENTS 数量/大小）也一并校正。更新计划见 UPDATE_PLAN_7.md。 |
+
+---
+
 ## #6 — 2026-09-21（同步）
 
 | 项目 | 值 |

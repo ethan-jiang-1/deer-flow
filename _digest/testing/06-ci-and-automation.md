@@ -54,6 +54,24 @@ jobs:
 | sandbox-network-proxy 镜像 workflow 🆕 | `.github/workflows/sandbox-network-proxy-image.yaml` |
 | Skill review waivers（见下节） | `.github/skill-review-waivers.v1.json` + `scripts/skill_review_waivers.py` |
 
+### 🆕 同步 #7（v2.1.0）：push 分支触发改为 `*-dev` 通配（#5765）
+
+7 个 workflow 的 `push.branches` 在这一轮被改动（每个文件只改这一行）：**6 个由字面量 `2.0.x-dev` 改为 `*-dev` 通配**，第 7 个（`skill-review-ci.yml`）改为显式 `2.1.x-dev`。
+
+| workflow | `push.branches` | 备注 |
+|------|------|------|
+| `backend-unit-tests.yml` | `[ 'main', '*-dev' ]` | |
+| `frontend-unit-tests.yml` | `[ 'main', '*-dev' ]` | |
+| `lint-check.yml` | `[ 'main', '*-dev' ]` | `pull_request.branches` 仍是 `[ '*' ]` |
+| `backend-blocking-io-tests.yml` | `["main", "*-dev"]` | 另有 `paths: backend/**` 过滤 |
+| `e2e-tests.yml` | `[ 'main', '*-dev' ]` | 另有 `paths: frontend/**` 过滤 |
+| `replay-e2e.yml` | `["main", "*-dev"]` | 另有 `paths`（`frontend/**` + replay 相关后端路径）过滤 |
+| `skill-review-ci.yml` | `["main", "2.1.x-dev"]` | **例外，不是通配** |
+
+- **动机**：release/dev 分支名带版本号，改成通配后新建 `2.1.x-dev`、未来 `2.2.x-dev` 等分支自动继承全部 push 门禁，不必再逐个 workflow 加分支名。
+- **例外**：`skill-review-ci.yml` 仍显式钉 `2.1.x-dev`（**有意为之**）——skill 审查与 waiver 的信任边界（见下节）需要精确控制生效分支，因此不跟随通配。
+- **未变**：`label-sync.yml`（`branches: [main]`）、`sandbox-image-smoke.yml`、`triage.yml`（`pull_request_target`）、`verify-versions.yml`（`workflow_call`）。
+
 ## 🆕 同步 #6：Skill review CI waivers 机制
 
 `.github/skill-review-waivers.v1.json`（schema `deerflow.skill-review-waivers.v1`）+ `scripts/skill_review_waivers.py`（295 行），由 `scripts/review_changed_public_skills.py` 消费：
@@ -225,7 +243,7 @@ def test_agent_completes_within_timeout():
 |------|------|
 | CI workflow | `.github/workflows/backend-unit-tests.yml`（4 shard 并行，`.test_durations` 平衡） |
 | 阻塞 IO workflow | `.github/workflows/backend-blocking-io-tests.yml` |
-| 🆕 Skill review CI | `.github/workflows/skill-review-ci.yml` |
+| 🆕 Skill review CI | `.github/workflows/skill-review-ci.yml`（`push` 显式钉 `2.1.x-dev`，不用 `*-dev` 通配） |
 | 🆕 沙箱镜像验证 | `.github/workflows/sandbox-image-smoke.yml` + `sandbox-network-proxy-image.yaml` |
 | 🆕 Nightly build | `.github/workflows/nightly.yaml`（images + Helm chart） |
 | Makefile test 目标 | `backend/Makefile` |

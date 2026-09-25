@@ -40,7 +40,7 @@ system_prompt=apply_prompt_template(
     available_skills=self._available_skills,  # ← 确定性的！
     ...
 ),
-# v2.1.0-rc0：available_skills 现直接传入 make_lead_agent()（client.py:442/460），
+# v2.1.0：available_skills 现直接传入 make_lead_agent()（client.py:442/460），
 # 由 agent 工厂统一应用 prompt 过滤与 allowed-tools 工具策略
 # （filter_tools_by_skill_allowed_tools 见 skills/tool_policy.py:54）；
 # 旧的 _load_enabled_skills_for_tool_policy 客户端辅助已不存在
@@ -378,7 +378,7 @@ if command == "task":
 - `_digest/middleware/03-catalog.md` — 完整 19 middleware 目录 + DeferredToolFilterMiddleware 位置
 
 Sources:
-- DeerFlow 源码: `deerflow/client.py:179-194, 282-294, 296` — `DeerFlowClient.available_skills` 参数（v2.1.0-rc0 行号）
+- DeerFlow 源码: `deerflow/client.py:179-194, 282-294, 296` — `DeerFlowClient.available_skills` 参数（v2.1.0 行号）
 - DeerFlow 源码: `deerflow/config/agents_config.py:206-219, 316` — `AgentConfig.skills` 字段
 - DeerFlow 源码: `deerflow/agents/lead_agent/agent.py:774-780` — `_available_skill_names()`
 - DeerFlow 源码: `deerflow/agents/lead_agent/agent.py:219-225` — `_get_runtime_config()` 合并逻辑

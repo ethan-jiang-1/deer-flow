@@ -25,7 +25,7 @@ DeerFlow 没有可安装的 `deerflow` CLI 二进制（无 console_scripts、无
 
 ## 1. Python REPL + DeerFlowClient（最灵活）
 
-源码：`deerflow/client.py:145`（`class DeerFlowClient`；v2.1.0-rc0 中文件已扩至约 1780 行）
+源码：`deerflow/client.py:145`（`class DeerFlowClient`；v2.1.0 中文件已扩至约 1780 行）
 
 ```bash
 cd /Users/bowhead/ai_deerflow_wiki

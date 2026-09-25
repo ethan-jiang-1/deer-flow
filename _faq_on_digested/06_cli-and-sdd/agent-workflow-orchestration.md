@@ -18,7 +18,7 @@ LangChain 的 `create_agent()` 构建了一个标准的 **ReAct 循环图**：
 START → agent_model → [routing: 有 tool_calls?] → tools_node → agent_model → ... → END
 ```
 
-源码：`deerflow/agents/lead_agent/agent.py:796-801`（`make_lead_agent()` → `assemble_lead_agent()`；v2.1.0-rc0 行号）
+源码：`deerflow/agents/lead_agent/agent.py:796-801`（`make_lead_agent()` → `assemble_lead_agent()`；v2.1.0 行号）
 
 ```python
 return create_agent(

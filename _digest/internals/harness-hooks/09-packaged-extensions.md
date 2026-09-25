@@ -8,7 +8,7 @@ topics: [extension, plugin-system, contribution-points]
 
 DeerFlow 的扩展机制分两半：宿主侧实现（`deerflow/extensions/`，加载、注册、接线）和公开契约包（`deerflow-extension-api`，`import: deerflow_extension_api.*`，第三方扩展的独立依赖）。第三方 Python 包暴露一个 `install(registry, config)` 函数，从 `config.yaml` 的 startup-only 顶层 `plugins:` 列表按序加载。
 
-> 权威事实来源：`backend/packages/harness/deerflow/extensions/AGENTS.md`（管理模型）、`backend/packages/extension-api/deerflow_extension_api/`（公开契约）、`examples/deerflow-extension-example/`（五种贡献的完整示例）。
+> 权威事实来源：`backend/packages/harness/deerflow/extensions/AGENTS.md`（管理模型）、`backend/packages/extension-api/deerflow_extension_api/`（公开契约）、`examples/deerflow-extension-example/`（五种贡献的完整示例）。用户向手册（upstream v2.1.0 起）：`frontend/src/content/{en,zh}/harness/extensions/`（10 页，root `AGENTS.md` 明文指向它）。
 
 ## 概念定位：三块扩展面，三种信任等级
 
@@ -149,6 +149,9 @@ Python build hook 和扩展运行时代码都以 **Gateway 权限**执行。所�
 
 ## 与已有笔记的关系
 
+- 🆕 v2.1.0 的两处**文档侧**事实（代码契约未变，仅 AGENTS.md 措辞/说明被校正，读代码可得同一结论）：
+  - **贡献类型的措辞漂移**：根 `AGENTS.md` 的正文把打包扩展贡献写成 4 组——"middleware, lifecycle observers, Gateway services, and FastAPI HTTP routers"，而同一文件仓库树注释仍写 "five extension contribution kinds"、`extension-api` 契约与参考示例仍是**五种**（middleware / task lifecycle / system-model observer / service / router）。分类粒度不同，不是能力增减。这正是本 digest 第 4 类风险（AGENTS.md 与代码的中间地带）的又一个样本。
+  - **run evidence 的脱敏口径澄清**：`extensions/AGENTS.md` 由"metadata is secret-redacted"改为"metadata 只移除 legacy `auth_token` key（不存在其它脱敏）"，并写明 event content 原样返回、status 取自权威 run store；reader 把固定 scope **显式**传给事件读取（含全局 `None`），ambient 请求身份无法改变可见性；content/redacted metadata 是深拷贝快照——DTO 字段 frozen，但嵌套容器仍可局部修改而不触及宿主。
 - 参考实现：`examples/deerflow-extension-example/` 一个包演示全部五种贡献（middleware 计 tool call、task lifecycle 折入 app scope、system-model observer 计数、service 绑 `ExtensionRuntimeDeps`、router `GET /api/extension-example/stats`）。
 - Gateway 接线（`create_app()` 加载 plugins、`app.state.extensions`、贡献路由最后 mount、principal resolver、通知 loop）见 [../../operations/app-layer/00-overview.md](../../operations/app-layer/00-overview.md)。
 - 配置面的 `plugins:` / `scheduler.recursion_limit` / `mcp_tasks` 见 [../configuration/04-config-reference.md](../configuration/04-config-reference.md)。

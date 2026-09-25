@@ -205,6 +205,22 @@ def sanitize_log_param(value: str) -> str:
 
 其他 rc0 Gateway 行为：**idempotent thread runs**（同 run key 重试不重复执行）、**paginated thread run history**（`thread_runs.py` 大改，migration `0023_run_change_seq` 支持稳定分页游标）、renamed thread title 全端同步。
 
+### 🆕 v2.1.0 补丁版变更（同步 #7，upstream #5535 / #5517）
+
+`DELETE /api/threads/{id}` 的清理语义被补全（此前只删文件系统数据 + checkpoints + thread_meta）：整个清理过程持有一条 **durable `delete` reservation**，然后按顺序 best-effort 清除
+
+**文件系统 thread 数据 → checkpoints → 历史 run 行 → run events → feedback → `threads_meta` 行**
+
+关键点：
+
+- 历史 run 行只删 `operation_kind == "run"` 的（`RunRepository.delete_by_thread()`）——**保护本次请求的那条 reservation 行必须活到 `reserve_thread_operation()` 退出**，否则 DELETE 会在中途丢掉自己的跨 worker 互斥；批量删也**故意不 bump run-change clock**（顺带绕开 #5516 的 `run_change_clock` 缺失问题）。
+- run events 是**用户可见的会话历史，不是缓存**：不清掉的话，被删线程的 feed 仍能通过 `GET /threads/{id}/messages` 读回来。事件存储的删除与写者共享同一串行域（见 [observability/02-run-events-and-journal.md](../../observability/02-run-events-and-journal.md)）。
+- 所有者身份在请求开头**解析一次**：文件系统 bucket、runs / events / feedback、`threads_meta` 用同一个 `user_id`，各步骤不得各自解析作用域。
+- 第三方（legacy）`RunEventStore` 的旧签名 `delete_by_thread(thread_id)` 仍兼容：Gateway 先 `inspect.signature` 探测，只有签名接受 `user_id` 时才传；探测失败或后端内部抛出的 `TypeError` 不会触发重试。
+- **边界**：本清理只删"已存在的行"，不负责阻止一个**已被准入**的写者在线程删除后把状态写回来——那是 thread incarnation 的独立契约。详见 [internals/runtime/05-run-ownership-and-rollback.md](../../internals/runtime/05-run-ownership-and-rollback.md)、[internals/persistence/db-checkpointer-store-backends.md](../../internals/persistence/db-checkpointer-store-backends.md)。
+
+同一补丁版还把 `RunChangeClockRow` / `UserPreferenceRow` 补进 ORM 模型注册表，并用 `0025_repair_run_change_seq` 修复被"插队"的 `0023_run_change_seq` 留下的 schema 空洞（upstream #5517，见 persistence digest 迁移一节）。
+
 ## 🆕 Cache-aware Cost Accounting
 
 Console 的 cost estimation 支持 **cache-aware pricing**：

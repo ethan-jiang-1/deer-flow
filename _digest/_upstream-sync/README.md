@@ -21,12 +21,14 @@ type: index
 # 1. 看当前锚在哪
 grep "main HEAD" SYNC.md
 
-# 2. 拉上游，看距离
-git fetch upstream main
-git log 4915b5e..upstream/main --oneline
+# 2. 拉上游（含 tag），并判断锚点走 release 线还是 main 线
+git fetch upstream --tags --prune && git fetch origin
+git merge-base --is-ancestor v2.1.0 upstream/main && echo "tag 在 main 上" || echo "已分叉"
+git log --oneline -1 upstream/2.1.x-dev       # release 线
+git rev-list --count v2.1.0..upstream/main    # main 线领先多少
 
-# 3. 看改了哪些文件
-git diff --stat 4915b5e..upstream/main
+# 3. 看改了哪些文件（345f08be 是当前锚点）
+git diff --stat 345f08be..<新锚点>
 
 # 4. 对照 SYNC.md 里的影响表 → 更新对应 digest → 记到 SYNC_LOG.md
 ```

@@ -8,13 +8,15 @@ topics: [agents-md, context-budget, documentation, ci]
 
 Agent 读文档和人不同：不需要教程叙事，需要**精确契约、文件路径、不变量、测试锚点**；而且 agent 文档有自己的特有病症——**文档过长挤占 context window 并稀释指令密度**，以及**文档过期比没有更糟**（agent 会信）。DeerFlow 对这两个病各给了一个工程解。
 
-## 1. 分层 AGENTS.md 网络（27 个文件）
+## 1. 分层 AGENTS.md 网络（28 个文件）
+
+> 计数口径：文件名恰为 `AGENTS.md` 的文件（v2.1.0 实测 28 个）；`backend/docs/GITHUB_AGENTS.md` 属同体系的变体命名，未计入。
 
 ```
 AGENTS.md (root，14.9KB — 定位层：仓库地图 + 跨模块约定)
-├── backend/AGENTS.md (28.6KB — 后端深度：harness/app 分层、中间件链、测试布局)
+├── backend/AGENTS.md (28.4KB — 后端深度：harness/app 分层、中间件链、测试布局)
 │   └── packages/harness/deerflow/AGENTS.md → 各子系统 AGENTS.md
-│       ├── agents/middlewares/ (35.8KB)   ├── sandbox/ (41.1KB)
+│       ├── agents/middlewares/ (36.3KB)   ├── sandbox/ (41.3KB)
 │       ├── subagents/                     ├── mcp/
 │       ├── skills/                        ├── memory/
 │       ├── persistence/migrations/        ├── extensions/
@@ -34,11 +36,11 @@ AGENTS.md (root，14.9KB — 定位层：仓库地图 + 跨模块约定)
 | 层级 | soft / hard 上限 | 当前实际 |
 |------|------------------|----------|
 | root `AGENTS.md` | 16 / 20 KB | 14.9 KB ✅ |
-| module 层（如 `backend/AGENTS.md`） | 28 / 32 KB | 28.6 KB ⚠️ 贴线 |
-| local 层（子系统） | 40 / 48 KB | sandbox 41.1 KB ⚠️ 超软线 |
+| module 层（如 `backend/AGENTS.md`） | 28 / 32 KB | 28.4 KB ⚠️ 超软线 |
+| local 层（子系统） | 40 / 48 KB | sandbox 41.3 KB ⚠️ 超软线 |
 | 完整祖先链 | 80 / 96 KB | — |
 
-超过 soft 出 warning、超过 hard 报 error。这套预算真的在咬人：#6 窗口有专门的 commit `#5146 reduce the size of AGENTS.md in sandbox`。**给自己的 agent 文档做 context 预算并进 CI，这是本项目最值得抄的一条实践。**
+超过 soft 出 warning、超过 hard 报 error。这套预算真的在咬人：#6 窗口有专门的 commit `#5146 reduce the size of AGENTS.md in sandbox`；v2.1.0 窗口也有 `#5761`/`#5769` 的"root AGENTS.md 精简 + 深层文档外移"——根文件在这次同步里净减 1 行（239→238），把 extensions 贡献类型的枚举压缩、并新增一行指向新的 extensions 用户手册路径。**给自己的 agent 文档做 context 预算并进 CI，这是本项目最值得抄的一条实践。**
 
 ## 3. 可执行文档测试（`backend/tests/test_middleware_documentation.py`）
 
@@ -57,6 +59,12 @@ AGENTS.md (root，14.9KB — 定位层：仓库地图 + 跨模块约定)
 **为什么现有防护没拦住**：可执行测试验证的是"示例代码能跑"和"顺序描述大致对"，不验证"编号连续性"；预算检查验证的是"大小"，不验证"正确性"。AGENTS.md 与代码的中间地带（编号、条目合并口径）仍是真空。
 
 **给 agent 的操作准则**（也是本 digest 各文件遵循的）：**当 AGENTS.md 与代码冲突时，信代码，并以测试文件为仲裁**。读 AGENTS.md 拿地图，读代码拿事实。
+
+### 第二个实例：行号漂移（sync #7 / v2.1.0 实录）
+
+v2.1.0 窗口对根 `AGENTS.md` 只做了两处编辑（压缩 extensions 贡献类型枚举 + 新增一行用户手册路径），净减 1 行 —— 但**其后所有行号整体 -1**：digest 里引用的 `L221`（Documentation update policy）变成 `L220`，`L227-228`（format 检查）变成 `L226-227`；同一轮 `#5535` 也让 `runtime/AGENTS.md` 涨了 13 行。
+
+**行号引用和编号引用一样脆**。本 digest 的应对是：引用 AGENTS.md 时同时给出**内容锚点**（引文原文/小节名）与行号，行号只作辅助；校验时先在目标版本里 grep 引文，再核对行号。凡是只写 `AGENTS.md Lxxx` 而没有引文的引用，下一轮同步必然要重新定位。
 
 ## 5. 值得抄的清单
 

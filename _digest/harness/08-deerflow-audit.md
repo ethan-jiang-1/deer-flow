@@ -56,8 +56,8 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 | 11 | harness 兼容策略 | ✅ | `CLAUDE.md`（5 行）= 说明 + `@AGENTS.md` import，且明文 "Don't edit CLAUDE.md"；import 在工作目录内，无外部审批问题。Codex 口径：根 `AGENTS.md` 即其原生入口，✅ 成立 |
 | 12 | 命名可 grep | ✅ | 抽样：`merge_skill_context`、`describe_skill`、`skill_activation`、`pnpm.py` 等语义化；`utils/` 偏泛（个别） |
 | 13 | 无语义近似 distractor | ⚠️ | 术语使用一致（DeerFlow/harness/extension），但**无 airflow 式明文命名消歧规范**（对照其 "Dag vs DAG" 规则） |
-| 14 | 结构化格式 | ✅ | 根文件 7 个 `##` + 全 bullet/表格；backend/frontend 同构 |
-| 15 | 活文档 | ✅ | 根 AGENTS.md L221 "Documentation update policy — keep docs in sync with code… in the same change set" |
+| 14 | 结构化格式 | ✅ | 根文件 6 个 `##`（v2.1.0 实测）+ 全 bullet/表格；backend/frontend 同构 |
+| 15 | 活文档 | ✅ | 根 AGENTS.md L220（v2.1.0；rc0 为 L221）"Documentation update policy — keep docs in sync with code… in the same change set" |
 | 16 | import 可控 | ✅ | 唯一 import 为 `@AGENTS.md`（同目录）；`.gitignore` L45 排除 `.claude/`，个人设置不入库 |
 
 ### 维度二：可验证性 / 反馈闭环（23/24）
@@ -71,11 +71,11 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 | 21 | 外部依赖替身 | ✅ | `backend/tests/_replay_fixture.py`、`replay_provider.py` 存在；`frontend/tests/` 有 `e2e-record/`；CI 有 `replay-e2e.yml` |
 | 22 | 测试布局镜像 | ✅ | `backend/tests/test_compose_default_bind_host.py` 等按 `test_<模块>.py` 平铺于 `tests/`；`tests/AGENTS.md` 就近说明不变量与边界 |
 | 23 | 本地=CI 同源 | ✅ | CI 实测：`backend-unit-tests.yml` L116 `make test-shard SPLITS=4 GROUP=…`（与本地同一 target，`.test_durations` 基线共享）；`frontend-unit-tests.yml` L43 `make test`；lint-check.yml 跑 `pnpm format/lint/typecheck` |
-| 24 | 格式检查归 CI | ✅ | 根 AGENTS.md L227-228 "run make format… **CI enforces ruff format --check**"；pre-commit 有 ruff/ruff-format/uv-lock-check/eslint/prettier 五钩子 |
+| 24 | 格式检查归 CI | ✅ | 根 AGENTS.md L226-227（v2.1.0；rc0 为 L227-228）"run make format… **CI enforces ruff format --check**"；pre-commit 有 ruff/ruff-format/uv-lock-check/eslint/prettier 五钩子 |
 | 25 | agent 知道哪些别跑 | ⚠️ | `test-live`/`test-blocking-io`/手动 e2e 分离清晰，但"完整套件先问用户"类升级规则**未成文**（对照 codex AGENTS.md） |
 | 26 | flaky 出口 | ✅ | `live` marker 显式 opt-in（`DEER_FLOW_RUN_LIVE_TESTS=1`）；blocking_io 独立目录独立 target |
 | 27 | 失败可行动 | ✅ | 未实跑测试（受限）；间接证据：`make doctor`/`support-bundle`、CI 收集诊断的既定模式、tests/AGENTS.md 对确定性断言的规范 |
-| 28 | 约束测试钉子 | ✅ | `test_compose_default_bind_host.py` 钉"每个发布端口需显式 bind"；根 AGENTS.md L213 明文引用该测试；`verify_versions.sh` + `verify-versions.yml` CI 钉版本 lockstep |
+| 28 | 约束测试钉子 | ✅ | `test_compose_default_bind_host.py` 钉"每个发布端口需显式 bind"；根 AGENTS.md L47 明文引用该测试（另有 L191-192 的单测示例）；`verify_versions.sh` + `verify-versions.yml` CI 钉版本 lockstep |
 
 ### 维度三：可执行环境（19/20）
 
@@ -117,7 +117,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 | 52 | 集中 Never 清单 | ⚠️ | 禁令散落："never commit them"（根 L186 config）、"Never commit upstream dataset text, credentials…"（backend L101）；**无集中 Boundaries 区块** |
 | 53 | 禁令带替代路径 | ⚠️ | 多数禁令有上下文说明（如 extensions 信任源、skill UTF-8），但无 electron 禁 npx 式"禁 X→用 Y"标准格式 |
 | 54 | 禁令就近 | ✅ | 模块专属规则在嵌套文件：skills 的 symlink/嵌套拒绝在 `skills/`、compose bind 规则在根、IM 通道规则在 `app/channels/` |
-| 55 | 指令文件攻击面 | ✅ | `.claude/` gitignored（个人设置不入库）；skill 安装器拒绝嵌套 SKILL.md 与 symlink 逃逸（源码印证）；extensions 配置"deliberately kept out of the API-writable extensions_config.json"（根 AGENTS.md L79） |
+| 55 | 指令文件攻击面 | ✅ | `.claude/` gitignored（个人设置不入库）；skill 安装器拒绝嵌套 SKILL.md 与 symlink 逃逸（源码印证）；extensions 配置"deliberately kept out of the API-writable extensions_config.json"（根 AGENTS.md L77） |
 | 56 | agent 环境限制成文 | ✅ | extensions 节："both build hooks and extension code execute with Gateway privileges, so only trusted operator sources belong in this path"；scheduled-task 非交互模式的凭证丢弃规则明文 |
 | 57 | 凭证声明式注入 | ✅ | SKILL.md frontmatter `required-secrets`（skills/AGENTS.md L23："name is both the lookup key and the env var name"） |
 | 58 | 高危 human-in-the-loop | ⚠️ | 扩展变更需 Gateway 重启 + 仅信任源（软性门禁）；merge/discard 类操作有审批；但无成文的"高危操作清单+确认流程" |
@@ -152,7 +152,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 **中期（1-2 周）**
 
-4. 按 `/doctor` 口径修剪超 200 行的四份深层 AGENTS.md（397/379/351/302），可推导内容删、专项下沉——P3。
+4. 按 `/doctor` 口径修剪超 200 行的四份深层 AGENTS.md（v2.1.0 实测 397 / 380 / 364 / 302 行 = `backend/`、`extensions/`、`runtime/`、`agents/memory/`；rc0 为 397/379/351/302，本轮 runtime +13、extensions +1），可推导内容删、专项下沉——P3。
 5. 引入模块大小规则并建巨文件清单（worker.py 3061 行等 top5 列入拆分 backlog）——P4。
 6. 把 skills/extensions 等模块细则拆到 `.claude/rules/`（`paths:` 作用域），验证注入生效——P5。
 

@@ -133,7 +133,11 @@ SSE 事件类型：
 // Response: 同上 + "updated_at"
 
 // DELETE /api/threads/{id}
-// 删除 LangGraph thread + 本地数据目录
+// 删除 LangGraph thread + 本地数据目录 + checkpoints + 历史 run 行
+// + run events（用户可见会话历史）+ feedback + threads_meta
+// 整个清理持一条 durable `delete` reservation，各步 best-effort；
+// 历史 run 只删 operation_kind="run"（保留保护本次请求的 reservation 行）；
+// owner 在请求开头解析一次，所有步骤共用
 
 // POST /api/threads/search
 { "metadata": { "key": "value" }, "limit": 10, "offset": 0 }

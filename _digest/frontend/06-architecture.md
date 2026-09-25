@@ -89,12 +89,25 @@ frontend/src/
 │   ├── utils/                   # 日期、文件、markdown 工具
 │   └── tools/                   # 工具工具函数
 │
+├── content/                       # Nextra 内容源（en/zh：harness / application / introduction / reference / tutorials / posts）
+│   └── {en,zh}/harness/           # Harness 手册（v2.1.0：subagents/ 11 页、extensions/ 10 页）
 ├── hooks/                        # use-mobile, use-global-shortcuts
 ├── lib/                          # cn() utility, IME handling
 ├── server/                       # Server-side utilities
 ├── styles/                       # Global CSS (Tailwind v4)
 └── typings/                      # .md/.mdx type declarations
 ```
+
+## Harness 内容手册（`frontend/src/content`，v2.1.0）
+
+`frontend/src/content/{en,zh}/` 是 Nextra 文档站的双语内容源（页面由 `app/[lang]/docs/[[...mdxPath]]` 渲染），按 `harness/`、`application/`、`introduction/`、`reference/`、`tutorials/`、`posts/` 分目录。`harness/` 下除单页 `.mdx` 外还有两个多章手册目录，每语言各带一份 `_meta.ts` 定义侧栏标题与顺序：
+
+| 目录 | 页数 | 用途 / 章节 |
+|------|------|-------------|
+| `harness/subagents/` | 11（`index` + 10 章） | 子 Agent 用户手册：`quick-start`、`catalog`、`delegation`、`results`、`limits`、`sandbox`、`observability`、`troubleshooting`、`developers`、`reference` |
+| `harness/extensions/` | 10（`index` + 9 章） | 扩展包开发者手册：`quick-start`、`runtime`、`middleware`、`observers`、`services-and-routes`、`run-evidence`、`operations`、`troubleshooting`、`reference` |
+
+v2.1.0 前 `subagents` 是单文件 `subagents.mdx`；改为目录后 `index.mdx` 用 `asIndexPage: true` 充当章节首页（`/docs/harness/subagents` 链接不变，因此 `_meta.ts` 不列 `index`，否则 Nextra `_meta` 校验失败、所有 docs 页面返回 500）；en/zh 的 `middlewares.mdx` 各有一个锚点改指 `.../subagents/limits#runaway-guards`。`extensions` 为 v2.1.0 新增目录，harness 的 `_meta.ts` 同时新增 `extensions` 条目（en `"Extensions"` / zh `"扩展包"`）。
 
 ## 关键数据流
 

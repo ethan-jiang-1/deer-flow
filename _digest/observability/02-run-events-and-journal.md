@@ -43,6 +43,25 @@ topics: [observability, run-events, journal, audit]
 
 后端差异：memory 保留 Python 值；JSONL/DB 经 `json.dumps(default=str)`，非 JSON 嵌套值读回为字符串。**多进程/多 worker 部署必须 `run_events.backend: db`**（JSONL 只在单进程内保证 seq）。
 
+## 🆕 变更串行域（mutation fence）与删除签名（sync #7，upstream #5535）
+
+事件存储的所有**线程级变更**共享一个串行域：`put` / `put_batch` / `put_if_absent` / `delete_by_thread` / `delete_by_run`。
+
+| 层 | 手段 |
+|----|------|
+| 进程内 | 每线程 `asyncio` 锁（`_get_write_lock()`，另有 weak registry + 引用 pin 防 release/acquire 竞态） |
+| PostgreSQL 跨进程 | 事务级 advisory lock `pg_advisory_xact_lock(hashtext(thread_id))`，由 `DbRunEventStore._acquire_thread_mutation_fence()` 在任何读写**之前**取 |
+| SQLite | 无跨进程 fence，依赖上面的进程内锁（故多实例部署要求 Postgres） |
+| JSONL | 自己的 `_run_mutation` 提供等价保证 |
+
+这样删除**无法**与一个已被准入的写者交错、在 `count` 与 `commit` 之间落进行——否则会"复活"一个刚被删掉的线程。
+
+**删除签名统一为 owner-scoped**：`delete_by_thread(thread_id, *, user_id=AUTO)` / `delete_by_run(thread_id, run_id, *, user_id=AUTO)` 遵循与读方法相同的三态约定（`AUTO` 解析请求上下文 / 显式 id 限定所有者 / `None` 关掉所有者过滤）。DB 后端按 `user_id` 过滤行；memory 与 JSONL 的存储本身不按用户分区，**接受该参数只为接口一致性并忽略它**。Gateway 侧对第三方（legacy）`RunEventStore` 实现做了兼容：用 `inspect.signature` 判断能否传 `user_id`，只有签名支持时才带（无法 inspect 或后端内部抛出的 `TypeError` **不会**触发重试）。
+
+**这是串行化，不是 incarnation fence**：一个在删除**之前**就已准入的变更，仍可能在删除之后才真正执行。阻止旧 incarnation 复活需要独立的 durable generation 契约（`threads_meta.incarnation`）。
+
+**注意**：删除事件行会同时丢掉 `seq` 计数器与消息投影（memory 后端连 `_seq_counters` 一起清），删除后该线程的 `seq` 从零重新开始；被删线程的事件流不再可读（这正是目的：`GET /threads/{id}/messages` 不能读回已删线程的历史）。
+
 ## 消费方式（读同一批行的不同投影）
 
 | 消费者 | 读取路径 |

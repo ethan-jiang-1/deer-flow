@@ -45,6 +45,8 @@ _faq_on_digested/
 | 11 | 研究/开发工作区组织（三仓分层） | [11_workspace-organization/](11_workspace-organization/) |
 
 > 注：全部答案已对照同步 #6（v2.1.0-rc0，431892e1..769589e8）后的代码复核——受影响处（middleware 18→37、Node.js 24+、config_version 45、`make start SKIP_FRONTEND_BUILD=1`、`/health/ready`、DeerFlowClient 多用户内嵌复用 #5206 与流式修复 #5408/#5479、trace id 无条件下发 #5119、Projects/Trash/Capability Center 新前端）均以 `> 🔄 同步 #6（v2.1.0-rc0）：...` 附注标出，源码行号引用已重核更新。
+>
+> 🔄 同步 #7（v2.1.0 = 345f08be）：v2.1.0 相对 rc0 的实质源码改动不涉及本 FAQ 引用的任何行号出处，故上表按同步 #6 复核的行号继续有效；各文件中的 `v2.1.0-rc0` 标记保留为历史同步记录。
 
 ## 配方（Recipe）
 

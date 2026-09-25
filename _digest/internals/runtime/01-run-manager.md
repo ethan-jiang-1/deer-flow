@@ -138,6 +138,11 @@ RunRecord:
 `RunRepository`（`persistence/run/sql.py`）写入时递增，`RunStore` 接口与内存实现（`runs/store/base.py` / `memory.py`）同步暴露。
 测试锚点：`backend/tests/test_migration_0023_run_change_seq.py`。
 
+> 🆕 sync #7 补充两条：**线程删除走的是不 bump clock 的批量删**（`RunRepository.delete_by_thread()`，见
+> [05-run-ownership-and-rollback.md](05-run-ownership-and-rollback.md)）；另外 0023 曾因被插到已发布的
+> `0023_user_preferences` 之前而产生"永不执行"的空洞，由 `0025_repair_run_change_seq` 幂等重放修复
+> （upstream #5517 / #5516，详见 persistence digest 的迁移一节）。
+
 ## 🆕 Thread incarnation（expand-phase，sync #6）
 
 migration `0019_thread_incarnations`（#5216）给 `threads_meta.incarnation` 与 `mcp_tasks.thread_incarnation`

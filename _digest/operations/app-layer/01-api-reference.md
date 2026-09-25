@@ -295,6 +295,7 @@ CRUD on scheduled task 定义（cron 或一次性），含 lease/status 列和�
 | `PATCH` | `/api/threads/{id}` | metadata 合并；`deerflow_archived` 布尔键做归档/恢复（非布尔 422），组织性 PATCH 不 bump `updated_at` |
 | `POST` | `/api/threads/{id}/move` | 移入/移出项目（`project_id: str \| null`，null = 未归属） |
 | `POST` | `/api/threads/search` | 新增三态过滤：`archived`（缺省含全部 / `false` 含 legacy 未归档）与 `project_id`（缺省不过滤 / 显式 null=仅未归属 / 字符串=成员）；`limit`(≤1000)/`offset` 分页 |
+| `DELETE` | `/api/threads/{id}` | 🆕 持 durable `delete` reservation 的**全量清理**（sync #7）：文件系统数据 → checkpoints → 历史 run 行（只删 `operation_kind="run"`）→ run events → feedback → `threads_meta`，每步 best-effort；owner 只解析一次全程共用 |
 
 ### Runs 历史与归档 🆕
 

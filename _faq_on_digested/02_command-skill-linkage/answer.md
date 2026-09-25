@@ -261,7 +261,7 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 - `_digest/middleware/01-hooks-and-flow.md` — 中间件生命周期中如何处理上下文
 
 Sources:
-- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-780, 947-962`（v2.1.0-rc0 行号）
+- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-780, 947-962`（v2.1.0 行号）
 - DeerFlow 源码: `backend/app/gateway/services.py:506-518, 611-638`
 - DeerFlow 源码: `backend/app/channels/manager.py:2740-2745`
 - DeerFlow 源码: `backend/app/channels/commands.py:11-20`

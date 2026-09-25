@@ -20,7 +20,7 @@ DeerFlow 没有 `console_scripts`、没有 `__main__.py`、没有 `pip install` 
 
 ## A.2 debug.py — 内置 REPL
 
-源码：`backend/debug.py`（168 行，v2.1.0-rc0）
+源码：`backend/debug.py`（168 行，v2.1.0）
 
 ```bash
 cd backend && PYTHONPATH=. uv run python debug.py
@@ -179,7 +179,7 @@ sandbox:
 
 配置后，agent 看到 `/mnt/project/README.md`，实际读写的就是 `/Users/bowhead/my-sdd-project/README.md`。你在宿主机上 `vim` 改了这个文件，agent 下一次 `read_file` 读到的就是新内容。
 
-源码依据（行号为 v2.1.0-rc0 现状，旧引用位置多已漂移）：
+源码依据（行号为 v2.1.0 现状，旧引用位置多已漂移）：
 - `VolumeMountConfig` 定义：`deerflow/config/sandbox_config.py:115`（原 L4-10 位置已重构）
 - mount → PathMapping 转换：`deerflow/sandbox/local/local_sandbox_provider.py:101-228` — `_setup_path_mappings()`（原 L82-169 已漂移）
 - 文件每次从磁盘新读取：`deerflow/sandbox/local/local_sandbox.py:822` — `with open(resolved_path, ...) as f`，无内存缓存（原 L373 已漂移）
@@ -377,6 +377,6 @@ Sources:
 - `deerflow/sandbox/local/local_sandbox_provider.py:101-228` — mount → PathMapping
 - `deerflow/sandbox/tools.py:419` — `_is_custom_mount_path()`（custom mount 校验，经 `validate_local_tool_path()` L904 使用）
 - `deerflow/sandbox/local/local_sandbox.py:822` — read_file 每次从磁盘新读
-- `deerflow/agents/lead_agent/prompt.py:954-966, 1070` — SOUL.md 注入 + 系统 prompt 组装（v2.1.0-rc0 行号）
+- `deerflow/agents/lead_agent/prompt.py:954-966, 1070` — SOUL.md 注入 + 系统 prompt 组装（v2.1.0 行号）
 - `deerflow/config/agents_config.py:344` — load_agent_soul()
-- `deerflow/agents/middlewares/dynamic_context_middleware.py:323` — DynamicContextMiddleware 类定义（动态上下文注入；v2.1.0-rc0 中该文件已大幅重构）
+- `deerflow/agents/middlewares/dynamic_context_middleware.py:323` — DynamicContextMiddleware 类定义（动态上下文注入；v2.1.0 中该文件已大幅重构）

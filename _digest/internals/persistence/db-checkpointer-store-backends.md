@@ -44,8 +44,10 @@ async def close_engine():
 |-------|------|
 | `Run` | 运行记录 (run_id, thread_id, status, timestamps) |
 | `ThreadMeta` | 线程元数据 |
-| `Feedback` | 用户反馈 (score, comment) |
+| `Feedback` | 用户反馈 (rating, comment) |
 | `User` | 用户（auth） |
+| `UserPreference` | 按 key 的用户偏好（`0023_user_preferences`） |
+| `RunChangeClock` | 全局单调 change clock 单例行（`0023_run_change_seq`） |
 
 Alembic migrations 在 `persistence/migrations/` 下。
 
@@ -327,9 +329,9 @@ def to_dict(self, exclude: set[str] | None = None) -> dict[str, Any]:
 3. **`_row_to_dict()` 重映射** — ORM 的 `metadata_json`/`kwargs_json` →
    接口的 `metadata`/`kwargs`；datetime → ISO 字符串（`coerce_iso` 修复 SQLite 丢失 tzinfo 的问题）。
 
-### RunRepository（`run/sql.py`, 353 行）
+### RunRepository（`run/sql.py`, 906 行）
 
-实现 `RunStore` 接口，12 个方法：
+实现 `RunStore` 接口，25 个公开方法（下图只画主要路径；完整清单见文件内 `async def`，含 lease/takeover/cancel 与线程操作 reservation）：
 
 ```mermaid
 flowchart TD
@@ -353,6 +355,7 @@ flowchart TD
 
     subgraph 其他
         DEL["delete() — 所有者检查"]
+        DBT["delete_by_thread() — 只删 operation_kind='run'，保留线程操作 reservation"]
         MODEL["update_model_name()"]
     end
 
@@ -379,9 +382,9 @@ list/tuple → [_safe_json(v)]
 最后手段 → str(obj)
 ```
 
-### FeedbackRepository（`feedback/sql.py`, 220 行）
+### FeedbackRepository（`feedback/sql.py`, 280 行）
 
-9 个方法：
+11 个方法：
 
 ```mermaid
 flowchart TD
@@ -392,7 +395,9 @@ flowchart TD
     LBT["list_by_thread() — thread_id"]
     DEL["delete() — 单条删除"]
     DBR["delete_by_run() — 删除用户对某 run 的反馈"]
+    DBT["delete_by_thread() — 按所有者清空整条线程的反馈（线程删除用）"]
     LBG["list_by_thread_grouped() → {run_id: feedback_dict}"]
+    LBRID["list_by_run_ids() — 批量取多 run 反馈"]
     AGG["aggregate_by_run() — SQL CASE WHEN 计数"]
 
     UPSERT -->|"SELECT WHERE (thread_id, run_id, user_id)"| FOUND{row 存在?}
@@ -403,6 +408,22 @@ flowchart TD
 ```
 
 **`aggregate_by_run()` 的数据库端计数**（行 205-219）：使用 SQLAlchemy `case()` + `func.sum()` + `func.coalesce()`，在 SQL 层完成正/负面反馈计数，避免应用层循环。
+
+### 🆕 线程删除清理（sync #7，upstream #5535）
+
+`DELETE /api/threads/{id}` 现在会在**持有 durable `delete` reservation** 的整个过程中，把该线程的持久化痕迹逐项清掉（每项都 best-effort，单项失败只 debug 日志，不打断整体删除）。仓库层的两个新入口是这次同步的实质变更：
+
+| 仓库 | 新方法 | 语义 |
+|------|--------|------|
+| `RunRepository`（`run/sql.py:361`） | `delete_by_thread(thread_id, *, user_id=AUTO) -> int` | 只删 `operation_kind == "run"` 的历史 run 行；**故意不 bump run-change clock**（与单行 `delete()` 一致，也是 #5516 的规避点） |
+| `FeedbackRepository`（`feedback/sql.py:190`） | `delete_by_thread(thread_id, *, user_id=AUTO) -> int` | 按所有者清空该线程全部反馈；`user_id` 沿用三态约定（`AUTO` 解析请求上下文 / 显式 id 限定所有者 / `None` 跳过所有者过滤，供 migration·CLI 用） |
+
+两条关键约束：
+
+1. **不能删掉正在保护本次删除的 reservation 行**。`runs` 表同时存放 durable thread-operation reservation（`checkpoint_write` / `artifact_write` / `artifact_archive` / `branch` / `delete`，由 `create_thread_operation_atomic()` 写入、`delete_thread_operation()` 释放）。因此 `delete_by_thread()` 的 WHERE 里带了 `operation_kind == "run"`——否则本次 `DELETE` 会在请求中途丢掉自己的跨 worker 互斥。历史 run 清理完，reservation 仍留到 `RunManager.reserve_thread_operation()` 退出时才释放。
+2. **清理 ≠ 防复活**。这一步只删除"已存在"的行；阻止一个**已被准入**的写者在删除后重新写回状态，是 thread incarnation 的独立契约（见 runtime digest 的 incarnation 一节），不属于本次清理的范围（upstream 的 `threads.py` docstring 明确写了这一点）。
+
+内存实现同步跟进：`MemoryRunStore.delete_by_thread()`（`runtime/runs/store/memory.py`）用同一规则跳过 `operation_kind != "run"` 的行。
 
 ### ThreadMetaStore 双后端（`thread_meta/`）
 
@@ -500,8 +521,8 @@ key 字符集限制为字母数字 + 下划线 + 连字符。这是注入防御 
 
 ## Alembic 迁移（`migrations/versions/`）
 
-迁移链现为 **0001 → 0024**（`alembic_version.version_num` 为 VARCHAR(32)，revision id 不得超长）。
-sync #6（431892e1..769589e8）新增/触及的 0017–0024：
+迁移链现为 **0001 → 0025**（`alembic_version.version_num` 为 VARCHAR(32)，revision id 不得超长）。
+下表为当前链上的 0017–0025（sync #6 新增/触及 0017–0024；sync #7 追加 **0025**）：
 
 | revision | 内容 |
 |----------|------|
@@ -515,10 +536,24 @@ sync #6（431892e1..769589e8）新增/触及的 0017–0024：
 | `0023_run_change_seq` | `runs.change_seq` + 单例行 `run_change_clock`（稳定分页游标） |
 | `0023_user_preferences` | 按键独立持久化浏览器偏移偏好（表已存在则幂等跳过，#5397） |
 | `0024_project_documents` | project document shelf 表（Projects Phase 2 Slice B） |
+| `0025_repair_run_change_seq` | **修复**被"插队"的 `0023_run_change_seq` 留下的 schema 空洞（upstream #5517 / 修 issue #5516） |
 
 > 编号冲突约定：多个迁移同时以 0017 生成时，先合入者保留编号，其余 rebase 时重编
 > `revision`/`down_revision` 并调整 `tests/test_persistence_bootstrap*.py` 的 head 断言
 > （见 `0017`/`0018` 文件内的 numbering note）。
+
+#### 🆕 0025：为什么需要一次"修复型"迁移（sync #7）
+
+`0023_run_change_seq` 最初被插到了**已经发布过的** `0023_user_preferences` **之前**（两者共用 0023 前缀，靠 `down_revision` 排序）。Alembic 只从数据库**已 stamp 的 revision 向前走**：任何在插入发生前就已 stamp 到 `0023_user_preferences`（或更后）的库，会把 `0023_run_change_seq` 当成"已应用的祖先"而**永不执行它**——这些库永久缺少 `run_change_clock` 表、`runs.change_seq` 列和两个游标索引，第一次 bump change clock 的写操作（例如经 `create_thread_operation_atomic()` 的线程删除）会直接 `no such table: run_change_clock`；重启也无法自愈，因为 stamp 早已 >= 0023。
+
+`0025_repair_run_change_seq` 的修法就是**对升级经过它的库重放 0023 的同一条幂等 DDL**：
+
+- `safe_add_column("runs", change_seq ...)`，再按 inspector 检查 `run_change_clock` 表与 `ix_runs_change_seq` / `ix_runs_user_change_seq` 缺失才建 —— 健康形状（含 0023 自己跑过的库）全部 no-op；
+- `down_revision` 挂 `0024_project_documents`，downgrade 是**故意的 no-op**：schema 与已分配的 clock 位置归祖先 0023 所有，在这里 drop 会让一个 stamp 在 0024 的库重新缺 schema（恰好复现 #5516 的空洞）并丢掉游标数据；真正回退到 0023 时由 0023 自己的 downgrade 负责删。
+- 配套：`RunChangeClockRow`、`UserPreferenceRow` 也被补进了 ORM 模型注册表（`persistence/models/__init__.py` 的 import + `__all__`），此前它们虽然建表却未注册。
+- 回归测试：`backend/tests/test_migration_0025_repair_run_change_seq.py`（含 `test_migration_0024_project_documents.py` 的 head 断言调整）。
+
+**由此固化的迁移纪律**（`persistence/migrations/AGENTS.md` 明文写入）：新 revision **必须挂在当前 head 之后**，绝不能插到已发布 revision 的前面去"重定父级"——所有 stamp 在插入点及之后的库都会把它当已应用祖先而跳过。这是本项目唯一需要"修复型迁移"来兜底的失败模式。
 
 ### 🆕 Forward revision 兼容（incarnation rollout 恢复）
 
@@ -552,7 +587,7 @@ def do_run_migrations(connection):
 
 **`render_as_batch=True`**：SQLite 对 ALTER TABLE 支持有限，batch 模式通过创建新表 + 复制数据 + 重命名来模拟 ALTER。
 
-**模型注册**（行 19-26）：`import deerflow.persistence.models` 触发所有 ORM 模型（`RunRow`、`ThreadMetaRow`、`FeedbackRow`、`UserRow`、`RunEventRow`）注册到 `Base.metadata`。如果 import 失败，Alembic 以当前已知的 metadata 继续运行。
+**模型注册**（行 17-43）：`import deerflow.persistence.models` 触发所有 ORM 模型注册到 `Base.metadata`。sync #7 补进了 `RunChangeClockRow`（`run/model.py`，单例行 change clock）与 `UserPreferenceRow`（`user/model.py`）——两者此前已建表却漏在注册表外（upstream #5517）。如果 import 失败，Alembic 以当前已知的 metadata 继续运行。
 
 ## 数据流总结
 

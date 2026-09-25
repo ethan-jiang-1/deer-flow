@@ -33,15 +33,25 @@ type: index
         │
         ├─ 304 commits later...
         │
-        └─ 上游 tag v2.1.0-rc0（769589e8）← 锚点 #6（2026-09-21，本次同步，首个带版本号的锚点）
+        └─ 上游 tag v2.1.0-rc0（769589e8）← 锚点 #6（2026-09-21）
+        │
+        ├─ 10 commits later（release 收尾：版本号/CHANGELOG/CI/两本手册）
+        │
+        └─ 上游 tag v2.1.0（345f08be）← 锚点 #7（2026-09-21 之后，v2.1.0 正式版）
 ```
+
+> ⚠️ **锚点 #7 的特殊之处**：`v2.1.0` tag 打在 release 分支 `2.1.x-dev` 上，**不是 `upstream/main` 的祖先**——
+> 两者在 `v2.1.0-rc0`（锚点 #6）处分叉。main 在 rc0 之后另有 **189 个 commit**（2.2 开发线），
+> 所以本次 `main` 镜像指向的是 **release tag**，而不是 `upstream/main`。下一次同步要同时处理这两条线。
 
 ## 核心约定
 
 ```
 main   = 上游 bytedance/deer-flow 的镜像（一行不改）
-ethan  = main + _digest/ + _faq_on_digested/（103 个 commit，247 个文件，全部在这两个目录）
+ethan  = main + _digest/ + _faq_on_digested/（129 个 commit，274 个文件，全部在这两个目录）
 ```
+
+> 计数口径：`git rev-list --count main..ethan` 与 `git ls-tree -r --name-only ethan -- _digest _faq_on_digested`；`git diff --name-only main ethan` 在 `_digest/`、`_faq_on_digested/` 之外应为空（每次同步后用这条自检）。
 
 **`main` 的 HEAD 就是我们消化内容对应的上游代码版本。** 这个 hash 是唯一的锚点。
 
@@ -51,28 +61,36 @@ ethan  = main + _digest/ + _faq_on_digested/（103 个 commit，247 个文件，
 
 | 项目 | 值 |
 |------|-----|
-| **`main` HEAD（= 消化基准）** | `769589e8`（**tag `v2.1.0-rc0`**） |
-| **旧锚点** | `431892e1`（2026-08-25） |
-| **日期** | 2026-09-21 |
-| **上游变更规模** | 304 commits |
-| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #6 |
-| **上游当前状态** | tag 之后 main 还有 ~66 commits（发正式版 v2.1.0 前的修复期）；下次可同步到正式版 tag |
-| **累积落后** | `162fb214` → `v2.1.0-rc0`（共 1169 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...v2.1.0-rc0) |
+| **`main` HEAD（= 消化基准）** | `345f08be`（**tag `v2.1.0`**，release 分支 `2.1.x-dev`） |
+| **旧锚点** | `769589e8`（tag `v2.1.0-rc0`，2026-09-21） |
+| **日期** | 2026-09-24（tag 切出日期） |
+| **上游变更规模** | 10 commits（90 files, +9,097 / −450） |
+| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #7 |
+| **上游当前状态** | tag 与 `upstream/main` **已分叉**：`upstream/main` = `3a862780`，rc0 之后另有 **189 commits**（925 files, +94,219 / −4,795，2.2 线）；上游最新 tag 仍是 `v2.1.0` |
+| **累积落后** | `162fb214` → `v2.1.0`（共 1,179 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...v2.1.0) |
 
 ## 未来同步时怎么看
 
 ```bash
-# 1. 拉上游最新到 main
-git checkout main && git pull upstream main
+# 0. 拉上游（含 tag）+ 自己的 fork
+git fetch upstream --tags --prune && git fetch origin
 
-# 2. 看多了什么（431892e1 是旧锚点，upstream/main 是新锚点）
-git log 431892e1..upstream/main --oneline
-git diff --stat 431892e1..upstream/main
+# 1. 先判断锚点走哪条线：release 分支还是 main
+git merge-base --is-ancestor v2.1.0 upstream/main && echo "tag 在 main 上" || echo "已分叉"
+git log --oneline -1 upstream/2.1.x-dev          # release 线的最新提交
+git rev-list --count v2.1.0..upstream/main       # main 线领先多少
 
-# 3. 合并到 ethan
+# 2. 看多了什么（345f08be 是旧锚点，按上一步选定的新锚点替换）
+git log --oneline 345f08be..<新锚点>
+git diff --stat 345f08be..<新锚点>
+
+# 3. 同步 main 镜像到新锚点（tag 用 reset --hard；main 分支用 merge --ff-only）
+git checkout main && git reset --hard <新锚点>   # 或 git pull upstream main
+
+# 4. 合并到 ethan（ethan 只加 _digest/ + _faq_on_digested/，源码应无冲突）
 git checkout ethan && git merge main
 
-# 4. 更新这个文件：把「当前锚点」改成新的 main HEAD
+# 5. 更新这个文件：把「当前锚点」改成新的 main HEAD，并记一条 SYNC_LOG.md
 ```
 
 ## 上游变更 → 影响哪些 digest

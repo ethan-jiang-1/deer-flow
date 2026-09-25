@@ -98,4 +98,31 @@ AI 消息的 `run_id` 归属过去在事件分页边界外会丢。修复围绕 
 - **终局 fence**：worker 保持 durable run 行在最终 duration checkpoint 写之前仍 active，使 peer 迁移无法在 terminalization 期间进入（`runtime/runs/worker.py`）。
 
 ---
+
+## 🆕 线程操作 reservation 与线程删除清理（sync #7，upstream #5535）
+
+多 worker 下的互斥不止"谁能跑这个 run"，还包括"谁能在同一线程上写 checkpoint / 分支 / 删除"。这条线用**同一张 `runs` 表**里的 durable reservation 行表达：
+
+- `RunStore.create_thread_operation_atomic()` 写入 reservation 行，`runs.operation_kind` 区分 `run` 与内部操作：`checkpoint_write`、`artifact_write`、`artifact_archive`、`branch`、`delete`（新增种类必须走这个入口，而不是自己加锁或写 metadata 标记）。
+- **所有 active 种类共享同一条"每线程至多一个 active"的 durable 唯一约束**，所以 `DELETE`、`POST /state`、compaction、branch 与 run admission 天然互斥，跨进程也成立。
+- reservation 的释放只由持有者自己的路径负责（`delete_thread_operation()` 用**捕获的 owner**，不是请求时的 ambient 上下文）；live / lease-less reservation **不可中断**，只有带租约且已过期的 reservation 才能被 interrupt/rollback 立即回收。lease 续租发现丢失时会取消持有者任务，并在清理后把租约丢失的 cancellation 翻译成 `ConflictError` → Gateway 返回可重试的 409。
+- 租约缺失的行保持 **fail-closed**：store 无法区分"陈旧行"与"另一个关掉 heartbeat 的 worker 里的活写者"，因此一次罕见的删除失败需要靠启动期 reconciliation 收拾；heartbeat-disabled 的多 worker 部署仍不受支持。
+
+**`DELETE /api/threads/{id}` 是这套机制的第一个"清理型"使用者**（此前只有写路径）：
+
+| 步骤 | 行为 |
+|------|------|
+| 1 | 先拿 durable `delete` reservation，整个清理过程持有它 |
+| 2 | 删文件系统 thread 数据（legacy 非文件系统安全 ID 跳过路径插值，只删元数据/checkpoint） |
+| 3 | 删 checkpoints（best-effort） |
+| 4 | `RunRepository.delete_by_thread()`：只删 `operation_kind == "run"` 的历史 run 行——**第 1 步的 reservation 行必须活到 `reserve_thread_operation()` 退出**，否则 DELETE 会在请求中途丢掉自己的跨 worker 互斥；批量删故意不 bump change clock |
+| 5 | 删 `RunEventStore.delete_by_thread()`：这是**用户可见的会话历史，不是缓存**——不清的话被删线程的 feed 仍能经 `GET /threads/{id}/messages` 读回来 |
+| 6 | 删 feedback（`FeedbackRepository.delete_by_thread()`，按 owner）；memory 后端的 `feedback_repo` 为 `None`，走可选访问器 |
+| 7 | 删 `threads_meta` 行（SQLite 后端必须，否则 `/threads/search` 仍列出该线程） |
+
+第 2-7 步全部 **best-effort**：单项异常只记 debug 日志，不打断整体删除。所有者身份在请求开头解析一次（文件系统 bucket、runs/events/feedback、thread_meta 用**同一个** `user_id`），不允许各步骤各自解析作用域。
+
+**边界（重要）**：本清理只删除"已存在的行"，**不负责阻止一个已被准入的写者在线程删除后把状态写回来**——那是 thread incarnation 的独立契约（`threads_meta.incarnation`，见 [01-run-manager.md](01-run-manager.md)）。upstream 在 `threads.py` 的 docstring 里明确把这两件事分开。
+
+---
 > **See also:** [01-run-manager.md](01-run-manager.md)（RunManager/RunStore 契约）· [04-journal.md](04-journal.md)（RunJournal）· [concepts/workspace-changes.md](../../concepts/workspace-changes.md)

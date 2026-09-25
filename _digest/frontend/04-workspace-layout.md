@@ -118,6 +118,20 @@ ResizablePanelGroup (direction="horizontal")
 
 项目详情页的 "New Chat" 链接为 `/workspace/chats/new?project={id}`（未归档项目才显示）。
 
+### 嵌套 SidebarMenu 的宽度约束（v2.1.0，#5681 → #5682）
+
+grouped 模式用嵌套 `SidebarMenu` 缩进项目内的 thread 行，但 `SidebarMenu` 原语默认带 `w-full`（`cn("flex w-full min-w-0 flex-col gap-1", className)`）：`ml-4`（16px）+ 100% 宽会让容器比侧栏宽 16px，绝对定位的行内 kebab（`right-1`）随之落到可视区外被裁掉；Archived 组（`ArchivedProjectsGroup` 内再套一层 `ProjectThreadGroup`）溢出 32px，kebab 完全不可见。
+
+| 位置 | 修复前 | 修复后 |
+|------|--------|--------|
+| `ProjectThreadGroup` 的缩进 menu | `border-sidebar-border ml-4 border-l pl-2` | `border-sidebar-border ml-4 w-auto border-l pl-2` |
+| `ArchivedProjectsGroup` 的缩进 menu | 同上 | 同上 |
+| 根 `SidebarMenu` | 原语默认 `w-full` | 不变 |
+
+`className` 经 `cn()`（tailwind-merge）解析，`w-auto` 覆盖原语的 `w-full`，块级 flex 容器改为「填满剩余宽度 − margin」。回归测试 `frontend/tests/unit/components/workspace/projects-section-nested-menu.dom.test.tsx`（165 行）从预置 query cache 渲染 grouped 模式并展开 Archived 组，断言每个缩进菜单有 `w-auto`、无 `w-full`，根菜单仍为 `w-full`（happy-dom 无布局引擎，故在 class 层面钉住）。
+
+> **可迁移经验**：在定宽容器（侧栏）里给布局原语加横向 margin 时，要同时改掉它的默认宽度（`w-full` → `w-auto`）；`w-full + margin` 必然横向溢出，而绝对定位的尾部操作按钮（kebab）是最先被裁掉的元素。
+
 ## Thread 列表虚拟化（同步 #6）
 
 `thread-list-virtualizer.tsx`（`@tanstack/react-virtual`）：侧边栏行、`/workspace/chats` 行、项目页行共用一个最小行模型（只需稳定 `thread_id`），**≥ 60 行才启用虚拟化**；`recent-chat-list.tsx` 用 IntersectionObserver 哨兵触发 `useInfiniteThreads.fetchNextPage()` 无限滚动。列表刷新需用 `calculateScrollMargin` 补偿 root/scroll parent 偏移。
