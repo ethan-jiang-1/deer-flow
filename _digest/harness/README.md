@@ -19,6 +19,7 @@ description: "本目录调研「一个仓库/项目如何做到对 coding agent�
 | 看真实仓库怎么做 | [06-case-studies.md](06-case-studies.md) | openai/codex、apache/airflow、electron、temporal-sdk-java、deer-flow 精读与横向对比 |
 | 动手审计一个仓库 | [07-audit-checklist.md](07-audit-checklist.md) | 60 条可勾选检查项（每条含查法/合格标准/依据）+ 打分与权重建议（图：[audit-framework](figures/audit-framework.svg)） |
 | 看 deer-flow 的实测得分 | [08-deerflow-audit.md](08-deerflow-audit.md) | 按 07 篇 60 条对本仓库逐条实证审计：总评 A-、五维得分、Top 问题与整改路线图 |
+| 用 DSH 的镜片给本仓库打分 | [09-dsh-eval-harness.md](09-dsh-eval-harness.md) | 按 DSH `_eval_harness` 协议（覆盖面×约束力两轴、封顶、红绿、MG 档）给 deer-flow v2.1.0 的 28 维打分：开发侧 10 红 / 7 绿、运行时侧 6 红 / 5 绿，两侧均 MG1、达标线未达；EV2 负例控制 0/0 与模型可见面不落盘是两根钉子；含切片走查、gap 清单与施工顺序，并与 08 篇的 A- 对照（图：[deerflow-dsh-scorecard](figures/deerflow-dsh-scorecard.svg)） |
 
 ## 关键结论速览
 

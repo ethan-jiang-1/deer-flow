@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 660" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="660" fill="#fafafa" rx="8"/>
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">DSH 镜片下的 deer-flow（v2.1.0）：28 维红绿结果 — 开发侧 10 红 / 7 绿 · MG1；运行时侧 6 红 / 5 绿 · MG1</text>
+
+  <!-- ============ 左面板：开发侧 17 维 ============ -->
+  <rect x="30" y="62" width="570" height="478" rx="8" fill="#fff" stroke="#1565c0" stroke-width="1.4"/>
+  <text x="315" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#0d47a1">开发 Harness（评仓库）：KN 知识归位 · CP 变更路径 · EV 证据与交付 · ST 状态与上下文 · MT 维护与发布</text>
+  <text x="46" y="102" font-size="10" fill="#888">[覆盖 n][约束 n] 红 = 任一轴 ≤ 1</text>
+
+  <!-- 行模板：y = 118 + i*25 -->
+  <g font-size="11.5">
+    <rect x="40" y="110" width="550" height="23" fill="#f5f5f5"/><text x="46" y="126" fill="#333">KN1 入口链</text><text x="150" y="126" fill="#555">覆2 · 约2</text><rect x="545" y="113" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="564" y="126" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="40" y="135" width="550" height="23" fill="#fff3f3"/><text x="46" y="151" fill="#333">KN2 归属（漂移已发生 ≥3 处）</text><text x="150" y="151" fill="#555">覆2 · 约1</text><rect x="545" y="138" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="151" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="160" width="550" height="23" fill="#fff3f3"/><text x="46" y="176" fill="#333">KN3 决策记录</text><text x="150" y="176" fill="#555">覆2 · 约1</text><rect x="545" y="163" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="176" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="185" width="550" height="23" fill="#fff3f3"/><text x="46" y="201" fill="#333">KN4 分类学</text><text x="150" y="201" fill="#555">覆2 · 约1</text><rect x="545" y="188" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="201" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="210" width="550" height="23" fill="#fff3f3"/><text x="46" y="226" fill="#333">CP1 意图入口</text><text x="150" y="226" fill="#555">覆2 · 约1</text><rect x="545" y="213" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="226" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="235" width="550" height="23" fill="#fff3f3"/><text x="46" y="251" fill="#333">CP2 正确路径</text><text x="150" y="251" fill="#555">覆2 · 约1</text><rect x="545" y="238" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="251" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="260" width="550" height="23" fill="#fff3f3"/><text x="46" y="276" fill="#333">CP3 流程固化</text><text x="150" y="276" fill="#555">覆1 · 约1</text><rect x="545" y="263" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="276" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="285" width="550" height="23" fill="#f2fff2"/><text x="46" y="301" fill="#333">CP4 执行与授权链（11/16 workflow 最小权限）</text><text x="150" y="301" fill="#555">覆2 · 约2</text><rect x="545" y="288" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="564" y="301" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="40" y="310" width="550" height="23" fill="#f2fff2"/><text x="46" y="326" fill="#333">EV1 反馈分层（六类具名检查）</text><text x="150" y="326" fill="#555">覆2 · 约2</text><rect x="545" y="313" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="564" y="326" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="40" y="335" width="550" height="23" fill="#ffebee" stroke="#c62828" stroke-width="1.2"/><text x="46" y="351" fill="#b71c1c" font-weight="700">EV2 负例控制（成文要求 0 命中 — 最痛）</text><text x="150" y="351" fill="#555">覆0 · 约0</text><rect x="545" y="338" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="351" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="360" width="550" height="23" fill="#fff3f3"/><text x="46" y="376" fill="#333">EV3 闭环完整性（政策成文、无检查）</text><text x="150" y="376" fill="#555">覆2 · 约1</text><rect x="545" y="363" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="376" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="385" width="550" height="23" fill="#fff3f3"/><text x="46" y="401" fill="#333">EV4 评审与批准（证据受限）</text><text x="150" y="401" fill="#555">覆2 · 约1</text><rect x="545" y="388" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="401" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="410" width="550" height="23" fill="#f2fff2"/><text x="46" y="426" fill="#333">ST1 静与动（compose 契约被测试钉住）</text><text x="150" y="426" fill="#555">覆2 · 约2</text><rect x="545" y="413" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="564" y="426" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="40" y="435" width="550" height="23" fill="#f2fff2"/><text x="46" y="451" fill="#333">ST2 披露与隔离（KiB 预算门禁）</text><text x="150" y="451" fill="#555">覆2 · 约2</text><rect x="545" y="438" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="564" y="451" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="40" y="460" width="550" height="23" fill="#fff3f3"/><text x="46" y="476" fill="#333">ST3 运行时查询（有 doctor、无生效配置 dump）</text><text x="150" y="476" fill="#555">覆1 · 约2</text><rect x="545" y="463" width="38" height="17" rx="8.5" fill="#c62828"/><text x="564" y="476" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="40" y="485" width="550" height="23" fill="#f2fff2"/><text x="46" y="501" fill="#333">MT1 防漂移（结构检查群）</text><text x="150" y="501" fill="#555">覆2 · 约2</text><rect x="545" y="488" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="564" y="501" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="40" y="510" width="550" height="23" fill="#f2fff2"/><text x="46" y="526" fill="#333">MT2 发布与版本（lockstep CI 硬失败 — 覆盖面 3）</text><text x="150" y="526" fill="#555">覆3 · 约2</text><rect x="545" y="513" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="564" y="526" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+  </g>
+
+  <!-- ============ 右面板：运行时侧 11 维 ============ -->
+  <rect x="620" y="62" width="550" height="478" rx="8" fill="#fff" stroke="#ad1457" stroke-width="1.4"/>
+  <text x="895" y="84" text-anchor="middle" font-size="13" font-weight="700" fill="#880e4f">运行时 Harness（评 agent 产品）：AQ1-3 全是 → 形态 = 产品 + 平台 + 多入口</text>
+  <text x="636" y="102" font-size="10" fill="#888">静态证据下的预判档（LX1-LX5 未亲跑 → 证据受限）</text>
+
+  <g font-size="11.5">
+    <rect x="630" y="110" width="530" height="23" fill="#fff3f3"/><text x="636" y="126" fill="#333">RT1 组合与启动（坏组合拒绝启动；无 dump）</text><text x="740" y="126" fill="#555">覆1 · 约2</text><rect x="1120" y="113" width="38" height="17" rx="8.5" fill="#c62828"/><text x="1139" y="126" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="630" y="135" width="530" height="23" fill="#ffebee" stroke="#c62828" stroke-width="1.2"/><text x="636" y="151" fill="#b71c1c" font-weight="700">RT2 会话事实源（system prompt/工具清单不进记录 — 最痛）</text><text x="740" y="151" fill="#555">覆1 · 约1</text><rect x="1120" y="138" width="38" height="17" rx="8.5" fill="#c62828"/><text x="1139" y="151" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="630" y="160" width="530" height="23" fill="#f2fff2"/><text x="636" y="176" fill="#333">RT3 格式世代（版本过新 = 拒绝启动，非报损坏）</text><text x="740" y="176" fill="#555">覆2 · 约2</text><rect x="1120" y="163" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="1139" y="176" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="630" y="185" width="530" height="23" fill="#f2fff2"/><text x="636" y="201" fill="#333">RT4 循环与终结边界（终态封闭集合 + durable 取消）</text><text x="740" y="201" fill="#555">覆3 · 约2</text><rect x="1120" y="188" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="1139" y="201" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="630" y="210" width="530" height="23" fill="#f2fff2"/><text x="636" y="226" fill="#333">RT5 能力 seam（多后端纯配置切换 — 全卡最强）</text><text x="740" y="226" fill="#555">覆3 · 约2</text><rect x="1120" y="213" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="1139" y="226" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="630" y="235" width="530" height="23" fill="#fff3f3"/><text x="636" y="251" fill="#333">RT6 扩展点与拦截（贡献面成体系、无绕过检查）</text><text x="740" y="251" fill="#555">覆3 · 约1</text><rect x="1120" y="238" width="38" height="17" rx="8.5" fill="#c62828"/><text x="1139" y="251" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="630" y="260" width="530" height="23" fill="#ffebee" stroke="#c62828" stroke-width="1.2"/><text x="636" y="276" fill="#b71c1c" font-weight="700">RT7 模型可见面（组装结果只存哈希、不落盘 — 最痛）</text><text x="740" y="276" fill="#555">覆1 · 约1</text><rect x="1120" y="263" width="38" height="17" rx="8.5" fill="#c62828"/><text x="1139" y="276" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="630" y="285" width="530" height="23" fill="#f2fff2"/><text x="636" y="301" fill="#333">RT8 入口与协议投影（9 IM + TUI + Web 共用一语义）</text><text x="740" y="301" fill="#555">覆2 · 约2</text><rect x="1120" y="288" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="1139" y="301" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="630" y="310" width="530" height="23" fill="#f2fff2"/><text x="636" y="326" fill="#333">RT9 工具执行与授权（先记录后执行、fail-closed）</text><text x="740" y="326" fill="#555">覆2 · 约2</text><rect x="1120" y="313" width="38" height="17" rx="8.5" fill="#2e7d32"/><text x="1139" y="326" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">绿</text>
+    <rect x="630" y="335" width="530" height="23" fill="#fff3f3"/><text x="636" y="351" fill="#333">RT10 可执行治理（检查散装、无统一注册处）</text><text x="740" y="351" fill="#555">覆1 · 约2</text><rect x="1120" y="338" width="38" height="17" rx="8.5" fill="#c62828"/><text x="1139" y="351" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+    <rect x="630" y="360" width="530" height="23" fill="#fff3f3"/><text x="636" y="376" fill="#333">RT11 客户端组装纪律（React Query 派生、无边界检查）</text><text x="740" y="376" fill="#555">覆2 · 约1</text><rect x="1120" y="363" width="38" height="17" rx="8.5" fill="#c62828"/><text x="1139" y="376" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">红</text>
+  </g>
+
+  <!-- 右面板下方的红绿分簇说明 -->
+  <rect x="630" y="395" width="530" height="132" rx="8" fill="#fce4ec" stroke="#ad1457" stroke-width="1"/>
+  <text x="895" y="416" text-anchor="middle" font-size="12" font-weight="700" fill="#880e4f">运行时侧的红聚成两类</text>
+  <text x="644" y="438" font-size="11" fill="#444">「说不清」排障面（3 维）：RT1 生效配置 · RT2 请求重建 · RT7 可见面落盘</text>
+  <text x="644" y="458" font-size="11" fill="#444">　→ 共同后果：出问题时无法只靠记录说清「它当时看到了什么、做了什么」</text>
+  <text x="644" y="481" font-size="11" fill="#444">「边界靠约定」治理面（3 维）：RT6 扩展点 · RT10 治理 · RT11 客户端边界</text>
+  <text x="644" y="501" font-size="11" fill="#444">　→ 共同后果：绕过声明的边界没有东西会拦</text>
+  <text x="644" y="522" font-size="11" fill="#1b5e20">绿的五维是架构底子：状态机封闭 · 后端可换 · 入口共语义 · fail-closed · 世代单向</text>
+
+  <!-- ============ 底部结论带 ============ -->
+  <rect x="30" y="552" width="1140" height="92" rx="8" fill="#1a1a2e"/>
+  <text x="46" y="576" font-size="12" font-weight="700" fill="#fff">开发侧 = MG1 有文档（距 MG2 差一维：快诊六维中约束力 ≥2 的只有 KN1/EV1/ST1 三个）</text>
+  <text x="46" y="598" font-size="12" font-weight="700" fill="#fff">运行时侧 = MG1（MG2 被 RT2+RT7 卡住 — 同一缺口的两半）　两侧达标线均未达</text>
+  <text x="46" y="622" font-size="11" fill="#b0bec5">最痛三维：开发侧 EV2 负例控制 / KN2 归属 / CP2 正确路径　·　运行时侧 RT2 会话事实源 / RT7 模型可见面 / RT1 组合与启动</text>
+  <text x="46" y="640" font-size="11" fill="#b0bec5">一句话诊断：机制覆盖面是范本级、约束力普遍停在「写下来了但拦不住」；EV2 = 0/0 是全卡的根</text>
+</svg>

@@ -215,10 +215,11 @@ def is_placeholder(token: str) -> bool:
 
 
 def slug(heading: str) -> str:
+    """GitHub 风格 slug：小写；去掉非字母/数字/空格/连字符（含 ·、——等）；
+    空格转连字符；保留下划线。"""
     text = heading.strip().lower()
-    for ch in SLUG_PUNCT:
-        text = text.replace(ch, "")
-    return text.replace(" ", "-")
+    kept = [ch for ch in text if ch.isalnum() or ch in " -_"]
+    return "".join(kept).replace(" ", "-")
 
 
 def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
