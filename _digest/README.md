@@ -84,4 +84,6 @@ staleness review  → concepts/memory/extract-queue-persist-pipeline.md
 BoxLite / E2B     → concepts/sandbox/abstract-interface-and-seven-impls.md
 deferred MCP      → internals/middleware/03-catalog.md (#25 DeferredToolFilter)
 deferred skills   → concepts/skills-tools/skill-md-and-tool-assembly.md
+评估记分法说明    → harness/09-dsh-eval-harness.md (§0 自说明)
+LX1 重放实证      → harness/09-dsh-eval-harness.md (§4.1)
 ```
