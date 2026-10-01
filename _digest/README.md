@@ -22,6 +22,7 @@ type: index
 | 🚀 部署和运维 | [operations/](operations/) | 安全、部署、追踪、IM 通道、IT 治理、API 参考 |
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化 |
+| 🕸️ 图工程支持到哪儿 | [graph-engineering/](graph-engineering/) | 12 项三档支持度地图、部分支持边界、为什么没有任务 DAG、扩展路线 |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程、机械校验器 `_digest/_upstream-sync/tools/check_digest.py` |
 
 ## 目录结构
@@ -39,7 +40,8 @@ _digest/
 ├── operations/              # 安全、部署、运维
 ├── frontend/                # 前端架构
 ├── harness/                 # Agent 工程实践（AX/DX、可验证性、审计清单）
-└── harness-engineering/     # harness 工程质量评估（coding agent 视角）
+├── harness-engineering/     # harness 工程质量评估（coding agent 视角）
+└── graph-engineering/       # 图工程支持度判定（固定元图 ✅ / 动态任务 DAG ❌）
 ```
 
 ## 文件命名约定
@@ -86,4 +88,5 @@ deferred MCP      → internals/middleware/03-catalog.md (#25 DeferredToolFilter
 deferred skills   → concepts/skills-tools/skill-md-and-tool-assembly.md
 评估记分法说明    → harness/09-dsh-eval-harness.md (§0 自说明)
 LX1 重放实证      → harness/09-dsh-eval-harness.md (§4.1)
+graph engineering / dynamic workflow DAG 支持度 → graph-engineering/01-support-map.md
 ```
