@@ -1,0 +1,111 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 790" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1120" height="790" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">组合配方地图 — 今天就能用的编排模式（R1–R11）</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 07-orchestration-surface.md §3 · 按能力域分组，每格给路径与边界；边界判读见底部陷阱条</text>
+
+  <!-- column headers -->
+  <text x="200" y="92" font-size="13" font-weight="700" fill="#065f46" text-anchor="middle">即时路径（对话内 / 本 run）</text>
+  <text x="680" y="92" font-size="13" font-weight="700" fill="#1e40af" text-anchor="middle">durable 路径（跨进程 / 跨崩溃）</text>
+
+  <g font-size="11" fill="#334155">
+    <!-- 分解 -->
+    <rect x="24" y="104" width="150" height="66" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="99" y="132" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">任务分解</text>
+    <text x="99" y="150" font-size="10.5" fill="#64748b" text-anchor="middle">R1 顺序链</text>
+    <rect x="186" y="104" width="440" height="66" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="200" y="126" font-weight="700" fill="#065f46">R1 单子代理内部串行（路由政策正解）或 lead 逐个 task</text>
+    <text x="200" y="144">依赖正确性 = 模型自觉 · 无机器校验（05 §1 否决树）</text>
+    <text x="200" y="160" fill="#b45309">边界：政策靠 prompt 遵守，忽略时无物可拦</text>
+    <rect x="638" y="104" width="458" height="66" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="652" y="126" font-weight="700" fill="#1e40af">—（分解本身无 durable 形态；durable 的是执行，见下）</text>
+    <text x="652" y="144">09 的 task_dag 通道会把分解升级为可持久化数据</text>
+
+    <!-- 并发 -->
+    <rect x="24" y="180" width="150" height="82" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="99" y="214" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">并发</text>
+    <text x="99" y="232" font-size="10.5" fill="#64748b" text-anchor="middle">R2 / R3</text>
+    <rect x="186" y="180" width="440" height="82" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="200" y="202" font-weight="700" fill="#065f46">R2 一轮多个 task 调用（ToolNode 对每 call 并行 Send）</text>
+    <text x="200" y="220">SubagentLimitMiddleware 限并发 + 总量（delegations 按 run 划界）</text>
+    <text x="200" y="238">输出依赖 / 状态重叠 = 政策硬否决区</text>
+    <text x="200" y="256" fill="#b45309">边界：派发的是独立任务，不是图上节点</text>
+    <rect x="638" y="180" width="458" height="82" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="652" y="202" font-weight="700" fill="#1e40af">R3 batch_task → durable 引擎（lease/3 续期 · 重试预算）</text>
+    <text x="652" y="220">pause / resume / 单 item retry / JSONL 导出 API 全套</text>
+    <text x="652" y="238">崩溃 → 他机认领同一稳定 item key；幂等键注入提示词</text>
+    <text x="652" y="256" fill="#1e40af">最接近工作流引擎的现成底座（07 §2）</text>
+
+    <!-- 验证 -->
+    <rect x="24" y="272" width="150" height="82" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="99" y="306" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">验证</text>
+    <text x="99" y="324" font-size="10.5" fill="#64748b" text-anchor="middle">R4</text>
+    <rect x="186" y="272" width="440" height="82" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="200" y="294" font-weight="700" fill="#065f46">R4 task 带 acceptance_criteria（file: / file_written: / tests_passed:）</text>
+    <text x="200" y="312">对抗性 shell 匹配 · 不可证明 = UNVERIFIED（fail-closed）</text>
+    <text x="200" y="330">verdict 进信封 + 台账 + 模型可见清单</text>
+    <text x="200" y="348" fill="#b45309">边界：verdict 无自动消费者 — 分支逻辑得自己写（09 §门层）</text>
+    <rect x="638" y="272" width="458" height="82" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="652" y="294" font-weight="700" fill="#1e40af">batch item 复用同一检查器（batch_acceptance）</text>
+    <text x="652" y="312">检查期间保持租约直到 drain；checker 故障 = advisory</text>
+    <text x="652" y="330">（不丢结果、不触发重试）</text>
+    <text x="652" y="348" fill="#1e40af">verdict 持久化，与执行状态独立可查</text>
+
+    <!-- 人机 -->
+    <rect x="24" y="364" width="150" height="82" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="99" y="398" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">人机</text>
+    <text x="99" y="416" font-size="10.5" fill="#64748b" text-anchor="middle">R5 / R6</text>
+    <rect x="186" y="364" width="440" height="82" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="200" y="386" font-weight="700" fill="#065f46">R5 ask_clarification → Command(goto=END) + human_input artifact</text>
+    <text x="200" y="404">下一轮对话续（产品级 HITL，前端一等公民）</text>
+    <text x="200" y="422">非交互上下文（scheduler）自动抑制并指示继续</text>
+    <text x="200" y="440" fill="#b45309">边界：回合级 — 图停在节点等审批的原位续跑要 R6</text>
+    <rect x="638" y="364" width="458" height="82" rx="6" fill="#fffbeb" stroke="#d97706"/>
+    <text x="652" y="386" font-weight="700" fill="#92400e">R6 interrupt_before: ["model"|"*"] → run 挂起</text>
+    <text x="652" y="404">→ command: {resume: …} 原位续跑（Gateway 请求路径）</text>
+    <text x="652" y="422">原语对端到端可达 — 但产品层无消费者</text>
+    <text x="652" y="440" fill="#d97706">自定义编排客户端今天就能用（09 §门层的第一块砖）</text>
+
+    <!-- 恢复 -->
+    <rect x="24" y="456" width="150" height="82" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="99" y="490" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">恢复</text>
+    <text x="99" y="508" font-size="10.5" fill="#64748b" text-anchor="middle">R7</text>
+    <rect x="186" y="456" width="440" height="82" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="200" y="478" font-weight="700" fill="#065f46">R7 run 事务：cancel 带回滚（RollbackPoint → pre-run 快照）</text>
+    <text x="200" y="496">regenerate / edit-regenerate（血缘校验的分支重放）</text>
+    <text x="200" y="514">手动 compact（压缩经同一变异图）</text>
+    <text x="200" y="532" fill="#b45309">边界：恢复单位 = run/thread，不是任务图执行位</text>
+    <rect x="638" y="456" width="458" height="82" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="652" y="478" font-weight="700" fill="#1e40af">multitask_strategy: rollback — 同线程新 run 回滚在跑 run</text>
+    <text x="652" y="496">孤儿 run：过期租约原子接管（lease 恢复）</text>
+    <text x="652" y="514">delta 下 checkpoint_id 续跑被线性化（见陷阱①）</text>
+    <text x="652" y="532" fill="#1e40af">交付回执：outputs 扫描 + present_files 归属核验</text>
+
+    <!-- 时间/空间 -->
+    <rect x="24" y="548" width="150" height="82" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="99" y="582" font-size="12" font-weight="700" fill="#0f172a" text-anchor="middle">时间 / 空间</text>
+    <text x="99" y="600" font-size="10.5" fill="#64748b" text-anchor="middle">R8 / R9 / R10 / R11</text>
+    <rect x="186" y="548" width="440" height="82" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="200" y="570" font-weight="700" fill="#065f46">R8 goal continuation：set_goal（≤8 续跑）</text>
+    <text x="200" y="588">JSON 评估器（satisfied/reason/evidence/blocker）</text>
+    <text x="200" y="606">双上限：总续跑 + 无进展续跑</text>
+    <text x="200" y="624">R10 conversation_references：≤3 跨线程只读授权（run 级）</text>
+    <rect x="638" y="548" width="458" height="82" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="652" y="570" font-weight="700" fill="#1e40af">R9 scheduled-tasks：cron 预览/CRUD/trigger</text>
+    <text x="652" y="588">occurrence 队列 + lease + 崩溃恢复；非交互上下文</text>
+    <text x="652" y="606">R11 状态手术：state API 手工更新（变异图 + Overwrite）</text>
+    <text x="652" y="624" fill="#1e40af">middleware 贡献的通道可写 — 09 混合形态的合法通道</text>
+  </g>
+
+  <!-- traps strip -->
+  <rect x="24" y="644" width="1072" height="126" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="40" y="670" font-size="13.5" font-weight="700" fill="#991b1b">六大陷阱（编排者必读 · 07 §5）</text>
+  <g font-size="11.5" fill="#7f1d1d">
+    <text x="40" y="694">① delta 模式 checkpoint_id 续跑 ≠ fork — 被线性化为 head 整体替换（full 模式才有真分支）</text>
+    <text x="40" y="714">② 子代理无独立恢复 — 单位是 run/thread，不是任务执行位</text>
+    <text x="40" y="734">③ 共享沙箱 — 并行写同一文件是政策否决区，系统不会替你隔离</text>
+    <text x="560" y="694">④ verdict 不驱动任何东西 — 验收是证据，分支要自己写</text>
+    <text x="560" y="714">⑤ 完成回调不存在 — webhook/on_completion 显式拒绝；用 /wait、SSE 或轮询 events</text>
+    <text x="560" y="734">⑥ 单写者纪律 — 无 reducer 通道并行写 = last-value 竞态（预算字段尤其）</text>
+  </g>
+</svg>

@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 780" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1080" height="780" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">LangGraph 能力面 — 依赖提供 → 语境过滤 → 实际使用</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 06-langgraph-capability-surface.md · langgraph 1.2.9 / langchain 1.2.15 / langgraph-prebuilt 1.0.11（venv 实装源码逐条核实）</text>
+
+  <defs>
+    <marker id="f1" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/></marker>
+  </defs>
+
+  <!-- left: dependency offers -->
+  <rect x="24" y="80" width="290" height="420" rx="8" fill="#fafaf9" stroke="#a8a29e"/>
+  <text x="169" y="106" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">依赖提供（原语全集）</text>
+  <g font-size="11.5" fill="#334155">
+    <text x="40" y="134">▪ Send() — 动态 Map-Reduce fan-out</text>
+    <text x="40" y="158">▪ Command(update/goto/resume) — 原子跳跃</text>
+    <text x="40" y="182">▪ interrupt() — 节点内动态 HITL 原语</text>
+    <text x="40" y="206">▪ interrupt_before / interrupt_after — 节点级暂停</text>
+    <text x="40" y="230">▪ fork / time-travel — 检查点分支与回溯</text>
+    <text x="40" y="254">▪ StateGraph / add_conditional_edges — 构图</text>
+    <text x="40" y="278">▪ Compiled Subgraphs — 独立 checkpoint 命名空间</text>
+    <text x="40" y="302">▪ Checkpointer — sqlite / postgres / memory</text>
+    <text x="40" y="326">▪ DeltaChannel — O(N) 增量通道</text>
+    <text x="40" y="350">▪ GraphBubbleUp / 递归限制等控制语义</text>
+  </g>
+  <text x="40" y="386" font-size="11.5" fill="#78716c" font-style="italic">langchain factory 补充：middleware 钩子编译成节点、</text>
+  <text x="40" y="404" font-size="11.5" fill="#78716c" font-style="italic">model_to_tools / tools_to_model 决策树、</text>
+  <text x="40" y="422" font-size="11.5" fill="#78716c" font-style="italic">ToolNode Send 并行、jump_to 逃生口</text>
+  <text x="40" y="460" font-size="11.5" fill="#78716c">（wrap_model_call 内不支持 Command goto — 上游限制）</text>
+
+  <path d="M 314 290 L 360 290" stroke="#64748b" stroke-width="2.5" marker-end="url(#f1)"/>
+
+  <!-- middle: harness context filter -->
+  <rect x="364" y="80" width="300" height="420" rx="8" fill="#fff7ed" stroke="#ea580c" stroke-width="1.5"/>
+  <text x="514" y="106" font-size="14" font-weight="700" fill="#9a3412" text-anchor="middle">DeerFlow harness 语境</text>
+  <text x="514" y="126" font-size="11.5" fill="#c2410c" text-anchor="middle">（语境规定运行状态 — 不是"没用"，是主动分配）</text>
+  <g font-size="11.5" fill="#334155">
+    <rect x="380" y="142" width="268" height="54" rx="6" fill="#ffedd5" stroke="#fb923c"/>
+    <text x="396" y="164" font-weight="700" fill="#9a3412">delta 模式禁 fork / time-travel</text>
+    <text x="396" y="182" font-size="10.5">上游 delta 回放缺陷(#4458) → worker 线性化续跑</text>
+
+    <rect x="380" y="206" width="268" height="54" rx="6" fill="#ffedd5" stroke="#fb923c"/>
+    <text x="396" y="228" font-weight="700" fill="#9a3412">模式进程冻结 · restart-required</text>
+    <text x="396" y="246" font-size="10.5">通道 schema 编译进图，模式是进程级契约</text>
+
+    <rect x="380" y="270" width="268" height="54" rx="6" fill="#ffedd5" stroke="#fb923c"/>
+    <text x="396" y="292" font-weight="700" fill="#9a3412">禁裸 checkpoint 写</text>
+    <text x="396" y="310" font-size="10.5">必须走 CheckpointStateAccessor + 单节点变异图</text>
+
+    <rect x="380" y="334" width="268" height="54" rx="6" fill="#ffedd5" stroke="#fb923c"/>
+    <text x="396" y="356" font-weight="700" fill="#9a3412">子代理一次性执行</text>
+    <text x="396" y="374" font-size="10.5">checkpointer=False — 子代理无独立断点/恢复</text>
+
+    <rect x="380" y="398" width="268" height="54" rx="6" fill="#ffedd5" stroke="#fb923c"/>
+    <text x="396" y="420" font-weight="700" fill="#9a3412">不构图</text>
+    <text x="396" y="438" font-size="10.5">DeerFlow 代码零处 add_node/条件边 — 路由全由</text>
+    <text x="396" y="452" font-size="10.5">langchain factory 决策树提供</text>
+  </g>
+
+  <path d="M 664 200 L 710 200" stroke="#059669" stroke-width="2.5" marker-end="url(#f2g)"/>
+  <path d="M 664 290 L 710 290" stroke="#d97706" stroke-width="2.5" marker-end="url(#f2a)"/>
+  <path d="M 664 380 L 710 380" stroke="#dc2626" stroke-width="2.5" marker-end="url(#f2r)"/>
+  <defs>
+    <marker id="f2g" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#059669"/></marker>
+    <marker id="f2a" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#d97706"/></marker>
+    <marker id="f2r" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#dc2626"/></marker>
+  </defs>
+
+  <!-- right: three tiers -->
+  <g font-size="11.5" fill="#334155">
+    <rect x="714" y="110" width="342" height="170" rx="8" fill="#f0fdf4" stroke="#059669" stroke-width="1.5"/>
+    <text x="885" y="134" font-size="13.5" font-weight="700" fill="#065f46" text-anchor="middle">已用（证据锚定）</text>
+    <text x="730" y="158">▪ Command(update=…) — 所有内置工具返回路径</text>
+    <text x="730" y="178">▪ Command(goto=END) — clarification 短路(:516)</text>
+    <text x="730" y="198">▪ Command(resume=) — run 请求路径(services:1571)</text>
+    <text x="730" y="218">▪ interrupt_before/after — Gateway 字段(run_models:48)</text>
+    <text x="730" y="238">▪ Send() — 仅 langchain 内部（tools 并行，deerflow 0 调用）</text>
+    <text x="730" y="258">▪ StateGraph — 主元图 + 单节点变异图 · DeltaChannel</text>
+    <text x="730" y="274">▪ 子图 namespace 继承 · checkpoint_patches 修正上游</text>
+
+    <rect x="714" y="296" width="342" height="150" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+    <text x="885" y="320" font-size="13.5" font-weight="700" fill="#92400e" text-anchor="middle">可用未用（原语在，无人碰）</text>
+    <text x="730" y="344">▪ interrupt() 函数原语 — 全库零处</text>
+    <text x="730" y="364">▪ Send() 跨节点 fan-out — 无目标节点可 Send</text>
+    <text x="730" y="384">▪ Command(goto=非END) — middleware 层被上游封死</text>
+    <text x="730" y="404">▪ add_conditional_edges / 自定义构图</text>
+    <text x="730" y="424">▪ interrupt_before=["*"] — 已接线，无调用方</text>
+
+    <rect x="714" y="462" width="342" height="110" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="885" y="486" font-size="13.5" font-weight="700" fill="#991b1b" text-anchor="middle">结构不可用（语境主动禁用）</text>
+    <text x="730" y="510">▪ fork / time-travel — delta 模式结构性失效</text>
+    <text x="730" y="530">（full 模式保留分支语义）</text>
+    <text x="730" y="554">▪ wrap_model_call 内 Command goto — langchain 上游限制</text>
+  </g>
+
+  <!-- bottom judgment -->
+  <rect x="24" y="590" width="1032" height="80" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="540" y="618" font-size="13.5" font-weight="700" fill="#0f172a" text-anchor="middle">总判读：用了控制面，冻结了拓扑面，把动态面降级到工具层</text>
+  <text x="540" y="640" font-size="12" fill="#334155" text-anchor="middle">且关系是修正性的：checkpoint_patches 修上游 delta 回放缺陷、稳定消息 ID、Overwrite 解包 — 不是纯消费</text>
+  <text x="540" y="660" font-size="12" fill="#334155" text-anchor="middle">对企业支持的最短路径：interrupt_before + Command(resume) 原语对已端到端可达 — 给 Gate 语义补产品消费者是离现有资产最近的缺口</text>
+</svg>

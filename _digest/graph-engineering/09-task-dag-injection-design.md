@@ -18,6 +18,8 @@ topics: [task-dag, injection, design, middleware, roadmap]
 
 ## 1. 分层架构
 
+![task_dag 注入设计:五层架构 · 交付形态 · MVP 切片](figures/injection-layers.svg)
+
 ```
 ┌─ 状态层 ─ TaskDagState 通道(TypedDict,reducer=终态不降级 merge)+ 预算通道(单写者)
 ├─ 决策层 ─ TaskDagMiddleware(before_model 注入 DAG 上下文 / after_model 观察结果)

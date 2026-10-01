@@ -8,6 +8,8 @@ topics: [graph, dag, subagent, hitl]
 
 > §01 地图里的 ◐ 档不是同一档"半个支持":四处各缺不同的东西,越过边界的表现也不同。v2 依据 [05](05-delegation-mechanics.md)/[06](06-langgraph-capability-surface.md) 逐文件核实修订。
 
+![四处部分支持的边界天梯](figures/boundary-ladder.svg)
+
 ## 1. 动态分解撑到"模型自觉"为止(地图 #6)
 
 lead agent 想拆就拆、想串就串,拆分质量完全取决于模型当下表现。依赖关系只存在于对话语义中——**模型忘了就是忘了**。

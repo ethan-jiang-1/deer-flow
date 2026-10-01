@@ -10,6 +10,8 @@ topics: [graph, dag, assessment]
 > 三档含义:✅ 完整支持 / ◐ 部分支持 / ❌ 缺席。逐项都给源码锚点,可回溯。
 > **v2(2026-10-02 深挖修订)**:#7/#8/#9/#10/#11 五行经逐文件深读修正——修订理由见 [05](05-delegation-mechanics.md) / [06](06-langgraph-capability-surface.md),变更以 ⬆ 标注。
 
+![12 项三档支持度总览](figures/support-dashboard.svg)
+
 ## 地图
 
 | # | 研究层标尺(能力) | 档位 | 源码事实 | 锚点 |

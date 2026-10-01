@@ -12,7 +12,11 @@ topics: [subagent, delegation, task-tool, batch, acceptance]
 
 **DeerFlow 造了一台带验证的"任务队列机器",不是"工作流图机器"——但每一层都做到了工业级深度。** 它缺的从来不是工程质量,是任务间关系的显式表达(依赖边)。反过来读:**依赖关系在 DeerFlow 里不是不存在,而是被降维成了路由策略的硬否决规则**——这是理解它能力边界的关键。
 
+![委派机器端到端:一条 task 与一条 batch 的生命周期](figures/delegation-pipeline.svg)
+
 ## 1. 路由决策层:依赖管理的真实形态
+
+![依赖管理的真实形态:策略否决决策树 + 共享线程沙箱](figures/dependency-as-policy.svg)
 
 `lead_agent/prompt.py` 的 benefit-based routing policy(`subagents/AGENTS.md` 有全文,prompt/tool 描述/角色描述三处对齐,回归测试钉死):
 

@@ -8,6 +8,8 @@ topics: [graph, dag, roadmap, extension]
 
 > 前提([03](03-why-no-dag.md)):DeerFlow 刻意不做数据 DAG。本文件回答"如果要补,从哪儿下手"。v2 依据 [05](05-delegation-mechanics.md)/[06](06-langgraph-capability-surface.md) 的深挖,把每个生长点对齐到**已存在的资产**,并判读研究层的注入方案。
 
+![五个生长点:现有资产 → 补齐物 → 研究层概念](figures/growth-bridges.svg)
+
 ## 五个生长点(对齐现有资产)
 
 | # | 缺口(地图行) | 已有资产(比 v1 判定更近) | 还差什么 | 对应研究层议题 |

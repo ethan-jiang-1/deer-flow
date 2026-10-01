@@ -1,6 +1,6 @@
 ---
 title: "编排操作面 — 用 DeerFlow 跑工作流的 API 与配方"
-description: "面向'今后用 DeerFlow 编排 workflow'的操作手册:Run 控制全字段、durable batch 引擎语义、十条现状组合配方、观测面与边界陷阱,全部证据锚定。"
+description: "面向'今后用 DeerFlow 编排 workflow'的操作手册:Run 控制全字段、durable batch 引擎语义、十一条组合配方(R1–R11)、观测面与边界陷阱,全部证据锚定。"
 topics: [orchestration, api, batch, recipes, workflow]
 ---
 
@@ -11,6 +11,8 @@ topics: [orchestration, api, batch, recipes, workflow]
 ## 0. 一句话
 
 **今天就能编排**:顺序链、独立并行(即时或 durable)、带确定性验收的任务、run 级事务与恢复、定时触发、目标续跑、原语级图级 interrupt/resume、跨线程读授权。**还编排不了**:依赖拓扑、汇聚 Gate、失败重规划——那是 [09](09-task-dag-injection-design.md) 的注入设计要解决的。
+
+![组合配方地图:R1-R11 按能力域 × 即时/durable 双路径](figures/recipe-map.svg)
 
 ## 1. Run 控制 — RunCreateRequest 全字段(编排者的旋钮箱)
 

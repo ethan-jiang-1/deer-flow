@@ -8,6 +8,8 @@ topics: [graph, dag, architecture, tradeoff]
 
 > 判定"缺席"之前，先判定"这是不是缺陷"。结论：不是。这是对同一组生产教训的另一种吸收方式。
 
+![同一条教训的两种吸收方式](figures/two-absorptions.svg)
+
 ## 1. 元图小到不需要切片
 
 研究层议题 09 反对的"现场编译新图"，DeerFlow 用另一种方式吸收了：

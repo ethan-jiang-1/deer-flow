@@ -8,6 +8,8 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 
 > 深挖版判定(2026-10-02)。用户语境:"DeerFlow 依赖的 LangGraph 也有更多 DAG 支持(静态/动态)——这些都在 DeerFlow 语境下,因为这个语境规定了 harness 的运行状态。" 本文把依赖能力按 **已用 / 可用未用 / 结构不可用** 三分类钉死。依据:venv 实装源码(`langgraph` 1.2.9 / `langchain` 1.2.15 / `langgraph-prebuilt` 1.0.11)+ deerflow 全库 import/调用 grep。
 
+![LangGraph 能力面:依赖提供 → 语境过滤 → 三分类使用](figures/capability-funnel.svg)
+
 ## 1. 已用面(证据清单)
 
 | 依赖能力 | DeerFlow 用法 | 证据 |
@@ -45,6 +47,8 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 | run 级事务化 | `_capture_rollback_point`(开跑前物化全量状态+pending_writes)→ cancel-with-rollback / edit-replay 失败恢复 → delta 线性化 | run 是事务单元:要么提交(新 checkpoint),要么整体回滚到 pre-run 快照 |
 
 ## 4. 运行单位的状态契约(语境的最终形态)
+
+![运行单位状态契约矩阵](figures/run-units.svg)
 
 | 单位 | 持久化 | 隔离 | 身份 | 恢复语义 |
 |------|--------|------|------|---------|

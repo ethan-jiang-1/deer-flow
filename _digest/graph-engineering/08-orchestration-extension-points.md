@@ -14,6 +14,8 @@ topics: [extension, middleware, custom-agents, sdk, orchestration]
 
 ## 1. 入口总表
 
+![扩展点地图:六个入口按侵入深度排列 + 选型决策树](figures/extension-entrypoints.svg)
+
 | # | 入口 | 形态 | 能做什么 | 部署面 / 风险 |
 |---|------|------|---------|--------------|
 | ① | Prompt / Skills | 文本 | 教 lead 按流程走(skill 的流程化指令、验收标准措辞) | 零代码;纯软约束,无机器保证 |
