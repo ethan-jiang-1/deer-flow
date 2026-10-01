@@ -1,0 +1,121 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="ah" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="700" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">DeerFlow 图工程支持度总览 — 12 项三档</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">v2（2026-10-02 深挖修订）· 标尺 = 研究层四大支柱 + 议题 09「固定元图 / 数据 DAG」两分 + 两层自愈 · 逐项源码锚点见 01-support-map.md</text>
+
+  <!-- ✅ column -->
+  <rect x="24" y="76" width="306" height="32" rx="6" fill="#ecfdf5" stroke="#059669"/>
+  <text x="177" y="97" font-size="14" font-weight="700" fill="#065f46" text-anchor="middle">✅ 完整支持 · 5 项</text>
+
+  <g font-size="11.5" fill="#334155">
+    <rect x="24" y="118" width="306" height="94" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="36" y="138" font-size="13" font-weight="700" fill="#0f172a">1 固定元图 · 极小形态</text>
+    <text x="36" y="156">model↔tools 两节点 + middleware 钩子节点</text>
+    <text x="36" y="172">第二张图 = 单 no-op 变异图（状态手术专用）</text>
+    <text x="36" y="188">turn_budget 把编译节点数当成本模型</text>
+    <text x="36" y="204" fill="#059669">结构性免疫：断裂 / 漂移不可能发生</text>
+
+    <rect x="24" y="222" width="306" height="94" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="36" y="242" font-size="13" font-weight="700" fill="#0f172a">2 检查点持久化与恢复</text>
+    <text x="36" y="260">sqlite / postgres · delta O(N) / full 双模式</text>
+    <text x="36" y="276">状态手术必须走 CheckpointStateAccessor</text>
+    <text x="36" y="292">checkpoint_patches 对上游缺陷打修正补丁</text>
+    <text x="36" y="308" fill="#059669">模式进程冻结 · restart-required</text>
+
+    <rect x="24" y="326" width="306" height="94" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="36" y="346" font-size="13" font-weight="700" fill="#0f172a">3 物理沙箱 · 超配</text>
+    <text x="36" y="364">七实现 Local/Docker/K8s/BoxLite/E2B/Tenki/OS</text>
+    <text x="36" y="380">网络策略 · 挂载上传预算 · 取消语义齐备</text>
+    <text x="36" y="396" fill="#b45309">隔离单位 = thread（不是 worker，见图 dependency-as-policy）</text>
+    <text x="36" y="412"> </text>
+
+    <rect x="24" y="430" width="306" height="94" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="36" y="450" font-size="13" font-weight="700" fill="#0f172a">4 渐进式工具/技能装配</text>
+    <text x="36" y="468">skill registry + deferred discovery</text>
+    <text x="36" y="484">DeferredToolFilter + skill_context 通道</text>
+    <text x="36" y="500">promoted 通道 catalog-hash 作用域防目录漂移</text>
+
+    <rect x="24" y="534" width="306" height="94" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="36" y="554" font-size="13" font-weight="700" fill="#0f172a">5 L1 局部自愈（节点内微循环）</text>
+    <text x="36" y="572">三护栏轴：turn / token / loop（consume_stop_reason）</text>
+    <text x="36" y="588">硬停 = 剥 tool_calls 强制收尾，不崩溃</text>
+    <text x="36" y="604">goal continuation 有界续跑（默认 8 轮）</text>
+  </g>
+
+  <!-- ◐ column -->
+  <rect x="347" y="76" width="306" height="32" rx="6" fill="#fffbeb" stroke="#d97706"/>
+  <text x="500" y="97" font-size="14" font-weight="700" fill="#92400e" text-anchor="middle">◐ 部分支持 · 5 项</text>
+
+  <g font-size="11.5" fill="#334155">
+    <rect x="347" y="118" width="306" height="94" rx="6" fill="#fffdf5" stroke="#e7d4a8"/>
+    <text x="359" y="138" font-size="13" font-weight="700" fill="#0f172a">6 动态任务分解（Task DAG as data）</text>
+    <text x="359" y="156">涌现式 task 调用流，活在模型上下文里</text>
+    <text x="359" y="172">依赖 = 路由策略硬否决（→串行/否决）</text>
+    <text x="359" y="188">todos 扁平无边 · delegations 只是台账</text>
+    <text x="359" y="204" fill="#b45309">无可校验、可切片、可重放的结构</text>
+
+    <rect x="347" y="222" width="306" height="94" rx="6" fill="#fffdf5" stroke="#e7d4a8"/>
+    <text x="359" y="242" font-size="13" font-weight="700" fill="#0f172a">7 Fan-out 并发派发</text>
+    <text x="359" y="260">工具层派发 · FIFO 准入（默认 3）</text>
+    <text x="359" y="276">共享线程沙箱 lease（#5128）</text>
+    <text x="359" y="292">Send() 仅 tools 节点内工具并行</text>
+    <text x="359" y="308" fill="#b45309">派发的是「一堆独立任务」，不是图节点</text>
+
+    <rect x="347" y="326" width="306" height="94" rx="6" fill="#fffdf5" stroke="#e7d4a8"/>
+    <text x="359" y="346" font-size="13" font-weight="700" fill="#0f172a">8 工件契约与验收门禁</text>
+    <text x="359" y="364">状态信封：5 状态 + 3 停机原因 + 结果指纹</text>
+    <text x="359" y="380">确定性验收 file: / tests_passed:（fail-closed）</text>
+    <text x="359" y="396" fill="#b45309">缺：任务间交付契约 + Gate 分支消费者</text>
+
+    <rect x="347" y="430" width="306" height="94" rx="6" fill="#fffdf5" stroke="#e7d4a8"/>
+    <text x="359" y="450" font-size="13" font-weight="700" fill="#0f172a">9 Session 外外部状态机</text>
+    <text x="359" y="468">run 事务：回滚点 / 取消回滚 / 编辑重放</text>
+    <text x="359" y="484">scheduler · MCP · batch durable（lease 全套）</text>
+    <text x="359" y="500" fill="#b45309">恢复 run ≠ 恢复任务图执行位</text>
+    <text x="359" y="516">delta 模式结构性禁 fork（worker 线性化）</text>
+
+    <rect x="347" y="534" width="306" height="94" rx="6" fill="#fffdf5" stroke="#e7d4a8"/>
+    <text x="359" y="554" font-size="13" font-weight="700" fill="#0f172a">10 HITL 门禁（图级 interrupt/resume）</text>
+    <text x="359" y="572">interrupt_before/after = Gateway API 字段</text>
+    <text x="359" y="588">Command(resume) 已在 run 请求路径</text>
+    <text x="359" y="604" fill="#b45309">产品层无消费者：resume 重进对话循环</text>
+    <text x="359" y="620">interrupt() 函数原语零处使用</text>
+  </g>
+
+  <!-- ❌ column -->
+  <rect x="670" y="76" width="306" height="32" rx="6" fill="#fef2f2" stroke="#dc2626"/>
+  <text x="823" y="97" font-size="14" font-weight="700" fill="#991b1b" text-anchor="middle">❌ 缺席 · 2 项</text>
+
+  <g font-size="11.5" fill="#334155">
+    <rect x="670" y="118" width="306" height="94" rx="6" fill="#fffafa" stroke="#e8b7b7"/>
+    <text x="682" y="138" font-size="13" font-weight="700" fill="#0f172a">11 L2 拓扑自愈</text>
+    <text x="682" y="156">无 replan / 拓扑校验 / 子图切片 / 预算</text>
+    <text x="682" y="172">信封有结构 → 缺的是重规划语义</text>
+    <text x="682" y="188" fill="#991b1b">failure_classification + suggested_action</text>
+    <text x="682" y="204" fill="#991b1b">两个字段之遥（见 05 §5）</text>
+
+    <rect x="670" y="222" width="306" height="94" rx="6" fill="#fffafa" stroke="#e8b7b7"/>
+    <text x="682" y="242" font-size="13" font-weight="700" fill="#0f172a">12 黑板状态机</text>
+    <text x="682" y="260">无跨节点黑板 / 版本快照</text>
+    <text x="682" y="276">替代物：独立 checkpoint namespace</text>
+    <text x="682" y="292">＋共享线程沙箱（物理替代）</text>
+    <text x="682" y="308">全局状态 = messages + 少量通道</text>
+
+    <rect x="670" y="326" width="306" height="94" rx="6" fill="#f5f3ff" stroke="#c4b5fd"/>
+    <text x="682" y="346" font-size="13" font-weight="700" fill="#5b21b6">边界反例（对研究层）</text>
+    <text x="682" y="364">生产级超级智能体底座刻意不用</text>
+    <text x="682" y="380">数据 DAG 也能成立 →</text>
+    <text x="682" y="396">数据图是否必要，取决于形态</text>
+    <text x="682" y="412">（超级智能体 vs 确定性流水线）</text>
+  </g>
+
+  <!-- bottom judgment -->
+  <rect x="24" y="644" width="952" height="40" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="500" y="669" font-size="13" font-weight="700" fill="#0f172a" text-anchor="middle">一句话判读：带验证的「任务队列机器」，不是「工作流图机器」—— 缺的是任务间关系的显式表达，不是工程质量</text>
+</svg>

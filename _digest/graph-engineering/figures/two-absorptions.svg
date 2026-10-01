@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 700" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1040" height="700" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">同一条教训的两种吸收方式</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 03-why-no-dag.md · 「没有 DAG」不是缺陷，是对「现场编译新图」反模式的另一种解法</text>
+
+  <!-- shared lesson box -->
+  <rect x="120" y="74" width="800" height="58" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="520" y="98" font-size="14" font-weight="700" fill="#991b1b" text-anchor="middle">教训（议题 09）：现场编译新图 = 生产级反模式</text>
+  <text x="520" y="118" font-size="12" fill="#7f1d1d" text-anchor="middle">Checkpointer 状态映射断裂 · APM/Trace 拓扑漂移 · 元状态抖动（Meta Doom Loop）</text>
+
+  <!-- arrows to two columns -->
+  <path d="M 320 132 L 260 168" stroke="#7c3aed" stroke-width="2" fill="none" marker-end="url(#ap)"/>
+  <path d="M 720 132 L 780 168" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#ab)"/>
+  <defs>
+    <marker id="ap" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/></marker>
+    <marker id="ab" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/></marker>
+  </defs>
+
+  <!-- left column: DAG camp -->
+  <rect x="24" y="172" width="470" height="330" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+  <text x="44" y="200" font-size="16" font-weight="700" fill="#5b21b6">DAG 阵营 · 议题 09 终局架构</text>
+  <g font-size="12.5" fill="#334155">
+    <text x="44" y="228">▪ 固定多角色元图：Planner → Dispatcher → Worker → Gate</text>
+    <text x="44" y="252">▪ 动态性 = State.task_dag 数据（改图 = 状态手术）</text>
+    <text x="44" y="276">▪ L2 自愈 = 局部子图切片（冻结已成功节点）</text>
+    <text x="44" y="300">▪ 表达力：依赖边 / 汇聚 / 门禁全部显式、可校验</text>
+    <text x="44" y="324">▪ 重规划可审计：checkpoint 历史 = DAG 版本史</text>
+  </g>
+  <rect x="44" y="348" width="430" height="56" rx="6" fill="#ede9fe" stroke="#a78bfa"/>
+  <text x="64" y="372" font-size="12.5" font-weight="700" fill="#5b21b6">适合形态：确定性流水线</text>
+  <text x="64" y="390" font-size="12" fill="#6d28d9">Issue → PR 蓝图、CI/CD 硬编排、企业级长程开发</text>
+  <text x="44" y="436" font-size="12" fill="#64748b">代表：GPT Researcher v3、LangGraph Plan-and-Execute</text>
+  <text x="44" y="460" font-size="12" fill="#64748b">（见研究层 harness_langgraph_ecosystem/01、04）</text>
+  <text x="44" y="488" font-size="12.5" font-weight="700" fill="#5b21b6">DeerFlow 源码里：不存在（task_dag 零实现）</text>
+
+  <!-- right column: DeerFlow -->
+  <rect x="546" y="172" width="470" height="330" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="566" y="200" font-size="16" font-weight="700" fill="#1e40af">DeerFlow 2.0 · 极简吸收</text>
+  <g font-size="12.5" fill="#334155">
+    <text x="566" y="228">▪ 元图缩到两节点（model↔tools）且永不变化</text>
+    <text x="566" y="252">▪ 动态性收进对话：todos + delegations + task 调用流</text>
+    <text x="566" y="276">▪ 依赖 = 路由策略硬否决（输出依赖/状态重叠 → 串行）</text>
+    <text x="566" y="300">▪ 免疫：断裂 / 漂移在两节点图上结构性不可能发生</text>
+  </g>
+  <rect x="566" y="322" width="430" height="84" rx="6" fill="#dbeafe" stroke="#93c5fd"/>
+  <text x="586" y="346" font-size="12.5" font-weight="700" fill="#1e40af">代价清单（用表达力换免疫）</text>
+  <text x="586" y="366" font-size="12" fill="#1e3a8a">重规划不可审计（发生在对话里）· 无拓扑级断点（恢复=恢复对话）</text>
+  <text x="586" y="386" font-size="12" fill="#1e3a8a">失败升级缺重规划语义（信封有结构，缺分类学+建议动作）</text>
+  <rect x="566" y="418" width="430" height="56" rx="6" fill="#ede9fe" stroke="#a78bfa"/>
+  <text x="586" y="442" font-size="12.5" font-weight="700" fill="#5b21b6">适合形态：超级智能体底座</text>
+  <text x="586" y="460" font-size="12" fill="#6d28d9">Harness 管环境 · Agent 管算子 · 动态性留给模型自觉</text>
+  <text x="566" y="492" font-size="12.5" font-weight="700" fill="#1e40af">DeerFlow 源码里：全部实证（05/06 逐层解剖）</text>
+
+  <!-- bottom judgment -->
+  <rect x="24" y="522" width="992" height="82" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="520" y="550" font-size="14" font-weight="700" fill="#0f172a" text-anchor="middle">边界反例判读（回写研究层 08/09 校准注记）</text>
+  <text x="520" y="572" font-size="12.5" fill="#334155" text-anchor="middle">生产级超级智能体底座，刻意不采用数据 DAG 也能成立 → 「数据图」半边对超级智能体形态非必要</text>
+  <text x="520" y="592" font-size="12.5" fill="#334155" text-anchor="middle">两分法收窄：收敛到固定元图是事实；数据图是否必要，取决于形态（超级智能体 vs 确定性流水线）</text>
+
+  <text x="24" y="636" font-size="12" fill="#64748b">补全右列代价的路线 → 04-extension-path.md（资产桥）· 09-task-dag-injection-design.md（契约内落地设计）</text>
+</svg>
