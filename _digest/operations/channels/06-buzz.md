@@ -23,10 +23,10 @@ topics: [channels, im, buzz, nostr, nip-01, nip-42, bip-340, dedupe]
 
 | 文件 | 行数 | 职责 |
 |------|------|------|
-| `app/channels/buzz.py` | 1413 | BuzzChannel：连接、订阅恢复、入站闸门、出站流式 |
+| `app/channels/buzz.py` | 1472 | BuzzChannel：连接、订阅恢复、入站闸门、出站流式 |
 | `app/channels/buzz_nostr.py` | ~200 | 纯 NIP-01 工具：bech32、事件签名/验证（BIP-340） |
 | `app/channels/buzz_run_policy.py` | 12 | run 策略注册（import side-effect） |
-| `app/channels/dedupe_store.py` | 277 | 入站去重存储（Memory/Postgres，issue #4120） |
+| `app/channels/dedupe_store.py` | 276 | 入站去重存储（Memory/Postgres，issue #4120） |
 | `app/channels/buzz_seen_events.py` | 385 | 连接层 seen-id 持久去重（`BuzzSeenEventStore`，issue #4888；🆕 同步 #6 落盘移出事件循环 #5103） |
 
 ## Nostr 协议层（`buzz_nostr.py`）

@@ -132,7 +132,7 @@ Shutdown:
 |------|------|------|
 | `app/channels/base.py` | 393 | `Channel` 抽象基类 |
 | `app/channels/message_bus.py` | 359 | `MessageBus` pub/sub |
-| `app/channels/manager.py` | 2786 | `ChannelManager` 核心调度 |
+| `app/channels/manager.py` | 2958 | `ChannelManager` 核心调度 |
 | `app/channels/store.py` | 157 | 文件持久化 Channel↔Thread 映射（读写全部在 `_lock` 内） |
 | `app/channels/service.py` | 588 | `ChannelService` 生命周期 |
 | `app/channels/commands.py` | 90 | 已知命令集（含 `/agent`、`/goal`） |
@@ -140,11 +140,11 @@ Shutdown:
 | `app/channels/sandbox_files.py` | 43 | 🆕 入站附件→沙箱同步（非释放沙箱 client lease，防并行 run 关闭共享 client） |
 | `app/channels/feishu.py` | 1244 | 飞书/Lark |
 | `app/channels/slack.py` | 475 | Slack |
-| `app/channels/telegram.py` | 992 | Telegram |
+| `app/channels/telegram.py` | 1026 | Telegram |
 | `app/channels/dingtalk.py` | 1129 | 钉钉 |
-| `app/channels/discord.py` | 858 | Discord |
-| `app/channels/wecom.py` | 619 | 企业微信（出站 20480 UTF-8 字节协议上限 🆕） |
-| `app/channels/wechat.py` | 1479 | 微信 |
+| `app/channels/discord.py` | 885 | Discord |
+| `app/channels/wecom.py` | 648 | 企业微信（出站 20480 UTF-8 字节协议上限 🆕） |
+| `app/channels/wechat.py` | 1659 | 微信 |
 | `app/channels/buzz.py` | 1472 | 🆕 Buzz（Nostr relay，NIP-42 认证） |
 | `app/channels/buzz_nostr.py` | 201 | 🆕 NIP-01 事件签名/验证（BIP-340 Schnorr） |
 | `app/channels/buzz_run_policy.py` | 12 | 🆕 Buzz run 策略（serialize_thread_runs） |

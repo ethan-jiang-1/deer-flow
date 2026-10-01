@@ -11,9 +11,9 @@ topics: [tracing, observability, langsmith]
 | 文件 | 行数 | 职责 |
 |------|------|------|
 | `tracing/__init__.py` | — | 导出 `build_tracing_callbacks`、`inject_langfuse_metadata` |
-| `tracing/factory.py` | 55 | CallbackHandler 工厂，懒加载 + 错误包装 |
-| `tracing/metadata.py` | 106 | Langfuse v4 元数据构建器，双注入点共享 |
-| `config/tracing_config.py` | 161 | Tracing 配置解析、env var 检测、double-checked 缓存 |
+| `tracing/factory.py` | 65 | CallbackHandler 工厂，懒加载 + 错误包装 |
+| `tracing/metadata.py` | 114 | Langfuse v4 元数据构建器，双注入点共享 |
+| `config/tracing_config.py` | 212 | Tracing 配置解析、env var 检测、double-checked 缓存 |
 
 ## 整体数据流
 

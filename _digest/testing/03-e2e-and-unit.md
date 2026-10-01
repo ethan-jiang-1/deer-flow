@@ -124,7 +124,7 @@ pnpm test:e2e -- --grep "thinking block"
 | `test_vllm_provider.py` | 16 | reasoning 字段提取、chat template 兼容、thinking 开关、streaming chunk |
 | `test_patched_minimax.py` | 5 | reasoning_split 强制启用、reasoning_details 映射、<think> 剥离、delta 拼接 |
 | `test_patched_deepseek.py` | 10 | reasoning_content 重注入、多轮保持、positional fallback |
-| `test_mindie_provider.py` | 47 | tool+stream 降级、XML 解析、message 修复、timeout 归一化 |
+| `test_mindie_provider.py` | 45 | tool+stream 降级、XML 解析、message 修复、timeout 归一化 |
 | `test_codex_provider.py` | 24 | SSE 解析、response 合并、message 转换、tool arg 处理 |
 | `test_patched_openai.py` | 8 | thought_signature 重注入、snake_case/camelCase 双检测 |
 | `test_claude_provider_prompt_caching.py` | 13 | cache_control breakpoint ≤4 上限、候选位置选择 |
