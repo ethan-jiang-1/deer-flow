@@ -15,6 +15,7 @@ DeerFlow 支持 4 种部署模式：本地开发（`make dev`）、Docker 开发
 | `00-overview.md` | 全景：4 种部署模式对比矩阵、进程拓扑图、选型决策树 |
 | `01-docker.md` | Docker Compose 结构：5 服务拓扑、网络配置、DooD 模式、生产检查清单 |
 | `02-nginx-and-k8s.md` | Nginx SSE 配置（proxy_buffering off）、速率限制、K3s Provisioner Pod 规格、RBAC |
+| `03-custom-sandbox-image.md` | 自定义 Sandbox 镜像：预装额外包、image 字段、运行时 pip install、BoxLite 自定义 |
 
 ## 关键问题
 

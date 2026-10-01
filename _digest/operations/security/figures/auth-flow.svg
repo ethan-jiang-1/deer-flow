@@ -51,7 +51,7 @@
 
   <text x="40" y="414" font-size="11" fill="#555">④ 结果</text>
   <rect x="40" y="424" width="300" height="36" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
-  <text x="55" y="442" text-anchor="middle" x="190" font-size="10" fill="#2e7d32">user_id → ContextVar → 所有后续操作 scoped</text>
+  <text x="190" y="442" text-anchor="middle" font-size="10" fill="#2e7d32">user_id → ContextVar → 所有后续操作 scoped</text>
 
   <!-- Failure cases -->
   <rect x="40" y="474" width="300" height="135" rx="6" fill="#ffebee" stroke="#ef9a9a" stroke-width="0.5"/>
@@ -78,7 +78,7 @@
 
   <text x="400" y="210" font-size="11" fill="#555">② 请求带 header</text>
   <rect x="400" y="220" width="300" height="28" rx="4" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
-  <text x="415" y="239" font-size="10" fill="#555">X-DeerFlow-Internal-Token: <token></text>
+  <text x="415" y="239" font-size="10" fill="#555">X-DeerFlow-Internal-Token: &lt;token&gt;</text>
 
   <text x="405" y="268" font-size="11" fill="#999">→</text>
 

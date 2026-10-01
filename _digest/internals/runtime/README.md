@@ -101,6 +101,18 @@ sequenceDiagram
 | `context_keys.py` | 33 | 🆕 checkpoint 级 server-owned 键（agent binding 元数据） |
 | `task-continuity.md` | — | 🆕 任务连续性子系统文档：task notes + compacted history recall（见下方同步 #6） |
 
+### 本目录文档索引（7 篇）
+
+| 文档 | 内容 |
+|------|------|
+| `01-run-manager.md` | RunManager：运行 CRUD、状态机、多任务策略、lease 与孤儿恢复 |
+| `02-stream-bridge.md` | StreamBridge：SSE 发布/订阅、心跳、memory/SQLite/Redis 三后端 |
+| `03-serialization.md` | 序列化层：LangChain 对象 → JSON 规范转换（values/messages/custom 三模式） |
+| `04-journal.md` | RunJournal：LLM 调用日志、token 分桶累计、消息去重、进度刷盘 |
+| `05-run-ownership-and-rollback.md` | Multi-worker ownership / rollback / delivery receipt 完整说明 |
+| `goal-continuation.md` | Goal 自动续跑循环完整说明（evaluator、blocker、no-progress breaker） |
+| `task-continuity.md` | 任务连续性：task notes + compacted history recall |
+
 ### 同步 #6（ce635b7d）：线程生命周期、幂等与事件循环卫生
 
 #### 1. Thread incarnations（expand-phase 存储，#5216）

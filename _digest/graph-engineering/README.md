@@ -8,7 +8,7 @@ topics: [graph, dag, langgraph, orchestration, subagent]
 
 > 这个目录回答两个问题:① **以研究层 [`graph_engineering`](/Users/bowhead/ai_dev_sdlc_aidc/02_research/01_agent_engineering/graph_engineering/README.md) 的框架为标尺,DeerFlow 对图工程支持到哪儿?**(01-06) ② **今后要用 DeerFlow 编排 workflow,手上有哪些旋钮、从哪儿注入、缺口怎么补?**(07-09)
 >
-> 2026-10-01 判定 / 2026-10-02 深挖修订,依据源码(`ethan` 分支 / v2.1.0-rc0 口径)+ `_faq_on_digested/07-09` + 逐文件回源。不做理想化叙事——支持多大多写多大,缺席就写缺席。
+> 2026-10-01 判定 / 2026-10-02 深挖修订,依据源码(`ethan` 分支 = **锚点 #7 / v2.1.0**,2026-09-24;rc0→v2.1.0 的 10 个 release commit 已逐一核对:图元图、沙箱、子代理、检查点、factory 等主锚点均未触及,仅 `runtime/events/store/*` 与 `runs/store/memory.py` 有事件/运行存储改动——[06 §4](06-langgraph-capability-surface.md) 的 run 单位行据此仍是同构契约(存储后端内部实现变化,不改运行单位的状态/隔离/身份/恢复语义))+ `_faq_on_digested/07-09` + 逐文件回源。不做理想化叙事——支持多大多写多大,缺席就写缺席。
 
 | 文件 | 内容 |
 |------|------|

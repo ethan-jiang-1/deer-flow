@@ -21,6 +21,7 @@ type: index
 | **02-sandbox-isolation.md** | 沙箱隔离：三档对比(13维)、allow_host_bash、6层路径防穿越 |
 | **03-guardrail.md** | Guardrail + 审计：可插拔授权、高危命令拦截、MCP 结果清洗、blocked payload elision、输出安全 |
 | **04-trust-boundary.md** | 端到端信任链：14 层防护在代码中的位置和执行流 |
+| **05-production-auth-setup.md** | 生产认证配置：JWT 环境变量、多用户隔离、Nginx 速率限制分步指南 |
 
 ## 关键问题
 

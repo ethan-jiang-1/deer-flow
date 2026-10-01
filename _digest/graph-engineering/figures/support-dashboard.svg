@@ -30,8 +30,8 @@
 
     <rect x="24" y="326" width="306" height="94" rx="6" fill="#f8fafc" stroke="#cbd5e1"/>
     <text x="36" y="346" font-size="13" font-weight="700" fill="#0f172a">3 物理沙箱 · 超配</text>
-    <text x="36" y="364">七实现 Local/Docker/K8s/BoxLite/E2B/Tenki/OS</text>
-    <text x="36" y="380">网络策略 · 挂载上传预算 · 取消语义齐备</text>
+    <text x="36" y="364">七实现:Local · AIO(Docker) · Provisioner(K3s) · BoxLite</text>
+    <text x="36" y="380">· E2B · Tenki · OpenSandbox;网络/挂载预算/取消齐备</text>
     <text x="36" y="396" fill="#b45309">隔离单位 = thread（不是 worker，见图 dependency-as-policy）</text>
     <text x="36" y="412"> </text>
 
