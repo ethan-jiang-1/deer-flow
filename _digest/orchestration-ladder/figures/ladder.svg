@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 640" font-family="PingFang SC, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker>
+  </defs>
+  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">DeerFlow 编排原语阶梯（orchestration-ladder 00-map）</text>
+  <text x="490" y="52" text-anchor="middle" font-size="12" fill="#475569">横轴：时间跨度 →；每级标注 持久事实 / 完成证据（详见 01·02·03）</text>
+
+  <!-- axis -->
+  <line x1="70" y1="560" x2="930" y2="560" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="930" y="580" text-anchor="end" font-size="12" fill="#475569">时间跨度</text>
+
+  <!-- rungs: y descending, x by span -->
+  <g font-size="12">
+    <!-- plan mode -->
+    <rect x="90" y="90" width="150" height="44" rx="8" fill="#e0f2fe" stroke="#0284c7"/>
+    <text x="165" y="108" text-anchor="middle" fill="#0c4a6e" font-weight="600">plan mode</text>
+    <text x="165" y="124" text-anchor="middle" fill="#075985" font-size="10">ThreadState 内计划 · 单 turn</text>
+    <!-- ask_clarification -->
+    <rect x="260" y="90" width="180" height="44" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+    <text x="350" y="108" text-anchor="middle" fill="#713f12" font-weight="600">ask_clarification</text>
+    <text x="350" y="124" text-anchor="middle" fill="#854d0e" font-size="10">Command(goto=END)+human_input · 回合级</text>
+    <!-- task -->
+    <rect x="460" y="90" width="170" height="44" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="545" y="108" text-anchor="middle" fill="#14532d" font-weight="600">task（即时子代理）</text>
+    <text x="545" y="124" text-anchor="middle" fill="#166534" font-size="10">ToolNode Send 并行 · 无持久 accepted</text>
+    <!-- batch -->
+    <rect x="650" y="90" width="190" height="44" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="745" y="108" text-anchor="middle" fill="#14532d" font-weight="600">batch_task（durable）</text>
+    <text x="745" y="124" text-anchor="middle" fill="#166534" font-size="10">lease+幂等键 · at-least-once · 跨崩溃</text>
+
+    <!-- interrupt/resume/fork -->
+    <rect x="90" y="170" width="220" height="44" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+    <text x="200" y="188" text-anchor="middle" fill="#4c1d95" font-weight="600">interrupt / resume / fork</text>
+    <text x="200" y="204" text-anchor="middle" fill="#5b21b6" font-size="10">checkpoint · delta 禁 fork→线性化 · 挂起任意久</text>
+    <!-- goal -->
+    <rect x="460" y="170" width="180" height="44" rx="8" fill="#ffe4e6" stroke="#e11d48"/>
+    <text x="550" y="188" text-anchor="middle" fill="#881337" font-weight="600">goal continuation</text>
+    <text x="550" y="204" text-anchor="middle" fill="#9f1239" font-size="10">checkpoint goal 通道 · max 8 轮 · 跨自动续轮</text>
+    <!-- scheduler -->
+    <rect x="660" y="170" width="200" height="44" rx="8" fill="#ffe4e6" stroke="#e11d48"/>
+    <text x="760" y="188" text-anchor="middle" fill="#881337" font-weight="600">scheduler</text>
+    <text x="760" y="204" text-anchor="middle" fill="#9f1239" font-size="10">queued/launching/running · lease fence · 定时</text>
+    <!-- mcp tasks -->
+    <rect x="860" y="170" width="90" height="44" rx="8" fill="#f1f5f9" stroke="#64748b"/>
+    <text x="905" y="188" text-anchor="middle" fill="#334155" font-weight="600">mcp_tasks</text>
+    <text x="905" y="204" text-anchor="middle" fill="#475569" font-size="10">异步轮询</text>
+  </g>
+
+  <!-- legend bands -->
+  <g font-size="11">
+    <text x="90" y="270" fill="#0f172a" font-weight="700">完成证据分层（01 号深挖）</text>
+    <rect x="90" y="282" width="10" height="10" fill="#dcfce7"/><text x="108" y="292" fill="#334155">accepted 有持久行：batch / scheduler / mcp_tasks / run</text>
+    <rect x="90" y="302" width="10" height="10" fill="#fef9c3"/><text x="108" y="312" fill="#334155">accepted 仅进程内：task（FIFO 控制器）· IM dedupe key（内存）</text>
+    <rect x="90" y="322" width="10" height="10" fill="#e0f2fe"/><text x="108" y="332" fill="#334155">model-visible = checkpoint messages 通道（下一次模型调用）</text>
+    <rect x="90" y="342" width="10" height="10" fill="#ede9fe"/><text x="108" y="352" fill="#334155">“成功却报错”合法：回执/ownership 无法确认 → 围栏 error</text>
+
+    <text x="90" y="395" fill="#0f172a" font-weight="700">状态三分法（02 号深挖）</text>
+    <rect x="90" y="407" width="10" height="10" fill="#bbf7d0"/><text x="108" y="417" fill="#334155">持久事实：checkpoint 链（唯一可续跑）· queued 行 · batch 表 · 磁盘文件</text>
+    <rect x="90" y="427" width="10" height="10" fill="#fde68a"/><text x="108" y="437" fill="#334155">派生投影：delta 历史缓存（纯函数，永不失效）· FTS5 索引 · feed-seq</text>
+    <rect x="90" y="447" width="10" height="10" fill="#fecaca"/><text x="108" y="457" fill="#334155">内存 authority：RunManager._runs · journal 缓冲 · 子代理注册表 · lease 身份</text>
+    <rect x="90" y="467" width="10" height="10" fill="#f8fafc" stroke="#94a3b8"/><text x="108" y="477" fill="#334155">恢复姿态 = 标错对账 / 静默丢失，不是断点续传</text>
+
+    <text x="90" y="520" fill="#0f172a" font-weight="700">预算叠加链（03 号深挖）</text>
+    <text x="90" y="538" fill="#334155">run 准入(reject/无队列) → 响应级截断(并发3/总量6，静默) → 进程容量(FIFO 3/64/300s) → LLM 帽(默认0=不限) → scheduler(3, DB锁) → 沙箱小闸门</text>
+  </g>
+  <text x="490" y="618" text-anchor="middle" font-size="10" fill="#94a3b8">_digest/orchestration-ladder/figures/ladder.svg · 全部结论见同目录 00-04 号笔记（path:line 锚定）</text>
+</svg>

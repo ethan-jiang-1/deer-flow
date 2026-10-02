@@ -128,6 +128,8 @@ Shutdown:
 
 ## 源码索引
 
+> 数字口径：本表行数为 **v2.1.0（锚点 #7）实测**；下方「同步 #6 更新」段落记录的是 #6 窗口的功能变更，不等同于本表在该窗口重测。
+
 | 文件 | 行数 | 职责 |
 |------|------|------|
 | `app/channels/base.py` | 393 | `Channel` 抽象基类 |
@@ -150,6 +152,9 @@ Shutdown:
 | `app/channels/buzz_run_policy.py` | 12 | 🆕 Buzz run 策略（serialize_thread_runs） |
 | `app/channels/buzz_seen_events.py` | 385 | 🆕 连接层 seen-id 持久去重（`BuzzSeenEventStore`，事件循环外读写） |
 | `app/channels/dedupe_store.py` | 276 | 🆕 入站消息去重存储（Memory/Postgres 两级） |
+| `app/channels/connection_identity.py` | 44 | 🆕 把持久化的连接所有权归到入站消息（`attach_connection_identity`，绑定 user-connection 归属） |
+| `app/channels/runtime_config_store.py` | 157 | 🆕 UI 录入的 channel 凭据本地 JSON 持久化（`ChannelRuntimeConfigStore`，镜像 `ChannelStore` 模式；含 `_runtime_disabled` 运行时禁用旗标） |
+| `app/channels/github.py` | 115 | 🆕 webhook 驱动的 GitHub 通道（PR/issue 评论；唯一 push 型通道，详见 [../github-integration.md](../github-integration.md)） |
 | `deerflow/integrations/lark_cli.py` | 2846 | 🆕 Lark CLI 托管集成安装器（27 个 lark-* 技能包） |
 | `deerflow/integrations/lark_broker.py` | 457 | 🆕 Pattern B 凭据 broker（沙箱侧 sidecar） |
 | `app/gateway/routers/channels.py` | — | Channel 状态/重启 API |

@@ -23,6 +23,7 @@ type: index
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化 |
 | 🕸️ 图工程支持到哪儿 | [graph-engineering/](graph-engineering/) | 12 项三档支持度地图、部分支持边界、为什么没有任务 DAG、扩展路线、编排操作面与注入设计 |
+| 🪜 编排原语阶梯 | [orchestration-ladder/](orchestration-ladder/) | 跨原语统一视角：完成语义与崩溃窗口、状态三分法、资源预算叠加（借鉴 DSH ladder 方法） |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程、机械校验器 `_digest/_upstream-sync/tools/check_digest.py` |
 
 ## 目录结构
@@ -41,7 +42,8 @@ _digest/
 ├── frontend/                # 前端架构
 ├── harness/                 # Agent 工程实践（AX/DX、可验证性、审计清单）
 ├── harness-engineering/     # harness 工程质量评估（coding agent 视角）
-└── graph-engineering/       # 图工程支持度判定（固定元图 ✅ / 动态任务 DAG ❌）
+├── graph-engineering/       # 图工程支持度判定（固定元图 ✅ / 动态任务 DAG ❌）
+└── orchestration-ladder/    # 编排原语阶梯（完成语义 / 状态三分法 / 资源预算）
 ```
 
 ## 文件命名约定
@@ -92,4 +94,7 @@ graph engineering / dynamic workflow DAG 支持度 → graph-engineering/01-supp
 用 DeerFlow 编排 workflow（旋钮/配方）   → graph-engineering/07-orchestration-surface.md
 给 DeerFlow 加编排逻辑（从哪儿进）     → graph-engineering/08-orchestration-extension-points.md
 task_dag 注入怎么落                       → graph-engineering/09-task-dag-injection-design.md
+"完成"到底指什么 / 崩溃后会不会重复投递  → orchestration-ladder/01-完成语义与崩溃窗口-接受可见静止处置.md
+哪些状态重启后会丢 / checkpoint 是事实还是投影 → orchestration-ladder/02-状态三分法-持久事实派生投影与内存权限.md
+并发/总量限制怎么叠加、哪层先触发       → orchestration-ladder/03-资源预算与公平性-并发深度总量与容量边界.md
 ```
