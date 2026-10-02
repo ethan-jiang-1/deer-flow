@@ -23,7 +23,7 @@ type: index
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化 |
 | 🕸️ 图工程支持到哪儿 | [graph-engineering/](graph-engineering/) | 12 项三档支持度地图、部分支持边界、为什么没有任务 DAG、扩展路线、编排操作面与注入设计 |
-| 🪜 编排原语阶梯 | [orchestration-ladder/](orchestration-ladder/) | 跨原语统一视角：完成语义与崩溃窗口、状态三分法、资源预算叠加（借鉴 DSH ladder 方法） |
+| 🪜 编排原语阶梯 | [orchestration-ladder/](orchestration-ladder/) | 跨原语统一视角：完成语义与崩溃窗口、状态三分法、资源预算叠加、LangGraph 能力面榨取、组合模式、谱系与冷恢复、外部叙事核对、图计算本质重述（借鉴 DSH ladder 方法） |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程、机械校验器 `_digest/_upstream-sync/tools/check_digest.py` |
 
 ## 目录结构
@@ -97,4 +97,8 @@ task_dag 注入怎么落                       → graph-engineering/09-task-dag
 "完成"到底指什么 / 崩溃后会不会重复投递  → orchestration-ladder/01-完成语义与崩溃窗口-接受可见静止处置.md
 哪些状态重启后会丢 / checkpoint 是事实还是投影 → orchestration-ladder/02-状态三分法-持久事实派生投影与内存权限.md
 并发/总量限制怎么叠加、哪层先触发       → orchestration-ladder/03-资源预算与公平性-并发深度总量与容量边界.md
+langgraph 还有啥能榨 / interrupt 怎么接  → orchestration-ladder/04-LangGraph能力面榨取-未用原语与接入设计.md
+原语能不能组合 / goal 有没有 wrapup     → orchestration-ladder/05-组合模式与收尾纪律-跨原语协同.md
+id 谱系 / lease 接管 / 重启恢复顺序     → orchestration-ladder/06-Session谱系与冷恢复-线程运行与所有权.md
+"DeerFlow 是 planner 工作流"？v1/v2 真相 → orchestration-ladder/07-对照外部叙事-v1v2混淆与逐条核对.md
 ```

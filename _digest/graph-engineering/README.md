@@ -31,6 +31,7 @@ topics: [graph, dag, langgraph, orchestration, subagent]
 | 位置 | 分工 |
 |------|------|
 | [concepts/lead-agent/](../concepts/lead-agent/README.md) | 元图**内部**:两节点怎么跑、ThreadState、middleware 洋葱链 |
+| [orchestration-ladder/](../orchestration-ladder/README.md) | **跨原语统一视角**:完成语义/状态三分法/资源预算/组合模式/谱系与冷恢复(借鉴 DSH ladder 方法,与本目录 06 互补) |
 | `_faq_on_digested/07-09` | LangGraph 图模型逐行源码追踪(node / 路由 / Send / reducer) |
 | **本目录** | 元图**之上 / 节点之间**:图工程标尺对表、能力边界、缺口路线 |
 | 研究层 [`harness_langgraph_ecosystem/`](/Users/bowhead/ai_dev_sdlc_aidc/02_research/01_agent_engineering/graph_engineering/harness_langgraph_ecosystem/README.md) | 生态横向对比(LangGraph 原生 / Deep Agents / DeerFlow / GPT Researcher);其 03 号文件以本目录为事实权威,本目录 04 对其注入方案做批判性判读——双向校准环 |

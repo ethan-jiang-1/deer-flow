@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" font-family="PingFang SC, sans-serif">
+  <text x="490" y="28" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">LangGraph 能力面榨取优先级（04 号）</text>
+  <text x="490" y="50" text-anchor="middle" font-size="12" fill="#475569">依赖已提供 · DeerFlow 未用/未用满 · venv 实装 1.1.9（lock 1.2.9，落地前 uv sync 复核）</text>
+  <g font-size="11">
+    <!-- priority ladder, high to low -->
+    <rect x="80" y="70" width="820" height="58" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+    <text x="100" y="93" font-weight="700" fill="#14532d" font-size="13">高 · interrupt() + Command(resume) → 挂起式工具审批</text>
+    <text x="100" y="113" fill="#166534">seam 现成：ToolNode v2 每 tool call 一个 Send，设计动机即 per-tool-call HITL · 与 delta 封锁正交（resume 不选 checkpoint_id）· 需 run 第四态 + non_interactive 信任边界</text>
+
+    <rect x="80" y="140" width="820" height="52" rx="8" fill="#bbf7d0" stroke="#22c55e"/>
+    <text x="100" y="161" font-weight="700" fill="#14532d">中高 · update_state(task_id=...) → 悬挂工具服务端补答</text>
+    <text x="100" y="179" fill="#166534">pending-write 层定向注入（管理员代答/自动审批）· 依赖 interrupt() 先行 · pending-write×变异图组合需实验验证</text>
+
+    <rect x="80" y="204" width="400" height="52" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+    <text x="100" y="225" font-weight="700" fill="#713f12">中 · 显式 Send / Command(goto=[Send])</text>
+    <text x="100" y="243" fill="#854d0e">图内秒级 map-reduce 小 fan · 无持久恢复语义</text>
+
+    <rect x="500" y="204" width="400" height="52" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+    <text x="520" y="225" font-weight="700" fill="#713f12">中 · subgraphs=true 消费</text>
+    <text x="520" y="243" fill="#854d0e">后端全通、前端零消费 · 纯前端工作</text>
+
+    <rect x="80" y="268" width="400" height="46" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+    <text x="100" y="287" font-weight="700" fill="#334155">低 · checkpointer fork → 时间旅行分支</text>
+    <text x="100" y="304" fill="#475569">delta 被 #4458 封死 · 走复制 thread+linearize 替代</text>
+
+    <rect x="500" y="268" width="400" height="46" rx="8" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="520" y="287" font-weight="700" fill="#7f1d1d">不做 · Command.PARENT</text>
+    <text x="520" y="304" fill="#991b1b">subagent 是图外 executor 非子图，无处生效</text>
+
+    <rect x="80" y="326" width="400" height="46" rx="8" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="100" y="345" font-weight="700" fill="#7f1d1d">不做 · NodeInterrupt</text>
+    <text x="100" y="362" fill="#991b1b">1.0 起 deprecated</text>
+
+    <rect x="500" y="326" width="400" height="46" rx="8" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="520" y="345" font-weight="700" fill="#7f1d1d">不做 · astream_events</text>
+    <text x="520" y="362" fill="#991b1b">custom-event 双发射已覆盖 · 避免双真相源</text>
+
+    <!-- key mechanism -->
+    <rect x="80" y="392" width="820" height="66" rx="8" fill="#ede9fe" stroke="#7c3aed"/>
+    <text x="100" y="414" font-weight="700" fill="#4c1d95">interrupt 的持久化真身：task 级 pending write</text>
+    <text x="100" y="432" fill="#5b21b6">GraphInterrupt → (INTERRUPT, [Interrupt]) 写进 checkpoint 的 pending_writes · 与 DeerFlow 的 reserve_checkpoint_write / rollback 重挂契约同层</text>
+    <text x="100" y="448" fill="#5b21b6">cancel-with-rollback 会把悬挂 INTERRUPT 写恢复进快照 —— 需显式清理或按 01 的静止处置接受</text>
+
+    <text x="80" y="490" fill="#475569">约束：恢复时节点从头重执行（副作用型 middleware 交互陷阱）· 必须启用 checkpointer（子代理图 checkpointer=False 结构性不可用）· 多悬挂需 {interrupt_id: value}</text>
+    <text x="80" y="530" fill="#94a3b8" font-size="10">_digest/orchestration-ladder/figures/extraction-priority.svg · 证据链见 04 号笔记（§1 真身核验 + §3 榨取设计 + §4 优先级表）</text>
+  </g>
+</svg>

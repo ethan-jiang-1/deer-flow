@@ -10,6 +10,8 @@ sibling: 00-map.md, 01-完成语义与崩溃窗口-接受可见静止处置.md
 
 # 04 · LangGraph 能力面榨取：未用原语与接入设计
 
+![榨取优先级](./figures/extraction-priority.svg)
+
 > **分工声明**：上游 [_digest/graph-engineering/06-langgraph-capability-surface.md](../graph-engineering/06-langgraph-capability-surface.md) 回答"支持度判定"（已用 / 可用未用 / 结构不可用三分类）；本篇回答**榨取设计**——每个未用/未用满能力"接进现有阶梯的哪里、长成什么原语、与 ask_clarification / task / batch / scheduler / goal 冲突或互补在哪"。定位见 [00-map.md](00-map.md)，完成语义背景见 [01-完成语义与崩溃窗口](01-完成语义与崩溃窗口-接受可见静止处置.md)。理想化禁止：不可行就写清为什么，附代码证据。
 >
 > **版本事实（亲自核验）**：依赖钉在 `langgraph>=1.2.9,<1.3`（backend/packages/harness/pyproject.toml:30），`backend/uv.lock:2171` 解析为 1.2.9；但**本机 backend/.venv 实际安装的是 langgraph 1.1.9**（`backend/.venv/lib/python3.12/site-packages/langgraph-1.1.9.dist-info/METADATA`）。本文所有 site-packages 锚点基于 1.1.9 源码；本文涉及的 API（interrupt/Command/Send/update_state）语义自 0.x 起稳定，1.2 未变，但落地实现前应 `uv sync` 后复核行号。

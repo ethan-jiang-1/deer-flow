@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 540" font-family="PingFang SC, sans-serif">
+  <text x="490" y="28" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">状态三分法与重启命运（02 号）</text>
+  <!-- three tiers -->
+  <g font-size="12">
+    <rect x="60" y="60" width="280" height="120" rx="10" fill="#bbf7d0" stroke="#16a34a" stroke-width="2"/>
+    <text x="200" y="85" text-anchor="middle" font-weight="700" fill="#14532d">持久事实</text>
+    <text x="200" y="105" text-anchor="middle" fill="#166534" font-size="11">checkpoint 链（唯一可续跑）</text>
+    <text x="200" y="122" text-anchor="middle" fill="#166534" font-size="11">runs / queued 行 · batch 表 · 磁盘文件</text>
+    <text x="200" y="142" text-anchor="middle" fill="#15803d" font-size="11" font-weight="600">重启 → 读回继续 / 标错对账</text>
+    <text x="200" y="160" text-anchor="middle" fill="#15803d" font-size="11">前提：backend ≠ memory！</text>
+
+    <rect x="360" y="60" width="280" height="120" rx="10" fill="#fde68a" stroke="#ca8a04" stroke-width="2"/>
+    <text x="500" y="85" text-anchor="middle" font-weight="700" fill="#713f12">派生投影</text>
+    <text x="500" y="105" text-anchor="middle" fill="#854d0e" font-size="11">delta 历史缓存（纯函数，永不失效）</text>
+    <text x="500" y="122" text-anchor="middle" fill="#854d0e" font-size="11">FTS5 检索索引 · feed-seq 回填</text>
+    <text x="500" y="142" text-anchor="middle" fill="#a16207" font-size="11" font-weight="600">重启 → 冷重建 / 标 dirty 回退</text>
+    <text x="500" y="160" text-anchor="middle" fill="#a16207" font-size="11">投影不成为新事实的来源</text>
+
+    <rect x="660" y="60" width="270" height="120" rx="10" fill="#fecaca" stroke="#dc2626" stroke-width="2"/>
+    <text x="795" y="85" text-anchor="middle" font-weight="700" fill="#7f1d1d">内存 authority</text>
+    <text x="795" y="105" text-anchor="middle" fill="#991b1b" font-size="11">RunManager._runs · journal 缓冲(&lt;20条)</text>
+    <text x="795" y="122" text-anchor="middle" fill="#991b1b" font-size="11">子代理注册表 · lease 身份 · 内存队列</text>
+    <text x="795" y="142" text-anchor="middle" fill="#b91c1c" font-size="11" font-weight="600">重启 → 丢弃重建 / 静默丢失</text>
+    <text x="795" y="160" text-anchor="middle" fill="#b91c1c" font-size="11">不能从持久行推导执行授权</text>
+  </g>
+  <!-- recovery posture -->
+  <text x="60" y="220" font-size="13" font-weight="700" fill="#0f172a">恢复姿态：标错对账 / 静默丢失——不是断点续传</text>
+  <g font-size="11">
+    <rect x="60" y="234" width="870" height="46" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+    <text x="80" y="254" fill="#334155">重启 → 心跳停止 → lease 过期 → reconcile_orphaned_inflight_runs → claim_for_takeover 原子认领 → </text>
+    <text x="80" y="271" fill="#334155">status=error, stop_reason=orphan_recovered（绝不尝试续跑）· 用户的恢复路径 = 重新发起 run（resume/重输）</text>
+  </g>
+  <!-- priced losses -->
+  <text x="60" y="316" font-size="13" font-weight="700" fill="#0f172a">明码标价的丢失窗口（设计选择，非缺陷）</text>
+  <g font-size="11">
+    <rect x="60" y="330" width="280" height="66" rx="8" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="200" y="352" text-anchor="middle" fill="#7c2d12" font-weight="600">内存提取队列</text>
+    <text x="200" y="370" text-anchor="middle" fill="#9a3412">退出即丢；shutdown_flush 有界排空</text>
+    <text x="200" y="386" text-anchor="middle" fill="#9a3412">（事实源在 checkpoint 可重放）</text>
+    <rect x="360" y="330" width="280" height="66" rx="8" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="500" y="352" text-anchor="middle" fill="#7c2d12" font-weight="600">提取 watermark（内存 LRU）</text>
+    <text x="500" y="370" text-anchor="middle" fill="#9a3412">重启重复提取一个 batch</text>
+    <text x="500" y="386" text-anchor="middle" fill="#9a3412">靠 fact 写入幂等兜底</text>
+    <rect x="660" y="330" width="270" height="66" rx="8" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="795" y="352" text-anchor="middle" fill="#7c2d12" font-weight="600">journal 未 flush 尾部</text>
+    <text x="795" y="370" text-anchor="middle" fill="#9a3412">&lt;20 条事件 + 内存 token 计数</text>
+    <text x="795" y="386" text-anchor="middle" fill="#9a3412">崩溃即丢；已完成部分在 run 行</text>
+  </g>
+  <!-- dangers -->
+  <text x="60" y="430" font-size="13" font-weight="700" fill="#0f172a">六个危险点（浓缩）</text>
+  <g font-size="11" fill="#475569">
+    <text x="60" y="452">① 持久 running 行的僵尸窗口（对账前的假象）　② memory 后端默认使"事实"退化为内存　③ incarnation 只写不消费（占位事实）</text>
+    <text x="60" y="472">④ extensions_config.json EBUSY 回退撕裂写　⑤ OOM 下内存队列静默丢失　⑥ _runs 进程私有：跨 worker 互斥靠唯一索引兜底</text>
+  </g>
+  <text x="60" y="515" fill="#94a3b8" font-size="10">_digest/orchestration-ladder/figures/state-triads.svg · 证据链见 02 号笔记（25 行主表 + 八节深挖）</text>
+</svg>

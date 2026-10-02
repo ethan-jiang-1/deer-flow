@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" font-family="PingFang SC, sans-serif">
+  <text x="490" y="28" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">完成语义：五个时刻 × 崩溃窗口（01 号）</text>
+  <!-- five moments timeline -->
+  <g font-size="12">
+    <line x1="60" y1="70" x2="920" y2="70" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a)"/>
+    <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+    <g text-anchor="middle">
+      <rect x="70" y="52" width="130" height="36" rx="8" fill="#e0f2fe" stroke="#0284c7"/><text x="135" y="75" fill="#0c4a6e" font-weight="600">accepted</text>
+      <rect x="250" y="52" width="140" height="36" rx="8" fill="#bbf7d0" stroke="#16a34a"/><text x="320" y="69" fill="#14532d" font-weight="600">model-visible</text><text x="320" y="83" font-size="10" fill="#166534">checkpoint messages 通道</text>
+      <rect x="440" y="52" width="140" height="36" rx="8" fill="#fef9c3" stroke="#ca8a04"/><text x="510" y="69" fill="#713f12" font-weight="600">turn-quiescent</text><text x="510" y="83" font-size="10" fill="#854d0e">finalizing barrier 清除</text>
+      <rect x="630" y="52" width="150" height="36" rx="8" fill="#fed7aa" stroke="#ea580c"/><text x="705" y="69" fill="#7c2d12" font-weight="600">resources-disposed</text><text x="705" y="83" font-size="10" fill="#9a3412">bridge 60s / record 300s</text>
+      <rect x="820" y="52" width="100" height="36" rx="8" fill="#f1f5f9" stroke="#64748b"/><text x="870" y="69" fill="#334155" font-weight="600">业务完成</text><text x="870" y="83" font-size="10" fill="#475569">run.delivery 回执</text>
+    </g>
+    <text x="60" y="115" fill="#b91c1c" font-weight="600">⇠ 不能跨时刻推导：accepted ≠ 已执行；visible ≠ 已理解；disposed ≠ 目标达成 ⇒</text>
+  </g>
+  <!-- run terminal order -->
+  <text x="60" y="150" font-size="13" font-weight="700" fill="#0f172a">run 终态持久化顺序（刻意：checkpoint 先、终态后）</text>
+  <g font-size="11">
+    <rect x="60" y="162" width="120" height="30" rx="6" fill="#f8fafc" stroke="#94a3b8"/><text x="120" y="181" text-anchor="middle" fill="#334155">① journal flush</text>
+    <rect x="195" y="162" width="130" height="30" rx="6" fill="#f8fafc" stroke="#94a3b8"/><text x="260" y="181" text-anchor="middle" fill="#334155">② delivery 回执</text>
+    <rect x="340" y="162" width="150" height="30" rx="6" fill="#dcfce7" stroke="#16a34a"/><text x="415" y="181" text-anchor="middle" fill="#14532d">③ duration checkpoint（active 行保护下）</text>
+    <rect x="505" y="162" width="120" height="30" rx="6" fill="#fef9c3" stroke="#ca8a04"/><text x="565" y="181" text-anchor="middle" fill="#713f12">④ 持久终态</text>
+    <rect x="640" y="162" width="120" height="30" rx="6" fill="#f8fafc" stroke="#94a3b8"/><text x="700" y="181" text-anchor="middle" fill="#334155">⑤ on_run_completed</text>
+    <rect x="775" y="162" width="145" height="30" rx="6" fill="#f1f5f9" stroke="#64748b"/><text x="847" y="181" text-anchor="middle" fill="#334155">⑥ bridge END + 清理</text>
+    <path d="M180,177 h10" stroke="#64748b" marker-end="url(#a)"/><path d="M325,177 h10" stroke="#64748b" marker-end="url(#a)"/><path d="M490,177 h10" stroke="#64748b" marker-end="url(#a)"/><path d="M625,177 h10" stroke="#64748b" marker-end="url(#a)"/><path d="M760,177 h10" stroke="#64748b" marker-end="url(#a)"/>
+  </g>
+  <!-- crash windows table -->
+  <text x="60" y="230" font-size="13" font-weight="700" fill="#0f172a">崩溃窗口（崩溃前 → 重启后）</text>
+  <g font-size="11">
+    <rect x="60" y="242" width="430" height="34" rx="6" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="75" y="264" fill="#7f1d1d">③→④ 之间崩溃：checkpoint 可能已有完整回答，orphan 对账却判 error+零回执</text>
+    <rect x="60" y="284" width="430" height="34" rx="6" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="75" y="306" fill="#7f1d1d">scheduler launch→簿记：幂等键 scheduled-task:{id} 折叠重复 launch</text>
+    <rect x="60" y="326" width="430" height="34" rx="6" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="75" y="348" fill="#7c2d12">run 完成→钩子前：启动 sweep 把已成功 run 记成 interrupted occurrence</text>
+    <rect x="510" y="242" width="410" height="34" rx="6" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="525" y="264" fill="#7c2d12">batch item 执行中：lease 过期重跑同一 item_key（at-least-once 写在 prompt）</text>
+    <rect x="510" y="284" width="410" height="34" rx="6" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="525" y="306" fill="#7c2d12">IM 内存 dedupe 丢失：provider 重投整条重处理（by design）</text>
+    <rect x="510" y="326" width="410" height="34" rx="6" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="525" y="348" fill="#7f1d1d">MCP 通知 launch→mark：dispatch_version 围栏旧 worker 迟到写入</text>
+  </g>
+  <!-- success-but-error -->
+  <text x="60" y="398" font-size="13" font-weight="700" fill="#0f172a">「成功却报错」的合法路径（保守发布纪律）</text>
+  <g font-size="11">
+    <rect x="60" y="410" width="280" height="56" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+    <text x="200" y="432" text-anchor="middle" fill="#713f12" font-weight="600">success 无法持久确认</text>
+    <text x="200" y="450" text-anchor="middle" fill="#854d0e">_mark_ownership_lost 围栏为 error</text>
+    <rect x="360" y="410" width="280" height="56" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+    <text x="500" y="432" text-anchor="middle" fill="#713f12" font-weight="600">产出未被 present_files 覆盖</text>
+    <text x="500" y="450" text-anchor="middle" fill="#854d0e">success 降级 error</text>
+    <rect x="660" y="410" width="260" height="56" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="790" y="432" text-anchor="middle" fill="#14532d" font-weight="600">取消路径顺序相反</text>
+    <text x="790" y="450" text-anchor="middle" fill="#166534">先终态后回滚，失败仅 warning</text>
+    <text x="60" y="500" fill="#475569">审查规则：accepted 写进哪个存储？model-visible 的证据是 checkpoint 还是仅 SSE？崩溃后哪个 id（幂等键/lease_owner/dedupe key）防重复？</text>
+    <text x="60" y="525" fill="#94a3b8">_digest/orchestration-ladder/figures/completion-lifecycle.svg · 证据链见 01 号笔记</text>
+  </g>
+</svg>

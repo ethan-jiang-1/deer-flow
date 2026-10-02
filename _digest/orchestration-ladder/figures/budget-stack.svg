@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 580" font-family="PingFang SC, sans-serif">
+  <text x="490" y="28" text-anchor="middle" font-size="18" font-weight="700" fill="#0f172a">资源预算：六层闸门叠加链（03 号）</text>
+  <text x="490" y="50" text-anchor="middle" font-size="12" fill="#475569">lead agent 派 5 个子代理的完整限额穿越 · 命运由最先触发的层决定</text>
+  <defs><marker id="g" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+  <g font-size="11">
+    <!-- gate 1 -->
+    <rect x="300" y="70" width="380" height="56" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="490" y="92" text-anchor="middle" font-weight="700" fill="#0c4a6e">闸1 · run 准入（同 thread）</text>
+    <text x="490" y="110" text-anchor="middle" fill="#075985">reject→409 ConflictError · 无排队 · interrupt/rollback 打断前者</text>
+    <!-- gate 2 -->
+    <rect x="300" y="140" width="380" height="56" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+    <text x="490" y="162" text-anchor="middle" font-weight="700" fill="#713f12">闸2 · 模型层（默认不设防）</text>
+    <text x="490" y="180" text-anchor="middle" fill="#854d0e">llm_call.max_concurrent_calls=0(不限) · RPM request_admission=None(关)</text>
+    <!-- gate 3 -->
+    <rect x="300" y="210" width="380" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="490" y="232" text-anchor="middle" font-weight="700" fill="#14532d">闸3 · 响应级截断 SubagentLimitMiddleware</text>
+    <text x="490" y="250" text-anchor="middle" fill="#166534">单响应并发 3 / 每 run 总量 6（run_id 划界）</text>
+    <text x="490" y="266" text-anchor="middle" fill="#b91c1c" font-weight="600">超限 = 静默截断（多余 task call 被删）</text>
+    <!-- gate 4 -->
+    <rect x="300" y="288" width="380" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="490" y="310" text-anchor="middle" font-weight="700" fill="#14532d">闸4 · 进程容量 SubagentExecutionCapacity</text>
+    <text x="490" y="328" text-anchor="middle" fill="#166534">max_running=3 / max_queued=64 / queue_timeout=300s · 严格 FIFO</text>
+    <text x="490" y="344" text-anchor="middle" fill="#b91c1c" font-weight="600">满且 reject / 队满 = Rejected · 排队超时 = Timeout</text>
+    <!-- gate 5 note: subagent model calls pass gate2 again -->
+    <!-- gate 6 -->
+    <rect x="300" y="366" width="380" height="56" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="490" y="388" text-anchor="middle" font-weight="700" fill="#4c1d95">闸5 · scheduler 全局预算（可选平面）</text>
+    <text x="490" y="406" text-anchor="middle" fill="#5b21b6">max_concurrent_runs=3 · DB 锁下计数 · 持久 queued + 3600s 超时</text>
+    <!-- gate 7 -->
+    <rect x="300" y="436" width="380" height="56" rx="10" fill="#f1f5f9" stroke="#64748b" stroke-width="1.5"/>
+    <text x="490" y="458" text-anchor="middle" font-weight="700" fill="#334155">闸6 · 沙箱与基础设施小闸门</text>
+    <text x="490" y="476" text-anchor="middle" fill="#475569">子代理 timeout=1800s · bash=600s · sync 池 10 · lark 信号量 8</text>
+    <path d="M490,126 v10" stroke="#64748b" marker-end="url(#g)"/><path d="M490,196 v10" stroke="#64748b" marker-end="url(#g)"/>
+    <path d="M490,274 v10" stroke="#64748b" marker-end="url(#g)"/><path d="M490,352 v10" stroke="#64748b" marker-end="url(#g)"/><path d="M490,422 v10" stroke="#64748b" marker-end="url(#g)"/>
+    <!-- side annotations -->
+    <g fill="#475569">
+      <text x="710" y="248">↖ 默认配置下闸3 几乎总先于闸4</text>
+      <text x="710" y="264">（响应级 clamp 到进程容量）</text>
+      <text x="710" y="288">多 run 共享进程才在闸4 排队</text>
+      <text x="710" y="312">子代理再派子代理：</text>
+      <text x="710" y="328">task 工具被 disallowed_tools 剔除</text>
+      <text x="710" y="344">→ 深度=1 靠能力剔除，无计数器</text>
+    </g>
+    <text x="60" y="520" fill="#b91c1c" font-weight="600" font-size="12">默认无限制的三处：跨 thread run 全局并发 · LLM 并发 · RPM —— 文档自认需 nginx limit_req 补集群帽</text>
+    <text x="60" y="548" fill="#94a3b8" font-size="10">_digest/orchestration-ladder/figures/budget-stack.svg · 证据链见 03 号笔记（§一逐层默认值 + §二叠加链 + §三公平性）</text>
+  </g>
+</svg>
