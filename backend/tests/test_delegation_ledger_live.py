@@ -1,5 +1,10 @@
 """Live E2E coverage for delegation ledger crossing real summarization.
 
+Lane membership: the ``live`` marker keeps this module out of the offline
+suite (``make test``) and inside the live lane (``make test-live``). The
+module-level guard below is the additional in-case opt-in — the scenario is
+heavy (real summarization), so it still demands its own env flag.
+
 Run explicitly with real credentials:
 
     RUN_DEERFLOW_LEDGER_LIVE=1 PYTHONPATH=. uv run pytest tests/test_delegation_ledger_live.py -v -s
@@ -26,6 +31,8 @@ from langgraph.runtime import Runtime
 from deerflow.agents.middlewares.durable_context_middleware import DurableContextMiddleware
 from deerflow.client import DeerFlowClient, StreamEvent
 from deerflow.config.app_config import reload_app_config, reset_app_config, set_app_config
+
+pytestmark = pytest.mark.live
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _ROOT_CONFIG = _REPO_ROOT / "config.yaml"

@@ -19,8 +19,8 @@ import asyncio
 from pathlib import Path
 
 import pytest
+from _opensandbox_helpers import _FakeRemote, _FakeSandboxClass, _install
 from blockbuster import BlockingError
-from test_opensandbox_provider import _FakeRemote, _FakeSandboxClass, _install
 
 pytestmark = pytest.mark.asyncio
 

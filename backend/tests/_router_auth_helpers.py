@@ -24,11 +24,18 @@ Both helpers are deliberately permissive: they never deny a request.
 Tests that want to verify the *auth boundary itself* (e.g.
 ``test_auth_middleware``, ``test_auth_type_system``) build their own
 apps with the real middleware — those should not use this module.
+
+3. :class:`HeaderStubAuthMiddleware` — the header-driven stub used by the
+   SQL-backed router harnesses (``test_projects_router.py``,
+   ``test_threads_router.py``): identity and permissions arrive per request
+   via headers so one app can drive multiple identities. Live here so a
+   collected test module is never another module's fixture library.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
@@ -38,6 +45,7 @@ from starlette.types import ASGIApp
 
 from app.gateway.auth.models import User
 from app.gateway.authz import AuthContext, Permissions
+from deerflow.runtime.user_context import reset_current_user, set_current_user
 
 # Default permission set granted to the stub user. Mirrors `_ALL_PERMISSIONS`
 # in authz.py — kept inline so the tests don't import a private symbol.
@@ -127,3 +135,53 @@ def call_unwrapped[*P, R](decorated: Callable[P, R], /, *args: P.args, **kwargs:
     while hasattr(fn, "__wrapped__"):
         fn = fn.__wrapped__  # type: ignore[attr-defined]
     return fn(*args, **kwargs)
+
+
+USER_HEADER = "x-test-user"
+PERMISSIONS_HEADER = "x-test-permissions"
+
+# The header-driven harness's default identity: threads + runs + projects —
+# every permission the gateway currently guards. Suites that exercise
+# scope-narrowed callers pass an explicit ``PERMISSIONS_HEADER`` per request.
+FULL_STUB_PERMISSIONS: list[str] = [
+    Permissions.THREADS_READ,
+    Permissions.THREADS_WRITE,
+    Permissions.THREADS_DELETE,
+    Permissions.RUNS_CREATE,
+    Permissions.RUNS_READ,
+    Permissions.RUNS_CANCEL,
+    Permissions.PROJECTS_READ,
+    Permissions.PROJECTS_WRITE,
+    Permissions.PROJECTS_DELETE,
+]
+
+
+class HeaderStubAuthMiddleware(BaseHTTPMiddleware):
+    """Stamp a fake AuthContext and set the user ContextVar per request.
+
+    Mirrors production ``AuthMiddleware`` (``request.state.auth`` +
+    ``set_current_user``) so ``@require_permission`` and the
+    ContextVar-resolving repositories behave as in the real gateway.
+    The user id comes from the ``USER_HEADER`` header (default ``user-a``) so a
+    single app can drive multiple identities. The granted permissions come from
+    the ``PERMISSIONS_HEADER`` header (comma-separated; default the installing
+    suite's ``default_permissions``) so scope-narrowed callers can be
+    exercised.
+    """
+
+    def __init__(self, app: ASGIApp, *, default_permissions: Sequence[str]) -> None:
+        super().__init__(app)
+        self._default_permissions = list(default_permissions)
+
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        user_id = request.headers.get(USER_HEADER, "user-a")
+        user = SimpleNamespace(id=user_id, system_role="user")
+        request.state.user = user
+        permissions_header = request.headers.get(PERMISSIONS_HEADER)
+        permissions = permissions_header.split(",") if permissions_header else list(self._default_permissions)
+        request.state.auth = AuthContext(user=user, permissions=permissions)
+        token = set_current_user(user)
+        try:
+            return await call_next(request)
+        finally:
+            reset_current_user(token)

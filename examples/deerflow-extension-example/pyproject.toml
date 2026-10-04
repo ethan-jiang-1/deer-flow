@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "deerflow-extension-api>=0.2,<0.3",
+    "deerflow-harness>=2.1,<3",
     "fastapi>=0.115.0,<1",
     "langchain>=1.3,<2",
     "langgraph>=1.2.9,<1.3",
@@ -13,6 +14,12 @@ dependencies = [
 
 [project.entry-points."deerflow.extensions"]
 example = "deerflow_extension_example:install"
+
+# Local checkouts resolve the harness from the DeerFlow repository so the test
+# suite can use `deerflow.testing` without publishing a new harness version
+# first; the plain requirement above is what a standalone install resolves.
+[tool.uv.sources]
+deerflow-harness = { path = "../../backend/packages/harness", editable = true }
 
 [project.optional-dependencies]
 dev = [

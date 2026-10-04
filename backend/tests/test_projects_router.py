@@ -14,57 +14,27 @@ from typing import Any
 
 import anyio
 import pytest
-from fastapi import FastAPI, Request, Response
+from _router_auth_helpers import (
+    FULL_STUB_PERMISSIONS as _STUB_PERMISSIONS,
+)
+from _router_auth_helpers import (
+    PERMISSIONS_HEADER as _PERMISSIONS_HEADER,
+)
+from _router_auth_helpers import (
+    USER_HEADER as _USER_HEADER,
+)
+from _router_auth_helpers import (
+    HeaderStubAuthMiddleware,
+)
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.gateway.authz import AuthContext, Permissions
+from app.gateway.authz import Permissions
 from app.gateway.routers import projects
 from deerflow.persistence.engine import close_engine, get_session_factory, init_engine
 from deerflow.persistence.projects import ProjectRepository
 from deerflow.persistence.thread_meta import THREAD_ARCHIVED_METADATA_KEY, THREAD_PROJECT_METADATA_KEY, ThreadMetaRepository
 from deerflow.runtime.user_context import reset_current_user, set_current_user
-
-_STUB_PERMISSIONS: list[str] = [
-    Permissions.THREADS_READ,
-    Permissions.THREADS_WRITE,
-    Permissions.THREADS_DELETE,
-    Permissions.RUNS_CREATE,
-    Permissions.RUNS_READ,
-    Permissions.RUNS_CANCEL,
-    Permissions.PROJECTS_READ,
-    Permissions.PROJECTS_WRITE,
-    Permissions.PROJECTS_DELETE,
-]
-
-_USER_HEADER = "x-test-user"
-_PERMISSIONS_HEADER = "x-test-permissions"
-
-
-class _StubAuthMiddleware(BaseHTTPMiddleware):
-    """Stamp a fake AuthContext and set the user ContextVar per request.
-
-    Mirrors production ``AuthMiddleware`` (``request.state.auth`` +
-    ``set_current_user``) so ``@require_permission`` and the
-    ContextVar-resolving repositories behave as in the real gateway.
-    The user id comes from the ``x-test-user`` header (default ``user-a``) so a
-    single app can drive multiple identities. The granted permissions come from
-    the ``x-test-permissions`` header (comma-separated; default the full stub
-    list) so scope-narrowed callers can be exercised.
-    """
-
-    async def dispatch(self, request: Request, call_next: Any) -> Response:
-        user_id = request.headers.get(_USER_HEADER, "user-a")
-        user = SimpleNamespace(id=user_id, system_role="user")
-        request.state.user = user
-        permissions_header = request.headers.get(_PERMISSIONS_HEADER)
-        permissions = permissions_header.split(",") if permissions_header else list(_STUB_PERMISSIONS)
-        request.state.auth = AuthContext(user=user, permissions=permissions)
-        token = set_current_user(user)
-        try:
-            return await call_next(request)
-        finally:
-            reset_current_user(token)
 
 
 async def _init_db(tmp_path) -> None:
@@ -76,7 +46,7 @@ def _build_projects_app(tmp_path, *, project_repo: Any = "default") -> FastAPI:
     anyio.run(_init_db, tmp_path)
     sf = get_session_factory()
     app = FastAPI()
-    app.add_middleware(_StubAuthMiddleware)
+    app.add_middleware(HeaderStubAuthMiddleware, default_permissions=_STUB_PERMISSIONS)
     app.state.project_repo = ProjectRepository(sf) if project_repo == "default" else project_repo
     app.state.thread_store = ThreadMetaRepository(sf)
     app.include_router(projects.router)

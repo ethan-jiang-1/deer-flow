@@ -1,3 +1,14 @@
+"""Step 2 — behaviour spec of the example's own contribution classes.
+
+Only the outermost wrapper is a stand-in here: real ``ExtensionData`` stores,
+real middleware hooks, real router objects driven through a real FastAPI app.
+The fake registry/runtime exist to isolate the example's classes from the
+loader; the *assembled-system* evidence (real loader, real composition, real
+graph) lives in ``test_entry_point.py``, ``test_lifecycle.py``,
+``test_composition.py``, and ``test_model_surface.py`` — a hand-built registry
+is never composition evidence.
+"""
+
 from __future__ import annotations
 
 import asyncio

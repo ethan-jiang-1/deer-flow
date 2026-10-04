@@ -1,4 +1,20 @@
-"""The example's five deliberately small contribution implementations."""
+"""Deliberately small contribution implementations, one per supported kind.
+
+The example's own behaviour is intentionally trivial — it exists so the
+test suite can demonstrate the five-step evidence ladder
+(``docs/testing/`` in the DeerFlow repository) against a real extension.
+
+``note`` in the private ``config`` is the configurability showcase, and its
+shape is dictated by the host contract: contributed middlewares are wrapped by
+``IsolatedMiddleware``, whose wrap hooks are **observational** — the wrapper
+pins the original request, so a contribution cannot substitute a rewritten
+model request. What a contribution owns on the model-visible surface is its
+*tools*: with a note configured, ``ExampleMiddleware`` contributes one
+middleware tool whose schema text and result carry the note. One flag, both
+faces: the model-visible face (tool schema via ``bind_tools``, tool result in
+the message transcript) and the descriptor face
+(``release_policy_parameters`` -> ``MiddlewareDescriptor.policy_parameters``).
+"""
 
 from __future__ import annotations
 
@@ -23,6 +39,7 @@ from deerflow_extension_api import (
 )
 from fastapi import APIRouter, Depends, HTTPException
 from langchain.agents.middleware import AgentMiddleware
+from langchain_core.tools import tool as langchain_tool
 from langgraph.prebuilt.tool_node import ToolCallRequest
 
 
@@ -73,6 +90,33 @@ def _stats(store: ExtensionData) -> ExampleStats:
 
 
 class ExampleMiddleware(AgentMiddleware):
+    """Counts tool calls into the extension task store (observational wrap).
+
+    Constructed with a ``note``, it additionally owns one middleware tool
+    whose schema text and result carry the note — the model-visible surface a
+    contributed middleware actually owns. Implement both wrap sides when both
+    execution paths must be observed; LangChain treats a sync/async pair as
+    one capability and a single-sided wrapper observes only one path.
+    """
+
+    def __init__(self, note: str | None = None) -> None:
+        super().__init__()
+        self._note = note
+        self.tools = [self._make_note_tool()] if note is not None else []
+
+    def release_policy_parameters(self) -> dict[str, Any]:
+        """Own the descriptor identity: no private-attribute probing fallback."""
+        return {"note": self._note}
+
+    def _make_note_tool(self) -> Any:
+        note = self._note
+
+        @langchain_tool(description=f"Return the operator-configured example note: {note}")
+        def example_note() -> str:
+            return note
+
+        return example_note
+
     async def awrap_tool_call(
         self,
         request: ToolCallRequest,
@@ -86,6 +130,9 @@ class ExampleMiddleware(AgentMiddleware):
 
 
 class ExampleMiddlewareContributor:
+    def __init__(self, note: str | None = None) -> None:
+        self._note = note
+
     def contribute_middlewares(
         self,
         app_store: ExtensionData,
@@ -93,7 +140,7 @@ class ExampleMiddlewareContributor:
     ) -> Sequence[MiddlewarePlacement]:
         return (
             MiddlewarePlacement(
-                ExampleMiddleware(),
+                ExampleMiddleware(note=self._note),
                 Placement.TOOL_VISIBLE,
                 AgentScope.BOTH,
             ),

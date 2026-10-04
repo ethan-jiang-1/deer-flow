@@ -4324,7 +4324,7 @@ def test_archive_patch_cannot_modify_another_users_thread():
 # store ignores it by design), so these tests build a stub-authed app on real
 # SQL repos — same harness shape as ``test_projects_router.py``.
 
-from test_projects_router import _StubAuthMiddleware  # noqa: E402
+from _router_auth_helpers import FULL_STUB_PERMISSIONS, HeaderStubAuthMiddleware  # noqa: E402
 
 
 async def _init_threads_db(tmp_path) -> None:
@@ -4336,7 +4336,7 @@ def _build_project_threads_app(tmp_path) -> FastAPI:
     anyio.run(_init_threads_db, tmp_path)
     session_factory = get_session_factory()
     app = FastAPI()
-    app.add_middleware(_StubAuthMiddleware)
+    app.add_middleware(HeaderStubAuthMiddleware, default_permissions=FULL_STUB_PERMISSIONS)
     app.state.thread_store = ThreadMetaRepository(session_factory)
     app.state.project_repo = ProjectRepository(session_factory)
     app.state.checkpointer = InMemorySaver()

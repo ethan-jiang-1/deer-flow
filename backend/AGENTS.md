@@ -249,6 +249,11 @@ decisions — and `disable_clarification` is no milder than `non_interactive`.
 - Tests must pass before a feature is considered complete
 - For lightweight config/utility modules, prefer pure unit tests with no external dependencies
 - If a module causes circular import issues in tests, add a `sys.modules` mock in `tests/conftest.py` (see existing example for `deerflow.subagents.executor`)
+- **Extension/agent-app testing strategy**: the five-step evidence ladder (entry-point
+  guard → behaviour spec → load containment → REAL composition → model-visible transcript)
+  lives in [docs/testing/](../docs/testing/README.md); the reusable kit ships in
+  `deerflow.testing` (scripted model, real-loader boot, real composition point — see
+  `packages/harness/deerflow/testing/AGENTS.md`). Extension samples: `examples/deerflow-extension-example/tests/`
 
 ```bash
 # Run default offline tests

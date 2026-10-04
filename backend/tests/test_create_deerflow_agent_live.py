@@ -3,7 +3,8 @@
 Verifies the factory produces a working LangGraph agent that can actually
 process messages end-to-end with a real LLM.
 
-Tests marked ``requires_llm`` are skipped in CI or when OPENAI_API_KEY is unset.
+Tests marked ``requires_llm`` carry the ``live`` lane marker plus a skipif
+guard: excluded from the offline suite, skipped without OPENAI_API_KEY.
 """
 
 import os
@@ -12,10 +13,15 @@ import uuid
 import pytest
 from langchain_core.tools import tool
 
-requires_llm = pytest.mark.skipif(
+_LLM_SKIP = pytest.mark.skipif(
     os.getenv("CI", "").lower() in ("true", "1") or not os.getenv("OPENAI_API_KEY"),
     reason="Requires LLM API key — skipped in CI or when OPENAI_API_KEY is unset",
 )
+
+
+def requires_llm(item):
+    """Live-lane membership plus the key guard, composed into one decorator."""
+    return pytest.mark.live(_LLM_SKIP(item))
 
 
 def _make_model():

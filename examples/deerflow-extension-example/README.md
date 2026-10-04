@@ -1,7 +1,7 @@
 # DeerFlow extension example
 
 This directory is a compact, standalone Python package showing all five DeerFlow
-extension contribution kinds. It depends on the public
+extension contribution kinds. Its runtime code depends on the public
 `deerflow-extension-api` contract and never imports `deerflow.*` or `app.*`.
 
 The contract package intentionally has no framework dependencies. An extension
@@ -12,7 +12,7 @@ depends on FastAPI, LangChain, and LangGraph in `pyproject.toml`.
 
 | Contribution | Example behavior |
 | --- | --- |
-| Middleware | Counts tool calls through one `TOOL_VISIBLE` middleware for lead agents and subagents |
+| Middleware | Counts tool calls through one `TOOL_VISIBLE` middleware for lead agents and subagents; with the private `config.note` set, it additionally owns one note-carrying tool — the model-visible surface a contributed middleware owns (see the testing strategy) |
 | Task lifecycle | Creates task-scoped stats on start and folds them into app scope on stop |
 | System-model observer | Counts DeerFlow-owned model calls, including failures |
 | Service | Binds `ExtensionRuntimeDeps` only while the Gateway is running |
@@ -26,21 +26,23 @@ topology stable while runtime capabilities arrive later.
 
 ## Run the package tests
 
-`deerflow-extension-api` is currently sourced from this checkout. Install it
-first, then install this independent package:
+The test suite is the five-step evidence ladder of
+[docs/testing/](../../docs/testing/README.md) (entry-point guard, behaviour
+spec, load containment, REAL composition, model-visible transcript) and doubles
+as the copy-paste sample for downstream extension repos. It uses the reusable
+kit from the harness, `deerflow.testing`, which resolves from this checkout via
+the `uv.sources` path override in `pyproject.toml`:
 
 ```bash
 cd examples/deerflow-extension-example
-uv venv --python 3.12
-uv pip install -e ../../backend/packages/extension-api
-uv pip install -e ".[dev]"
-uv run --no-project pytest -q
-uv run --no-project ruff check .
-uv run --no-project ruff format --check .
+uv run --extra dev pytest tests -q
+uv run --extra dev ruff check .
+uv run --extra dev ruff format --check .
 ```
 
-The tests use only the public contract plus this package's declared dependencies;
-the DeerFlow harness and Gateway application are not imported.
+The package's runtime code uses only the public contract plus its declared
+dependencies; only the test suite imports the harness (`deerflow.testing`).
+The Gateway application is never imported.
 
 ## Install and load it in DeerFlow
 
@@ -144,6 +146,10 @@ deerflow_extension_example/
 ├── __init__.py  # version-stamped install() entry point
 └── plugin.py    # state plus all five small contribution implementations
 tests/
-├── test_entry_point.py
-└── test_plugin.py
+├── test_entry_point.py    # step 1: entry-point contract guard
+├── test_plugin.py         # step 2: behaviour spec of the contribution classes
+├── test_lifecycle.py      # step 3: load containment (skip / fail-open / fail-closed / isolation)
+├── test_composition.py    # step 4: REAL composition, both faces of the config flag
+├── test_model_surface.py  # step 5: the model-visible transcript, pinned keylessly
+└── broken_extension.py    # deliberately broken fixtures for step 3
 ```
