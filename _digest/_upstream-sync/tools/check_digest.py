@@ -68,6 +68,8 @@ EXTERNAL_PATH_HINTS = (
     "langchain/", "langgraph/", "pregel/", "airflow/", "tests/cli/", "tests/",
     "deep_research_harness/", "backend/config.yaml", "scripts/run.sh", "scripts/chat.sh",
     "ai-elements/model-selector", "evals/evals.json", "workspace/results.json",
+    # v1 分支路径（main-1.x 已不在本工作树）：外部叙事对照文档有意引用
+    "main-1.x/",
     # 沙箱运行时目录（由 install-shim 生成），不是仓库文件
     "bin/lark-cli",
 )

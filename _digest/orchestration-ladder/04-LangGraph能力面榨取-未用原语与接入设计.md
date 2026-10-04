@@ -19,19 +19,19 @@ sibling: 00-map.md, 01-完成语义与崩溃窗口-接受可见静止处置.md
 
 ## 1. 候选能力真身核验
 
-### 1.1 `interrupt()` / `NodeInterrupt`
+### 1.1 `interrupt()` / `langgraph.errors.NodeInterrupt`
 
 - `interrupt(value)`（SP/langgraph/types.py:705-725）：节点内首次调用抛 `GraphInterrupt`，`value` 随异常送至客户端；**恢复必须用 `Command(resume=...)`**；**图从该节点开头重执行全部逻辑**（:718）；同一节点多个 interrupt 按节点内出现顺序匹配 resume 值，resume 列表**按 task 作用域隔离、不跨 task 共享**（:720-722）；**必须启用 checkpointer**（:724-725）。
 - **持久化真身**：interrupt 不是独立存储，而是**该 task 的 pending write**。SP/langgraph/pregel/_runner.py:435-442——`GraphInterrupt` 被 commit 时执行 `put_writes(task.id, [(INTERRUPT, exception.args[0])] + 已有 RESUME 写)`。即 interrupt 状态存在 checkpoint 的 `pending_writes[(task_id, "interrupt")]`，与 DeerFlow rollback 捕获/重挂的 pending writes（见 §3.1）**同一层**。
 - **恢复语义**：SP/langgraph/pregel/_loop.py:635-663 `_pending_interrupts()` 用 pending INTERRUPT/RESUME 写配对算"悬挂中断"集合；:720-748——`Command(resume=...)` 被映射为 RESUME pending write 落盘；无 checkpointer 直接 resume 抛 RuntimeError（:722-725）；**多个悬挂 interrupt 必须用 `{interrupt_id: value}` 映射**，否则 RuntimeError（:733-737）；time-travel 重放会丢弃缓存 RESUME 写让 interrupt 重新触发（:714-717）。
-- `NodeInterrupt`（SP/langgraph/errors.py:92-108）：**1.0 起 deprecated**，仅是 `GraphInterrupt` 的薄包装——榨取价值为零，直接用 `interrupt()`。
+- `langgraph.errors.NodeInterrupt`（SP/langgraph/errors.py:92-108）：**1.0 起 deprecated**，仅是 `GraphInterrupt` 的薄包装——榨取价值为零，直接用 `interrupt()`。
 - 客户端可见面：`StateSnapshot.interrupts`（SP/langgraph/types.py:570-571）与 `PregelTask.interrupts`（:515）；恢复 UI 应读快照而非解析流。
 
 ### 1.2 `Command(goto/update/resume)` 与 `Command.PARENT`
 
 - SP/langgraph/types.py:652-702：`graph`（`None`=当前图 / `Command.PARENT`=:702）、`update`、`resume`（单值或 `{interrupt_id: value}`，:662-666）、`goto`（节点名 / 序列 / **`Send` / `Send` 序列**，:667-672）。
 - **`Command(goto=[Send(...)])` 是节点内 fan-out 的合法通道**——goto 与 Send 不是割裂世界。
-- SP/langgraph/prebuilt/tool_node.py:894-908：ToolNode 把工具返回 `Command` 中 `graph=Command.PARENT` 的 goto 提升为 `ParentCommand`（SP/langgraph/errors.py:111-115）——**子图内工具可改写父图路由**。
+- SP/langgraph/prebuilt/tool_node.py:894-908：ToolNode 把工具返回 `Command` 中 `graph=Command.PARENT` 的 goto 提升为 `langgraph.errors.ParentCommand`（SP/langgraph/errors.py:111-115）——**子图内工具可改写父图路由**。
 
 ### 1.3 `Send`（map-reduce fan-out）
 
@@ -95,7 +95,7 @@ sibling: 00-map.md, 01-完成语义与崩溃窗口-接受可见静止处置.md
 
 ### 3.3 `Command.PARENT` → 判定：当前结构不可行
 
-DeerFlow 的 subagent **不是 LangGraph 子图**：task 工具经 `SubagentExecutor.execute_async()` 在图外执行，结果以 `Command(update={"messages":[ToolMessage]})` 回填（task_tool.py:626-640）。`ParentCommand` 上浮机制（tool_node.py:894-908）只对**真实嵌套子图**生效；lead graph 是根图，没有父图可指挥。除非把 subagent 改造为编译期子图（大改，且与 #4399 的命名空间治理和 executor 的租约/恢复体系冲突），否则 **`Command.PARENT` 无处落地——写明不做**。
+DeerFlow 的 subagent **不是 LangGraph 子图**：task 工具经 `SubagentExecutor.execute_async()` 在图外执行，结果以 `Command(update={"messages":[ToolMessage]})` 回填（task_tool.py:626-640）。`langgraph.errors.ParentCommand` 上浮机制（tool_node.py:894-908）只对**真实嵌套子图**生效；lead graph 是根图，没有父图可指挥。除非把 subagent 改造为编译期子图（大改，且与 #4399 的命名空间治理和 executor 的租约/恢复体系冲突），否则 **`Command.PARENT` 无处落地——写明不做**。
 
 ### 3.4 `update_state(task_id=...)` → 「悬挂工具的服务端补答」原语
 
@@ -123,7 +123,7 @@ DeerFlow 的事件架构（custom-event 双发射 + RunJournal 回调）已覆�
 | `subgraphs=True` 消费 | 后端全通、前端不用 | subagent 实时子图视图 | 纯前端工作 | **中**：零后端成本，看前端路线图 |
 | checkpointer fork | delta 禁 / full 留 | 时间旅行分支对比 | #4458 兄弟 pending writes 重放 | **低**：走复制 thread + linearize 替代 |
 | `Command.PARENT` | 无子图结构 | —（子图工具改写父图路由） | subagent 是图外 executor，非子图 | **不做**：结构不可行 |
-| `NodeInterrupt` | 未用 | — | 1.0 起 deprecated（errors.py:92-108） | **不做** |
+| `langgraph.errors.NodeInterrupt` | 未用 | — | 1.0 起 deprecated（errors.py:92-108） | **不做** |
 | `astream_events` | custom-event 双发射替代 | — | 双真相源、帧模型不匹配 | **不做**：维持替代 |
 
 ## 源码入口
