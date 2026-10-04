@@ -27,7 +27,7 @@ topics: [testing, ci, quality-assurance]
 
 marker 计数（`backend/tests/` 内 grep marker 用法）：`asyncio` 942 处、`no_auto_user` 76 处、`integration` 10 处、`allow_blocking_io` 10 处、`live` 4 处。
 
-**真 API 用例清单**（全部显式 opt-in，默认 CI 永不执行）：`live` marker 4 处——`test_client_live.py` 模块级 pytestmark（19 个用例）+ AIO sandbox Docker 冒烟 3 个用例；`requires_llm` skipif 门 `test_client_e2e.py` 43 个用例（文件管理子集不需要 LLM，CI 里也真跑）；`ONEAPI_E2E=1` 门 `test_deferred_tool_promotion_real_llm.py` 1 个用例；`MONOCLE_LIVE_TESTS=1` 门 monocle live 2 个用例。`test_client_live_policy.py` 的 11 个测试是 live 门自身的策略测试（子进程重收集，不触网）。其余 1.44 万个用例全部确定性运行。
+**真 API 用例清单**（全部显式 opt-in，默认 CI 永不执行）：`live` marker 4 处——`test_client_live.py` 模块级 pytestmark（19 个用例）+ AIO sandbox Docker 冒烟 3 个用例；`requires_llm` skipif 门 `test_client_e2e.py` 43 个用例（文件管理子集不需要 LLM，CI 里也真跑）；`ONEAPI_E2E=1` 门 `test_deferred_tool_promotion_real_llm.py` 1 个用例；`MONOCLE_LIVE_TESTS=1` 门 monocle live 2 个用例。`test_client_live_policy.py` 的 11 个测试是 live 门自身的策略测试（子进程重收集，不触网）。其余约 1.43 万个用例全部确定性运行。
 
 ## 四个入口与四个 marker 的语义
 
@@ -114,9 +114,9 @@ marker 注册在 `backend/pyproject.toml` 的 `[tool.pytest.ini_options]`，四�
 | Bench 逻辑测试 | 基准脚本纯逻辑 | `test_bench_*.py`，合成 fixture | 16 个文件 | 不跑真实评测 |
 | Skills 测试 | 公共技能脚本 | 根 `tests/skills/`，importlib + FakeResp | 5 个文件 | 不进 CI |
 | 验收清单 | 子代理确定性验收 | RFC #4651，`test_acceptance_checks.py` | 1 个文件 10 个测试类 | — |
-| 手工测试计划 | 人工矩阵 | `backend/docs/AUTH_TEST_PLAN.md` | 1 份文档 | — |
+| 手工测试计划 | 人工矩阵 | `backend/docs/AUTH_TEST_PLAN.md`；未执行缺口也成文：`backend/docs/AUTH_TEST_DOCKER_GAP.md` 逐例记录 6 个 TC-DOCKER 用例为何未跑、其 auth 行为被哪些非 Docker 测试覆盖 | 2 份文档 | — |
 
-补位关系：**前端/TUI 车道细节**见 `06-frontend-and-tui.md`；**持久化与恢复测试**见 `07-durable-and-recovery.md`；**上层应用（扩展/技能/MCP/渠道/下游应用）的完整测试面**见 `08-upper-layer-apps.md`。
+补位关系：**前端/TUI 车道细节**见 `06-frontend-and-tui.md`；**持久化与恢复测试**见 `07-durable-and-recovery.md`；**上层应用（扩展/技能/MCP/渠道/下游应用）的完整测试面**见 `08-upper-layer-apps.md`；**支撑这一切的基建层**（support/ 助手、检测器族、依赖治理、CI 预算）见 `09-test-infra-and-platform.md`。
 
 ## 地图怎么看（解释）
 

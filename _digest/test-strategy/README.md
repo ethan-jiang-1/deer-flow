@@ -1,6 +1,6 @@
 ---
 title: "Test Strategy — DeerFlow 测试体系消化"
-description: "DeerFlow 自己怎么测自己：测试思想与成文规矩、确定性 LLM 替身谱系、契约与跨栈 E2E、架构即测试的元治理、速度与隔离工程、前端与 TUI、持久化与恢复、上层应用测试面。"
+description: "DeerFlow 自己怎么测自己：测试思想与成文规矩、确定性 LLM 替身谱系、契约与跨栈 E2E、架构即测试的元治理、速度与隔离工程、前端与 TUI、持久化与恢复、上层应用测试面、测试基建与平台工程。"
 topics: [testing, ci, quality-assurance, architecture]
 ---
 
@@ -30,8 +30,9 @@ DeerFlow 的测试不是一个"套件"，而是一套**被物化成可执行资�
 | `06-frontend-and-tui.md` | 前端与 TUI：rstest node/dom 分流、Playwright 四车道、mock 层工程化、几何断言、Textual pilot + 纯 reducer |
 | `07-durable-and-recovery.md` | 持久化与恢复：两种不杀进程的崩溃模拟习语、run ownership / scheduled-task / MCP 长任务恢复面、迁移回滚契约 |
 | `08-upper-layer-apps.md` | 上层应用测试面：扩展、技能（SkillScan+waiver）、MCP、IM 渠道、custom agents、下游应用三层金字塔——每层"你该怎么测" |
+| `09-test-infra-and-platform.md` | 测试基建与平台工程：support/ 助手层、静态检测器族、测试依赖治理、pre-commit 与 CI 执行预算、跨平台精确 skip、无覆盖率门禁的取舍 |
 
-推荐顺序：`00` 先建地图 → `01` 看思想 → `02`/`03` 看两个核心机制 → `04`/`05` 看外围工程 → `06`-`08` 按需深入。**写 agent / 中间件 / 下游应用的人**：`02` + `08` 是你的最小阅读集。只想抄 replay 机制的人可以直接从 `02` 开始。
+推荐顺序：`00` 先建地图 → `01` 看思想 → `02`/`03` 看两个核心机制 → `04`/`05` 看外围工程 → `06`-`09` 按需深入。**写 agent / 中间件 / 下游应用的人**：`02` + `08` 是你的最小阅读集。只想抄 replay 机制的人可以直接从 `02` 开始。
 
 ## 基线与口径
 

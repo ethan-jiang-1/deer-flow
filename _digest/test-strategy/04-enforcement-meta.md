@@ -22,6 +22,8 @@ topics: [testing, governance, ci, architecture]
 | `test_compose_default_workers.py` | 单 Uvicorn worker 默认（run 状态在进程内，多 worker 会撕裂） |
 | `test_compose_extensions_config_writable.py` + `test_helm_extensions_config_writable.py` + `test_extensions_config_atomic_write.py` | `extensions_config.json` 运行时可写的挂载（compose 与渲染后的 Helm 双侧），含 Linux 拒绝在 mount point 上 `rename()` 的 `EBUSY` 回退路径 |
 | chart CI 的三个检查脚本 | Service 类型门禁、上传大小策略、chart config_version 与 `config.example.yaml` 的漂移 |
+
+周期面上，`nightly.yaml` 定时跑 `helm lint` + `helm template --include-crds` + config_version 漂移检查——发布配置的渲染验证不只 PR 时跑，慢一拍的漂移也有网。
 | `scripts/verify_versions.sh`（`verify-versions.yml`） | `backend/pyproject.toml`、`frontend/package.json`、Helm Chart.yaml 的版本四处一致，drift **阻断一切发布** |
 
 这族测试的共同叙事：**部署描述（compose/Helm/chart/版本号）也是代码，也会回归，也需要门禁**。
@@ -38,7 +40,7 @@ topics: [testing, governance, ci, architecture]
 
 ## 3. CI pinning CI：工具链版本也是被测契约
 
-`backend/tests/test_ci_uv_version_pin.py` 是元治理里最精彩的一例。它的 docstring 先论证 uv 为什么"不是一个构建工具，而是一个带契约的运行时依赖"：`ExtensionManager` 的工作就是驱动 uv 子进程，依赖其 CLI 行为与 `uv.lock` 序列化格式；随后指出最锋利的失效模式——**CI 装了更新的 uv，把 lock 重写成新版格式，CI 依然全绿（同一个 uv 能读回自己写的），而生产镜像里钉住的旧 uv 读不了提交的 lock**。结论："Upgrading uv should be one explicit change that touches the Dockerfile, the workflows, and this test together"。同一哲学的泛化表述：**测试环境的工具链必须与生产一致，且这个一致性本身要有一个名字叫测试的东西看住**。
+`backend/tests/test_ci_uv_version_pin.py` 是元治理里最精彩的一例。它的 docstring 先论证 uv 为什么"不是一个构建工具，而是一个带契约的运行时依赖"：`ExtensionManager` 的工作就是驱动 uv 子进程，依赖其 CLI 行为与 `uv.lock` 序列化格式；随后指出最锋利的失效模式——**CI 装了更新的 uv，把 lock 重写成新版格式，CI 依然全绿（同一个 uv 能读回自己写的），而生产镜像里钉住的旧 uv 读不了提交的 lock**。结论："Upgrading uv should be one explicit change that touches the Dockerfile, the workflows, and this test together"。同一哲学的泛化表述：**测试环境的工具链必须与生产一致，且这个一致性本身要有一个名字叫测试的东西看住**。同族的还有前端包管理器：e2e workflow `corepack prepare pnpm@10.26.2 --activate` + `pnpm install --frozen-lockfile`；本地 pre-commit 另有 `uv lock --check` 前置哨兵（`09-test-infra-and-platform.md` §四）。
 
 ## 4. AGENTS.md 治理：给 agent 的指令也是受门禁的资产
 
@@ -53,6 +55,8 @@ topics: [testing, governance, ci, architecture]
 这套门禁越厚，越需要一条防盲信的评审哲学成文（`docs/agents/maintainer-orchestrator-design.md:42` 原文）：
 
 > "**Evidence over a green check.** CI status is a signal, not a verdict. A green rollup never excuses reading the changed code path, and a failing required check is itself a finding. Tests passing does not prove the changed branch is exercised."
+
+评审证据本身也物化进仓库：`docs/pr-evidence/` 存档 e2e 截图，让"证据"可引用、可追溯，而不只是口头声明。
 
 ## 5. Skill-review 豁免清单：信任边界设计
 

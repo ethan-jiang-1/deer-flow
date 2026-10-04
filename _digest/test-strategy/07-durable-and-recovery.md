@@ -57,6 +57,7 @@ topics: [testing, persistence, recovery]
 ## 四、迁移契约与跨后端等价
 
 - **14 个 `backend/tests/test_migration_*.py` 逐 revision 断言"已审定的回滚契约"**——每个迁移的 upgrade/downgrade 都是显式契约，不是"up 能跑就行"；
+- **未知 revision 路径也被覆盖**：迁移链历史上发生过 id 复用分叉（`0019_thread_incarnations`），恢复程序成文于 `docs/database-forward-revision-recovery.md`——"Current tests remove 0019 from the mocked local revision set to exercise the same unknown-revision path"（该文原话）；`backend/tests/test_persistence_forward_revision_compat.py`（"Forward-compatibility tests for an old Gateway against migration 0019"）钉住启动时对旧形态 **fail-loud 拒绝**而非静默改 schema；
 - **真 Postgres 语义**：迁移契约测试在 `DEERFLOW_TEST_POSTGRES_URL` 存在时对真 Postgres 断言、否则 SQLite 兜底；CI 的 `backend-unit-tests.yml` 起 Postgres 17 + Redis 7 service 容器并显式注入 `DEDUPE_TEST_POSTGRES_URL`（workflow 注释明言：没有这个映射 "those tests silently skip"——**防静默降级**也是 CI 设计的一部分，见 `05-speed-isolation.md` §3）；
 - **跨后端等价**：`ThreadMetaStore`（`backend/packages/harness/deerflow/persistence/thread_meta/base.py:59`）的搜索语义在 memory/SQLite/PostgreSQL 上必须一致（`backend/tests/test_thread_meta_repo.py`）；
 - **替身边界**：ownership store 契约明文拒绝 fake Redis——"there is no fake-redis tier because a fake would not execute the Lua exclusions"（`backend/packages/harness/deerflow/sandbox/AGENTS.md:82`），Redis 层是 `@pytest.mark.integration` + CI 起真服务。**替身不可替换被测语义**（`01-doctrine.md` §5）在持久化层的落地。

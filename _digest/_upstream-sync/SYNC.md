@@ -132,5 +132,6 @@ git diff <新锚点> ethan -- . ':(exclude)_digest' ':(exclude)_faq_on_digested'
 | `backend/tests/` | `testing/`, `test-strategy/` |
 | `backend/docs/`（REPLAY_E2E / BLOCKING_IO_DETECTION 等） | `test-strategy/` |
 | `contracts/` | `test-strategy/` |
+| `scripts/`（detect_* / check_agent_guidance / verify_versions） | `test-strategy/` |
 | `.github/workflows/` | `testing/`, `test-strategy/` |
 | `docker/` | `operations/deployment/` |

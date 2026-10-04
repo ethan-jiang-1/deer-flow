@@ -64,7 +64,8 @@ CI 的 `backend-unit-tests.yml` 有一个 `default-install-collection` job：按
 
 - 数据集按不可变 revision + SHA-256 钉住，评测命令**不得静默下载**；合成样本必须自我声明是合成；
 - 不提交上游数据集文本、凭证、完整 provider 请求；离线选择用固定时钟与确定性排序；
-- 对应的 16 个 `test_bench_*` 测试只验证基准脚本的**纯逻辑**（合成 fixture），把"评测代码本身的正确性"与"评测运行"分离。评测面还有两块：trace 行为断言的 Monocle（`02-deterministic-llm.md` 级 3，`MONOCLE_LIVE_TESTS=1` 显式开门）与技能评审器自带的 evals manifest（`08-upper-layer-apps.md` §三）。
+- 对应的 16 个 `test_bench_*` 测试只验证基准脚本的**纯逻辑**（合成 fixture），把"评测代码本身的正确性"与"评测运行"分离。评测面还有两块：trace 行为断言的 Monocle（`02-deterministic-llm.md` 级 3，`MONOCLE_LIVE_TESTS=1` 显式开门）与技能评审器自带的 evals manifest（`08-upper-layer-apps.md` §三）；
+- **评测实验的存档纪律**：`docs/experiments/task-continuity-20260912/` 冻结协议、回放脚本、prompt、manifest 与逐例得分（`results/case-scores.json`），README 原话："Raw-result SHA-256 values bind the published score projection to the original local evidence"——发布的是**可复现的协议 + 绑定哈希**，不分发数据集问题/答案与 provider payload。与 bench 的 SHA-256 数据集纪律同源，但发生在"历史实验如何进 PR"的场景。
 
 ## 5. 跨平台与杂项纪律
 
