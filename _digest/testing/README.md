@@ -30,5 +30,6 @@ Agent 测试是所有 AI 应用中最棘手的部分。这里分两层：DeerFlo
 
 ## 补充
 
+- 测试体系的策略研究（思想、分类学、机制咬合）→ `_digest/test-strategy/`
 - CLI 实验 + 交互手段 → `_faq_on_digested/cli-and-sdd/interaction-methods-and-testing.md`
 - 外部最佳实践（LLM-as-judge、trajectory eval、record/replay）→ 同上文件

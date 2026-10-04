@@ -18,6 +18,7 @@ type: index
 | 🛠️ 看怎么实际开发 | `_faq_on_digested/06_cli-and-sdd/` | CLI 实验、SDD 协作、subagent 编排、Step-by-Step |
 | 🔬 深入内部机制 | [internals/](internals/) | Agent Loop、Middleware Chain、Model Layer、Config、Runtime |
 | 🧪 测试策略和方法 | [testing/](testing/) | 测试金字塔、FakeToolCallingModel、CI 门禁、Agent 测试最佳实践 |
+| 🧬 测试体系研究 | [test-strategy/](test-strategy/) | DeerFlow 怎么测自己：思想与成文规矩、确定性 LLM 替身谱系、契约与跨栈 E2E、架构即测试、速度与隔离工程、前端与 TUI、持久化与恢复、上层应用测试面 |
 | 🔭 诊断和观察 | [observability/](observability/) | 日志 + trace_id 关联、RunEvent 事件流、追踪、Console API、调试工具箱、上线清单 |
 | 🚀 部署和运维 | [operations/](operations/) | 安全、部署、追踪、IM 通道、IT 治理、API 参考 |
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
@@ -36,7 +37,8 @@ _digest/
 ├── getting-started/         # 安装、配置、首次运行
 ├── concepts/                # 核心概念详解
 ├── internals/               # 内部机制深入
-├── testing/                 # 测试策略 + 实践
+├── testing/                 # 测试策略 + 实践（开发者实操视角）
+├── test-strategy/           # 测试体系研究（思想 / 分类学 / 机制咬合）
 ├── observability/           # 诊断与观察（日志 / 事件流 / 追踪 / 控制台 / 调试）
 ├── operations/              # 安全、部署、运维
 ├── frontend/                # 前端架构
@@ -80,6 +82,8 @@ goal continuation → internals/runtime/goal-continuation.md
 custom middleware → internals/middleware/02-chain-assembly.md + 00-overview.md
 TUI / CLI         → getting-started/06-tui.md
 record replay     → testing/07-record-replay.md
+测试体系全景/分类学 → test-strategy/00-overview.md
+replay miss 机制  → test-strategy/02-deterministic-llm.md
 trace_id / 日志关联 → observability/01-logging-and-trace-context.md
 run 事件回放       → observability/02-run-events-and-journal.md
 Console / 成本     → observability/04-console-and-cost.md

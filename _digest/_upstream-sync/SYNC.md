@@ -129,5 +129,8 @@ git diff <新锚点> ethan -- . ':(exclude)_digest' ':(exclude)_faq_on_digested'
 | `backend/app/channels/` | `operations/channels/` |
 | `frontend/` | `frontend/` |
 | `config.example.yaml` | `internals/configuration/`, `getting-started/` |
-| `.github/workflows/` | `testing/` |
+| `backend/tests/` | `testing/`, `test-strategy/` |
+| `backend/docs/`（REPLAY_E2E / BLOCKING_IO_DETECTION 等） | `test-strategy/` |
+| `contracts/` | `test-strategy/` |
+| `.github/workflows/` | `testing/`, `test-strategy/` |
 | `docker/` | `operations/deployment/` |
