@@ -14,7 +14,7 @@ topics: [goal, orchestration, continuation, evaluation, worker]
 
 - **goal 的设置面在宿主**：`DeerFlowClient.set_goal/get_goal/clear_goal`（[../internals/runtime/goal-continuation.md](../internals/runtime/goal-continuation.md) 记载的方法面；TUI 经 `client.set_goal` 走同一路径，`tui/app.py:538`）。模型没有 `create_goal`/`update_goal` 工具可调；
 - **续轮裁决在 run worker**：每个 run 结束后，worker 用**独立的评估器模型**产出 `GoalEvaluation`（`runtime/runs/worker.py:1241` 的 `_get_goal_evaluator_model()`），再经 `should_continue_goal`（`runtime/goal.py:332`-`342`）决定是否开新一轮；
-- **模型自报不进裁决**：`satisfied` 与否由评估器判定；agent 的自述只是被评估的证据之一。
+- **模型自报不进裁决**：`satisfied` 由评估器判定，不由 agent 自报。
 
 `[推断]` 这就是**提议权与裁决权分离**：agent 的自述只是被评估的证据之一；评估器同时是 DeerFlow 反馈体系里少有的独立 grader 实例（覆盖目标满足判定，不覆盖验收主张——那属于验收清单的 judge 层）。
 
@@ -31,12 +31,13 @@ topics: [goal, orchestration, continuation, evaluation, worker]
       闸二：no_progress_count >= max_no_progress_continuations → 停
   → 继续：开启下一轮 run（目标原样持久）
   → 停止：stand_down_reason 落 goal 状态（satisfied / blocked:<blocker> /
-          no_progress_detected / 轮预算耗尽），并做收尾对账
+          no_progress_detected / max_continuations_reached / token_capped），
+          并做收尾对账
 ```
 
 ![goal 续轮决策流：实例身份门 → 独立评估器 → blocker 枚举 → 双闸](./figures/goal-continuation.svg)
 
-`[源码]` 关键锚点：`should_continue_goal`（`runtime/goal.py:332`-`342`）、`compute_no_progress_count`（`:382`-`389`）、worker 侧 `_stand_down_reason`（`runtime/runs/worker.py:1840`-`1850`）、`_persist_goal_evaluation`（`:1854`）、实例身份三件（`:1774`-`1803`）。
+`[源码]` 关键锚点：`should_continue_goal`（`runtime/goal.py:332`-`342`）、`compute_no_progress_count`（`:382`-`390`）、worker 侧 `_stand_down_reason`（`runtime/runs/worker.py:1840`-`1851`）、`_persist_goal_evaluation`（`:1854`）、实例身份三件（`:1774`-`1803`）。
 
 ## 两个独立预算
 
@@ -87,7 +88,8 @@ worker 侧还有三道竞态与降级守卫：评估后 goal 实例或可见会�
 | `satisfied`（evaluation.satisfied） | 评估器判定目标达成 | 复核产物；goal 状态可清（CAS） |
 | `blocked:<blocker>` | 评估器报出非 `goal_not_met_yet` 的具体 blocker | 按 blocker 类型处置（外部依赖/需要人类输入），改条件后重设 |
 | `no_progress_detected` | 无进展熔断触发 | **换打法而不是换说法**：证据签名不变就永远熔断 |
-| 轮预算耗尽（`continuation_count >= max_continuations`） | 两闸之一 | 提高预算前先读评估器历史——它比轮数更诚实 |
+| `max_continuations_reached`（`continuation_count >= max_continuations`） | 两闸之一 | 提高预算前先读评估器历史——它比轮数更诚实 |
+| `token_capped`（`worker.py:2090`-`2094`） | run 因 token 预算到限收尾 | 已有部分结果可用；提高 token 预算或把目标拆小 |
 
 `[源码]` 一致性保证：worker 侧 `_stand_down_reason` 的 cap 逻辑与 `should_continue_goal` **镜像**——"Default caps mirror should_continue_goal so the two gate functions agree"（`runtime/runs/worker.py:1845` 注释）。两个闸不会给出矛盾的"为什么停"。
 

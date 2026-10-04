@@ -24,7 +24,7 @@ type: index
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化、反馈三环 |
 | 🕸️ 图工程支持到哪儿 | [graph-engineering/](graph-engineering/) | 12 项三档支持度地图、部分支持边界、为什么没有任务 DAG、扩展路线、编排操作面与注入设计 |
-| 🪜 编排原语阶梯 | [orchestration-ladder/](orchestration-ladder/) | 跨原语统一视角：完成语义与崩溃窗口、状态三分法、资源预算叠加、LangGraph 能力面榨取、组合模式、谱系与冷恢复、外部叙事核对、图计算本质重述（借鉴 DSH ladder 方法） |
+| 🪜 编排原语阶梯 | [orchestration-ladder/](orchestration-ladder/) | 跨原语统一视角：完成语义与崩溃窗口、状态三分法、资源预算叠加、选择语义边界句、goal 驾驶座、LangGraph 能力面榨取、组合模式、谱系与冷恢复、外部叙事核对、图计算本质重述（借鉴 DSH ladder 方法） |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程、机械校验器 `_digest/_upstream-sync/tools/check_digest.py` |
 
 ## 目录结构
@@ -79,6 +79,8 @@ _digest/
 prompt injection  → operations/security/03-guardrail.md (InputSanitization)
 request secrets   → concepts/skills-tools/skill-md-and-tool-assembly.md
 goal continuation → internals/runtime/goal-continuation.md
+goal 驾驶座（续轮/熔断/收尾）→ orchestration-ladder/12-goal驾驶座-续轮准入评估熔断与收尾.md
+每个原语什么时候用（边界句）→ orchestration-ladder/11-选择决策语义全景-DeerFlow原语边界句与空白.md
 custom middleware → internals/middleware/02-chain-assembly.md + 00-overview.md
 TUI / CLI         → getting-started/06-tui.md
 record replay     → testing/07-record-replay.md

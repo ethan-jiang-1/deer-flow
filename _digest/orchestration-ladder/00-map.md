@@ -33,7 +33,7 @@ DeerFlow 给使用者的编排原语不是一棵中心调度树，而是一组**
 | `ask_clarification` | 用户 | `human_input` artifact + `Command(goto=END)`（`agents/middlewares/clarification_middleware.py:497`-`516`） | 下一轮用户对话 | 用户回复消息 | 回合级 |
 | `task`（即时子代理） | 子代理线程（共享沙箱） | 子代理 thread checkpoint | ToolNode Send 并行 | 工具结果回主上下文 | 单 run 内 |
 | `batch_task`（durable） | worker 认领 + lease 续租 | batch/item 落库、JSONL 结果（`subagents/batch_service.py:243` 幂等键注入、`:247` 每 lease/3 续租） | worker 轮询 claim | item 终态 + 验收 verdict | 跨进程、跨崩溃 |
-| goal continuation | lead agent 跨轮 | goal state 落 checkpoint（`runtime/goal.py:464`-`540` 读写） | 轮次准入（max_continuations=8、no-progress 检测，`goal.py:33`、`:332`） | phase 终态 + wrapup | 跨自动续轮 |
+| goal continuation | lead agent 跨轮 | goal state 落 checkpoint（`runtime/goal.py:464`-`540` 读写） | run worker 独立评估器 + 双闸（max_continuations=8、no-progress 签名阈值 2，`goal.py:332`-`342`） | phase 终态 + stand_down_reason | 跨自动续轮 |
 | scheduler | 后台 scheduler 服务 | 任务表（queued/launching/running，非终态部分唯一索引 `persistence/scheduled_task_runs/model.py:51`；lease fence `sql.py:474`-`487`） | wall-clock + lease 续租 | occurrence 终态 | 定时触发 |
 | interrupt / resume / fork | LangGraph 图 | checkpoint（fork 校验见 `app/gateway/checkpoint_lineage.py:76`-`181`） | 客户端 command（`run_models.py:46`-`55`） | run 终态 | 挂起任意久 |
 | `mcp_tasks` | MCP server | 任务面 | 外部 | 轮询 | 异步 |
@@ -53,6 +53,8 @@ DeerFlow 给使用者的编排原语不是一棵中心调度树，而是一组**
 | 图计算本质（DSH 11 的对应物）：DeerFlow 的图三件分置重述 | [08](08-图计算的本质-DeerFlow编排的统一重述.md)（已答：四个真实的图、引擎做/拒绝清单、Agent 是原子统一重述、代码-语言倒置样本——batch 幂等契约写在 prompt 里） |
 | **驾驶座手册**：这些结论怎么变成使用守则？ | [09](09-驾驶座手册-用已核验事实驱动DeerFlow.md)（选原语决策树、"完成"核对清单、预算陷阱表、恢复预期、多 worker 清单——每条回链已核验锚点） |
 | 反向借鉴：DSH 原语的哪些做法值得 DeerFlow 吸收？ | [10](10-反向借鉴-DSH原语对DeerFlow的可吸收点.md)（九级对照 + 三条最划算吸收 + 不该借的） |
+| 每个原语"什么时候用"的模型可见边界句逐字盘点？跨原语路由与空白在哪？ | [11](11-选择决策语义全景-DeerFlow原语边界句与空白.md)（task/batch/todos/clarification/goal/scheduler/图级原语逐字边界句 + 路由汇总表 + 升级阶梯与选择权分界 + 5 条空白登记） |
+| goal 的驾驶座纪律：续轮怎么准入、无进展怎么判定、停止后看什么？ | [12](12-goal驾驶座-续轮准入评估熔断与收尾.md)（宿主驱动形态、独立评估器合同、blocker 封闭枚举、证据签名熔断、stand_down_reason 全集、守则表） |
 | （候选，低优先）DSH `runtime-profiles` 对应物：DeerFlow 的启动 profile / 配置快照维度 | 未挖——DSH 14 专题中 DeerFlow 仅此与 `plugin-inventory`（扩展清单）无对应镜头 |
 
 ## 与 DSH 原版 15 篇的对照（第二轮借用登记，2026-10）

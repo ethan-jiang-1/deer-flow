@@ -54,6 +54,10 @@ topics: [orchestration, selection-semantics, tools, routing]
 
 `[源码]` harness 与 app 的 scheduler 代码里无任何 `@tool`（`scheduler/schedules.py` 只有 cron 数学；管理面是 Gateway API `routers/scheduled_tasks.py:176`-`505`）。唯一的模型可见影响是间接的：scheduled run 注入 `context.non_interactive=True`（`app/gateway/services.py:1831`），lead 工厂据此**剥离 `ask_clarification`**（`agent.py:80`），且该键仅内部认证调用方可设——"arbitrary HTTP/IM clients must not be able to force autonomous execution"（`services.py:521`-`524`）。`[推断]` 这是"定时自主性"的信任边界：自主运行的能力（无 HITL）只随宿主调度路径授予，不随客户端请求授予。
 
+### 图级挂起 / 恢复 / 分叉：也不在模型的选择集里
+
+`[源码]` `interrupt_before` / `command:resume` / `checkpoint_id` fork 是**客户端 API 面**（`app/gateway/run_models.py:46`-`55`），模型没有对应的可调用工具——与 goal/scheduler 同侧：挂起点在图定义里声明，恢复与分叉由客户端 command 驱动（机制见 [01](01-完成语义与崩溃窗口-接受可见静止处置.md)、[06](06-Session谱系与冷恢复-线程运行与所有权.md)，能力面见 [04](04-LangGraph能力面榨取-未用原语与接入设计.md)）。
+
 ### background tasks / MCP 长任务
 
 `[源码]` 查询与取消有模型工具：`list_background_tasks`（"List current and recent durable background tasks for this chat."）、`cancel_background_task`（`background_tasks_tool.py:46`-`84`）。提交面是**运行时包装**：MCP 长任务的原工具 description 被拼接契约句——"Submitted as durable background task {task_name!r}; returns a DeerFlow task ID immediately and **status polling is handled automatically.**"（`mcp/tools.py:658`-`709`）——同时 status/cancel 原始工具对模型隐藏（`:744`），轮询整体移出 Agent loop 进 `McpTaskService`。
@@ -67,7 +71,7 @@ topics: [orchestration, selection-semantics, tools, routing]
 | `task` 的 `context_mode` isolated ↔ snapshot | 参数描述自带选择句："Choose snapshot when relevant requirements or failed approaches are spread across the parent conversation… later parent turns are not synced. Historical tool actions are not evidence of child completion."（与继承式委派的关系判定见 [10](10-反向借鉴-DSH原语对DeerFlow的可吸收点.md)） |
 | `ask_clarification` ↔ 非交互运行 | 运行时变体改写 + 工厂剥离（scheduler 路径强制自主）——同一名词两种语义随上下文切换 |
 | `task` 结果 ↔ 再委派 | "Any further delegation must name the missing condition and cover only remaining work. **Do not repeat an unchanged attempt** or restart the whole task." |
-| goal / scheduler ↔ 模型 | **不在选择集内**：宿主设定，模型只被通知（goal）或被改环境（non_interactive） |
+| goal / scheduler / 图级挂起恢复分叉 ↔ 模型 | **不在选择集内**：goal 宿主设定（模型只被通知）、scheduler 纯 API、interrupt/resume/fork 走客户端 command——模型只被改环境或被注入 |
 | MCP 长任务 ↔ 轮询 | 提交面拼接契约句，status/cancel 原工具隐藏——"status polling is handled automatically" |
 
 ## 官方升级阶梯（DeerFlow 版）

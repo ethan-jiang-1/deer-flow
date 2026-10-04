@@ -68,7 +68,7 @@ topics: [harness, participation-rules, runtime, extensions, config]
 
 ### 诚实缺口
 
-`[推断]` **缺口**：DeerFlow 没有"这次运行实际是什么"的查询面——扩展启用状态要看 `extensions_config.json` + 诊断列表，agent 实际工具集要从 descriptor 推断。`AgentAssemblyDescriptor` 已经携带了全部原料（工具表、prompt hash、中间件栈），一个"dump 当前组装"的查询面是低成本高价值的缺口——本篇按"缺口登记"处理，不做设计。
+`[推断]` **缺口**：DeerFlow 没有"这次运行实际是什么"的查询面——扩展启用状态要看 `extensions_config.json` + 诊断列表，agent 实际工具集要从 descriptor 推断。`AgentAssemblyDescriptor` 已经携带了全部原料（工具表、prompt hash、中间件栈），一个"dump 当前组装"的查询面是低成本高价值的缺口——本篇按"缺口登记"处理，不做设计。更宽的记分视角（28 维红绿、含"成文规则普遍无机器检查"的红项清单）见 [09-dsh-eval-harness.md](09-dsh-eval-harness.md)；本篇只对五个运行时问题负责。
 
 ## 用三个问题检验 DeerFlow
 
@@ -76,7 +76,7 @@ topics: [harness, participation-rules, runtime, extensions, config]
 
 1. **规则在哪层**——依赖方向、契约面、基础设施绑定在第三层（测试门禁）；路由与放置约定大部分在第二层（extensions/AGENTS.md 的贡献契约），**"新行为放哪"还没有一张 DeerFlow 版决策表**（登记待补）；
 2. **摩擦差**——做扩展的正确路径已有范本可抄（`examples/deerflow-extension-example` + `docs/testing/` 五台阶），错误路径（hand-wired registry、改模型请求）已被测试策略文档明文拒绝；
-3. **错误何时暴露**——启动时（配置矛盾、required 装载失败、api marker 不兼容）与请求边界（IsolatedMiddleware 归因诊断）两层；编译期拒绝在 Python 类型系统里不可得，两层是现实可达的最快反馈。
+3. **错误何时暴露**——`[推断]` 启动时（配置矛盾、required 装载失败、api marker 不兼容）与请求边界（IsolatedMiddleware 归因诊断）两层；编译期拒绝在 Python 类型系统里不可得，两层是现实可达的最快反馈。
 
 ## 出处
 
