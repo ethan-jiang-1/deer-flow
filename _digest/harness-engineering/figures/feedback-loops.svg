@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 620" font-family="PingFang SC, sans-serif">
+  <defs>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker>
+  </defs>
+  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">DeerFlow 的反馈三环（harness-engineering/03）</text>
+  <text x="490" y="52" text-anchor="middle" font-size="12" fill="#475569">轮内环报告不裁决 · 会话环先账后投影 · 元环学习在仓库 —— 每环内容均为本仓库源码取证</text>
+
+  <!-- 轮内环 -->
+  <rect x="40" y="80" width="288" height="270" rx="10" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="184" y="106" text-anchor="middle" font-size="14" font-weight="700" fill="#0c4a6e">轮内环 · 报告不裁决</text>
+  <g font-size="10.5" fill="#075985">
+    <text x="56" y="132">命令失败 = 带标记普通文本（Exit Code: N）</text>
+    <text x="56" y="150">模型失败 = error_fallback 标记 AIMessage</text>
+    <text x="56" y="168">——只有标记是权威，显示文本不是协议</text>
+    <text x="56" y="194">护栏只富化：token/turn/loop 三轴到限</text>
+    <text x="56" y="212">strip tool_calls 强制收尾，additive stop_reason</text>
+    <text x="56" y="238">验收只报证据：可判定叶子代码检查，</text>
+    <text x="56" y="256">证据不足一律 UNVERIFIED（缺失≠失败），</text>
+    <text x="56" y="274">receipt 引用交叉核对（verify the world）</text>
+    <text x="56" y="300" fill="#0c4a6e" font-weight="600">重试是模型读着标记做的下一个决定</text>
+    <text x="56" y="326" fill="#0369a1">更深一层：receipt + 确定性叶子双层验收；</text>
+    <text x="56" y="342" fill="#0369a1">主张正确性的独立裁决仍空缺（judge/RFC）</text>
+  </g>
+
+  <!-- 会话环 -->
+  <rect x="346" y="80" width="288" height="270" rx="10" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="490" y="106" text-anchor="middle" font-size="14" font-weight="700" fill="#14532d">会话环 · 先账后投影</text>
+  <g font-size="10.5" fill="#166534">
+    <text x="362" y="132">RunEventStore put_batch（终态/阈值/finally flush）</text>
+    <text x="362" y="150">子代理事件 task_id 元数据持久化</text>
+    <text x="362" y="176">step 捕获按 values 追加尾遍历——</text>
+    <text x="362" y="194">多工具调用 turn 的每条 ToolMessage 都保留</text>
+    <text x="362" y="220">compaction 真重写消息通道 + summary_text 持久，</text>
+    <text x="362" y="238">被压缩原文可经 history_search/read 读回</text>
+    <text x="362" y="264">恢复 = checkpoint 重放 + 定影缺失；</text>
+    <text x="362" y="282">调度投递显式 at-least-once，batch lease 围栏</text>
+    <text x="362" y="308" fill="#14532d" font-weight="600">task_note 是历史数据，不是新指令、不是完成证明</text>
+    <text x="362" y="334" fill="#15803d">跨 loop 边界：清理钉持久 loop，使用报告回父 loop</text>
+  </g>
+
+  <!-- 元环 -->
+  <rect x="652" y="80" width="288" height="270" rx="10" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="796" y="106" text-anchor="middle" font-size="14" font-weight="700" fill="#713f12">元环 · 学习发生在仓库</text>
+  <g font-size="10.5" fill="#854d0e">
+    <text x="668" y="132">文档失控 → #4799 拆分 + check_agent_guidance</text>
+    <text x="668" y="150">字节预算进 CI（AG001/AG002，软硬限）</text>
+    <text x="668" y="176">文档示例漂移 → #4945 文档进测试夹具</text>
+    <text x="668" y="202">状态枚举破坏消费者 → 契约测试 + </text>
+    <text x="668" y="220">additive 字段纪律（stop_reason 先例）</text>
+    <text x="668" y="246">Pinned by tests/… 双向锚点（21 处）</text>
+    <text x="668" y="272" fill="#713f12" font-weight="600">失败 → 规则/门禁/契约/检查单，回写被测试钉住</text>
+    <text x="668" y="298" fill="#a16207">形态：AGENTS.md 治理 + 契约测试，</text>
+    <text x="668" y="316" fill="#a16207">而非 note 语料库 + verify 门群</text>
+    <text x="668" y="342" fill="#854d0e">回写本身有红灯</text>
+  </g>
+
+  <!-- 双通道分歧 -->
+  <rect x="40" y="380" width="900" height="150" rx="10" fill="#faf5ff" stroke="#9333ea"/>
+  <text x="490" y="406" text-anchor="middle" font-size="14" font-weight="700" fill="#581c87">两条学习通道：产品记忆与工程学习必须分开治理</text>
+  <rect x="70" y="424" width="420" height="44" rx="8" fill="#f3e8ff" stroke="#9333ea"/>
+  <text x="280" y="443" text-anchor="middle" font-size="11.5" font-weight="600" fill="#6b21a8">产品记忆（模型级 · 跨 thread）</text>
+  <text x="280" y="460" text-anchor="middle" font-size="10" fill="#7e22ce">memory/DeerMem · 用户作用域 · 面向终端用户的 assistant 特性</text>
+  <rect x="510" y="424" width="400" height="44" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="710" y="443" text-anchor="middle" font-size="11.5" font-weight="600" fill="#713f12">工程学习（仓库级）</text>
+  <text x="710" y="460" text-anchor="middle" font-size="10" fill="#854d0e">本页元环：失败回写为规则/门禁/契约测试</text>
+  <text x="490" y="494" text-anchor="middle" font-size="10.5" fill="#6b21a8">混淆两条通道是最大风险：产品记忆的失败修在记忆管线，工程学习的失败修在仓库规则——错位即事故</text>
+  <text x="490" y="514" text-anchor="middle" font-size="10" fill="#6b21a8">task_note 注释已自我声明边界："never writes a long-term user profile"</text>
+</svg>

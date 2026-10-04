@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 660" font-family="PingFang SC, sans-serif">
+  <defs>
+    <marker id="arr4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker>
+  </defs>
+  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">goal 续轮决策流（orchestration-ladder/12）——裁决权在独立评估器，不在模型</text>
+  <text x="490" y="52" text-anchor="middle" font-size="12" fill="#475569">run 结束后由 run worker 驱动；预算与裁决对模型不可见，模型只收隐藏续轮消息</text>
+
+  <!-- flow nodes -->
+  <rect x="330" y="76" width="320" height="44" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="490" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">run 结束（每次 _stream_once 之后）</text>
+  <text x="490" y="112" text-anchor="middle" font-size="10" fill="#475569">evaluator 模型每 run 构建一次（worker.py:1241）</text>
+  <line x1="490" y1="120" x2="490" y2="140" stroke="#64748b" marker-end="url(#arr4)"/>
+
+  <rect x="300" y="142" width="380" height="52" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="490" y="163" text-anchor="middle" font-size="12" font-weight="600" fill="#0f172a">实例身份门（worker.py:1774-1820）</text>
+  <text x="490" y="181" text-anchor="middle" font-size="10" fill="#475569">_goal_instance_matches + _has_durable_goal_turn_receipt；无 durable end-of-turn → run_failed</text>
+  <line x1="490" y1="194" x2="490" y2="214" stroke="#64748b" marker-end="url(#arr4)"/>
+
+  <rect x="250" y="216" width="480" height="88" rx="8" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="490" y="238" text-anchor="middle" font-size="12" font-weight="700" fill="#0c4a6e">独立评估器模型（strict completion evaluator，非思考小模型）</text>
+  <text x="490" y="257" text-anchor="middle" font-size="10" fill="#075985">"using ONLY the visible conversation evidence … If the visible evidence is too weak</text>
+  <text x="490" y="273" text-anchor="middle" font-size="10" fill="#075985">to prove progress, fail closed with blocker missing_evidence."（goal.py:286-295）</text>
+  <text x="490" y="293" text-anchor="middle" font-size="10" fill="#075985">产出 GoalEvaluation{satisfied, blocker, reason, evidence_summary} · 经 observe_system_model_call 暴露扩展</text>
+  <line x1="490" y1="304" x2="490" y2="324" stroke="#64748b" marker-end="url(#arr4)"/>
+
+  <!-- blocker gate -->
+  <rect x="250" y="326" width="480" height="96" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="490" y="348" text-anchor="middle" font-size="12" font-weight="700" fill="#713f12">blocker 封闭枚举（goal.py:41-49）—— CONTINUABLE 仅 goal_not_met_yet</text>
+  <g font-size="10" fill="#854d0e">
+    <text x="270" y="370">goal_not_met_yet → 可续跑</text>
+    <text x="270" y="386">missing_evidence（fail closed）→ 停</text>
+    <text x="270" y="402">needs_user_input（未答 Human Input Card）→ 停</text>
+    <text x="500" y="370">run_failed → 停</text>
+    <text x="500" y="386">external_wait → 停</text>
+    <text x="500" y="402">none → 仅 satisfied 时</text>
+  </g>
+  <text x="490" y="420" text-anchor="middle" font-size="10" fill="#713f12">竞态守卫：评估后 thread 变化 → thread_changed_after/before_continuation（worker.py:2044/2113）</text>
+  <line x1="490" y1="422" x2="490" y2="440" stroke="#64748b" marker-end="url(#arr4)"/>
+
+  <!-- double gates -->
+  <rect x="250" y="442" width="480" height="56" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="490" y="462" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">双闸（should_continue_goal，goal.py:332-342；与 _stand_down_reason 镜像）</text>
+  <text x="490" y="481" text-anchor="middle" font-size="10" fill="#166534">闸一 continuation_count ≥ max_continuations(8) → 停 · 闸二 no_progress ≥ 2 → 停</text>
+  <text x="490" y="497" text-anchor="middle" font-size="10" fill="#166534">no-progress 签名 = 最新可见 assistant 文本 sha256（刻意排除评估器自由文本——LLM 每轮换措辞）</text>
+
+  <!-- yes branch -->
+  <line x1="360" y1="498" x2="360" y2="540" stroke="#16a34a" stroke-width="1.5" marker-end="url(#arr4)"/>
+  <rect x="150" y="542" width="420" height="70" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="360" y="564" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">续轮：隐藏 HumanMessage &lt;goal_continuation&gt;</text>
+  <text x="360" y="582" text-anchor="middle" font-size="10" fill="#166534">Active goal + Evaluator result + Visible evidence（goal.py:393-410）</text>
+  <text x="360" y="598" text-anchor="middle" font-size="10" fill="#166534">"Do not ask the user to continue unless you are genuinely blocked." → 下一轮 run</text>
+
+  <!-- no branch -->
+  <line x1="620" y1="498" x2="620" y2="540" stroke="#e11d48" stroke-width="1.5" marker-end="url(#arr4)"/>
+  <rect x="450" y="542" width="420" height="70" rx="8" fill="#fff1f2" stroke="#e11d48"/>
+  <text x="660" y="564" text-anchor="middle" font-size="12" font-weight="700" fill="#881337">停止：stand_down_reason 落 goal 状态</text>
+  <text x="660" y="582" text-anchor="middle" font-size="10" fill="#9f1239">satisfied（清 goal）/ blocked:&lt;blocker&gt; / no_progress_detected /</text>
+  <text x="660" y="598" text-anchor="middle" font-size="10" fill="#9f1239">max_continuations_reached / token_capped —— 收尾对账是驾驶座纪律</text>
+
+  <!-- side note -->
+  <rect x="40" y="76" width="220" height="120" rx="8" fill="#faf5ff" stroke="#9333ea"/>
+  <text x="56" y="100" font-size="11" font-weight="700" fill="#581c87">三个设计要点</text>
+  <text x="56" y="126" font-size="10" fill="#6b21a8">模型无 goal 工具——自报通道不存在</text>
+  <text x="56" y="150" font-size="10" fill="#6b21a8">独立评估器裁决 satisfied / blocker</text>
+  <text x="56" y="174" font-size="10" fill="#6b21a8">预算与裁决对模型隐藏</text>
+</svg>

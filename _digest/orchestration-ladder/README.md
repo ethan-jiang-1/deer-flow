@@ -1,6 +1,6 @@
 ---
 title: "Orchestration Ladder — DeerFlow 编排原语阶梯"
-description: "借鉴 DSH orchestration-ladder 的挖掘方法，对 DeerFlow 做跨原语统一视角的十篇深挖：阶梯全景、完成语义、状态三分法、资源预算、LangGraph 能力面榨取、组合模式、谱系与冷恢复、外部叙事核对、图计算本质、驾驶座手册。"
+description: "借鉴 DSH orchestration-ladder 的挖掘方法，对 DeerFlow 做跨原语统一视角的十二篇深挖：阶梯全景、完成语义、状态三分法、资源预算、LangGraph 能力面榨取、组合模式、谱系与冷恢复、外部叙事核对、图计算本质、驾驶座手册、选择决策语义全景、goal 驾驶座。"
 topics: [orchestration, primitives, completion, state, budget, langgraph, composition, lineage]
 ---
 
@@ -21,6 +21,8 @@ topics: [orchestration, primitives, completion, state, budget, langgraph, compos
 | [08-图计算的本质](08-图计算的本质-DeerFlow编排的统一重述.md) | 四个真实的图、引擎做/拒绝清单、Agent 是原子、代码-语言倒置样本 |
 | [09-驾驶座手册](09-驾驶座手册-用已核验事实驱动DeerFlow.md) | 使用守则：选原语决策树、"完成"核对清单、预算陷阱、多 worker 清单 |
 | [10-反向借鉴](10-反向借鉴-DSH原语对DeerFlow的可吸收点.md) | DSH 九级原语逐个对照：三条最划算吸收（委派 fork KV 复用 / goal 有界报告 / ledger 对账）与不该借鉴的 |
+| [11-选择决策语义全景](11-选择决策语义全景-DeerFlow原语边界句与空白.md) | 逐原语模型可见边界句逐字盘点（含 path:line）、跨原语路由规则与升级阶梯、矛盾与空白登记；核心发现：goal 与 scheduler 无模型可见工具（图：[selection-ladder](figures/selection-ladder.svg)） |
+| [12-goal驾驶座](12-goal驾驶座-续轮准入评估熔断与收尾.md) | 裁决权在独立评估器而非模型、驾驶座时间线、两个独立预算、blocker 枚举与隐藏续轮消息、no-progress 熔断签名、stand_down_reason 收尾（图：[goal-continuation](figures/goal-continuation.svg)） |
 
 ## 一句话结论
 
@@ -46,7 +48,9 @@ DeerFlow 给的不是中心调度引擎，而是**架在两节点 react 元图�
 | [composition-matrix.svg](figures/composition-matrix.svg) | 组合冲突色块矩阵、stop_reason 两套纪律、通知三通道 | [05](05-组合模式与收尾纪律-跨原语协同.md) |
 | [lineage-layers.svg](figures/lineage-layers.svg) | 六层身份谱系、双向围栏、冷恢复四步时序、四类断点 | [06](06-Session谱系与冷恢复-线程运行与所有权.md) |
 | [graph-essence.svg](figures/graph-essence.svg) | 四个真实的图、引擎做/拒绝、Agent 是原子、代码-语言倒置 | [08](08-图计算的本质-DeerFlow编排的统一重述.md) |
+| [selection-ladder.svg](figures/selection-ladder.svg) | 原语选择边界句与升级阶梯、选择权分界（goal/scheduler 不在模型选择集） | [11](11-选择决策语义全景-DeerFlow原语边界句与空白.md) |
+| [goal-continuation.svg](figures/goal-continuation.svg) | goal 续轮决策流：实例身份门 → 独立评估器 → blocker 枚举 → 双闸 | [12](12-goal驾驶座-续轮准入评估熔断与收尾.md) |
 
 ## 阅读路径
 
-5 分钟：00-map + ladder.svg → 15 分钟：+ 09 驾驶座手册 → 深入：按问题登记表选篇。
+5 分钟：00-map + ladder.svg → 15 分钟：+ 09 驾驶座手册 → 深入：按问题登记表选篇；12 是 09 的机制侧对照（纪律 vs 裁决权落点）。

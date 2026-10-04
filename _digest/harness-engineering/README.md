@@ -14,6 +14,7 @@ topics: [harness, engineering, agent-docs, assessment]
 |------|------|
 | [01-agent-docs-system.md](01-agent-docs-system.md) | Agent 文档体系：分层 AGENTS.md 网络、上下文预算 CI、可执行文档测试 |
 | [02-engineering-evidence.md](02-engineering-evidence.md) | 工程证据文化：契约文档、实验包、基准测试、测试工程 |
+| [03-feedback-loops.md](03-feedback-loops.md) | 反馈三环：失败是标记不是异常（DeerFlow 取证）、先账后投影、仓库级学习——含与 DSH 的根本分歧（模型级记忆是特性） |
 
 ## 一句话结论
 

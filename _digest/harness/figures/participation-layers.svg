@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" font-family="PingFang SC, sans-serif">
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker>
+  </defs>
+  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">DeerFlow 的参与规则住在哪一层（harness/09）</text>
+  <text x="490" y="52" text-anchor="middle" font-size="12" fill="#475569">左：三层载体在 DeerFlow 的分布；右：五个运行时问题的运行时答案</text>
+
+  <!-- 外置方向 arrow -->
+  <line x1="52" y1="470" x2="52" y2="110" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <text x="44" y="300" text-anchor="middle" font-size="11" fill="#475569" transform="rotate(-90 44 300)">知识外置方向</text>
+
+  <!-- Layer 3: 系统（可执行） -->
+  <rect x="80" y="80" width="400" height="120" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="96" y="104" font-size="13" font-weight="700" fill="#14532d">第三层 · 系统（可执行，漂移先撞机器）</text>
+  <text x="96" y="124" font-size="10.5" fill="#166534">test_harness_boundary（app/harness 依赖方向红灯）</text>
+  <text x="96" y="140" font-size="10.5" fill="#166534">Gateway Conformance · extension api surface 钉死</text>
+  <text x="96" y="156" font-size="10.5" fill="#166534">Blockbuster 门 · guidance 字节预算 CI · 契约测试 v2</text>
+  <text x="96" y="172" font-size="10.5" fill="#166534">启动期拒绝（配置矛盾 / required 装载失败 / api marker）</text>
+  <text x="96" y="190" font-size="10" fill="#15803d">形态：测试即门禁（Python 类型表达力弱于 TS 的替代）</text>
+
+  <!-- Layer 2: 文档 -->
+  <rect x="80" y="220" width="400" height="104" rx="8" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="96" y="244" font-size="13" font-weight="700" fill="#0c4a6e">第二层 · 文档（可读、不可执行）</text>
+  <text x="96" y="264" font-size="10.5" fill="#075985">28 个分层 AGENTS.md + Pinned by 双向锚点</text>
+  <text x="96" y="280" font-size="10.5" fill="#075985">docs/testing/ 五台阶检查单 · extensions 用户手册</text>
+  <text x="96" y="296" font-size="10.5" fill="#075985">路由与放置约定主要在这一层（决策表待补）</text>
+
+  <!-- Layer 1: 人脑 -->
+  <rect x="80" y="344" width="400" height="88" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="96" y="368" font-size="13" font-weight="700" fill="#713f12">第一层 · 人脑（残留部落知识）</text>
+  <text x="96" y="388" font-size="10.5" fill="#854d0e">"defer by deferring the call" 等 prose + review 约定</text>
+  <text x="96" y="404" font-size="10" fill="#a16207">诚实登记：尚未全部字面化，不是已解决的问题</text>
+
+  <!-- 右侧：五个运行时问题 -->
+  <text x="530" y="94" font-size="13" font-weight="700" fill="#0f172a">五个运行时问题 → DeerFlow 的运行时答案</text>
+  <g font-size="11">
+    <rect x="520" y="110" width="424" height="56" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="536" y="132" fill="#0f172a" font-weight="600">① 能力可见？</text>
+    <text x="536" y="150" fill="#475569">AgentAssemblyDescriptor：模型/prompt hash/工具表/中间件栈</text>
+    <rect x="520" y="174" width="424" height="56" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="536" y="196" fill="#0f172a" font-weight="600">② 依赖未就绪？</text>
+    <text x="536" y="214" fill="#475569">可选 fail-open 归因诊断 · required fail-closed · 配置矛盾启动即拒</text>
+    <rect x="520" y="238" width="424" height="56" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="536" y="260" fill="#0f172a" font-weight="600">③ 同名隔离？</text>
+    <text x="536" y="278" fill="#475569">ExtensionData 双 store · 用户作用域 · 线程沙箱 · table_prefix</text>
+    <rect x="520" y="302" width="424" height="56" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="536" y="324" fill="#0f172a" font-weight="600">④ 谁清理？</text>
+    <text x="536" y="342" fill="#475569">扩展逆序有界停止 · 沙箱租约最后持有者释放 · 跨 loop 钉清理</text>
+    <rect x="520" y="366" width="424" height="56" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="536" y="388" fill="#0f172a" font-weight="600">⑤ 配置怎么生效？</text>
+    <text x="536" y="406" fill="#475569">两份配置 + 逐字段冻结声明（restart-required / 运行时可写）</text>
+  </g>
+
+  <!-- 缺口登记 -->
+  <rect x="80" y="448" width="864" height="64" rx="8" fill="#fff1f2" stroke="#e11d48"/>
+  <text x="96" y="472" font-size="12" font-weight="700" fill="#881337">缺口登记（如实）</text>
+  <text x="96" y="492" font-size="10.5" fill="#9f1239">没有"实际组合"查询面（dump 当前组装）；AgentAssemblyDescriptor 已携带全部原料，低成本高价值。另："新行为放哪"决策表待补。</text>
+</svg>
