@@ -12,7 +12,7 @@
 >
 > — [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)
 
-`plugins:` 列表刻意放在 operator 控制的 `config.yaml`、与 API 可写的 `extensions_config.json` 分离——因为那个列表会导致**代码被 import**（[AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)）。配套的来源规则：PyPI 版本锁定 requirement、钉定的公开 HTTPS Git URL、本地目录快照；SSH Git URL 拒收（Docker 构建器不转发主机 SSH 凭据）；含内嵌凭据的来源 URL 拒收（[extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)）。
+`plugins:` 列表刻意放在 operator 控制的 `config.yaml`、与 API 可写的 `extensions_config.json` 分离——因为那个列表会导致**代码被 import**（[AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)）。配套的来源规则（成文，[extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)）：远程直接引用限于 HTTPS、远程 Git 必须公共 Git-over-HTTPS、本地目录以快照装入、含内嵌凭据的来源 URL 拒收；SSH Git URL 拒收（Docker 构建器不转发主机 SSH 凭据）。用户手册 [operations 页](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/operations.mdx) 的 Accepted sources 表列出五种接受形式（包索引 requirement、钉定 commit 的公共 Git、HTTPS 直接引用、本地快照、回环 HTTP 带警告）——其中"版本锁定/pinned"是示例形式而非 manager 的强制规则。
 
 **隔离的是故障，不是恶意（运行时事实）**。贡献的中间件被 `IsolatedMiddleware` 隔离包装：扩展失败发诊断并 fail open，不重复下游 model/tool 副作用——这是**故障隔离**；但它不改变"代码以 Gateway 权限执行"的事实。`--yes` 跳过的只是确认提示，语义是"automation that has already reviewed and trusted the source"。
 

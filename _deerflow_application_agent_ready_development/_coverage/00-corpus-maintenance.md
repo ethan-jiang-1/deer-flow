@@ -9,11 +9,11 @@
 
 ## 证据范围与排除项
 
-**只采用** v2.1.0 上的：源码、`AGENTS.md` 指南网络、docs 站 harness 手册（`frontend/src/content/{en,zh}/harness/`）、`backend/packages/extension-api/` 公共契约、`examples/deerflow-extension-example/` 示例扩展、`backend/docs/`、根 README、`.github/`（PR 模板与 workflows）、`RELEASING.md`、迁移链与 `contracts/`。
+**只采用** v2.1.0 上的：源码、`AGENTS.md` 指南网络、docs 站 harness 手册（`frontend/src/content/{en,zh}/harness/`，含 subagents/catalog）、`backend/packages/extension-api/` 公共契约、`examples/deerflow-extension-example/` 示例扩展、`backend/docs/`（含 GUARDRAILS、GITHUB_AGENTS、IM_CHANNEL_CONNECTIONS、RFC 与门禁配套文档）、根 README、`.github/`（PR 模板、issue 表单、workflows 与 copilot-instructions.md）、`RELEASING.md`、迁移链与 `contracts/`、`docs/ARCHITECTURE.md` 与 `docs/plans/` 的设计文档链。
 
 **明确排除**（重要）：
 
-1. **宿主分支在 v2.1.0 之后引入的内容不属于本语料的证据**——包括 `docs/testing/`（五级证据阶梯文档）、`backend/packages/harness/deerflow/testing/`（测试 kit）、`backend/tests/AGENTS.md` 的测试资产命名规则、extension 示例的后加改动。这些是 tag 之后移植进宿主分支的材料，v2.1.0 上不存在（已用 `git ls-tree v2.1.0` 逐项核验为空）。本语料的验证指导必须从 v2.1.0 实际交付的东西推导——示例扩展自带的测试、docs 站手册、主仓测试中对扩展面的覆盖——而不是引用这些后加材料。
+1. **宿主分支在 v2.1.0 之后引入的内容不属于本语料的证据**——包括 `docs/testing/`（五级证据阶梯文档）、`backend/packages/harness/deerflow/testing/`（测试 kit）、`backend/tests/AGENTS.md` 新增的测试资产命名规则节、extension 示例的后加改动。前两者在 v2.1.0 上不存在（已用 `git ls-tree v2.1.0` 逐项核验为空）；第三项仅指该文件 tag 后新增的 "Test-asset naming rules" 节——文件本身在 tag 已存在（内容为 executor starvation 一节），第 10 轮核验修订了此前"该文件核验为空"的字面表述。本语料的验证指导必须从 v2.1.0 实际交付的东西推导——示例扩展自带的测试、docs 站手册、主仓测试中对扩展面的覆盖——而不是引用这些后加材料。
 2. 宿主仓库的 `_digest/`、`_faq_on_digested/` 等研究笔记不参与证据链。
 3. 任何二手转述或仓库外材料。
 
@@ -36,6 +36,7 @@
 | `AGENTS.md` 网络或 docs 站 harness 手册结构调整 | 复核开发 Harness 卷的现状清单（这类"现状清单"最容易在 re-pin 时漏改） |
 | PR 模板、CI workflows、发版或迁移制度变化 | 复核 SDLC 参考卷对应页 |
 | 示例扩展被移动或删除 | 复核新仓起步页的入口路径 |
+| subagent catalog / custom agents / ACP 配置面变化 | 复核卷一第五种接入面与术语词条 |
 
 ## 历轮记录
 
@@ -167,6 +168,29 @@
 - **核验后保留**：`composition point`（组装点）原生——extensions 指南原话 "`extensions/stack.py` is the single final composition point"；`transaction`（安装事务）原生——"ExtensionManager owns the package/config transaction"；`governance` 有原生用例（README "tool-call governance"），"治理规则"层名属语料声明过的自有框架，保留。
 
 本轮方法：英文 token 全集提取比对（`cat *.md | grep -oE` 去重后逐词核验）＋中文概念复合词逐条分类（原生/原生派生/语料声明框架）。结构验证器与自测通过。
+
+### 2026-10-08 · 第 10 轮（评审落地：事实修订 + 全量补充 + 去除非原生标题）
+
+**评审方法**：三卷 29 组承载性声明分三个独立上下文对 tag 逐条核验（每个差异由主评审对 tag 亲测复核），结论 23 组完全属实、6 组部分成立、0 组引文造假；另做全语料英文 token 原生性抽查（全部命中）与覆盖面核对（16 个 workflow 全归类、手册阶梯逐页清点、29 份 AGENTS.md 清点、issue 模板/ARCHITECTURE/backend docs 层盘点）。
+
+**事实精度修订**（6 处，均对 tag 亲测）：
+
+- 卷一 01：integration-guide 的"手册是快照"警示从一处扩为三处——`astream`/`ainvoke`（源码实为 `stream()`/`chat()`，client.py:770/1193）、`from deerflow.config import load_config`（实为 `get_app_config()`，`DEER_FLOW_CONFIG_PATH` 机制真实）、Gateway 挂载导入 `deerflow.app.gateway.main`（实为不发布层 `app.gateway`）；正文改述为源码真实 API，不再把手册示例当运行时事实。
+- 卷一 01 与卷二 10：扩展来源从"三种"改为"成文规则（extensions 指南：公共索引 + 公共 Git-over-HTTPS + SSH/内嵌凭据拒收 + 本地快照）+ operations 手册 Accepted sources 表的五种接受形式"；"版本锁定/pinned"标注为示例形式而非 manager 强制规则（manager 接受任意合法 requirement）。
+- 卷一 01：技能部署侧位置补全为三处（`skills/public/` 随仓、`skills/custom/` gitignored 运行时目录、`.deer-flow/integrations/skills/{provider}/` 托管集成技能包）；`skills/parser.py` 写全路径 `backend/packages/harness/deerflow/skills/parser.py` 并注明手册简写。
+- 卷一 01：补 `POST /api/skills/install` 在 v2.1.0 源码同为 admin-only（routers/skills.py 的 `require_admin_user`；文档只标 upload 端点，代码比文档严）。
+- 卷三 05：triage.json 出处只留 CONTRIBUTING.md（tag 根 AGENTS.md 全文无 "triage" 字样）。
+- 本页：`backend/tests/AGENTS.md` 排除项改为"该文件的命名规则节为 tag 后新增"（文件本身在 tag 存在，executor starvation 一节）。
+
+**补充**（用户确认全量范围，新内容均先对 tag 取证）：
+
+- **卷一**：新增第五种接入面"custom agent 定义"（subagent catalog 三来源 built-in → config.yaml → managed 及优先级、`subagents.agents.<name>` per-agent 覆盖、skills 白名单与委派范围快照强制、`/api/subagents` 权限面、managed 存储 file/db、ACP 外部 agent 经 `invoke_acp_agent` 不走 task 目录）；新增"部署与运行时机制"节（guardrails 的 GuardrailMiddleware/三 provider/fail_closed 与沙箱·人工在环的分工、scheduler 非交互运行与 run-context 键的丢弃语义、IM 渠道绑定与 GitHub 事件驱动 agent）；术语表新增 custom agent、ACP agent、guardrails、非交互运行、渠道绑定五词条并扩读法提醒；形态计数全局 4→5（入口 README、卷一 00-index、卷 README、01 页与 development-loop、integration-forms 两图）。
+- **卷二**：01 页补 issue 表单面（bug-report 必填复现步骤与日志、feature-request"非平凡先开 Discussion"、config.yml 关闭空白 issue 并三路分流：问题→Q&A、想法→ideas、漏洞→security policy）；02 页补 RFC 原生层（backend/docs 三份 RFC + docs/plans 可插拔授权 RFC→实施记录→分期计划链，摘录"旧 RFC 示例与已合并代码及测试不一致时，以已合并契约为准"）；05 页补门禁配套文档（BLOCKING_IO_DETECTION 的静态/运行时互补、REPLAY_E2E 的 "fake green" 动机）。
+- **卷三**：01 页修正"不为单个工具单独维护指南"的过强声明（.github/copilot-instructions.md 213 行、"Trust this onboarding guide first"、与 AGENTS 网络互不引用且优先级主张不同）并补 29 份 AGENTS.md 清点（28 份指南：根 1 + 模块 3 + 子系统 24；第 29 份 backend/docs/GITHUB_AGENTS.md 是同名功能文档非指南）；00-index 机制三扩为"应用手册与架构文档阶梯"；03 页改题"应用手册与架构文档：两级文档阶梯"并新增"仓库内的架构与工程文档层"节（docs/ARCHITECTURE.md 七节总览 + backend/docs 40 文件五类：设计/RFC、运行时行为、门禁配套、契约、部署运维）；guidance-network 图同步（CLAUDE 框改三行并注 Copilot 专属指南、子系统层 ×24）。
+
+**去除非原生概念**：入口 README 标题 "DeerFlow Application Agent-ready Development" 改为 "DeerFlow 应用开发语料"（"Agent-ready" 在 v2.1.0 零命中的工具圈流行语；用户决定目录名保留作外部制品标识）；卷二 README 补卷名免责声明（"SDLC" 在 v2.1.0 零命中，与卷三 repo-harness 卷名声明对齐）。正文经第 8/9 轮审计与本轮 token 抽查未再发现非原生残留。
+
+本轮结构验证器与自测全部通过。
 
 ### 规划中的正文页（未建，建后在本表打钩并注明轮次）
 

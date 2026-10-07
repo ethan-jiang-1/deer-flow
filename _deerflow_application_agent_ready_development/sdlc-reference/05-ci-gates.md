@@ -27,6 +27,8 @@
 2. **分片按真实时长**——用 `.test_durations` 基线平衡分片，每个测试恰好跑一次；fail-fast 关掉，失败分片报告自己的测试而不连坐同伴。
 3. **最小安装收集 job**——证明"按文档装依赖"的路径不坏，防止 optional 依赖悄悄变成必需。
 
+**门禁有仓库内的配套文档**：blocking-I/O 套件配 [BLOCKING_IO_DETECTION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/BLOCKING_IO_DETECTION.md)（静态探测器找候选阻塞调用点 + 运行时检测互补，目标收敛为 async 事件循环安全）；replay E2E 配 [REPLAY_E2E](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/REPLAY_E2E.md)（记录/回放两层、key-free，动机直说 mock 前端 e2e 手写 JSON/SSE 会 "fake green"）。门禁的"为什么"与失效模式在这层文档里，不在 workflow 文件里。
+
 **边界（诚实读法）**：① "每 PR 跑全部门"不成立——多个门按路径分流，跨边界改动是否触发对应门禁要评审者自行判断；② draft PR 跳过测试 job（lint 与 chart 校验不设 draft 条件），标 ready 时才补跑；③ `make test-live` 从不进 CI；④ 分支保护把哪些 workflow 设为 required 在仓库文件里**不可见**——本表只回答"什么会跑"，不回答"什么挡住合并"；⑤ 本表只列**变更主线**上的门禁——v2.1.0 的 workflows 目录里还有其余文件不属于此列：nightly 定时发布（见[发版与版本门](./07-release-and-version-gate.md)）、triage/label-sync（只写 PR/issue 标签元数据，不检出不执行 PR 代码）、sandbox 镜像 smoke 与 sandbox 网络代理镜像（路径触发的镜像专项校验与发布）、lark-cli 镜像发布（跟随上游 `lark-cli-v*` tag，不接 DeerFlow `v*` 发版链）。
 
 ## 应用仓适用边界
@@ -35,4 +37,4 @@
 
 ## 证据入口
 
-上表与来源行共十个 workflow 文件（全部钉 v2.1.0）。CONTRIBUTING 的 PR Regression Checks 节只文档化其中三个（后端单测、前端单测、前端 E2E，且只注明前端 E2E 的路径触发），是不完整的文档面——完整清单以 workflow 文件为准。
+上表与来源行共十个 workflow 文件（全部钉 v2.1.0），另有门禁配套文档 [BLOCKING_IO_DETECTION.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/BLOCKING_IO_DETECTION.md) 与 [REPLAY_E2E.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/REPLAY_E2E.md)。CONTRIBUTING 的 PR Regression Checks 节只文档化其中三个（后端单测、前端单测、前端 E2E，且只注明前端 E2E 的路径触发），是不完整的文档面——完整清单以 workflow 文件为准。

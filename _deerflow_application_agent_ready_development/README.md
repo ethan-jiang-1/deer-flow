@@ -1,19 +1,20 @@
-# DeerFlow Application Agent-ready Development
+# DeerFlow 应用开发语料
 
 本语料面向新建的独立 DeerFlow **应用仓**——以维护者与 coding agent 为读者——说明如何沿用 DeerFlow 的原生机制组织意图、事实源、实现、文档、测试证据与交付判断。目标不是复制 DeerFlow 主仓库的内部治理，而是让应用开发者复用其可验证的扩展、组合与验证方式，构建对维护者与 coding agent 同样可参与、可验证的应用。
 
 ## 目标读者与适用边界
 
-目标读者是在独立仓库中构建 DeerFlow 应用的维护者与 coding agent。"应用"取完整口径，覆盖四种接入形态：
+目标读者是在独立仓库中构建 DeerFlow 应用的维护者与 coding agent。"应用"取完整口径，覆盖五种接入形态：
 
 1. **Python extension 包**——通过 `deerflow.extensions` 入口点贡献 middleware、生命周期观察者、Gateway 服务与路由；
 2. **Skill**——`SKILL.md` 及其资源的能力模块，走发现/激活/审查机制；
 3. **MCP server**——外部工具经 `extensions_config.json` 接入；
-4. **内嵌 harness**——进程内直接使用 harness 能力（`create_deerflow_agent()` 或 `DeerFlowClient`）的应用。
+4. **内嵌 harness**——进程内直接使用 harness 能力（`create_deerflow_agent()` 或 `DeerFlowClient`）的应用；
+5. **custom agent 定义**——`config.yaml` 的 `subagents.custom_agents`、Settings 托管定义与 `acp_agents:` 外部进程 agent，不写代码扩展 task 委派目录。
 
 读者应能从 DeerFlow 自带的应用文档（docs 站 harness 手册、extension 示例、extension-api 契约）找到可运行的最小入口，再逐步为自己的仓库建立源码、配置、测试预期、可重复验证与交付记录。
 
-**适用边界**：应用仓可以采用 DeerFlow 的 extension 装载与事务、skill 发现与审查、配置组合、嵌入式 client 与契约测试模式。DeerFlow 主仓库的 SDLC 制度（spec/plan 纪律、CI 门禁矩阵、发版版本门、迁移链治理）属于主仓治理，不会因为使用 DeerFlow 就自动适用于应用仓。应用仓应为自己的公开接口、用户可见行为、升级兼容与发布方式确定权威归属与验证路径。
+**适用边界**：应用仓可以采用 DeerFlow 的 extension 装载与事务、skill 发现与审查、custom agent 与 ACP 的委派目录配置、配置组合、嵌入式 client 与契约测试模式。DeerFlow 主仓库的 SDLC 制度（spec/plan 纪律、CI 门禁矩阵、发版版本门、迁移链治理）属于主仓治理，不会因为使用 DeerFlow 就自动适用于应用仓。应用仓应为自己的公开接口、用户可见行为、升级兼容与发布方式确定权威归属与验证路径。
 
 ## 四类陈述
 

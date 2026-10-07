@@ -24,7 +24,15 @@
 
 **subagent** — 经委派启动的子 agent，默认隔离执行；委派由 lead 的决策触发，不是复杂度的自动后果。
 
+**custom agent** — 不写代码定义的子代理：`config.yaml` 的 `subagents.custom_agents.<name>`（operator 改，需重启）或 Settings→Subagents 的 managed 定义（管理员经 `/api/subagents` 改，即时生效）；与 built-in 共同组成 `task` 工具可见的委派目录，同名冲突按 built-in → config.yaml → managed 优先级裁决（[subagents/catalog 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/subagents/catalog.mdx)）。误读：把 custom agent 当 extension 的替代品——它是部署侧配置，不随仓分发。
+
+**ACP agent** — 经 `acp_agents:` 声明、以独立进程运行的外部 agent（Agent Client Protocol，第三方 CLI 需 ACP 适配器包）；lead 经 `invoke_acp_agent` 工具调用，不进 `task` 目录、容量与台账（[subagents/catalog 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/subagents/catalog.mdx)）。误读：以为 `claude`/`codex` 命令直接兼容——原生命令不说 ACP。
+
 **sandbox** — 工具执行（bash、文件操作等）的受控执行环境；provider 可配置（[sandbox 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/sandbox.mdx)）。误读：把沙箱边界当成扩展代码的边界——扩展代码以 **Gateway 权限**执行，不在沙箱里。
+
+**guardrails** — 工具调用前授权：中间件链中的 `GuardrailMiddleware` 把每次工具调用交给可插拔 `GuardrailProvider` 评估，deny 则拦截并让 agent 看到原因；provider 三选一（内置 Allowlist / OAP Passport / 自定义），`fail_closed` 默认开启（[GUARDRAILS](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/GUARDRAILS.md)）。误读：当成沙箱的等价物——沙箱是进程隔离、guardrails 是语义授权，两者互补。
+
+**非交互运行（non-interactive run）** — `context.non_interactive=true` 的运行：lead 工具集排除 `ask_clarification`；该键与 `disable_clarification`、`github_token` 只对内部认证调用方生效，客户端自带副本被服务端丢弃（根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)）。误读：以为客户端可以自己声明这些键——`body.context` 与 `body.config` 两个入口都会被清。
 
 ## 能力面
 
@@ -44,6 +52,8 @@
 
 **`config.yaml` 与 `extensions_config.json`** — 前者是 operator 控制的主配置（含 `plugins:`）；后者是运行时可写的 MCP server 与技能启用状态，两者刻意分离（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。`config_version` 追踪 schema 变化，旧配置启动时得到升级指引而非静默失效。
 
+**渠道绑定（channel binding）** — 把已部署实例的 agent 接到用户自有 IM（`channels.*` 配置）或 GitHub 事件（webhook → custom-agent 绑定扇出）的配置面（[IM Channel Connections](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/IM_CHANNEL_CONNECTIONS.md)、[GitHub Event-Driven Agents](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/GITHUB_AGENTS.md)）。误读：把它当第六种接入形态——它改变的是"事件从哪进来"，产物仍是 custom agent 定义。
+
 **技能归档安装** — Gateway 的运行时技能安装面：`POST /api/skills/install` 从线程产物里的 `.skill` 归档安装，admin-only 的 `POST /api/skills/install/upload` 接受 multipart 上传；装入前过安全扫描，声明的依赖首次加载时安装（[Gateway 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/app/gateway/AGENTS.md)、[skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)）。误读：把它当成 extension manager 事务——技能安装不动 `plugins:`、不改依赖组与 `uv.lock`、无需重启。
 
 ## 验证词汇
@@ -56,4 +66,4 @@
 
 ## 读法提醒
 
-这些词的关系比定义更重要：**harness/app 是依赖方向，placement 是顺序语义，skill/tool 是"教"与"做"，`plugins:` 是装载边界，包测试/安装验证/宿主侧观察是三层证据。**把它们混着用，后面的闭环就会在错误的地方找证据。
+这些词的关系比定义更重要：**harness/app 是依赖方向，placement 是顺序语义，skill/tool 是"教"与"做"，custom agent 是委派目录的配置面，`plugins:` 是装载边界，包测试/安装验证/宿主侧观察是三层证据。**把它们混着用，后面的闭环就会在错误的地方找证据。

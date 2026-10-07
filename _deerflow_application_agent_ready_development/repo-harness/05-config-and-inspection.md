@@ -10,7 +10,7 @@
 
 **配置版本升级**。`config.example.yaml` 带 `config_version` 追踪 schema 变化；示例版本高于本地配置时启动给出升级警告，`make config-upgrade` 合并新字段并保留用户值（备份 `.bak`）。改配置 schema 的人有义务 bump 版本——旧配置得到的是**指引而非静默失效**（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。
 
-**体检与报障**。`make doctor` 检查配置与系统要求；`make support-bundle` 生成脱敏的 troubleshooting 摘要、AI 辅助 issue 草稿（刻意不编造复现步骤）与可选证据 zip（不含 `.env`、原始对话与 workspace 文件），`triage.json` 提供机器可读的稳定信号（根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)、[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md)）。
+**体检与报障**。`make doctor` 检查配置与系统要求；`make support-bundle` 生成脱敏的 troubleshooting 摘要、AI 辅助 issue 草稿（刻意不编造复现步骤）与可选证据 zip（不含 `.env`、原始对话与 workspace 文件），`triage.json` 提供机器可读的稳定信号（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md)；根 AGENTS.md 不含 triage 内容）。
 
 **这套面的设计句式**：部署侧的每个故障模式（配置缺失、schema 过期、环境不满足、报障信息不足）都有一个**具名的命令**接住它，而不是一条 FAQ 建议。
 

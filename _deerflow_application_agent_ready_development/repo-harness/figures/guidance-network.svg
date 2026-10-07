@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="920" height="410" viewBox="0 0 920 410" role="img" aria-labelledby="t d">
   <title id="t">DeerFlow 指南网络：分层、最近文件规则与预算治理</title>
-  <desc id="d">树形图：根 AGENTS.md 只做定位（仓库地图与跨模块约定，预算 16/20 KiB）；模块层共三份——backend、frontend、scripts 的 AGENTS.md 承接各自深度（28/32 KiB）；子系统各有自己的 AGENTS.md（40/48 KiB，祖先链累计不超过 80/96 KiB）。规则是改哪个目录就读离它最近的指南；CLAUDE.md 只含 @AGENTS.md 的单一事实源导入；尺寸预算由 check_agent_guidance.py 在 CI 执行。依据 bytedance/deer-flow v2.1.0 绘制。</desc>
+  <desc id="d">树形图：根 AGENTS.md 只做定位（仓库地图与跨模块约定，预算 16/20 KiB）；模块层共三份——backend、frontend、scripts 的 AGENTS.md 承接各自深度（28/32 KiB）；子系统各有自己的 AGENTS.md（共 24 份，40/48 KiB，祖先链累计不超过 80/96 KiB）。规则是改哪个目录就读离它最近的指南；CLAUDE.md 只含 @AGENTS.md 的单一事实源导入，另有 Copilot 专属指南 copilot-instructions.md（与 AGENTS 网络互不引用）；尺寸预算由 check_agent_guidance.py 在 CI 执行。依据 bytedance/deer-flow v2.1.0 绘制。</desc>
   <defs>
     <marker id="arr5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
@@ -12,9 +12,10 @@
   <text x="260" y="52" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="bold" fill="#111827">AGENTS.md（根 · 定位层）</text>
   <text x="260" y="74" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">仓库地图 + 跨模块约定 · 预算 16/20 KiB</text>
 
-  <rect x="620" y="24" width="290" height="70" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1"/>
-  <text x="765" y="48" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">CLAUDE.md 只含一行 @AGENTS.md 导入</text>
-  <text x="765" y="70" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">——跨 coding agent 的单一事实源</text>
+  <rect x="620" y="24" width="290" height="84" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1"/>
+  <text x="765" y="46" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">CLAUDE.md 只含一行 @AGENTS.md 导入</text>
+  <text x="765" y="66" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">——跨工具共享的单一事实源；</text>
+  <text x="765" y="86" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">另有 Copilot 专属指南 copilot-instructions.md</text>
 
   <rect x="15" y="160" width="290" height="64" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
   <text x="160" y="186" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#111827">backend/AGENTS.md（模块层）</text>
@@ -29,7 +30,7 @@
   <text x="760" y="208" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">根编排脚本契约 · 28/32 KiB</text>
 
   <rect x="110" y="286" width="700" height="60" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
-  <text x="460" y="310" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#111827">子系统 AGENTS.md（agents/middlewares、subagents、skills、mcp、sandbox、migrations …）</text>
+  <text x="460" y="310" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#111827">子系统 AGENTS.md ×24（memory、subagents、skills、mcp、sandbox、tools、gateway …）</text>
   <text x="460" y="332" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">子系统层 40/48 KiB · 祖先链累计不超过 80/96 KiB</text>
 
   <line x1="170" y1="94" x2="160" y2="156" stroke="#2563eb" stroke-width="2" marker-end="url(#arr5)"/>

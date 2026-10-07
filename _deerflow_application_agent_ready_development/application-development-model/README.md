@@ -11,10 +11,10 @@
 | 路径 | 职责 |
 |---|---|
 | [00-index.md](./00-index.md) | 本卷主入口：运行时/仓库/分发/治理四件事、开发闭环、证据层级与页面导航 |
-| [01-new-application-repository.md](./01-new-application-repository.md) | 新仓起步：四种接入形态的选择、最小入口、安装与验证 |
+| [01-new-application-repository.md](./01-new-application-repository.md) | 新仓起步：五种接入形态的选择、最小入口、安装与验证 |
 | [02-terms.md](./02-terms.md) | 术语表：分层、执行、能力、装载与验证词汇及常见误读 |
 | [03-delivery-and-acceptance.md](./03-delivery-and-acceptance.md) | 交付与验收：完整 slice、v2.1.0 的三层证据、安装形态验证与交付记录 |
 
 ## 图文分工
 
-正文拥有概念与流程，图只辅助表达。三张 SVG 分别说明开发闭环、四种接入形态的选择与"四件不同的事"的证据分层；所有图由本卷自己的[图示清单](./figures/README.md)管理，不依赖相邻卷的图。
+正文拥有概念与流程，图只辅助表达。三张 SVG 分别说明开发闭环、五种接入形态的选择与"四件不同的事"的证据分层；所有图由本卷自己的[图示清单](./figures/README.md)管理，不依赖相邻卷的图。

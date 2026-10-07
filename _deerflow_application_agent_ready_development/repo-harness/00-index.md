@@ -12,7 +12,7 @@ DeerFlow 仓库的可参与性由五类机制叠加（正文页逐项取证）�
 
 1. **分层指南网络**——根 `AGENTS.md` 只做定位，深度下放到模块与子系统级指南，agent 按最近文件读规则；
 2. **指南本身的治理**——指南尺寸按目录深度设预算并进 CI，文档示例被测试直接执行，防止"给 agent 的指令"膨胀或过期；
-3. **应用手册阶梯**——docs 站 harness 手册从快速上手到逐主题（扩展、定制、中间件、MCP、skill、沙箱、子代理）再到示例扩展，构成应用开发者现成的官方路径；
+3. **应用手册与架构文档阶梯**——docs 站 harness 手册从快速上手到逐主题（扩展、定制、中间件、MCP、skill、沙箱、子代理）再到示例扩展，构成应用开发者现成的官方路径；docs/ARCHITECTURE.md 顶层架构总览与 backend/docs/ 工程文档层（设计/RFC、运行时行为、门禁配套、契约、运维）构成面向贡献者与运维的第二层文档面；
 4. **可执行契约面**——`extension-api` 公共包与跨组件 JSON 契约把"扩展能依赖什么"变成可对照的稳定表面；
 5. **配置与检查面**——示例配置、配置版本升级指引、诊断工具与运行证据，让部署侧问题可定位。
 
@@ -22,9 +22,9 @@ DeerFlow 仓库的可参与性由五类机制叠加（正文页逐项取证）�
 
 | 页面 | 适用问题 |
 |---|---|
-| [01-follow-a-fresh-agent.md](./01-follow-a-fresh-agent.md) | 一个新 agent 进仓第一小时读什么；指南网络的分层与最近文件规则 |
+| [01-follow-a-fresh-agent.md](./01-follow-a-fresh-agent.md) | 一个新 agent 进仓第一小时读什么；指南网络的分层、最近文件规则、规模与 Copilot 专属指南面 |
 | [02-guidance-budgets-and-doc-tests.md](./02-guidance-budgets-and-doc-tests.md) | 指南预算 CI、文档示例进测试——给 agent 的指令也受门禁约束 |
-| [03-harness-docs-site.md](./03-harness-docs-site.md) | docs 站 harness 手册阶梯：从 quick-start 到逐主题手册到双语约定 |
+| [03-harness-docs-site.md](./03-harness-docs-site.md) | docs 站 harness 手册阶梯与仓库内架构/工程文档层：从 quick-start 到逐主题手册、ARCHITECTURE 总览与 backend/docs |
 | [04-example-and-contracts.md](./04-example-and-contracts.md) | 示例扩展包、extension-api 公共契约与跨组件 JSON 契约的分工 |
 | [05-config-and-inspection.md](./05-config-and-inspection.md) | 示例配置、config 版本升级、doctor 与运维诊断面 |
 | [06-boundaries-and-costs.md](./06-boundaries-and-costs.md) | 这套机制不给什么：startup-only 装载、扩展代码不在沙箱里执行、文档快照性与对策清单 |
