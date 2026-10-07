@@ -52,15 +52,13 @@ client = DeerFlowClient()
 >
 > — [extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx)
 
-`pyproject.toml` 三件事：声明契约版本区间（`deerflow-extension-api>=0.2,<0.3`）、声明你 import 的每一个框架（契约包刻意零依赖）、声明**恰好一个** `deerflow.extensions` 组的入口点。入口点名（如 `hello`）就是 `enable`/`disable`/`remove` 接受的 operator 面向名。完整可抄的 `hello` 示例（计耗时并告警的中间件）在 [extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx)；覆盖全部贡献维度的独立示例包在 [examples/deerflow-extension-example](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)。
+`pyproject.toml` 三件事：声明契约版本区间（`deerflow-extension-api>=0.2,<0.3`）、声明你 import 的每一个框架（契约包刻意零依赖）、声明**恰好一个** `deerflow.extensions` 组的入口点。入口点名（如 `hello`）就是 `enable`/`disable`/`remove` 接受的 operator 面向名。完整可抄的 `hello` 示例（计耗时并告警的中间件）在 [extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx)；演示五种贡献的独立示例包在 [examples/deerflow-extension-example](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)。
 
 > Never import `deerflow.*` or `app.*`: those are host internals with no compatibility promise.
 >
 > — [extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx)
 
-**运行时事实**：契约注册面暴露**七种**贡献类型——middleware、task-lifecycle、system-model-call 观察、agent-assembly 观察、context-compaction 观察、Gateway-lifetime 服务与 eager 路由（[extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)）；示例包演示其中五种。中间件贡献声明 lead/subagent 作用域、稳定顺序与语义 placement（如 `MODEL_LOGICAL`、`TOOL_VISIBLE`），而不是脆弱的列表下标。前置条件：Python 3.12+、uv 0.8.0+（manager 拒绝更旧的 uv）。
-
-**主仓要求（不随使用继承）**：装扩展是 operator 动作，不是 web UI 能做的；需要跑 Gateway 的机器的 shell 权限。
+**运行时事实**：契约注册面暴露**七种**贡献类型——middleware、task-lifecycle、system-model-call 观察、agent-assembly 观察、context-compaction 观察、Gateway-lifetime 服务与 eager 路由（[extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)）；示例包演示其中五种。中间件贡献声明 lead/subagent 作用域、稳定顺序与语义 placement（如 `MODEL_LOGICAL`、`TOOL_VISIBLE`），而不是脆弱的列表下标。前置条件：Python 3.12+、uv 0.8.0+（manager 拒绝更旧的 uv），以及跑 Gateway 的机器的 shell 权限——装扩展是 operator 动作，不是 web UI 能做的。这条前提随使用 DeerFlow 一起传导给你的部署，不属于"仅约束主仓贡献"的那类规则。
 
 ### skill：一个目录加一份权威 SKILL.md
 
@@ -70,7 +68,7 @@ client = DeerFlowClient()
 >
 > — [skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)
 
-**应用仓建议**：skill 适合承载"怎么做某类工作"的方法与资料，不承载运行时能力；要拦截调用、暴露服务或路由时用 extension。技能内容随对话注入，属于模型可见数据——敏感操作不要依赖技能文本当访问控制。分发形态上，v2.1.0 的技能就是宿主部署读取的技能目录：你的应用控制自己部署读取的 skills 树（内置 `public/` 或自建 `custom/`），没有类似 extension manager 的随包安装事务；要跨仓分发技能，自行约定同步与审查方式。
+**运行时事实**：技能的分发面有两个。部署侧：技能就是部署读取的技能目录——内置 `public/` 随仓提交、`custom/` 存用户自建技能，启用状态在 `extensions_config.json`，经 Gateway API 启用/停用**即时生效、无需重启**。运行侧：Gateway 还提供运行时归档安装——`POST /api/skills/install` 从线程产物里的 `.skill` 归档安装，admin-only 的 `POST /api/skills/install/upload` 接受 multipart 上传（解析前鉴权、限 100 MiB），装入前过安全扫描，技能声明的依赖在首次加载时安装（[skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)、[Gateway 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/app/gateway/AGENTS.md)）。它与 extension manager 事务是两种机制：技能安装不动 `plugins:`、不改依赖组与 `uv.lock`、无需重启，入口是 Gateway API 而非 operator shell。**应用仓建议**：skill 适合承载"怎么做某类工作"的方法与资料，不承载运行时能力；要拦截调用、暴露服务或路由时用 extension。技能内容随对话注入，属于模型可见数据——敏感操作不要依赖技能文本当访问控制。跨仓分发技能时自行约定同步与审查方式：归档安装有内容扫描，但"允许谁向你的部署装技能"的治理仍由你的部署侧决定。
 
 ### MCP server：配置声明的外部工具
 
@@ -88,7 +86,7 @@ MCP server 与技能启用状态放在 `extensions_config.json`，与主配置 `
    > The tests use only the public contract plus this package's declared dependencies; the DeerFlow harness and Gateway application are not imported.
    >
    > — [示例扩展 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)
-4. **安装验证**——extension 形态下必须装进一个真实 checkout 并重启后观察行为（见下）；
+4. **安装验证与宿主侧观察**——extension 形态下必须装进一个真实 checkout，重启后先确认装载成立、再观察一个宿主侧行为（见下）；
 5. **面向用户的说明**——入口名、贡献了什么、怎么开关。
 
 **测试的诚实边界（运行时事实）**：v2.1.0 的示例与手册只演示契约级包测试；真实装载组合（真 Loader、真 Gateway 装配后的行为证据）在这个版本没有随包交付的现成模式。**应用仓建议**：不要把"包测试绿"当作组合成立——在装进 checkout 并重启后，至少观察一个可检查的宿主侧行为（示例的做法是贡献一条 `GET /api/extension-example/stats` 路由再 curl 它）。
@@ -112,7 +110,7 @@ MCP server 与技能启用状态放在 `extensions_config.json`，与主配置 `
 |---|---|---|
 | 运行时接口 | 契约七种贡献类型 / factory 与 client API / SKILL.md 格式 / MCP 配置 | 你的公开接口、错误合同、配置面 |
 | 仓库结构 | 示例包布局（`__init__.py` + 实现模块 + `tests/`） | 独立仓或 monorepo、测试放哪、文档放哪 |
-| 分发形态 | extension manager 事务、skill 目录、依赖引入 | 发布到哪、版本区间、兼容承诺、升级路径 |
+| 分发形态 | extension manager 事务、技能目录与运行时归档安装、依赖引入 | 发布到哪、版本区间、兼容承诺、升级路径 |
 | 治理规则 | 主仓规则可参考（见 [SDLC Reference](../sdlc-reference/00-index.md)） | 你的 review、CI、发布与安全审批 |
 
 ## 证据入口
@@ -120,6 +118,6 @@ MCP server 与技能启用状态放在 `extensions_config.json`，与主配置 `
 - [harness quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/quick-start.mdx) 与 [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/integration-guide.mdx)：内嵌形态入口。
 - [extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx) 与 [extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)：extension 形态入口与契约面。
 - [示例扩展 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)：安装事务、分发来源、信任边界与包测试口径。
-- [skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx) 与 [CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)：skill 与 MCP 形态。
+- [skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)、[Gateway 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/app/gateway/AGENTS.md)（技能安装/启用 API）与 [CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)：skill 与 MCP 形态。
 
 术语不熟时查[术语表](./02-terms.md)。

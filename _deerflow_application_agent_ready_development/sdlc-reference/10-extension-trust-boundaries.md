@@ -2,7 +2,7 @@
 
 ## 什么时候读这里
 
-评估"装第三方扩展/把我的扩展发给别人装"的风险时：DeerFlow v2.1.0 对扩展代码的信任假设是什么、哪些义务会传导到应用仓。这页与[新仓起步](../application-development-model/01-new-application-repository.md)的分发节互补——那里讲流程，这里讲**为什么**。
+评估"装第三方扩展/把我的扩展发给别人装"的风险时：DeerFlow v2.1.0 对扩展代码的信任假设是什么、哪些义务会传导到应用仓。这页与[卷一·新仓起步](../application-development-model/01-new-application-repository.md)的分发节互补——那里讲流程，这里讲**为什么**。
 
 ## 主仓机制
 

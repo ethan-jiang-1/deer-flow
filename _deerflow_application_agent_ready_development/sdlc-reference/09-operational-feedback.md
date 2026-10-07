@@ -8,7 +8,7 @@
 
 **脱敏的问题报告包（成文标准 + 工具）**。`make support-bundle` 生成脱敏的 issue summary、AI 辅助填报草稿与可选证据 zip。设计上的克制值得注意：草稿**刻意不编造**复现步骤、预期行为或问题摘要（REQUIRED 占位符留给填写者）；bundle 明确不含 `.env`、原始对话消息与 workspace 文件（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md)）。
 
-**agent 评审的信任边界（成文标准，skill 设计文档）**。maintainer-orchestrator 把 agent 评审钉在**评论面**——只发 issue/PR 评论，不碰代码、分支、合并与发布；公开评论要求 confidence 与 severity **双轴同时达标**，低于门槛的发现进维护者私有通道；并且：
+**agent 评审的信任边界（成文标准，skill 设计文档）**。maintainer-orchestrator 把 agent 评审钉在**评论面**——只发 issue/PR 评论，不写代码、不管理分支、不关闭/打标 artifact、不发版；公开评论要求 confidence 与 severity **双轴同时达标**，低于门槛的发现进维护者私有通道；并且：
 
 > **Evidence over a green check.** CI status is a signal, not a verdict. A green rollup never excuses reading the changed code path, and a failing required check is itself a finding. Tests passing does not prove the changed branch is exercised.
 >

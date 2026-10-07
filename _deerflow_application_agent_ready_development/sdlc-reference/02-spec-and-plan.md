@@ -22,7 +22,7 @@
 
 **按切片推进、收尾重读检查单**。实现计划把工作切成依赖有序的 slice，每个 slice 收尾时跑 lint+test 并重读 spec 评审清单；并发测试被标为 hard requirement 而非可选打磨（[projects-mvp-phase2-implementation-plan.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/docs/superpowers/plans/2026-09-13-projects-mvp-phase2-implementation-plan.md)）。
 
-**机器门禁**：无——没有 workflow 强制"大变更必须先有 spec"。这是文档纪律，靠评审与习惯执行。**运行时事实的例外**：spec 修订过程中实现侧的偏差会被 spec 的 deviation register 正式吸收（Phase 2 spec 修订注记即为一例），偏离不是隐瞒而是登记。
+**机器门禁**：无——没有 workflow 强制"大变更必须先有 spec"。这是文档纪律，靠评审与习惯执行。**偏离的登记（成文标准）**：spec 修订过程中实现侧的偏差会被 spec 的 deviation register 正式吸收（Phase 2 spec 修订注记即为一例），偏离不是隐瞒而是登记。
 
 ## 应用仓适用边界
 

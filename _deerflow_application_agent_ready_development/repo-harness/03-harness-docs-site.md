@@ -18,7 +18,7 @@ docs 站 harness 节（`frontend/src/content/en/harness/`，中文镜像在 `zh/
 
 **第二层：按主题**——[lead-agent](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/lead-agent.mdx)、[middlewares](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/middlewares.mdx)、[customization](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/customization.mdx)、[skills](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)、[mcp](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/mcp.mdx)、[tools](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/tools.mdx)、[sandbox](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/sandbox.mdx)、[memory](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/memory.mdx)、[configuration](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/configuration.mdx)。
 
-**第三层：按接入形态的专题手册**——`extensions/` 九页（quick-start、middleware、observers、runtime、services-and-routes、run-evidence、operations、troubleshooting、reference）与 `subagents/` 十一页（quick-start、delegation、catalog、developers、limits、observability、results、sandbox、troubleshooting、reference）。
+**第三层：按接入形态的专题手册**——`extensions/` 十页（index 总览加九个主题页：quick-start、middleware、observers、runtime、services-and-routes、run-evidence、operations、troubleshooting、reference）与 `subagents/` 十一页（index 总览加十个主题页：quick-start、delegation、catalog、developers、limits、observability、results、sandbox、troubleshooting、reference）。
 
 **双语**：en 与 zh 两套镜像同结构维护。**边界**：手册描述的是发布时的行为快照；它与代码的一致性靠主仓自己的文档纪律维持（见[指南预算与文档测试](./02-guidance-budgets-and-doc-tests.md)），不是独立保证。
 

@@ -25,7 +25,7 @@
 - 相对链接必须在语料内可达，锚点必须命中目标文件的真实标题；
 - 外链只允许钉定 `v2.1.0` 的 `bytedance/deer-flow` blob/tree/releases 地址；
 - 含 Markdown 的目录必须有 README.md；
-- SVG（若引入）必须有固有 width/height 与 `<title>`/`<desc>`。
+- SVG 必须有固有 width/height 与 `<title>`/`<desc>`（当前语料共五张 SVG，分属三卷 figures/ 目录）。
 
 ## 重审触发路径
 
@@ -80,13 +80,59 @@
 - 审计方法：grep 全语料 owner/语义评审/垂直切片/产权/铺路/验收四分/决定记录/外部结果，逐条替换或重锚；历史轮次记录保留原貌。
 
 **图示**（图文并茂，帮助不熟悉 DeerFlow 技术思考的读者）：
-- 新增五张 SVG：卷三张（development-loop 开发闭环、integration-forms 四形态选择、acceptance-evidence 证据四层级）、卷二一张（change-gate-levels 变更主线×门禁等级）、卷三一张（guidance-network 指南网络分层与预算）。
+- 新增五张 SVG：卷一三张（development-loop 开发闭环、integration-forms 四形态选择、acceptance-evidence 证据层级）、卷二一张（change-gate-levels 变更主线×门禁等级）、卷三一张（guidance-network 指南网络分层与预算）。
 - 每卷 `figures/README.md` 图示清单（归属页 + 更新时机）；各卷 README 增"图文分工"节；验证器自测新增 SVG 负例（删 `<title>` 须被 svg-a11y 拒绝）。
 - 图中文字同步完成术语原生性替换。
+
+### 2026-10-07 · 第 6 轮（全量复核：原生性 + 事实精度 + 自洽性）
+
+对 v2.1.0 逐条复核三卷全部事实性陈述（`git show v2.1.0:<path>` 直读 tag），修复三类问题：
+
+**事实精度修复**（正文与 tag 不符）：
+- 卷一 01/术语页：修正技能分发面的过强否定——v2.1.0 **有**运行时技能归档安装（`POST /api/skills/install`、admin-only `/install/upload`、安全扫描、依赖首次加载时装、启用/停用即时生效）；它与 extension manager 事务的区别是不动 `plugins:`/lock、无需重启、入口是 Gateway API。术语页新增"技能归档安装"词条；integration-forms 图示同步改。
+- 卷一 01/02：示例包"覆盖全部贡献维度"的措辞改为"演示五种贡献"——示例 README 自述 all five，契约注册面是七种，原措辞正是术语页警告的"把示例当契约上限"误读。
+- 卷一 02 术语页：内置工具条目误把 web search/fetch/渲染截屏归为内置——tools 手册的原生四分类是 built-in / community / MCP / skill 自带工具，已按原分类改写。
+- 卷一 01：quick-start 的"装扩展是 operator 动作、需 shell 权限"是**运行时前提**（随使用传导），原标签"主仓要求（不随使用继承）"是类目错误，已改标运行时事实并并入前置条件句。
+- 卷三 03：extensions/ 手册实为十页（index + 九个主题页）、subagents/ 实为十一页（index + 十个主题页）；原"九页"漏计 index 且两处口径不一，已统一为"index 加 N 个主题页"。
+- 卷三 04：extension-api 模块清单漏 `provenance`（消息生产者声明），已补齐（现共十个模块）。
+- 卷二 05：门禁矩阵漏 frontend-unit-tests.yml（前端单测）与 chart.yaml 的 PR 校验 job（含"不跳 draft"例外）；skill 审查行补 workflow 名（skill-review-ci.yml）；来源行从五个补全为十个 workflow；边界注⑤列全其余非主线 workflow；CONTRIBUTING PR Regression Checks 只文档化三个 workflow 的事实已如实标注。
+- 卷二 06：uv 版本钉住测试保持一致的实为**四处**（Dockerfile `UV_IMAGE`、两份 compose 默认、全部 CI `setup-uv` 步骤），原文漏 compose。
+- 卷二 08：扩展自有表约定的出处是迁移指南"Extension-owned tables"节（非 extensions 指南），且原生约定是私有 `MetaData` + 表前缀（`ExtensionSpec.table_prefix`）让宿主 alembic 忽略，并无"独立 alembic 链"的说法，已按原文改写。
+- 卷一 03：curl 观察示例补 README 原有的认证提醒（路由走 Gateway 常规认证）。
+
+**自洽性修复**：
+- "四件不同的事"（卷一 00-index）与"三层证据"（卷一 03）在 acceptance-evidence 图示里口径混乱（原题"证据的四个层级"与本节"三层证据"冲突，④ 混入"用户确认"）：图与正文统一为——能 import（不是行为证据）+ 三层证据链（包测试绿/扩展装上了/宿主侧行为被观察到），00-index 与 03 的桥接句同步改。
+- 卷号（卷一/卷二/卷三）在跨卷引用中使用但从未定义，入口 README 三卷表已加显式卷号列。
+- 卷二 04："AI 披露三问 + 责任声明"改为与模板一致的"AI 披露三项"（工具、用法、人的责任确认——模板原话 "Please fill all three"）。
+- 卷二 09：agent 评审禁做清单改为与设计文档一致（不写代码、不管理分支、不关闭/打标 artifact、不发版；原文"合并"系改写失真）。
+- 卷二 07："无 bump 脚本"标题与同页 bump_version.sh helper 自相矛盾，改为贴 RELEASING 原文（"no separate release script that bumps versions"，helper 只改齐不决策）。
+- 卷三 guidance-network 图示模块层补 scripts/AGENTS.md（与 02 页"backend/frontend/scripts"口径一致）。
+- 卷二 00-index 残留的"owning 指南"改"权威指南"（第 5 轮术语审计的漏网措辞）；结构约束节的"SVG（若引入）"改为现势描述（语料已有五张 SVG）。
+
+**维护记录修复**：第 5 轮记录"卷三张"为笔误（三张图属卷一），已更正为"卷一三张"。
+
+本轮核验方法：全部引用路径对 `git cat-file -e v2.1.0:<path>` 验存在；引文对 `git show` 直读核对；目录页数/模块清单/workflow 清单对 `git ls-tree v2.1.0` 重数。结构验证器与自测本轮全部通过。
+
+### 2026-10-07 · 第 7 轮（全语料独立一致性扫描）
+
+第 6 轮修复后，对全部 26 个 Markdown、5 张 SVG 与验证器做一轮独立的全语料内部一致性扫描（新开上下文逐文件通读，不对照 git，专查自洽性），修复其发现的残留问题：
+
+- **卷一 00-index:5 开篇句**仍是第 6 轮统一前的旧措辞（"测试绿/用户验收"作四件事之第四件）——与同页第 20 行、卷一 03 与 acceptance-evidence 图冲突，已改为 canonical 四件事表述；同页"内嵌 client"→"内嵌 harness"、"四级声明"→"四类陈述"、"[卷入口 README]"→"[语料入口 README]"。
+- **"安装验证"双口径**：术语页与卷一 01、卷三 06 把第三层"宿主侧观察"并进安装验证定义，与卷一 03/图 ③ 的窄定义（装入＋重启＋确认列表，不证明行为）冲突；三处统一为窄定义＋"与宿主侧观察共同构成最低真实证据"。术语页读法提醒"两个证据层级"改"三层证据"。
+- **卷一 03 步数算术**："后四步…前三步"=7≠6（第 3 步实为本页 §1 所有），改"前两步"。
+- **接入形态命名漂移**：根 README"内嵌 `DeerFlowClient`"与 development-loop 图"内嵌 client"统一为"内嵌 harness"；development-loop 图步骤④⑥框标题改为 00-index 的步骤名（测试分层对应证据分层/用证据交付）。
+- **卷号约定补齐**：卷二 03/10、卷三 02/06 的四处裸跨卷引用补"卷一·/卷二·"前缀；根 README 四类陈述中"运行时事实"定义扩为"接口、实际行为与仓库内容"（卷三对仓库内容事实也用此标签）。
+- **change-gate-levels 图**：图例第四项把"仓库外不可核实"（灰块，阶段行中不存在）与"文化惯性"（虚线琥珀）混为一谈，改为四个等级各自的图例＋"仓库外不可核实"单独注释行；PR 表面阶段标"成文标准＋自我声明"、运维反馈标"文化惯性（失败回写）"，与卷二 04/09 的分级对齐。
+- **acceptance-evidence 图**：①"证明：入口点可解析、包能装"删"包能装"（与③"分发物可安装"分层混淆），desc 同步。
+- **验证器自测枚举**：根 README 与 verify.test.mjs 头注释补第 5 类负例（SVG 缺无障碍标题，第 5 轮已加）。
+- **卷二 01**顿号后多余半角空格；**卷二 02**"运行时事实的例外"类目错误改"偏离的登记（成文标准）"；**卷二 05**边界②改"测试 job（lint 与 chart 校验不设 draft 条件）"；**规划表**补登卷一 03（第 5 轮增补）。
+
+本轮方法：独立读者视角逐文件通读＋计数核对（贡献类型 7/5、workflow 10、版本源 5/bump 4、extensions 10 页、subagents 11 页、extension-api 10 模块、contracts 7 JSON、预算 4 档等全部对上）。验证器与自测通过。
 
 ### 规划中的正文页（未建，建后在本表打钩并注明轮次）
 
 - ~~应用开发模型卷：01 新仓起步（四种接入形态选择）、02 术语与心智模型~~（第 2 轮建成）；
+- ~~应用开发模型卷：03 交付与验收~~（第 5 轮增补，超出原规划——补齐 00-index 闭环步骤 3-6 的归属页）；
 - ~~SDLC 参考卷：01 意图与范围对齐 至 10 扩展信任边界 共十页~~（第 3 轮建成）；
 - ~~开发 Harness 卷：01 新 agent 的参与路径 至 06 边界与代价 共六页~~（第 4 轮建成）。
 

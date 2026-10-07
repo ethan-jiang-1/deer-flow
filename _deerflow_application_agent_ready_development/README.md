@@ -9,7 +9,7 @@
 1. **Python extension 包**——通过 `deerflow.extensions` 入口点贡献 middleware、生命周期观察者、Gateway 服务与路由；
 2. **Skill**——`SKILL.md` 及其资源的能力模块，走发现/激活/审查机制；
 3. **MCP server**——外部工具经 `extensions_config.json` 接入；
-4. **内嵌 `DeerFlowClient`**——进程内直接使用 harness 能力的应用。
+4. **内嵌 harness**——进程内直接使用 harness 能力（`create_deerflow_agent()` 或 `DeerFlowClient`）的应用。
 
 读者应能从 DeerFlow 自带的应用文档（docs 站 harness 手册、extension 示例、extension-api 契约）找到可运行的最小入口，再逐步为自己的仓库建立源码、配置、测试预期、可重复验证与交付记录。
 
@@ -19,7 +19,7 @@
 
 正文区分四类陈述，防止最常见的误读——把上游的内部治理当成随依赖继承的义务：
 
-- **运行时事实**：DeerFlow v2.1.0 的接口与实际行为，可对照钉版源码核验；
+- **运行时事实**：DeerFlow v2.1.0 的接口、实际行为与仓库内容（文档、指南、workflow 等可对钉定 tag 核验的事实）；
 - **主仓要求**：DeerFlow 主仓库自身的贡献、测试与发布规则，仅约束向主仓提交的变更；
 - **应用仓建议**：本语料归纳出的开发做法，不是 DeerFlow 官方规定；
 - **仓库自定**：应用仓自己的组织、审批与发布选择。
@@ -30,11 +30,13 @@
 
 ## 三卷入口
 
-| 路径 | 应用仓读者的问题 | 使用方式 |
-|---|---|---|
-| [应用开发模型](./application-development-model/README.md) | 新建独立应用仓后如何起步，并组织一次完整的应用变更？ | 先看总览页，再按问题深入 |
-| [SDLC Reference（流程参考）](./sdlc-reference/README.md) | DeerFlow 主仓的具体条件、状态和例外是什么？哪些机制可移用于应用仓？ | 按问题查阅，并遵守适用边界 |
-| [Development Harness（开发 Harness）](./repo-harness/README.md) | DeerFlow 仓库怎样让 agent 定位知识、扩展点和验证方式？应用仓能借鉴什么？ | 按参与任务查阅 |
+三卷按下列顺序编号（卷一/卷二/卷三），正文跨卷引用一律用这套卷号：
+
+| 卷 | 路径 | 应用仓读者的问题 | 使用方式 |
+|---|---|---|---|
+| 卷一 | [应用开发模型](./application-development-model/README.md) | 新建独立应用仓后如何起步，并组织一次完整的应用变更？ | 先看总览页，再按问题深入 |
+| 卷二 | [SDLC Reference（流程参考）](./sdlc-reference/README.md) | DeerFlow 主仓的具体条件、状态和例外是什么？哪些机制可移用于应用仓？ | 按问题查阅，并遵守适用边界 |
+| 卷三 | [Development Harness（开发 Harness）](./repo-harness/README.md) | DeerFlow 仓库怎样让 agent 定位知识、扩展点和验证方式？应用仓能借鉴什么？ | 按参与任务查阅 |
 
 三卷各有 README 与入口页，只依赖 DeerFlow 一手来源，彼此不构成前置阅读顺序。
 
@@ -71,4 +73,4 @@ node _deerflow_application_agent_ready_development/verify.mjs
 
 脚本仅用 Node 内置模块，不依赖包管理器、宿主脚本、Git 或网络；它按自身文件位置定位语料，不按当前工作目录猜路径。该命令检查严格 UTF-8、单个结尾换行、Markdown 相对链接和锚点、目录 README、固定 DeerFlow 外链，以及 SVG 的固有尺寸与无障碍元数据。它不核对远端来源内容、不证明语义准确，也不替代图示视觉检查。
 
-修改验证规则后，在本目录运行 `node verify.test.mjs`：测试将完整语料复制到独立临时目录，确认有效副本通过，且非钉版外链、失效锚点、越界链接与缺失结尾换行被真实入口拒绝。证据复核记录见[维护页](_coverage/00-corpus-maintenance.md)。
+修改验证规则后，在本目录运行 `node verify.test.mjs`：测试将完整语料复制到独立临时目录，确认有效副本通过，且非钉版外链、失效锚点、越界链接、缺失结尾换行与 SVG 缺无障碍标题被真实入口拒绝。证据复核记录见[维护页](_coverage/00-corpus-maintenance.md)。

@@ -10,14 +10,16 @@
 |---|---|---|---|
 | Lint | backend `make lint`（ruff check + format check）+ `uv lock --check`；frontend format/lint/typecheck/build | push 与全部 PR | 无 draft 跳过 |
 | 指南预算 | `scripts/check_agent_guidance.py` 按 diff 基线检查 AGENTS.md 尺寸预算 | push 与全部 PR | 无 |
-| 后端单测 | 默认离线套件按真实时长分 **4 片**并行（fail-fast 关闭），Postgres/Redis 作为 service 容器；另有一个 job 按文档贡献者路径安装后仅做 `--collect-only`，证明最小安装也能收集全套 | 非 draft PR | **draft PR 跳过** |
+| 后端单测 | 默认离线套件按真实时长分 **4 片**并行（fail-fast 关闭），Postgres/Redis 作为 service 容器；另有一个 job 按文档贡献者路径安装后仅做 `--collect-only`，证明最小安装也能收集全套 | push 与非 draft PR | **draft PR 跳过** |
+| 前端单测 | frontend `make test`（rstest 单测套件） | push 与非 draft PR | draft 跳过 |
 | blocking-I/O | `make test-blocking-io` 严格阻塞检测 | 仅 `backend/**` 路径变更 | draft 跳过 |
 | 前端 E2E | Playwright | 仅 `frontend/**` 路径变更 | draft 跳过 |
 | replay E2E | 前后端契约两层回放：backend golden SSE 序列 + 真前端渲染回放 | **契约两侧任一变更触发**（frontend / Gateway / harness / 回放夹具） | draft 跳过 |
-| skill 审查 | SkillScan 确定性审查 + 豁免清单校验 | 仅技能相关路径变更 | draft 跳过 |
+| skill 审查 | SkillScan 确定性审查 + 豁免清单校验（`skill-review-ci.yml`） | 仅技能与审查工具相关路径变更（`skills/public/`、评审代码与契约、豁免清单、依赖清单） | draft 跳过 |
+| chart 校验 | helm lint + 模板渲染 + sandbox Service 门控 + skill 上传 ingress 策略 + `config_version` 漂移检查 | 仅 chart/示例配置相关路径变更的 PR（`deploy/helm/`、`config.example.yaml`）与 `v*` tag | **不跳 draft**（无 draft 条件） |
 | 版本门 | tag 上校验版本五源一致，失败跳过全部发布 | 仅 `v*` tag | 见[发版与版本门](./07-release-and-version-gate.md) |
 
-来源：[backend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-unit-tests.yml)、[lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/lint-check.yml)、[backend-blocking-io-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-blocking-io-tests.yml)、[e2e-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/e2e-tests.yml)、[replay-e2e.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/replay-e2e.yml)。
+来源：[lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/lint-check.yml)、[backend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-unit-tests.yml)、[frontend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/frontend-unit-tests.yml)、[backend-blocking-io-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-blocking-io-tests.yml)、[e2e-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/e2e-tests.yml)、[replay-e2e.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/replay-e2e.yml)、[skill-review-ci.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/skill-review-ci.yml)、[chart.yaml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/chart.yaml)；版本门的 [verify-versions.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/verify-versions.yml) 与 [container.yaml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/container.yaml) 见[发版与版本门](./07-release-and-version-gate.md)。
 
 **容易被忽略的设计**：
 
@@ -25,7 +27,7 @@
 2. **分片按真实时长**——用 `.test_durations` 基线平衡分片，每个测试恰好跑一次；fail-fast 关掉，失败分片报告自己的测试而不连坐同伴。
 3. **最小安装收集 job**——证明"按文档装依赖"的路径不坏，防止 optional 依赖悄悄变成必需。
 
-**边界（诚实读法）**：① "每 PR 跑全部门"不成立——多个门按路径分流，跨边界改动是否触发对应门禁要评审者自行判断；② draft PR 跳过主测试 job，标 ready 时才补跑；③ `make test-live` 从不进 CI；④ 分支保护把哪些 workflow 设为 required 在仓库文件里**不可见**——本表只回答"什么会跑"，不回答"什么挡住合并"。
+**边界（诚实读法）**：① "每 PR 跑全部门"不成立——多个门按路径分流，跨边界改动是否触发对应门禁要评审者自行判断；② draft PR 跳过测试 job（lint 与 chart 校验不设 draft 条件），标 ready 时才补跑；③ `make test-live` 从不进 CI；④ 分支保护把哪些 workflow 设为 required 在仓库文件里**不可见**——本表只回答"什么会跑"，不回答"什么挡住合并"；⑤ 本表只列**变更主线**上的门禁——v2.1.0 的 workflows 目录里还有其余文件不属于此列：nightly 定时发布（见[发版与版本门](./07-release-and-version-gate.md)）、triage/label-sync（只写 PR/issue 标签元数据，不检出不执行 PR 代码）、sandbox 镜像 smoke 与 sandbox 网络代理镜像（路径触发的镜像专项校验与发布）、lark-cli 镜像发布（跟随上游 `lark-cli-v*` tag，不接 DeerFlow `v*` 发版链）。
 
 ## 应用仓适用边界
 
@@ -33,4 +35,4 @@
 
 ## 证据入口
 
-上表八个 workflow 文件（全部钉 v2.1.0；CONTRIBUTING 的 PR Regression Checks 节是这些 workflow 的文档面）。
+上表与来源行共十个 workflow 文件（全部钉 v2.1.0）。CONTRIBUTING 的 PR Regression Checks 节只文档化其中三个（后端单测、前端单测、前端 E2E，且只注明前端 E2E 的路径触发），是不完整的文档面——完整清单以 workflow 文件为准。

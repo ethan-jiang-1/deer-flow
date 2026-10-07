@@ -12,7 +12,7 @@
 
 **文档示例进测试**。[test_middleware_documentation.py](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/tests/test_middleware_documentation.py) 直接 `exec()` 文档里的自定义 middleware 示例并断言 API 未过期、链顺序与 guard 清单一致——文档一过期 CI 就红，"保持文档同步"从美德变成断言。
 
-**工具链版本钉住**。[test_ci_uv_version_pin.py](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/tests/test_ci_uv_version_pin.py) 强制 Dockerfile 与全部 CI 里的 uv 版本一致。它防的失效模式很具体：CI 装了更新的 uv、把 lock 重写成新版格式、CI 依然全绿（同一个 uv 读得回自己写的），而生产镜像里钉住的旧 uv 读不了提交的 lock。workflow 里的注释明说 "Must match backend/Dockerfile's UV_IMAGE tag; pinned by backend/tests/test_ci_uv_version_pin.py"（[backend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-unit-tests.yml)）——升级 uv 因此是"一个显式、可评审的变更"，同步触及 Dockerfile、workflows 与这个测试。
+**工具链版本钉住**。[test_ci_uv_version_pin.py](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/tests/test_ci_uv_version_pin.py) 以 Dockerfile 的 `UV_IMAGE` 为单一事实源，强制**四处**一致：Dockerfile、两份 compose 默认（`docker-compose.yaml` 与 `docker-compose-dev.yaml`）、以及全部 CI 里每个 `setup-uv` 安装步骤。它防的失效模式很具体：CI 装了更新的 uv、把 lock 重写成新版格式、CI 依然全绿（同一个 uv 读得回自己写的），而生产镜像里钉住的旧 uv 读不了提交的 lock。workflow 里的注释明说 "Must match backend/Dockerfile's UV_IMAGE tag; pinned by backend/tests/test_ci_uv_version_pin.py"（[backend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-unit-tests.yml)）——升级 uv 因此是"一个显式、可评审的变更"，同步触及 Dockerfile、compose、workflows 与这个测试。
 
 **共同的句式**：谁来监督监督者？——下一个测试。这四条分别钉住**结构**（import 方向）、**指令资产**（指南尺寸）、**知识**（文档示例）、**环境**（工具链）；它们都不证明业务行为正确，只证明这些不变量没被破坏。
 

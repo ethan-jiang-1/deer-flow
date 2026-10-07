@@ -8,7 +8,7 @@
 
 **示例包：五种贡献维度的最小实现**。[examples/deerflow-extension-example](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md) 是独立 Python 包，覆盖五种贡献（中间件计数、task 生命周期归并、system-model 观察、Gateway 服务、eager 路由），刻意保持每件实现"deliberately small"。它示范三件事：契约级包测试怎么写（只用公共契约加自身依赖，不 import harness 与 Gateway）、安装事务长什么样（快照 → 依赖组 → lock → `plugins:` 条目 → 重启）、以及**分发自包含**（Docker 构建包含本地快照，生产容器不在网络上解析依赖）。
 
-**extension-api：零依赖的公共契约包**。[backend/packages/extension-api/](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/extension-api/deerflow_extension_api/contracts.py) 按模块分面：`contracts`（注册与贡献类型）、`placement`（语义位置）、`assembly`（组装描述）、`auth`（principal 解析）、`release` / `state` / `compaction` / `run_evidence` / `runtime_bridge`。它刻意不依赖任何框架——扩展声明自己 import 的一切，且：
+**extension-api：零依赖的公共契约包**。[backend/packages/extension-api/](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/extension-api/deerflow_extension_api/contracts.py) 按模块分面：`contracts`（注册与贡献类型）、`placement`（语义位置）、`assembly`（组装描述）、`auth`（principal 解析）、`provenance`（消息生产者声明）、`release` / `state` / `compaction` / `run_evidence` / `runtime_bridge`。它刻意不依赖任何框架——扩展声明自己 import 的一切，且：
 
 > Never import `deerflow.*` or `app.*`: those are host internals with no compatibility promise.
 >

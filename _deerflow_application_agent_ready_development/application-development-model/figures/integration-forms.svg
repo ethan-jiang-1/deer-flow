@@ -42,11 +42,12 @@
 
   <rect x="275" y="210" width="230" height="160" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1"/>
   <text x="290" y="236" font-family="sans-serif" font-size="12" fill="#111827">入口：SKILL.md（权威定义）</text>
-  <text x="290" y="264" font-family="sans-serif" font-size="12" fill="#111827">分发：技能目录</text>
-  <text x="290" y="284" font-family="sans-serif" font-size="12" fill="#111827">（public/ 随仓或 custom/ 自建，</text>
-  <text x="290" y="304" font-family="sans-serif" font-size="12" fill="#111827">无随包安装事务）</text>
-  <text x="290" y="332" font-family="sans-serif" font-size="12" fill="#111827">按需加载，不占常驻上下文</text>
-  <text x="290" y="352" font-family="sans-serif" font-size="11" fill="#2563eb">适合：方法与资料，不改运行时</text>
+  <text x="290" y="260" font-family="sans-serif" font-size="12" fill="#111827">分发：技能目录（public/ 随仓、</text>
+  <text x="290" y="278" font-family="sans-serif" font-size="12" fill="#111827">custom/ 自建）＋ 运行时归档安装</text>
+  <text x="290" y="296" font-family="sans-serif" font-size="12" fill="#111827">（Gateway API，过安全扫描，</text>
+  <text x="290" y="314" font-family="sans-serif" font-size="12" fill="#111827">无需重启，不动 plugins/lock）</text>
+  <text x="290" y="338" font-family="sans-serif" font-size="12" fill="#111827">按需加载，不占常驻上下文</text>
+  <text x="290" y="356" font-family="sans-serif" font-size="11" fill="#2563eb">适合：方法与资料，不改运行时</text>
 
   <rect x="525" y="210" width="230" height="160" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1"/>
   <text x="540" y="236" font-family="sans-serif" font-size="12" fill="#111827">入口：extensions_config.json</text>

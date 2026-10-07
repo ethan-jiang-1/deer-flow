@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // verify.mjs 的自测：把完整语料复制到独立临时目录，先确认有效副本通过，
-// 再逐个注入违规（钉版外链违规、失效锚点、逃出语料根、缺结尾换行），
+// 再逐个注入违规（钉版外链违规、失效锚点、逃出语料根、缺结尾换行、SVG 缺无障碍标题），
 // 断言真实入口拒绝每一种。测试不改当前语料；结束时打印并保留临时副本位置。
 
 import { mkdtempSync, cpSync, rmSync, readFileSync, writeFileSync } from 'node:fs';

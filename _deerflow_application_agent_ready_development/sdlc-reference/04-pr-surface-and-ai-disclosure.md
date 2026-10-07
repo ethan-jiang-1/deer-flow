@@ -16,7 +16,7 @@
 
 **Validation 写实际运行过的命令（成文标准 + 自我声明）**。按改动面列最低检查集（backend `make lint && make test`、frontend format/lint/typecheck/build/test、改了前端还要 E2E），并要求填**实际运行**的命令与结果。
 
-**AI 披露三问 + 人的责任声明（成文标准）**。DeerFlow 自认是 AI 项目、欢迎 AI 辅助贡献，但每个 PR 必须填：用了什么工具、怎么用的，并勾选：
+**AI 披露三项（成文标准）**。DeerFlow 自认是 AI 项目、欢迎 AI 辅助贡献，但每个 PR 必须填全三项——用了什么工具、怎么用的，并勾选：
 
 > I've read and understand every line of this change and take responsibility for it — it's not unreviewed AI output.
 >
@@ -28,7 +28,7 @@ CONTRIBUTING 补充执行方式：披露帮**评审者校准阅读强度**；忽
 
 ## 应用仓适用边界
 
-**可移用（几乎全套，且对 AI 参与度高的应用仓尤其值）**：用户视角描述、Surface area 勾选、Validation 自报、AI 披露三问 + 责任声明。这套表单的底层逻辑是**给评审者分级信任的信息**——AI 披露不是合规仪式，是让"这段代码该按什么强度读"变成显式信号。**需要自定**：勾选项按你的改动面重列（如 extension 包仓：契约面 / 宿主组合 / 配置 / 文档）；责任声明按你的团队署名规则改写。**应用仓建议**：prompt 信任自检值得原样搬——只要你的应用有 system prompt，"模型可影响的值不进框架文本"就是你的信任边界。
+**可移用（几乎全套，且对 AI 参与度高的应用仓尤其值）**：用户视角描述、Surface area 勾选、Validation 自报、AI 披露三项（工具、用法、人的责任确认）。这套表单的底层逻辑是**给评审者分级信任的信息**——AI 披露不是合规仪式，是让"这段代码该按什么强度读"变成显式信号。**需要自定**：勾选项按你的改动面重列（如 extension 包仓：契约面 / 宿主组合 / 配置 / 文档）；责任声明按你的团队署名规则改写。**应用仓建议**：prompt 信任自检值得原样搬——只要你的应用有 system prompt，"模型可影响的值不进框架文本"就是你的信任边界。
 
 ## 证据入口
 

@@ -32,7 +32,7 @@
 
 **MCP server** — 经 `extensions_config.json` 的 `mcpServers` 接入的外部工具服务；`routing` 字段提供软性偏好提示，不构成硬性强制（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。
 
-**内置工具** — 随 harness 提供的核心工具（web search、fetch、渲染抓取、文件操作、bash 等），可经 MCP 与 Python 函数扩展自定义。
+**工具四分类** — DeerFlow 把工具分为四类：**内置工具**（built-in，harness 自带的核心运行时能力，如 `task` 委派、`present_files`、`view_image`，无需配置即可用）、**community 工具**（外部搜索/抓取/图像服务的集成，如 web search、web fetch、渲染截屏，经 `config.yaml` 的 `tools:` 配置）、**MCP 工具**（外部 MCP server 提供）、**skill 自带工具**（随技能包捆绑）（[tools 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/tools.mdx)）。另有沙箱文件工具（`ls`/`read_file`/`grep`/`bash` 等）需配置并激活沙箱。误读：把 web search/fetch 当"内置"——它们是 community 工具，要经 `config.yaml` 配置才可用。
 
 ## 装载与配置
 
@@ -44,14 +44,16 @@
 
 **`config.yaml` 与 `extensions_config.json`** — 前者是 operator 控制的主配置（含 `plugins:`）；后者是运行时可写的 MCP server 与技能启用状态，两者刻意分离（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。`config_version` 追踪 schema 变化，旧配置启动时得到升级指引而非静默失效。
 
+**技能归档安装** — Gateway 的运行时技能安装面：`POST /api/skills/install` 从线程产物里的 `.skill` 归档安装，admin-only 的 `POST /api/skills/install/upload` 接受 multipart 上传；装入前过安全扫描，声明的依赖首次加载时安装（[Gateway 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/app/gateway/AGENTS.md)、[skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)）。误读：把它当成 extension manager 事务——技能安装不动 `plugins:`、不改依赖组与 `uv.lock`、无需重启。
+
 ## 验证词汇
 
 **包级测试（package tests）** — 只用公共契约加包自身声明的依赖、不 import harness 与 Gateway 的测试——示例包的标准口径（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)）。**应用仓建议**：包级测试证明契约用法正确，不证明宿主组合成立；后者要装进真实 checkout 重启后观察。
 
-**安装验证（install verification）** — extension 形态的最低真实证据：经 extension manager 装入、重启、观察一个宿主侧可检查行为。示例的做法是贡献路由后 curl 它。
+**安装验证（install verification）** — 三层证据的第二层：经 extension manager 装入真实 checkout（快照 → 依赖组 → lock → `plugins:` 条目）、重启 Gateway、确认扩展出现在列表。它证明分发物可安装、装载链成立，**不证明**贡献产生了预期行为——那是第三层"宿主侧行为观察"的事（示例的做法是贡献路由后 curl 它），两层共同构成 extension 形态的最低真实证据。
 
 **ruff** — Python lint/format 工具，示例包自带配置；主仓 CI 强制格式检查（详见 [SDLC Reference](../sdlc-reference/00-index.md)）。
 
 ## 读法提醒
 
-这些词的关系比定义更重要：**harness/app 是依赖方向，placement 是顺序语义，skill/tool 是"教"与"做"，`plugins:` 是装载边界，包测试/安装验证是两个证据层级。**把它们混着用，后面的闭环就会在错误的地方找证据。
+这些词的关系比定义更重要：**harness/app 是依赖方向，placement 是顺序语义，skill/tool 是"教"与"做"，`plugins:` 是装载边界，包测试/安装验证/宿主侧观察是三层证据。**把它们混着用，后面的闭环就会在错误的地方找证据。
