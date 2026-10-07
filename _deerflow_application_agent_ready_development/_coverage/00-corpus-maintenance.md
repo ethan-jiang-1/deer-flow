@@ -154,6 +154,20 @@
 
 本轮核验：lane/budget/append-only/deliberately small/minute/principal/IsolatedMiddleware/marker 等候选词逐一对 `git grep v2.1.0` 核验（budget/principal/IsolatedMiddleware/marker 原生，予以保留并锚定）。结构验证器与自测通过。
 
+### 2026-10-07 · 第 9 轮（术语原生性专项 II：资产/代差/双轴类残留）
+
+第 8 轮后再做一轮逐词审计（本轮新增方法：抽取全部英文 token 与中文概念复合词逐一分类），清除最后的非原生词：
+
+- **"资产"系列**（asset 作为治理词在 v2.1.0 不存在——源里的 assets 全是构建产物语境）：卷一 00-index 与卷 README 的"测试资产"→"测试证据"（与入口 README 用词一致）；卷三 02 页题"指令也是受治理资产"→"给 agent 的指令也受门禁约束"，正文"是被测资产"→"是被测试直接执行的"、"这套治理"→"这两道门禁"，卷三 00-index 与 01 同步；卷二 06"指令资产"→"指令文档"、"受治理的资产"→"受门禁约束"，四条钉住对象的标签改为与机制一一对应（结构/指令文档/文档示例/工具链）。
+- **"代差"**（手机芯片话语的借喻）：四处改为原生锚定表述——卷三 06"验证指导有代差"→"组合验证没有现成模式"（对应"没有随包交付的现成模式"）、对策表与卷一 00/03 同步。
+- **"双轴"**（把 run-context 语境的原生词 axes 误移到 confidence×severity——后者原生措辞是 "gate … on confidence and severity together"）：卷二 09 两处改"同时达标/一起门控"并引原生原话；卷二 10 的"信任与目的地是两个独立轴"是原生原文（"Trust and destination are separate axes"），保留。
+- **标题重锚**：卷二 10"豁免不能自授权"→"豁免只能来自 trusted base revision"（原生："only the manifest from the trusted base revision can suppress that run"）；"运行时上下文的双入口信任边界"→"Gateway run-context 信任边界"（原生节名 "Gateway Run-Context Trust Boundary"）；适用边界的"反自授权/双入口"简称同步。
+- **"契约注册面"→"注册契约（registry contract）"**（原生词序，三处）。
+- **中文行话清理**："沉淀成机制"→"回写成机制"（与本页标签一致）、"学习沉淀在仓库"→"落在仓库"、"高杠杆动作"→"最便宜而见效最快的动作"、"issue-first"→"'先开 issue/discussion'"（原生措辞）、"预算治理"→"预算检查"；修复卷三 02 一处病句（"这就是你版的第一优先级"→"让它进测试就是第一优先级"）。
+- **核验后保留**：`composition point`（组装点）原生——extensions 指南原话 "`extensions/stack.py` is the single final composition point"；`transaction`（安装事务）原生——"ExtensionManager owns the package/config transaction"；`governance` 有原生用例（README "tool-call governance"），"治理规则"层名属语料声明过的自有框架，保留。
+
+本轮方法：英文 token 全集提取比对（`cat *.md | grep -oE` 去重后逐词核验）＋中文概念复合词逐条分类（原生/原生派生/语料声明框架）。结构验证器与自测通过。
+
 ### 规划中的正文页（未建，建后在本表打钩并注明轮次）
 
 - ~~应用开发模型卷：01 新仓起步（四种接入形态选择）、02 术语与心智模型~~（第 2 轮建成）；

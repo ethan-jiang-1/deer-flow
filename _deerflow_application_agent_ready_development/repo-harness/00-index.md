@@ -23,7 +23,7 @@ DeerFlow 仓库的可参与性由五类机制叠加（正文页逐项取证）�
 | 页面 | 适用问题 |
 |---|---|
 | [01-follow-a-fresh-agent.md](./01-follow-a-fresh-agent.md) | 一个新 agent 进仓第一小时读什么；指南网络的分层与最近文件规则 |
-| [02-guidance-budgets-and-doc-tests.md](./02-guidance-budgets-and-doc-tests.md) | 指南预算 CI、文档示例进测试——"指令也是受治理资产" |
+| [02-guidance-budgets-and-doc-tests.md](./02-guidance-budgets-and-doc-tests.md) | 指南预算 CI、文档示例进测试——给 agent 的指令也受门禁约束 |
 | [03-harness-docs-site.md](./03-harness-docs-site.md) | docs 站 harness 手册阶梯：从 quick-start 到逐主题手册到双语约定 |
 | [04-example-and-contracts.md](./04-example-and-contracts.md) | 示例扩展包、extension-api 公共契约与跨组件 JSON 契约的分工 |
 | [05-config-and-inspection.md](./05-config-and-inspection.md) | 示例配置、config 版本升级、doctor 与运维诊断面 |

@@ -40,7 +40,7 @@
 
 **入口点（entry point）** — 托管包恰好一个 PEP 621 入口点，位于 `deerflow.extensions` 组，形如 `example = "deerflow_extension_example:install"`；入口点名是 operator 面向的稳定名（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)）。
 
-**贡献类型（contribution kinds）** — 契约注册面暴露**七种**：middleware、task-lifecycle、system-model-call 观察、agent-assembly 观察、context-compaction 观察、Gateway-lifetime 服务、eager 路由（[extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)）；示例包演示其中五种（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)）。误读：从示例的五种推断契约只有五种。
+**贡献类型（contribution kinds）** — 注册契约（registry contract）暴露**七种**：middleware、task-lifecycle、system-model-call 观察、agent-assembly 观察、context-compaction 观察、Gateway-lifetime 服务、eager 路由（[extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)）；示例包演示其中五种（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)）。误读：从示例的五种推断契约只有五种。
 
 **`config.yaml` 与 `extensions_config.json`** — 前者是 operator 控制的主配置（含 `plugins:`）；后者是运行时可写的 MCP server 与技能启用状态，两者刻意分离（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。`config_version` 追踪 schema 变化，旧配置启动时得到升级指引而非静默失效。
 

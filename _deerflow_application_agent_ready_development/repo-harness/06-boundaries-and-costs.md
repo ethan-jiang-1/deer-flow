@@ -12,7 +12,7 @@
 
 **宿主内部无兼容承诺**。`deerflow.*` 与 `app.*` 是宿主内部，扩展只能依赖 extension-api（[extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx)）。代价：你 import 的每个框架都要自己声明；宿主升级可能移动内部符号。
 
-**验证指导有代差**。v2.1.0 的示例与手册演示契约级包测试；真实装载组合（真 Loader、真 Gateway 装配后的行为证据）没有随包交付的现成模式（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md) 的测试口径即为边界）。代价：组合级证据要应用仓自建——装进 checkout、重启、观察一个宿主侧行为，是这个版本能写下的最低真实证据。
+**组合验证没有现成模式**。v2.1.0 的示例与手册演示契约级包测试；真实装载组合（真 Loader、真 Gateway 装配后的行为证据）没有随包交付的现成模式（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md) 的测试口径即为边界）。代价：组合级证据要应用仓自建——装进 checkout、重启、观察一个宿主侧行为，是这个版本能写下的最低真实证据。
 
 **安全响应未承诺时限**。[SECURITY.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/SECURITY.md) 只声明支持分支与报送入口，没有 SLA。代价：对安全时效有硬要求的应用仓要自己盯上游通告或承担审计。
 
@@ -25,7 +25,7 @@
 | startup-only | 升级流程写明重启；变更窗口里没有"先装后看" |
 | 扩展代码不在沙箱里执行 | 只装可信来源；对外发布扩展时写清权限面 |
 | 无内部兼容承诺 | 依赖面收敛到 extension-api + 少数显式声明的框架；升级宿主前重跑包测试 |
-| 组合证据代差 | 自建安装验证＋宿主侧观察（装 → 重启 → 观察）作为发布前最后一道 |
+| 组合验证没有现成模式 | 自建安装验证＋宿主侧观察（装 → 重启 → 观察）作为发布前最后一道 |
 | 无安全 SLA | 关注上游 releases；自己设置依赖升级节奏 |
 | 文档是快照 | 引用文档钉版本号；升级时复核 |
 
