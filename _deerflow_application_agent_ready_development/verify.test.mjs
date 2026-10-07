@@ -83,6 +83,15 @@ function expectViolations(root, label, wantedRule) {
   expectViolations(copy, 'no-newline', 'trailing-newline');
 }
 
+// 6. 负例 e：SVG 缺无障碍标题
+{
+  const copy = makeCopy('bad-svg');
+  const svg = join(copy, 'application-development-model', 'figures', 'development-loop.svg');
+  const text = readFileSync(svg, 'utf8').replace(/<title[\s>][\s\S]*?<\/title>/, '');
+  writeFileSync(svg, text);
+  expectViolations(copy, 'bad-svg', 'svg-a11y');
+}
+
 console.log('');
 if (failures === 0) {
   console.log(`✅ verify 自测全部通过。临时副本保留在：${tmpBase}`);

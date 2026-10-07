@@ -6,7 +6,7 @@
 
 ## 机制（运行时事实，对 v2.1.0 核验）
 
-**示例配置 → 本地配置**。仓库提供 `config.example.yaml` 与 `extensions_config.example.json`，复制为 gitignore 的 `config.example.yaml` → `config.yaml` / `extensions_config.json` 后生效；没有 `config.yaml` 服务起不来（根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md) 的 setup 顺序：`make config` → `make install` → `make dev`）。两文件分工固定：主配置归 operator（含 `plugins:` 装载清单），`extensions_config.json` 承载运行时可写的 MCP 与技能启用状态（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。
+**示例配置 → 本地配置**。仓库提供 `config.example.yaml` 与 `extensions_config.example.json`，复制为 gitignore 的 `config.yaml` / `extensions_config.json` 后生效；没有 `config.yaml` 服务起不来（根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md) 的 setup 顺序：`make config` → `make install` → `make dev`）。两文件分工固定：主配置归 operator（含 `plugins:` 装载清单），`extensions_config.json` 承载运行时可写的 MCP 与技能启用状态（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。
 
 **配置版本升级**。`config.example.yaml` 带 `config_version` 追踪 schema 变化；示例版本高于本地配置时启动给出升级警告，`make config-upgrade` 合并新字段并保留用户值（备份 `.bak`）。改配置 schema 的人有义务 bump 版本——旧配置得到的是**指引而非静默失效**（[CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)）。
 

@@ -1,10 +1,10 @@
 # DeerFlow Application Agent-ready Development
 
-本语料面向新建的独立 DeerFlow **应用仓**——以 owner 与 coding agent 为读者——说明如何沿用 DeerFlow 的原生机制组织意图、事实 owner、实现、文档、测试证据与交付判断。目标不是复制 DeerFlow 主仓库的内部治理，而是让应用开发者复用其可验证的扩展、组合与验证方式，构建自己的 agent-ready 应用。
+本语料面向新建的独立 DeerFlow **应用仓**——以维护者与 coding agent 为读者——说明如何沿用 DeerFlow 的原生机制组织意图、事实源、实现、文档、测试证据与交付判断。目标不是复制 DeerFlow 主仓库的内部治理，而是让应用开发者复用其可验证的扩展、组合与验证方式，构建自己的 agent-ready 应用。
 
 ## 目标读者与适用边界
 
-目标读者是在独立仓库中构建 DeerFlow 应用的 owner 与 coding agent。"应用"取完整口径，覆盖四种接入形态：
+目标读者是在独立仓库中构建 DeerFlow 应用的维护者与 coding agent。"应用"取完整口径，覆盖四种接入形态：
 
 1. **Python extension 包**——通过 `deerflow.extensions` 入口点贡献 middleware、生命周期观察者、Gateway 服务与路由；
 2. **Skill**——`SKILL.md` 及其资源的能力模块，走发现/激活/审查机制；
@@ -13,7 +13,7 @@
 
 读者应能从 DeerFlow 自带的应用文档（docs 站 harness 手册、extension 示例、extension-api 契约）找到可运行的最小入口，再逐步为自己的仓库建立源码、配置、测试预期、可重复验证与交付记录。
 
-**适用边界**：应用仓可以采用 DeerFlow 的 extension 装载与事务、skill 发现与审查、配置组合、嵌入式 client 与契约测试模式。DeerFlow 主仓库的 SDLC 制度（spec/plan 纪律、CI 门禁矩阵、发版版本门、迁移链治理）属于主仓治理，不会因为使用 DeerFlow 就自动适用于应用仓。应用仓应为自己的公开接口、用户可见行为、升级兼容与发布方式指定 owner 与验证路径。
+**适用边界**：应用仓可以采用 DeerFlow 的 extension 装载与事务、skill 发现与审查、配置组合、嵌入式 client 与契约测试模式。DeerFlow 主仓库的 SDLC 制度（spec/plan 纪律、CI 门禁矩阵、发版版本门、迁移链治理）属于主仓治理，不会因为使用 DeerFlow 就自动适用于应用仓。应用仓应为自己的公开接口、用户可见行为、升级兼容与发布方式确定权威归属与验证路径。
 
 ## 四类陈述
 
@@ -48,7 +48,7 @@
 
 | 路径 | 为什么要有它 | 什么时候需要改它 |
 |---|---|---|
-| [application-development-model/](./application-development-model/README.md) | 从新仓起步开始，说明独立应用仓怎样组合 DeerFlow 的 owner、证据与交付判断 | DeerFlow 的接入形态、事实归属或测试层变化时复核 |
+| [application-development-model/](./application-development-model/README.md) | 从新仓起步开始，说明独立应用仓怎样组合 DeerFlow 的事实源、证据与交付判断 | DeerFlow 的接入形态、事实归属或测试层变化时复核 |
 | [sdlc-reference/](./sdlc-reference/README.md) | 查阅 DeerFlow 主仓的精确条件、状态与例外，并判断哪些机制适用于应用仓 | 任何一手事实变化（workflows、PR 模板、发布、迁移制度）按维护页的重审触发改对应页 |
 | [repo-harness/](./repo-harness/README.md) | 查找 DeerFlow 的知识入口、文档阶梯、示例与契约面，选择应用仓实际需要的部分 | 仓库机制清单变化时改（AGENTS.md 增减、docs 站结构、示例扩展、contracts 面变化） |
 | [_coverage/](_coverage/README.md) | 语料的可信度取决于证据范围与复核记录：钉了哪个版本、哪些来源核过、上游什么变化触发重审、历轮改了什么 | 每轮挖取/re-pin 都必须留一条带日期的记录 |

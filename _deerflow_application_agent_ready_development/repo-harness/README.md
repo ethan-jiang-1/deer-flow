@@ -14,3 +14,7 @@
 |---|---|
 | [00-index.md](./00-index.md) | 本卷主入口：参与路径、机制清单与页面导航 |
 | [01-follow-a-fresh-agent.md](./01-follow-a-fresh-agent.md) 至 [06-boundaries-and-costs.md](./06-boundaries-and-costs.md) | 新 agent 的参与路径、指南预算与文档测试、docs 站应用手册阶梯、示例扩展与公共契约、配置与检查面、边界与代价 |
+
+## 图文分工
+
+正文拥有机制清单与分析，图只辅助表达。一张 SVG 说明指南网络的分层、最近文件规则与预算治理；由本卷自己的[图示清单](./figures/README.md)管理，不依赖相邻卷的图。

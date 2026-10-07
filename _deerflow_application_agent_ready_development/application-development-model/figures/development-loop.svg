@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="420" viewBox="0 0 920 420" role="img" aria-labelledby="t d">
+  <title id="t">DeerFlow 应用仓的六步开发闭环</title>
+  <desc id="d">六步闭环图：从用户可观察的结果定义变更、选择接入形态并确认事实归属、以完整 slice 交付、测试分层对应证据分层、验证部署实际拿到的东西、用证据交付，随后回到下一笔变更。每步标注归属页面。依据 bytedance/deer-flow v2.1.0 一手证据绘制。</desc>
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <rect width="920" height="420" fill="#ffffff"/>
+  <text x="460" y="208" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#6b7280">六步闭环 · 每步可独立复查 · 跨步不能替代</text>
+
+  <rect x="40" y="50" width="240" height="86" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="160" y="76" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">① 定义用户可观察结果</text>
+  <text x="160" y="98" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">用户能观察到什么 · 何时算完成</text>
+  <text x="160" y="118" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2563eb">模板见 卷二·意图与范围</text>
+
+  <rect x="340" y="50" width="240" height="86" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="460" y="76" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">② 选择形态与确认事实归属</text>
+  <text x="460" y="98" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">extension / skill / MCP / 内嵌 client</text>
+  <text x="460" y="118" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2563eb">01 新仓起步 · 02 术语</text>
+
+  <rect x="640" y="50" width="240" height="86" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="760" y="76" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">③ 完整的 slice 交付</text>
+  <text x="760" y="98" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">实现＋文档＋配置＋证据＋决定</text>
+  <text x="760" y="118" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2563eb">03 交付与验收</text>
+
+  <rect x="640" y="270" width="240" height="86" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="760" y="296" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">④ 测试观察真实对象</text>
+  <text x="760" y="318" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">包测试 / 安装验证 / 宿主侧观察</text>
+  <text x="760" y="338" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2563eb">03 · 卷二·TDD 与车道</text>
+
+  <rect x="340" y="270" width="240" height="86" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="460" y="296" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">⑤ 验证安装形态</text>
+  <text x="460" y="318" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">装入真实 checkout · 重启 · 观察</text>
+  <text x="460" y="338" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2563eb">03 交付与验收</text>
+
+  <rect x="40" y="270" width="240" height="86" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="160" y="296" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">⑥ 交付判断与记录</text>
+  <text x="160" y="318" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">机器检查 ≠ 评审 ≠ 验收</text>
+  <text x="160" y="338" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#2563eb">03 · 卷二·PR 表面与 AI 披露</text>
+
+  <line x1="280" y1="93" x2="336" y2="93" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="580" y1="93" x2="636" y2="93" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="760" y1="136" x2="760" y2="266" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="640" y1="313" x2="584" y2="313" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="340" y1="313" x2="284" y2="313" stroke="#2563eb" stroke-width="2" marker-end="url(#arr)"/>
+  <line x1="160" y1="270" x2="160" y2="140" stroke="#2563eb" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arr)"/>
+  <text x="175" y="212" font-family="sans-serif" font-size="11" fill="#6b7280">下一笔变更</text>
+
+  <text x="460" y="405" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">依据 bytedance/deer-flow v2.1.0 一手证据绘制 · 步骤与页面的对应关系见 application-development-model/00-index.md</text>
+</svg>

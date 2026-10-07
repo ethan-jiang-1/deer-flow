@@ -13,7 +13,7 @@
 | **内嵌 harness** | 把 agent 嵌进你自己的后端/API/自动化系统 | `create_deerflow_agent()` 或 `DeerFlowClient` | 你的应用本身 |
 | **extension 包** | 给一个已部署的 DeerFlow 实例贡献运行时能力（中间件、观察者、服务、路由） | PEP 621 入口点 `deerflow.extensions` | 经 extension manager 安装的包 |
 | **skill** | 教 agent 做某类工作的方法与资料，不改运行时 | `SKILL.md` 能力包 | 技能目录（内置公共技能或用户自建） |
-| **MCP server** | 接入外部工具，不写 Python | `extensions_config.json` 的 `mcpServers` 配置 | 配置声明的外部工具面 |
+| **MCP server** | 接入现成外部工具，不在 DeerFlow 侧写代码 | `extensions_config.json` 的 `mcpServers` 配置 | 配置声明的外部工具面 |
 
 四者不互斥：一个应用可以同时内嵌 harness 并贡献 skill。选择的依据是"你要改变的是宿主进程的组合、模型的行为方法，还是只是工具面"。
 
@@ -44,7 +44,7 @@ client = DeerFlowClient()
 >
 > — [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/integration-guide.mdx)
 
-**运行时事实**：client 提供 `astream`/`ainvoke`、按 `thread_id` 隔离会话、可按 `agent_name` 切换命名 agent 配置；嵌入别的进程时用 `DEER_FLOW_CONFIG_PATH` 或 `load_config(config_path=…)` 显式指定配置路径；也可以直接组合底层 LangGraph 图（`make_lead_agent`）或把 Gateway 挂载为子应用——这些模式都在 [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/integration-guide.mdx) 有可抄的代码。**应用仓建议**：内嵌形态下你的仓就是治理主体——线程隔离、checkpoint 持久化和配置路径都由你的应用决定，不要指望 DeerFlow 替你管理部署。
+**运行时事实**：client 提供 `astream`/`ainvoke`、按 `thread_id` 隔离会话、可按 `agent_name` 切换命名 agent 配置；嵌入别的进程时用 `DEER_FLOW_CONFIG_PATH` 或 `load_config(config_path=…)` 显式指定配置路径；也可以直接组合底层 LangGraph 图（`make_lead_agent`）或把 Gateway 挂载为子应用——这些模式都在 [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/integration-guide.mdx) 有可抄的代码。注意手册示例是发布时的快照，个别示例（如 Gateway 挂载的导入路径）与仓库实际布局可能有出入，落地前对照源码核验（见[卷三·边界与代价](../repo-harness/06-boundaries-and-costs.md)的"文档是快照"条）。**应用仓建议**：内嵌形态下你的仓就是治理主体——线程隔离、checkpoint 持久化和配置路径都由你的应用决定，不要指望 DeerFlow 替你管理部署。
 
 ### extension 包：一个正常的 Python 包，建在 checkout 之外
 
@@ -70,13 +70,15 @@ client = DeerFlowClient()
 >
 > — [skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)
 
-**应用仓建议**：skill 适合承载"怎么做某类工作"的方法与资料，不承载运行时能力；要拦截调用、暴露服务或路由时用 extension。技能内容随对话注入，属于模型可见数据——敏感操作不要依赖技能文本当访问控制。
+**应用仓建议**：skill 适合承载"怎么做某类工作"的方法与资料，不承载运行时能力；要拦截调用、暴露服务或路由时用 extension。技能内容随对话注入，属于模型可见数据——敏感操作不要依赖技能文本当访问控制。分发形态上，v2.1.0 的技能就是宿主部署读取的技能目录：你的应用控制自己部署读取的 skills 树（内置 `public/` 或自建 `custom/`），没有类似 extension manager 的随包安装事务；要跨仓分发技能，自行约定同步与审查方式。
 
 ### MCP server：配置声明的外部工具
 
 MCP server 与技能启用状态放在 `extensions_config.json`，与主配置 `config.yaml` 分离；`mcpServers.<server>.routing` 可加软性工具偏好提示，软硬路由的边界见 [CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)。**应用仓建议**：MCP 适合把现成工具面接进来；要改变 agent 内部组合时仍需 extension。
 
-## 先建立什么：第一个垂直切片
+## 先建立什么：第一个完整 slice
+
+![四种接入形态的选择](./figures/integration-forms.svg)
 
 无论形态，应用仓的第一笔完整交付应同时包含：
 
@@ -120,4 +122,4 @@ MCP server 与技能启用状态放在 `extensions_config.json`，与主配置 `
 - [示例扩展 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)：安装事务、分发来源、信任边界与包测试口径。
 - [skills 手册](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx) 与 [CONFIGURATION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/CONFIGURATION.md)：skill 与 MCP 形态。
 
-术语不熟时查[术语与心智模型](./02-terms-and-mental-models.md)。
+术语不熟时查[术语表](./02-terms.md)。

@@ -66,10 +66,28 @@
 - 本轮核验：`backend/AGENTS.md` nearest-file 规则在 tag 存在；`check_agent_guidance.py` 与宿主分支一致（四档预算常量对 tag 确认）；`zh/harness/` 双语镜像在 tag 存在；`contracts/` 七个 JSON 契约在 tag 列出；doctor/support-bundle 目标在 tag 根指南存在。
 - 语料主体至此完成：三卷 18 页正文 + 三份卷索引 + 入口 README + 维护层 + 验证器。图示（SVG）暂未引入——验证器已含 SVG 规则，引入图时按规则补；此为登记在案的可选后续项，不阻塞语料可用性。
 
+### 2026-10-07 · 第 5 轮（系统性 review 修复 + 术语原生性审计 + 图示）
+
+**Review 修复**（结构性/自洽性问题）：
+- 补齐卷一结构性缺口：00-index 承诺的闭环步骤 3-6 原无归属页，新增 `03-delivery-and-acceptance.md`（完整 slice、三层证据、安装形态验证、交付记录与常见失败模式）；00-index 闭环六步逐条接通页面归属。
+- 清理建仓期过时措辞：四层表中两处"取证中"、"正文页将…逐条落地"、"（预告）"等将来时承诺全部改为已成事实与页面链接。
+- 修正三处精度问题：卷三 05 配置复制句语病；卷二 06"四处同步"改为与测试 docstring 对齐的表述；卷二 08"嵌入即继承迁移行为"的过强声明改为条件表述（bootstrap 在引擎初始化执行已核验，嵌入形态是否触发取决于存储配置）；卷一 01 补 integration-guide 示例的"文档是快照"警示（其 Gateway 挂载导入路径与仓库实际布局不一致）与 skill 分发形态说明。
+
+**术语原生性审计**（去 DSH 概念，用 DeerFlow 原生词）：
+- `02-terms-and-mental-models.md` 改名 `02-terms.md`（原文件名与 DSH 语料页同名）。
+- "事实 owner / owner（人）"→"单一事实源（source of truth）／权威归属／维护者"——DeerFlow 原生 owner 一律是数据行归属/操作员语义（owner-scoped、operator-controlled），"事实的权威维护位置"是外来概念；原生对应词全部有出处：spec 自称 source of truth、实现计划原话 "owned by the spec"、SKILL.md 手册原话 "authoritative definition"。
+- "语义评审"→"评审"（DeerFlow 无此命名阶段）；"垂直切片"→"slice"（实现计划原生用词，"Documentation (land with owning slice)"）；"产权"→"权威/所有权"；"铺路路径"→"现成的官方路径"；"定义外部结果"→"从用户可观察的结果定义变更"（锚定 PR 模板 "from a user's / caller's perspective"）；DSH 原句式"能加载≠有证据≠能安装≠已批准"改为语料自己的"能 import、包测试绿、扩展装上了、宿主侧行为被观察到，是四件不同的事"。
+- 审计方法：grep 全语料 owner/语义评审/垂直切片/产权/铺路/验收四分/决定记录/外部结果，逐条替换或重锚；历史轮次记录保留原貌。
+
+**图示**（图文并茂，帮助不熟悉 DeerFlow 技术思考的读者）：
+- 新增五张 SVG：卷三张（development-loop 开发闭环、integration-forms 四形态选择、acceptance-evidence 证据四层级）、卷二一张（change-gate-levels 变更主线×门禁等级）、卷三一张（guidance-network 指南网络分层与预算）。
+- 每卷 `figures/README.md` 图示清单（归属页 + 更新时机）；各卷 README 增"图文分工"节；验证器自测新增 SVG 负例（删 `<title>` 须被 svg-a11y 拒绝）。
+- 图中文字同步完成术语原生性替换。
+
 ### 规划中的正文页（未建，建后在本表打钩并注明轮次）
 
 - ~~应用开发模型卷：01 新仓起步（四种接入形态选择）、02 术语与心智模型~~（第 2 轮建成）；
 - ~~SDLC 参考卷：01 意图与范围对齐 至 10 扩展信任边界 共十页~~（第 3 轮建成）；
 - ~~开发 Harness 卷：01 新 agent 的参与路径 至 06 边界与代价 共六页~~（第 4 轮建成）。
 
-可选后续项（不阻塞）：各卷 SVG 图示；re-pin 演练（上游发新版时逐条走重审触发路径）。
+可选后续项（不阻塞）：re-pin 演练（上游发新版时逐条走重审触发路径）。SVG 图示已于第 5 轮落地。
