@@ -18,6 +18,6 @@ DeerFlow 是什么、怎么跑起来、请求怎么流转。入门第一站。
 | `04-component-architecture.md` | 组件结构图：进程拓扑 + 依赖关系 |
 | `05-request-flow.md` | 完整请求生命周期：HTTP POST → SSE 返回 |
 | `06-startup-flow.md` | 启动流程图：6 阶段从命令到 agent.astream |
-| `07-design-philosophy-evidence.md` | 设计理念的源码证据：任务执行、运行时边界、上下文分层与完成验证 |
+| `07-design-philosophy-evidence.md` | 设计理念的源码证据：任务执行、运行时边界、上下文分层、完成验证；研发流程（SDLC）的成文标准 vs 机器门禁、发布与数据演进、企业框架信任边界 |
 
 SVG 文件在 `figures/` 下（10+ 张），浏览器打开渲染。颜色规范见 `figures/README.md`。
