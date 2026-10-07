@@ -25,4 +25,4 @@
 ## 证据入口
 
 - [CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md) Troubleshooting Bundle 节
-- [maintainer-orchestrator-design.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/docs/agents/maintainer-orchestrator-design.md)（safety model / posting bar / principles / adapting 各节）
+- [maintainer-orchestrator-design.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/docs/agents/maintainer-orchestrator-design.md)（safety model / when it posts / principles / adapting 各节）

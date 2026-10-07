@@ -1,6 +1,6 @@
 # DeerFlow Application Agent-ready Development
 
-本语料面向新建的独立 DeerFlow **应用仓**——以维护者与 coding agent 为读者——说明如何沿用 DeerFlow 的原生机制组织意图、事实源、实现、文档、测试证据与交付判断。目标不是复制 DeerFlow 主仓库的内部治理，而是让应用开发者复用其可验证的扩展、组合与验证方式，构建自己的 agent-ready 应用。
+本语料面向新建的独立 DeerFlow **应用仓**——以维护者与 coding agent 为读者——说明如何沿用 DeerFlow 的原生机制组织意图、事实源、实现、文档、测试证据与交付判断。目标不是复制 DeerFlow 主仓库的内部治理，而是让应用开发者复用其可验证的扩展、组合与验证方式，构建对维护者与 coding agent 同样可参与、可验证的应用。
 
 ## 目标读者与适用边界
 

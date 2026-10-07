@@ -27,7 +27,7 @@ DeerFlow 仓库的可参与性由五类机制叠加（正文页逐项取证）�
 | [03-harness-docs-site.md](./03-harness-docs-site.md) | docs 站 harness 手册阶梯：从 quick-start 到逐主题手册到双语约定 |
 | [04-example-and-contracts.md](./04-example-and-contracts.md) | 示例扩展包、extension-api 公共契约与跨组件 JSON 契约的分工 |
 | [05-config-and-inspection.md](./05-config-and-inspection.md) | 示例配置、config 版本升级、doctor 与运维诊断面 |
-| [06-boundaries-and-costs.md](./06-boundaries-and-costs.md) | 这套机制不给什么：startup-only 装载、无插件沙箱、文档快照性与对策清单 |
+| [06-boundaries-and-costs.md](./06-boundaries-and-costs.md) | 这套机制不给什么：startup-only 装载、扩展代码不在沙箱里执行、文档快照性与对策清单 |
 
 ## 使用方式
 

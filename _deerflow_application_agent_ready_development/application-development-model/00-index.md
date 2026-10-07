@@ -28,7 +28,7 @@
 1. **从用户可观察的结果定义变更**——写清触发条件、用户看到什么、怎样算完成；主仓 PR 模板要求的正是"用户/调用方视角，不是 diff 复述"，意图入口见[卷二·意图与范围](../sdlc-reference/01-intent-and-scope.md)。
 2. **选择接入形态，确认各类事实的权威归属**——四种形态（extension 包 / skill / MCP / 内嵌 harness）各适合什么；每类事实以哪份文件为准（spec 是设计决策的 source of truth，`SKILL.md` 是技能的 authoritative definition）：[新仓起步](./01-new-application-repository.md)、[术语表](./02-terms.md)。
 3. **以完整 slice 交付**——实现、用户文档、配置样例、行为证据随同一笔变更落地；主仓实现计划的原话是 "Documentation (land with owning slice)"：[交付与验收](./03-delivery-and-acceptance.md)。
-4. **测试分层对应证据分层**——v2.1.0 的三层证据（契约级包测试 / 安装验证 / 宿主侧行为观察），每层只证明它断言的属性：[交付与验收](./03-delivery-and-acceptance.md)；主仓的测试车道见[卷二·TDD 与车道](../sdlc-reference/03-tdd-and-test-lanes.md)。
+4. **测试分层对应证据分层**——v2.1.0 的三层证据（契约级包测试 / 安装验证 / 宿主侧行为观察），每层只证明它断言的属性：[交付与验收](./03-delivery-and-acceptance.md)；主仓的测试套件见[卷二·TDD 与测试套件](../sdlc-reference/03-tdd-and-test-suites.md)。
 5. **验证部署实际拿到的东西**——源码能跑不等于分发物能装；装入真实 checkout、重启、观察：[交付与验收](./03-delivery-and-acceptance.md)。
 6. **用证据交付**——交付记录写清实际跑了什么、没跑什么；评审读 diff 与证据，而非只看 CI 绿：[交付与验收](./03-delivery-and-acceptance.md)；评审与披露制度见[卷二·PR 表面与 AI 披露](../sdlc-reference/04-pr-surface-and-ai-disclosure.md)。
 
@@ -38,7 +38,7 @@
 - 不要只做契约级测试就声称组合成立——补安装验证与宿主侧观察（[交付与验收](./03-delivery-and-acceptance.md)）；
 - 不要把"扩展管理器装上了"当作用户验收——第三层证据才是行为证明（[交付与验收](./03-delivery-and-acceptance.md)）；
 - 不要把 DeerFlow 主仓的 SDLC 制度当成随依赖继承的义务——四类陈述的读法见[语料入口 README](../README.md)，主仓机制的适用边界逐页登记在 [SDLC Reference](../sdlc-reference/00-index.md)；
-- 不要对 v2.1.0 的能力做超出版本的假设——这个版本不提供的（无插件沙箱、startup-only、组合验证代差等）集中在[卷三·边界与代价](../repo-harness/06-boundaries-and-costs.md)。
+- 不要对 v2.1.0 的能力做超出版本的假设——这个版本不提供的（扩展代码不在沙箱里执行、装载 startup-only、组合验证代差等）集中在[卷三·边界与代价](../repo-harness/06-boundaries-and-costs.md)。
 
 ## 本页导航
 

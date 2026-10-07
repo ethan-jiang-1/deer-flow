@@ -13,7 +13,7 @@ docs 站 harness 节（`frontend/src/content/en/harness/`，中文镜像在 `zh/
 | 页 | 回答 |
 |---|---|
 | [index](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/index.mdx) / [design-principles](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/design-principles.mdx) | harness 是什么、设计原则 |
-| [quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/quick-start.mdx) | 十分钟跑通第一个 agent（`create_deerflow_agent`） |
+| [quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/quick-start.mdx) | "最快的理解路径"：跑通第一个 agent（`create_deerflow_agent`） |
 | [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/integration-guide.mdx) | 把 harness 作为库嵌进你的系统（`DeerFlowClient`、FastAPI、LangGraph 组合） |
 
 **第二层：按主题**——[lead-agent](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/lead-agent.mdx)、[middlewares](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/middlewares.mdx)、[customization](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/customization.mdx)、[skills](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/skills.mdx)、[mcp](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/mcp.mdx)、[tools](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/tools.mdx)、[sandbox](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/sandbox.mdx)、[memory](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/memory.mdx)、[configuration](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/configuration.mdx)。
@@ -24,7 +24,7 @@ docs 站 harness 节（`frontend/src/content/en/harness/`，中文镜像在 `zh/
 
 ## 应用仓怎么用
 
-**按形态选入口**：内嵌 → quick-start → integration-guide；extension → extensions/quick-start 起步、reference 查契约；skill → skills 手册；MCP → mcp 手册 + CONFIGURATION。**应用仓建议**：这张阶梯的**结构**值得抄——"起步一页 → 主题分层 → 每种接入形态一本专题手册"，且起步页的判据是"读者十分钟后有东西在跑"。你的应用仓对外文档如果有多种接入方式，为每种形态给一本专题手册比一份大而全的文档好维护得多。
+**按形态选入口**：内嵌 → quick-start → integration-guide；extension → extensions/quick-start 起步、reference 查契约；skill → skills 手册；MCP → mcp 手册 + CONFIGURATION。**应用仓建议**：这张阶梯的**结构**值得抄——"起步一页 → 主题分层 → 每种接入形态一本专题手册"，且起步页的写法是"the fastest way to understand"——model setup、agent creation、streaming a response 三步走完就有东西在跑。你的应用仓对外文档如果有多种接入方式，为每种形态给一本专题手册比一份大而全的文档好维护得多。
 
 ## 证据入口
 

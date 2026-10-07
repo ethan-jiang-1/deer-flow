@@ -8,7 +8,7 @@
 
 **tag 驱动，无一键发版脚本（成文标准）**。发版流程是：维护者改版本源、更新 changelog、commit、打 `v*` tag、推送——推送 tag 触发发布 workflow；没有"跑一个脚本就自动 bump 并发版"的路径，RELEASING 的原话是 "There is no separate release script that bumps versions"（[RELEASING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/RELEASING.md)）。注意区分：`scripts/bump_version.sh` 这样的 helper 存在，但只负责把版本源改齐，改不改、何时改仍是维护者的显式决定。
 
-**版本五源一致（机器门禁，发布链的硬闸）**。一个发布版本必须**完全一致**地出现在：backend `pyproject.toml`、frontend `package.json`、Helm `Chart.yaml` 的 `version` 与 `appVersion`，加上 git tag 本身——共五源。container 与 chart 的发布 job 显式依赖版本校验：
+**版本五源一致（机器门禁，发布链的第一道强制门）**。一个发布版本必须**完全一致**地出现在：backend `pyproject.toml`、frontend `package.json`、Helm `Chart.yaml` 的 `version` 与 `appVersion`，加上 git tag 本身——共五源。container 与 chart 的发布 job 显式依赖版本校验：
 
 > Gate the release: every version source must match the v* tag. A forgotten bump in Chart.yaml, pyproject.toml, or package.json fails here and skips all image builds.
 >

@@ -8,7 +8,7 @@
 
 **装载是 startup-only 的**。扩展 import 只发生在 Gateway 构建应用时；install/enable/disable/remove 与手改 `plugins:` 都要重启才生效（[extensions 指南](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/extensions/AGENTS.md)）。代价：没有热插拔；依赖扩展行为的应用升级流程必须包含重启步骤。
 
-**没有插件沙箱**。扩展的构建钩子与运行时代码以 **Gateway 权限**执行；隔离包装隔离的是故障（fail-open、诊断），不是恶意（[AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)、[卷二·扩展信任边界](../sdlc-reference/10-extension-trust-boundaries.md)）。代价：面向不可信贡献者的场景需要你自己加层。
+**扩展代码不在沙箱里执行**。扩展的构建钩子与运行时代码以 **Gateway 权限**执行；`IsolatedMiddleware` 的隔离包装隔离的是故障（fail-open、诊断），不是恶意（[AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)、[卷二·扩展信任边界](../sdlc-reference/10-extension-trust-boundaries.md)）。注意这里的"沙箱"指 DeerFlow 的工具沙箱（bash、文件操作的受控执行环境）——扩展代码不在其中。代价：面向不可信贡献者的场景需要你自己加层。
 
 **宿主内部无兼容承诺**。`deerflow.*` 与 `app.*` 是宿主内部，扩展只能依赖 extension-api（[extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx)）。代价：你 import 的每个框架都要自己声明；宿主升级可能移动内部符号。
 
@@ -23,7 +23,7 @@
 | 边界 | 应用仓对策 |
 |---|---|
 | startup-only | 升级流程写明重启；变更窗口里没有"先装后看" |
-| 无沙箱 | 只装可信来源；对外发布扩展时写清权限面 |
+| 扩展代码不在沙箱里执行 | 只装可信来源；对外发布扩展时写清权限面 |
 | 无内部兼容承诺 | 依赖面收敛到 extension-api + 少数显式声明的框架；升级宿主前重跑包测试 |
 | 组合证据代差 | 自建安装验证＋宿主侧观察（装 → 重启 → 观察）作为发布前最后一道 |
 | 无安全 SLA | 关注上游 releases；自己设置依赖升级节奏 |

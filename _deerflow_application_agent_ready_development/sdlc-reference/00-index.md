@@ -12,7 +12,7 @@
 
 1. **声明与机器执行严格分层。** 成文标准（AGENTS.md、PR 模板、贡献指南）说明要求；机器门禁（lint workflow、分片单测、路径触发的专项检查、发版版本门）才真正阻断；二者之间还有一层"自我声明"（PR 表单里填写的验证结果与 AI 披露）。读任何一条规则先问它在哪一层。
 2. **设计决策有唯一的权威载体。** 大变更走 RFC/spec/plan 分级：spec 拥有全部设计决策（"every design decision … is owned by the spec"）并自带测试策略、文档清单与评审检查单；实现计划只负责排序文件与验证，无权重新设计；偏离登记在 spec 的 deviation register。
-3. **证据高于状态灯。** 测试绿、CI 绿、merge、release 各自只证明其执行的断言；评审哲学要求读当前 diff 与证据本身，而不是沿绿灯放行。事故被回写成测试、门禁或契约，学习沉淀在仓库而非个人记忆。
+3. **证据高于绿勾。** 测试绿、CI 绿、merge、release 各自只证明其执行的断言；评审哲学要求读当前 diff 与证据本身，而不是沿绿灯放行。事故被回写成测试、门禁或契约，学习沉淀在仓库而非个人记忆。
 
 ## 参考目录
 
@@ -22,14 +22,14 @@
 |---|---|
 | [01-intent-and-scope.md](./01-intent-and-scope.md) | 意图从哪里进来；非平凡变更为什么先对齐范围 |
 | [02-spec-and-plan.md](./02-spec-and-plan.md) | spec 与实现计划的权威分工；deviation register；slice 推进 |
-| [03-tdd-and-test-lanes.md](./03-tdd-and-test-lanes.md) | TDD 成文要求；offline/blocking-io/live 车道划分与 opt-in |
+| [03-tdd-and-test-suites.md](./03-tdd-and-test-suites.md) | TDD 成文要求；offline/blocking-io/live 套件划分与 opt-in |
 | [04-pr-surface-and-ai-disclosure.md](./04-pr-surface-and-ai-disclosure.md) | PR 模板的用户视角描述、信任自检、AI 披露与人的责任声明 |
 | [05-ci-gates.md](./05-ci-gates.md) | 实际 workflow 矩阵：触发路径、draft 跳过、分片、安装路径证明 |
 | [06-architecture-docs-contracts.md](./06-architecture-docs-contracts.md) | 架构边界测试、指南预算 CI、文档示例进测试、工具链版本钉住 |
 | [07-release-and-version-gate.md](./07-release-and-version-gate.md) | tag 驱动发版；版本五源一致门禁；nightly 的例外 |
 | [08-schema-migrations.md](./08-schema-migrations.md) | 只追加的迁移链；启动自动升级；fail-closed 与离线恢复 |
 | [09-operational-feedback.md](./09-operational-feedback.md) | support bundle；agent 评审的边界；失败→机制的回写实例 |
-| [10-extension-trust-boundaries.md](./10-extension-trust-boundaries.md) | 插件装载的 operator 信任边界；哪些义务会传导到应用仓 |
+| [10-extension-trust-boundaries.md](./10-extension-trust-boundaries.md) | 扩展装载的 operator 信任边界；哪些义务会传导到应用仓 |
 
 按生命周期找页：意图入口读 `01`；决定与实现读 `02`–`04`；门禁读 `05`–`06`；落地与发布读 `07`–`08`；运维与边界读 `09`–`10`。
 

@@ -15,7 +15,7 @@
 | 路径 | 职责 |
 |---|---|
 | [00-index.md](./00-index.md) | 组织立场、按生命周期的页面目录与使用方式 |
-| [01-intent-and-scope.md](./01-intent-and-scope.md) 至 [10-extension-trust-boundaries.md](./10-extension-trust-boundaries.md) | 意图与范围、spec 权威、TDD 车道、PR 表面与 AI 披露、CI 门禁矩阵、架构/文档/工具链契约、发版版本门、迁移链、运维反馈与失败回写、扩展信任边界 |
+| [01-intent-and-scope.md](./01-intent-and-scope.md) 至 [10-extension-trust-boundaries.md](./10-extension-trust-boundaries.md) | 意图与范围、spec 权威、TDD 与测试套件、PR 表面与 AI 披露、CI 门禁矩阵、架构/文档/工具链契约、发版版本门、迁移链、运维反馈与失败回写、扩展信任边界 |
 
 ## 图文分工
 
