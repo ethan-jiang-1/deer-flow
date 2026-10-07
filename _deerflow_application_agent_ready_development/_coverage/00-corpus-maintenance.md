@@ -129,6 +129,31 @@
 
 本轮方法：独立读者视角逐文件通读＋计数核对（贡献类型 7/5、workflow 10、版本源 5/bump 4、extensions 10 页、subagents 11 页、extension-api 10 模块、contracts 7 JSON、预算 4 档等全部对上）。验证器与自测通过。
 
+### 2026-10-07 · 第 8 轮（术语原生性专项：剔除非 DeerFlow 词汇）
+
+以"每个作为术语使用的词要么是 v2.1.0 原生、要么明确是本语料自己的综合框架"为准绳，逐词扫描并替换外来/杜撰词汇（每个替换词先对 tag 源核验其原生性）：
+
+**外来术语替换**（原词在 v2.1.0 证据源中不存在）：
+- **"车道"→"套件"**（test lanes 借自通用测试话语；原生词是 suite——根指南 "Default backend suite"）。文件改名 `03-tdd-and-test-lanes.md` → `03-tdd-and-test-suites.md`，标题改"TDD 与测试套件"，全语料 8 处引用同步；卷三 development-loop 图的步骤④归属页同步。
+- **"军规"→"MANDATORY 全大写强制"**（"军规"是中文开发者文化词；原生措辞是 "TDD — MANDATORY"/"MUST"/"No exceptions"），卷二 03 三处。
+- **"rules as code"**（外部运动名）→ 删除，用本页自己的原生描述（"把本该靠 review 纪律维持的规矩写成会红会绿的测试"）。
+- **"状态灯"→"绿勾"**（对应原生引文 "Evidence over a green check"）。
+- **"供应链信任"→"来源信任（只装 trusted operator sources）"**（锚回原生短语）。
+- **"评审哲学"→"评审原则"**（原生节名 "Principles that shape the review"）。
+- **"贡献维度"→"贡献类型"**（原生词 contribution kinds，与语料其余部分统一）。
+- **"硬闸"→"发布链的第一道强制门"**（去掉借喻，贴合 verify-versions 依赖链事实）。
+- **"插件沙箱/无插件沙箱"→"扩展代码不在沙箱里执行"**：DeerFlow 原生的"沙箱"是工具沙箱；"插件沙箱"暗示存在一个不存在的原生概念。卷三 06 标题与对策行、卷二 00/10、卷一 00 共五处统一，并补 `IsolatedMiddleware` 原生类名（隔离包装的原生出处）。
+- **"agent-ready"**（agent 工具圈流行语）正文删用，改为"对维护者与 coding agent 同样可参与、可验证"（coding agent 是原生词）；语料标题保留作制品名。
+- **"posting bar"→"when it posts"**（证据入口的节名改为与设计文档标题一致）。
+
+**杜撰"引文"修正**（引号内容在 tag 源中不存在）：
+- 卷三 04：示例包"deliberately small"为杜撰引文——README 原文是 "compact, standalone Python package" 与 "all five small contribution implementations"，已改为引用真实原词。
+- 卷三 03：harness quick-start"十分钟跑通"为杜撰——该页没有时间承诺（extensions quick-start 是 fifteen minutes、subagents 是 five minutes），改为原生句 "the fastest way to understand"（model setup → agent creation → streaming a response）。
+
+**原生性增强**：卷三 README 对目录名 `repo-harness` 补与原生术语 harness（`backend/packages/harness/` 的 agent 框架包）的区分说明，明示卷名是语料自己的视角命名。
+
+本轮核验：lane/budget/append-only/deliberately small/minute/principal/IsolatedMiddleware/marker 等候选词逐一对 `git grep v2.1.0` 核验（budget/principal/IsolatedMiddleware/marker 原生，予以保留并锚定）。结构验证器与自测通过。
+
 ### 规划中的正文页（未建，建后在本表打钩并注明轮次）
 
 - ~~应用开发模型卷：01 新仓起步（四种接入形态选择）、02 术语与心智模型~~（第 2 轮建成）；
