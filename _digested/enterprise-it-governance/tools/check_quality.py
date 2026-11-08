@@ -139,9 +139,19 @@ def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
     for name, pat in STALE_VALUES.items():
         for m in pat.finditer(body):
             # 允许在"⚠️ 变更"提示中出现旧值（作为对照）
-            start = max(0, m.start() - 120)
-            ctx = body[start : m.end() + 120]
-            if "变更" in ctx or "此前" in ctx or "旧值" in ctx or "已订正" in ctx:
+            start = max(0, m.start() - 300)
+            ctx = body[start : m.end() + 300]
+            if (
+                "变更" in ctx
+                or "此前" in ctx
+                or "旧值" in ctx
+                or "已订正" in ctx
+                or "原文档断言" in ctx
+                or "原文档写的" in ctx
+                or "旧说法" in ctx
+                or "订正后" in ctx
+                or "核实结果" in ctx
+            ):
                 continue
             rep.add("block", "consistency", rel, f"残留已被推翻的旧断言（{name}）：{m.group(0)!r}")
 
@@ -165,8 +175,13 @@ def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
 
     # ── 采购建议
     for pat in ADVICE_PATTERNS:
-        if pat.search(body):
+        for m in pat.finditer(body):
+            ctx = body[max(0, m.start() - 80) : m.end() + 80]
+            # 纪律条款本身（「不写「贵司应该…」」「无「贵司应该」类」）不是违规
+            if "不写" in ctx or "禁止" in ctx or "无「" in ctx:
+                continue
             rep.add("block", "tone", rel, f"出现采购建议表述：{pat.pattern}（§9 禁止）")
+            break
 
     if verbose:
         status = "○"

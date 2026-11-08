@@ -1,64 +1,113 @@
 ---
-title: "IT 治理全景：Agent 时代的 12 个管理维度"
-description: "2026 年是 Agent 治理的分水岭。EU AI Act 8 月生效，OWASP 在 2025 年 12 月发布了首个 Agentic AI Top 10，Gartner 预测到 2028 年 Fortune 500 每家跑 15 万+"
+title: "IT 治理全景：12 个管理维度"
+description: "从企业 IT 视角看 DeerFlow：12 个管理维度的能力与缺口矩阵、成熟度自评、以及三条最需要提前知道的边界。"
 topics: [governance, compliance, audit]
 ---
 
-# IT 治理全景：Agent 时代的 12 个管理维度
+# IT 治理全景：12 个管理维度
 
-2026 年是 Agent 治理的分水岭。EU AI Act 8 月生效，OWASP 在 2025 年 12 月发布了首个 Agentic AI Top 10，Gartner 预测到 2028 年 Fortune 500 每家跑 15 万+ agent。但 Deloitte 2026 年调查显示：**只有 21% 的企业有成熟的 Agent 治理体系**。
+DeerFlow 不是 IT 管理平台。但它内建了一批治理原语。
+**知道这些原语在哪、覆盖什么、缺什么**，是评估部署风险的前提。
 
-DeerFlow 作为一个 Agent 框架，不是完整的 IT 管理平台。但它内建了大量治理原语——理解这些原语在哪里、覆盖了什么、缺什么，是 IT 管理者评估部署风险的前提。
+本卷全部结论都附 `file:line`，可自行复核。
 
-![it-governance-overview](figures/governance-overview.svg)
-
-## 12 个 IT 管理维度 × DeerFlow 能力矩阵
+## 1. 12 个维度 × 能力矩阵
 
 | # | 维度 | 核心问题 | DeerFlow 能力 | 缺口 |
 |---|------|---------|-------------|------|
-| 1 | **Identity & Access** | Agent 用谁的身份跑？ | JWT + CSRF + internal gateway token + per-user isolation | 无 Agent 独立身份（NHI），agent 继承用户权限 |
-| 2 | **Sandbox Isolation** | Agent 能碰到系统文件吗？ | 3 种沙箱模式 + 6 层路径防穿透 + per-thread 隔离 | Local 模式共享 host 内核 |
-| 3 | **Tool Authorization** | 谁能决定 agent 调什么 tool？ | GuardrailMiddleware（可插拔 provider）+ 三道门：`AllowlistProvider`（名单）、🆕 `TypeSafeGuardrailProvider`（Jev 风险概率）、🆕 `OpenAIDecisionsGuardrailProvider`（同一门走 `/v1/decisions`）；🆕 插件 action/管理面另有两类 RBAC resource | 无 per-thread 策略、无 subagent 区分；🆕 风险门只覆盖 `tools` 列出的工具，未探测的工具/MCP/subagent 是绕过路径 |
-| 4 | **Command Audit** | bash 里能写危险命令吗？ | SandboxAuditMiddleware（高危 block + 中危 warn） | 规则硬编码，不可配置 |
-| 5 | **Execution Limits** | Agent 能无限跑下去吗？ | LoopDetection（循环检测）+ SubagentLimit（并发≤3）+ timeout（15min） | 无 per-run 预算上限 |
-| 6 | **Content Safety** | Agent 输出有害内容怎么办？ | SafetyFinishReasonMiddleware（被动清除被污染的 tool_calls） | 无主动输出扫描；无独立 input guardrail |
-| 7 | **Audit Trail** | 出事了能查到谁干的吗？ | SandboxAudit logger + RunJournal + tracing (Langfuse/LangSmith) | 审计日志非结构化；Guardrail deny 不写 RunJournal |
-| 8 | **Cost Attribution** | Agent 花了多少钱？ | TokenUsageMiddleware + subagent usage 合并 + per-model stream_usage | 无实时成本仪表盘；无 per-agent 预算 |
-| 9 | **Observability** | Agent 现在在干什么？ | StreamBridge SSE events + heartbeat + tracing spans | 无 agent 行为异常检测；无 fleet dashboard |
-| 10 | **Data Governance** | 用户数据隔离吗？PII 安全吗？ | Per-user 存储 + 虚拟路径 + host 路径脱敏 + 文件上传安全 | 无 PII 主动扫描；无数据分类标签 |
-| 11 | **Reliability** | Agent 挂了怎么恢复？ | LLMErrorHandlingMiddleware (retry + circuit breaker) + ToolErrorHandlingMiddleware + 熔断 | 无 agent 级 SLO；无 error budget；无 chaos engineering |
-| 12 | **Lifecycle** | Agent 怎么上线、回滚、下架？ | Config hot-reload + skills 生命周期 + agent config 热更新 + 🆕 插件 grant 重启绑定、🆕 skill mutation 七步流（stage→check→commit→revert，全带乐观版本） | 无 agent 版本管理；无灰度发布；无 kill switch；🆕 无 force-overwrite 逃生门（提案 TTL 1 天，过期即重来） |
+| 1 | **身份与访问** | Agent 用谁的身份跑？ | JWT + CSRF + 内部 token + per-user 隔离（4 条认证路径） | **无 Agent 独立身份**，继承用户权限 |
+| 2 | **沙箱隔离** | Agent 能碰系统文件吗？ | 3 种沙箱模式 + 路径防穿透 + per-thread 隔离 | Local 模式共享宿主内核 |
+| 3 | **工具授权** | 谁能决定 agent 调什么工具？ | GuardrailMiddleware（可插拔 provider）+ 三道门（名单 / 风险概率 / decisions 接口） | 无 per-thread 策略；未探测的工具是绕过路径 |
+| 4 | **命令审计** | bash 里能写危险命令吗？ | SandboxAuditMiddleware：高危 block + 中危 warn | 规则硬编码；**只写日志不落库** |
+| 5 | **执行限额** | Agent 能无限跑下去吗？ | 循环检测 + 并发上限 64 + `token_budget`（默认关）+ `recursion_limit` 100 | **无货币预算**；token 预算默认关闭 |
+| 6 | **内容安全** | Agent 输出有害内容怎么办？ | SafetyFinishReasonMiddleware（被动清除被污染的 tool_calls） | 无主动输出扫描；无独立输入 guardrail |
+| 7 | **审计追溯** | 出事了能查到谁干的吗？ | SandboxAudit 日志 + RunJournal + tracing | subagent 的 guardrail 事件不可见；allow 决策不留痕 |
+| 8 | **成本归属** | Agent 花了多少钱？ | TokenUsageMiddleware + subagent 用量合并 + per-model `stream_usage` | 无实时成本仪表盘；无单价表 |
+| 9 | **可观测性** | Agent 现在在干什么？ | StreamBridge SSE + heartbeat + tracing span | 无行为异常检测；无集群仪表盘 |
+| 10 | **数据治理** | 用户数据隔离吗？PII 安全吗？ | per-user 存储 + 路径脱敏 + 上传配额 + **PII 脱敏（默认关）** | PII 脱敏默认关闭；无数据分类标签 |
+| 11 | **可靠性** | Agent 挂了怎么恢复？ | LLMErrorHandling（retry + 熔断）+ ToolErrorHandling | 无 agent 级 SLO；无 error budget |
+| 12 | **生命周期** | Agent 怎么上线、回滚、下架？ | 配置热加载 + skills 生命周期 + 插件 grant 重启绑定 + skill mutation 七步流 | 无版本管理；**无灰度**；**无 kill switch** |
 
-## 行业对标：DeerFlow 处于哪个成熟度？
+## 2. 三处需要更正的旧说法
+
+早期版本的本页有三处断言停留在 2.1，已按 v2.2.0 源码订正：
+
+| 旧说法 | 订正后 | 证据 |
+|---|---|---|
+| 子代理并发「≤3」 | **64** | `packages/harness/deerflow/config/subagents_config.py:17` |
+| 「无 per-run 预算上限」 | **有 `token_budget`**（双阈值，默认关闭） | `config.example.yaml:105-111` |
+| 「Guardrail deny 不写 RunJournal」 | **会写**，落 `middleware:guardrail` 事件 | `packages/harness/deerflow/guardrails/middleware.py:171` |
+
+三处的展开说明分别在 [cost/03-budgets-and-limits.md](cost/03-budgets-and-limits.md)、
+[audit/01-audit-chain.md](audit/01-audit-chain.md)。
+
+## 3. 成熟度自评
+
+这是一份**事实判断**，不是合规结论。
 
 | 成熟度 | 描述 | DeerFlow 自评 |
 |--------|------|-------------|
 | Level 1: Reactive | 事后人工审核，无自动控制 | — |
 | Level 2: Partial | 输出过滤，全局策略，无决策级审计 | — |
-| **Level 3: Structured** | 多策略分层，但人工审核不规模化 | **← DeerFlow 大致在这里** |
-| Level 4: Designed-In | 实时强制执行，决策级审计，per-agent 域隔离，按需合规报告 | 部分达到（Guardrail 实时 deny，SandboxAudit 实时 block；🆕 2.2.0 增加插件/扩展能力授予面与 completed-run evidence 只读投影） |
+| **Level 3: Structured** | 多策略分层，但人工审核不规模化 | **← 主体在这里** |
+| Level 4: Designed-In | 实时强制执行 + 决策级审计 + per-agent 域隔离 + 按需合规报告 | **仅「实时拦截」一项达到** |
 
-DeerFlow 在 **tool 执行时拦截**的能力较强（Level 4），但在 **审计可追溯**和 **合规自动化**方面偏弱（Level 2-3）。整体处于 3 级偏上。
+具体到子项：
 
-## Defense-in-Depth 全景
+| 子能力 | 层级 | 依据 |
+|---|---|---|
+| tool 执行时实时拦截 | **Level 4** | Guardrail 实时 deny、SandboxAudit 实时 block |
+| 行级命令审计 | Level 3 | 有分类但规则硬编码 |
+| 决策级审计 | **Level 3** | deny 有事件，allow 无 |
+| **人工审核规模化** | **Level 2** | 无强制审批闸门（见 [compliance/04-eu-ai-act.md](compliance/04-eu-ai-act.md)） |
+| 按需合规报告 | **Level 1** | 无报告生成能力 |
 
-从请求进入到 agent 执行 tool，DeerFlow 在每一层都有对应的防护：
+**整体 3 级偏上**——「能拦」这件事做得比「能证明」好。
 
-![defense-in-depth](figures/defense-in-depth.svg)
+## 4. 最该提前知道的三个边界
 
-## 从 IT 管理者视角看：最该担心的 3 件事
+### 4.1 Agent 没有独立身份
 
-### 1. Agent 权限继承问题
+Agent 在用户上下文里跑，继承用户全部权限。
+用户能写，agent 就能写；没有「agent A 只读、agent B 可写」的机制。
 
-Agent **没有独立身份**。它在 user 的上下文里跑，继承 user 看到的一切。这意味着：
-- 如果一个用户有写权限，agent 就能写
-- No-auth 模式下所有人都用 `default` user，无法区分操作来源
-- 无法实现 "agent A 只能读，agent B 可以写" 的细粒度权限
+子代理进一步继承父级身份（`batch_acceptance.py:38-40`），
+审计上无法区分动作由谁发起。详见 [identity/04-agent-identity-gap.md](identity/04-agent-identity-gap.md)。
 
-### 2. 审计 gap
+### 4.2 「有审计」不等于「能查」
 
-Guardrail 的 deny 决定没有写入结构化的 RunJournal。SandboxAudit 的日志是纯文本 logger.info。Tracing 依赖 Langfuse/LangSmith 的外部配置。如果你被合规审计要求提供 "某个时间段内 agent 被拒绝了哪些操作"——目前你需要 grep 日志文件，而非打开一个仪表盘。
+三条具体的盲区（详见 [audit/03-event-coverage.md](audit/03-event-coverage.md)）：
 
-### 3. 成本失控风险
+| 盲区 | 后果 |
+|---|---|
+| subagent 的 guardrail 拒绝 | journal 里**看不见** |
+| allow 决策 | **不留痕**——「证明被授权」比「证明被拒绝」难 |
+| bash 之外的工具 | 文件读写等**不走**审计 |
 
-Agent 可以无限循环（LoopDetection 能检测重复模式但首次检测需要若干轮）。Subagent dispatch 没有预算上限。Token 消耗是事后统计的，没有实时熔断。一个配置不当的 agent + 一个复杂的用户请求 = 一次昂贵的 token 账单。
+另外 SandboxAudit 只写 `gateway.log`，**不入库**——
+要查必须依赖日志系统，且需用 `thread_id` 反查用户。
+
+### 4.3 限额存在，但没有一个是钱
+
+| 维度 | 可限 |
+|---|---|
+| token 总量 | 是（默认关闭） |
+| 递归步数 | 是（100 步） |
+| 并发 | 是（64） |
+| **金额** | **否** |
+
+框架不知道模型单价，所以「每个 run 最多花 X 元」无法表达。
+详见 [cost/03-budgets-and-limits.md](cost/03-budgets-and-limits.md) §4。
+
+## 5. 按问题找篇章
+
+| 你关心的问题 | 从这里开始 |
+|---|---|
+| 能不能接 SSO / 怎么做权限 | [identity/](identity/README.md) |
+| 谁能决定 agent 调什么 | [authorization/](authorization/README.md) |
+| 数据存哪、能不能删干净 | [data/](data/README.md) |
+| 出事能不能查到 | [audit/](audit/README.md) |
+| 能不能过审计 | [compliance/](compliance/README.md) |
+| 花了多少钱、怎么限 | [cost/](cost/README.md) |
+| 怎么上线回滚 | [lifecycle/](lifecycle/README.md) |
+| agent 能碰什么 | [execution/](execution/README.md) |

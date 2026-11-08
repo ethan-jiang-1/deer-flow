@@ -11,6 +11,8 @@ topics: [governance, identity]
 
 ## 1. 四条路径
 
+![四条认证路径](figures/auth-paths.svg)
+
 | 路径 | 凭据 | 准入端点 | 有效期 | 可撤销 |
 |---|---|---|---|---|
 | **本地密码** | HttpOnly session cookie | `POST /api/v1/auth/login/local`（`app/gateway/routers/auth.py:431`） | JWT 过期 | 改密 → `token_version` +1 |

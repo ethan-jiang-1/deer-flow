@@ -79,7 +79,7 @@ user/thread 吗」。它同时接受两种编码，但**故意不比较 incarnat
 
 | 检查 | 条件 | 失败行为 |
 |---|---|---|
-| 键必须存在 | `runtime.context` 有 `thread_incarnation` | `RuntimeError`（缺失即拒绝） |
+| 键必须存在 | `runtime.context` 有 `thread_incarnation` | `RuntimeError`（缺失即拒绝，只覆盖直接调用路径） |
 | 值必须合法 | `None` 或非空字符串 | `RuntimeError` |
 | metadata 一致性 | 若有 `__deerflow_thread_incarnation_metadata_guard` | 与持久化 metadata 比对，**不一致即拒绝** |
 

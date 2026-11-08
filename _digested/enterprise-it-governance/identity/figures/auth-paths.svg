@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="PingFang SC, sans-serif">
+  <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">四条认证路径 → 统一 AuthContext</text>
+  <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">每条路径的来源、凭据形态、失败行为各不相同，但下游只看到一个 AuthContext</text>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+
+  <!-- 4 input boxes -->
+  <g font-size="11">
+    <!-- path 1 -->
+    <rect x="30" y="80" width="200" height="86" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="130" y="104" text-anchor="middle" font-weight="700" fill="#0c4a6e">① 本地密码</text>
+    <text x="130" y="124" text-anchor="middle" fill="#075985">POST /api/v1/auth/login</text>
+    <text x="130" y="141" text-anchor="middle" fill="#075985">限速 + 锁定（可配）</text>
+    <text x="130" y="158" text-anchor="middle" fill="#475569" font-size="10">失败 401 计数</text>
+
+    <!-- path 2 -->
+    <rect x="260" y="80" width="200" height="86" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="360" y="104" text-anchor="middle" font-weight="700" fill="#14532d">② SSO / OIDC</text>
+    <text x="360" y="124" text-anchor="middle" fill="#166534">/oauth/{provider}</text>
+    <text x="360" y="141" text-anchor="middle" fill="#166534">PKCE + nonce 默认开</text>
+    <text x="360" y="158" text-anchor="middle" fill="#475569" font-size="10">state 签名 cookie 300s</text>
+
+    <!-- path 3 -->
+    <rect x="490" y="80" width="200" height="86" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+    <text x="590" y="104" text-anchor="middle" font-weight="700" fill="#713f12">③ PAT 长期令牌</text>
+    <text x="590" y="124" text-anchor="middle" fill="#854d0e">dfp_ 前缀 · 32 随机字节</text>
+    <text x="590" y="141" text-anchor="middle" fill="#854d0e">存 SHA-256 摘要</text>
+    <text x="590" y="158" text-anchor="middle" fill="#475569" font-size="10">9 个 scope · 路由白名单</text>
+
+    <!-- path 4 -->
+    <rect x="720" y="80" width="200" height="86" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="820" y="104" text-anchor="middle" font-weight="700" fill="#4c1d95">④ 内部服务 token</text>
+    <text x="820" y="124" text-anchor="middle" fill="#5b21b6">每进程随机生成</text>
+    <text x="820" y="141" text-anchor="middle" fill="#5b21b6">X-Internal-* 头</text>
+    <text x="820" y="158" text-anchor="middle" fill="#475569" font-size="10">owner 头可代理用户</text>
+  </g>
+
+  <!-- converge lines -->
+  <g stroke="#64748b" stroke-width="1.5" fill="none">
+    <path d="M130,166 v34 h370" marker-end="url(#a)"/>
+    <path d="M360,166 v34 h140" marker-end="url(#a)"/>
+    <path d="M590,166 v34 h-90" marker-end="url(#a)"/>
+    <path d="M820,166 v34 h-320" marker-end="url(#a)"/>
+  </g>
+
+  <!-- auth middleware -->
+  <rect x="230" y="205" width="540" height="58" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="2"/>
+  <text x="500" y="228" text-anchor="middle" font-weight="700" font-size="13" fill="#0f172a">AuthMiddleware · 解析 → 校验 → 合成 AuthContext</text>
+  <text x="500" y="250" text-anchor="middle" font-size="11" fill="#475569">停用账号检查 · auth-disabled 生产环境抑制 · CSRF 校验</text>
+
+  <!-- AuthContext -->
+  <path d="M500,263 v30" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+  <rect x="300" y="296" width="400" height="76" rx="10" fill="#ffffff" stroke="#0284c7" stroke-width="2.5"/>
+  <text x="500" y="320" text-anchor="middle" font-weight="700" font-size="14" fill="#0c4a6e">AuthContext（唯一的身份投影）</text>
+  <text x="500" y="342" text-anchor="middle" font-size="11" fill="#075985">user_id · user_role · authz_attributes · source · is_admin</text>
+  <text x="500" y="362" text-anchor="middle" font-size="10" fill="#64748b">下游（tool / sandbox / MCP / extension）只读这一个对象</text>
+
+  <!-- consumers -->
+  <g stroke="#64748b" stroke-width="1.5" fill="none">
+    <path d="M500,372 v26 h-300 v20" marker-end="url(#a)"/>
+    <path d="M500,372 v46" marker-end="url(#a)"/>
+    <path d="M500,372 v26 h300 v20" marker-end="url(#a)"/>
+  </g>
+  <g font-size="11">
+    <rect x="140" y="420" width="180" height="54" rx="8" fill="#e0f2fe" stroke="#0284c7"/>
+    <text x="230" y="442" text-anchor="middle" font-weight="700" fill="#0c4a6e">per-user 存储路径</text>
+    <text x="230" y="461" text-anchor="middle" fill="#075985" font-size="10">users/{user_id}/threads/…</text>
+
+    <rect x="410" y="420" width="180" height="54" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="500" y="442" text-anchor="middle" font-weight="700" fill="#14532d">RBAC 权限解析</text>
+    <text x="500" y="461" text-anchor="middle" fill="#166534" font-size="10">13 个权限 · 授权默认关</text>
+
+    <rect x="680" y="420" width="180" height="54" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+    <text x="770" y="442" text-anchor="middle" font-weight="700" fill="#713f12">插件 ExtensionPrincipal</text>
+    <text x="770" y="461" text-anchor="middle" fill="#854d0e" font-size="10">投影非句柄 · PAT 永不带 admin</text>
+  </g>
+
+  <!-- gap band -->
+  <rect x="30" y="500" width="940" height="96" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="50" y="524" font-weight="700" font-size="13" fill="#991b1b">⚠ 两个结构性缺口</text>
+  <text x="50" y="547" font-size="11" fill="#7f1d1d">1 · Agent 没有独立身份：子代理继承父级 user_id / user_role / authz_attributes，审计上无法区分「谁发起的动作」</text>
+  <text x="50" y="567" font-size="11" fill="#7f1d1d">2 · auth-disabled 模式下所有人共享 default 用户，thread / memory / workspace 全部混在 users/default/ 下</text>
+  <text x="50" y="587" font-size="10" fill="#64748b">生产环境保护：DEER_FLOW_ENV=prod/production 时该开关被强制忽略 —— 前提是环境变量设对了</text>
+</svg>

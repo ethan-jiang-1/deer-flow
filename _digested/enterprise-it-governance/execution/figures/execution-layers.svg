@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+  <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">执行边界的四层防线</text>
+  <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">从「允许调哪个工具」到「命令内部能不能越权」—— 每层拦的东西不同</text>
+  <defs><marker id="e" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+
+  <!-- layers -->
+  <g font-size="11">
+    <!-- L1 -->
+    <rect x="120" y="80" width="760" height="70" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="145" y="104" font-weight="700" font-size="13" fill="#0c4a6e">第 1 层 · 工具授权</text>
+    <text x="145" y="126" fill="#075985">GuardrailMiddleware：这个工具能不能调 → allow / deny</text>
+    <text x="145" y="142" fill="#0369a1" font-size="10">可插拔 provider（名单 / 风险概率 / 外部 decisions 接口）· 默认 fail_closed</text>
+
+    <!-- L2 -->
+    <rect x="120" y="164" width="760" height="70" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="145" y="188" font-weight="700" font-size="13" fill="#14532d">第 2 层 · 参数与命令分类</text>
+    <text x="145" y="210" fill="#166534">SandboxAuditMiddleware：这条 bash 命令危不危险 → block / warn / pass</text>
+    <text x="145" y="226" fill="#15803d" font-size="10">正则族硬编码 · 复合命令短路（一旦 block 不再看后续）· 只管 bash</text>
+
+    <!-- L3 -->
+    <rect x="120" y="248" width="760" height="70" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+    <text x="145" y="272" font-weight="700" font-size="13" fill="#713f12">第 3 层 · 路径与文件系统</text>
+    <text x="145" y="294" fill="#854d0e">虚拟路径映射 + 路径穿越拒绝 + 沙箱后端隔离</text>
+    <text x="145" y="310" fill="#b45309" font-size="10">thread_dir 拒绝越界（ValueError）· Local 模式仍与宿主共享内核</text>
+
+    <!-- L4 -->
+    <rect x="120" y="332" width="760" height="70" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="145" y="356" font-weight="700" font-size="13" fill="#4c1d95">第 4 层 · 运行时长与资源</text>
+    <text x="145" y="378" fill="#5b21b6">命令超时 + 递归步数 + token 预算 + 并发上限</text>
+    <text x="145" y="394" fill="#6d28d9" font-size="10">token_budget 默认关闭 · 无货币预算 · 无 per-user 配额</text>
+  </g>
+
+  <g stroke="#64748b" stroke-width="1.5" fill="none">
+    <path d="M500,150 v14" marker-end="url(#e)"/>
+    <path d="M500,234 v14" marker-end="url(#e)"/>
+    <path d="M500,318 v14" marker-end="url(#e)"/>
+  </g>
+
+  <!-- side labels -->
+  <g font-size="10" fill="#64748b">
+    <text x="895" y="118" font-weight="700">拦「用错工具」</text>
+    <text x="895" y="202" font-weight="700">拦「用错参数」</text>
+    <text x="895" y="286" font-weight="700">拦「出不去目录」</text>
+    <text x="895" y="370" font-weight="700">拦「跑太久」</text>
+  </g>
+
+  <!-- what slips through -->
+  <rect x="120" y="422" width="760" height="118" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="145" y="446" font-weight="700" font-size="13" fill="#991b1b">四层之后仍然漏掉的</text>
+  <g font-size="11" fill="#7f1d1d">
+    <text x="145" y="470">· 第 1 层只检查被探测的工具：未列出的工具、MCP 工具、子代理派发是绕过路径</text>
+    <text x="145" y="490">· 第 2 层有自认的盲区：把值当下一词的标志（-o pipefail、--rcfile f）无法与脚本参数区分</text>
+    <text x="145" y="510">· 第 3 层在 Local 模式下只是路径约束，不是内核隔离</text>
+    <text x="145" y="530" font-size="10" fill="#64748b">另：这四层都没有「先问人再做」的一步 —— 全部是自动判定</text>
+  </g>
+</svg>

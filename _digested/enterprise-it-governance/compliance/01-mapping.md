@@ -10,6 +10,9 @@ topics: [governance, compliance]
 
 ## 1. 四套要求的定位
 
+![技术可控与组织责任的分界](figures/tech-vs-org-boundary.svg)
+
+
 | 标准 | 性质 | DeerFlow 能提供什么 |
 |---|---|---|
 | **GDPR** | 法规（欧盟） | 技术机制 + 明确的缺口清单 |

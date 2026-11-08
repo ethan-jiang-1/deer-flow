@@ -11,6 +11,9 @@ DeerFlow 的用量控制有**三个维度**：token、递归步数、并发。
 
 ## 1. token 预算（默认关闭）
 
+![四个限额维度](figures/limit-dimensions.svg)
+
+
 `config.example.yaml:105-111`：
 
 ```yaml

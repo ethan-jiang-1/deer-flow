@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" font-family="PingFang SC, sans-serif">
+  <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">变更生效路径：config.yaml → 内存 → 下次调用</text>
+  <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">同一份配置文件，不同字段的生效时机不同 —— 这是运维里最容易踩的坑</text>
+  <defs><marker id="c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+
+  <!-- source -->
+  <rect x="380" y="80" width="240" height="56" rx="8" fill="#f1f5f9" stroke="#334155" stroke-width="2"/>
+  <text x="500" y="104" text-anchor="middle" font-weight="700" font-size="13" fill="#0f172a">config.yaml</text>
+  <text x="500" y="122" text-anchor="middle" font-size="10" fill="#475569">gitignored · 可被 Gateway 写入</text>
+
+  <!-- three paths -->
+  <path d="M380,108 H150 v40" stroke="#16a34a" stroke-width="2" fill="none" marker-end="url(#c)"/>
+  <path d="M500,136 v40" stroke="#ca8a04" stroke-width="2" fill="none" marker-end="url(#c)"/>
+  <path d="M620,108 H850 v40" stroke="#dc2626" stroke-width="2" fill="none" marker-end="url(#c)"/>
+
+  <g font-size="10" font-weight="700">
+    <text x="240" y="100" fill="#16a34a">热加载</text>
+    <text x="510" y="160" fill="#ca8a04">重启</text>
+    <text x="760" y="100" fill="#dc2626">改代码</text>
+  </g>
+
+  <!-- column 1 hot -->
+  <rect x="40" y="176" width="260" height="200" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+  <text x="170" y="200" text-anchor="middle" font-weight="700" font-size="12" fill="#14532d">下次 agent 调用生效</text>
+  <g font-size="10" fill="#166534">
+    <text x="58" y="224">· guardrails allow / deny 规则</text>
+    <text x="58" y="244">· loop detection 参数</text>
+    <text x="58" y="264">· subagent 超时</text>
+    <text x="58" y="284">· 模型选择与参数</text>
+    <text x="58" y="304">· skills 内容</text>
+  </g>
+  <text x="58" y="334" font-size="10" fill="#15803d" font-style="italic">无需运维动作</text>
+  <text x="58" y="354" font-size="10" fill="#15803d" font-style="italic">下一次请求即生效</text>
+
+  <!-- column 2 restart -->
+  <rect x="340" y="176" width="320" height="200" rx="10" fill="#fffbeb" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="500" y="200" text-anchor="middle" font-weight="700" font-size="12" fill="#713f12">必须重启 Gateway</text>
+  <g font-size="10" fill="#854d0e">
+    <text x="358" y="224">· guardrails fail_closed</text>
+    <text x="358" y="244">· guardrails provider</text>
+    <text x="358" y="264">· allow_host_bash</text>
+    <text x="358" y="284">· 沙箱模式</text>
+    <text x="358" y="304">· 监听端口 / 数据库连接</text>
+  </g>
+  <text x="358" y="334" font-size="10" fill="#b45309" font-style="italic">安全三项都在这一列</text>
+  <text x="358" y="354" font-size="10" fill="#b45309" font-style="italic">→ 策略调整到生效之间有窗口</text>
+
+  <!-- column 3 code -->
+  <rect x="700" y="176" width="260" height="200" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="830" y="200" text-anchor="middle" font-weight="700" font-size="12" fill="#991b1b">写死在代码里</text>
+  <g font-size="10" fill="#7f1d1d">
+    <text x="718" y="224">· SandboxAudit 高危命令表</text>
+    <text x="718" y="244">· 子代理并发上限 64</text>
+    <text x="718" y="264">· 上传配额 10/50MB/100MB</text>
+    <text x="718" y="284">· 常见弱口令表 36 条</text>
+    <text x="718" y="304">· PII 脱敏正则族</text>
+  </g>
+  <text x="718" y="334" font-size="10" fill="#b91c1c" font-style="italic">改不动 · 只能等发版</text>
+  <text x="718" y="354" font-size="10" fill="#b91c1c" font-style="italic">可换取「规则可证明」</text>
+
+  <!-- bottom -->
+  <rect x="40" y="404" width="920" height="112" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+  <text x="60" y="428" font-weight="700" font-size="13" fill="#334155">变更管理的三个实际缺口</text>
+  <text x="60" y="452" font-size="11" fill="#475569">1 · 没有 kill switch：搜索 kill_switch 零命中，无法「立刻停掉所有 agent 执行」</text>
+  <text x="60" y="472" font-size="11" fill="#475569">2 · 没有灰度：无按用户 / 按比例放量的机制，配置是全量生效</text>
+  <text x="60" y="492" font-size="11" fill="#475569">3 · 没有生效确认：改完重启后，没有端点能查「当前实际生效的配置值」</text>
+  <text x="60" y="510" font-size="10" fill="#64748b">另：config.yaml 的改动本身不产生审计事件，事后无法回答「谁在什么时候改了什么」</text>
+</svg>

@@ -42,3 +42,6 @@ skill 变更（agent 自主改写 skill）是 agent 生命周期里最需要管�
 - **Custom agent 删除：** 无 API——手动删除 `users/{user_id}/agents/{name}/` 目录
 - **Skill 关闭：** `PUT /api/skills/{name}` → `enabled: false`
 
+
+
+![配置变更的三条生效路径](figures/config-propagation.svg)

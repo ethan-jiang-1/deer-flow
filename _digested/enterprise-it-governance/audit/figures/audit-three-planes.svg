@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="PingFang SC, sans-serif">
+  <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">审计事件流向：三条链路互不相通</text>
+  <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">「出事了能查到吗」取决于事件落在哪条链路上 —— 三条链路没有联合视图</text>
+  <defs><marker id="f" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+
+  <!-- producers -->
+  <g font-size="11">
+    <rect x="40" y="82" width="180" height="70" rx="8" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+    <text x="130" y="104" text-anchor="middle" font-weight="700" fill="#713f12">SandboxAudit</text>
+    <text x="130" y="122" text-anchor="middle" fill="#854d0e" font-size="10">每条 bash 命令</text>
+    <text x="130" y="138" text-anchor="middle" fill="#854d0e" font-size="10">block / warn / pass</text>
+
+    <rect x="40" y="172" width="180" height="70" rx="8" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="130" y="194" text-anchor="middle" font-weight="700" fill="#14532d">RunJournal</text>
+    <text x="130" y="212" text-anchor="middle" fill="#166534" font-size="10">guardrail deny</text>
+    <text x="130" y="228" text-anchor="middle" fill="#166534" font-size="10">run 状态 · skill · 用量</text>
+
+    <rect x="40" y="262" width="180" height="70" rx="8" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+    <text x="130" y="284" text-anchor="middle" font-weight="700" fill="#0c4a6e">Tracing</text>
+    <text x="130" y="302" text-anchor="middle" fill="#075985" font-size="10">LLM / tool / graph node</text>
+    <text x="130" y="318" text-anchor="middle" fill="#075985" font-size="10">Langfuse · LangSmith</text>
+  </g>
+
+  <!-- sinks -->
+  <g font-size="11">
+    <rect x="400" y="82" width="220" height="70" rx="8" fill="#ffffff" stroke="#ca8a04" stroke-width="2"/>
+    <text x="510" y="106" text-anchor="middle" font-weight="700" fill="#713f12">日志文件</text>
+    <text x="510" y="126" text-anchor="middle" fill="#854d0e" font-size="10" font-family="monospace">gateway.log</text>
+    <text x="510" y="142" text-anchor="middle" fill="#b45309" font-size="10">结构化 JSON，但只进文件</text>
+
+    <rect x="400" y="172" width="220" height="70" rx="8" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+    <text x="510" y="196" text-anchor="middle" font-weight="700" fill="#14532d">关系库</text>
+    <text x="510" y="216" text-anchor="middle" fill="#166534" font-size="10">run_events 表</text>
+    <text x="510" y="232" text-anchor="middle" fill="#15803d" font-size="10">可 SQL 查询 · 可 join</text>
+
+    <rect x="400" y="262" width="220" height="70" rx="8" fill="#ffffff" stroke="#0284c7" stroke-width="2"/>
+    <text x="510" y="286" text-anchor="middle" font-weight="700" fill="#0c4a6e">外部 tracing 后端</text>
+    <text x="510" y="306" text-anchor="middle" fill="#075985" font-size="10">需另行部署</text>
+    <text x="510" y="322" text-anchor="middle" fill="#0369a1" font-size="10">按 trace_id 关联</text>
+  </g>
+
+  <g stroke="#64748b" stroke-width="1.5" fill="none">
+    <path d="M220,117 h180" marker-end="url(#f)"/>
+    <path d="M220,207 h180" marker-end="url(#f)"/>
+    <path d="M220,297 h180" marker-end="url(#f)"/>
+  </g>
+
+  <!-- questions -->
+  <g font-size="10">
+    <text x="700" y="104" font-weight="700" fill="#475569">查「谁跑了什么命令」</text>
+    <text x="700" y="122" fill="#64748b">需 grep 日志 + thread_id 反查用户</text>
+    <text x="700" y="140" fill="#b91c1c">日志丢了就没了</text>
+
+    <text x="700" y="194" font-weight="700" fill="#475569">查「为什么被拒」</text>
+    <text x="700" y="212" fill="#64748b">SQL 查 run_events，可按 user 过滤</text>
+    <text x="700" y="230" fill="#b91c1c">但 allow 决策不在里面</text>
+
+    <text x="700" y="284" font-weight="700" fill="#475569">查「agent 到底在干什么」</text>
+    <text x="700" y="302" fill="#64748b">tracing UI 看 span 树</text>
+    <text x="700" y="320" fill="#b91c1c">未配则这段完全缺失</text>
+  </g>
+
+  <!-- bottom: blind spots -->
+  <rect x="40" y="360" width="920" height="136" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="60" y="384" font-weight="700" font-size="13" fill="#991b1b">三条链路都覆盖不到的地方</text>
+
+  <g font-size="11" fill="#7f1d1d">
+    <text x="60" y="410">① subagent 内的 guardrail 拒绝 —— 子代理不继承 __run_journal，journal 里查不到</text>
+    <text x="60" y="432">② allow 决策 —— 有意不写（避免淹没 journal），所以「证明被授权」比「证明被拒绝」难</text>
+    <text x="60" y="454">③ 文件类工具（read_file / write_file / str_replace）—— 不走 SandboxAudit，只有 bash 走</text>
+    <text x="60" y="476">④ 配置变更与登录事件 —— 无结构化事件，只能翻日志</text>
+  </g>
+  <text x="60" y="492" font-size="10" fill="#64748b">另：journal 写入是 best-effort，失败只记 warning，不阻断执行 —— 「有记录」不等于「一定记录了」</text>
+</svg>

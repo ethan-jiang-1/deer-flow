@@ -11,6 +11,8 @@ topics: [governance, identity, pat, api]
 
 ## 1. 令牌形态
 
+![PAT 的两层过滤](figures/pat-layers.svg)
+
 `app/gateway/auth/pat.py:3-6` 的模块注释给了完整定义：
 
 > Tokens are `dfp_` + base62(32 CSPRNG bytes), shown exactly once in the

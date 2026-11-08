@@ -11,6 +11,9 @@ topics: [governance, audit, events]
 
 ## 1. RunJournal 的六个记录入口
 
+![审计事件的三条链路](figures/audit-three-planes.svg)
+
+
 `packages/harness/deerflow/runtime/journal.py` 定义了全部结构化记录方法：
 
 | 方法 | 行 | 记录什么 |

@@ -11,6 +11,8 @@ DeerFlow 的路由授权由 `app/gateway/authz.py` 定义。最重要的一个�
 
 ## 1. 权限常量
 
+![13 个权限与默认关闭语义](figures/rbac-13-permissions.svg)
+
 `app/gateway/authz.py:63-86` 定义 `Permissions` 类，`resource:action` 格式：
 
 | 资源 | 权限 | 守护的路由 |

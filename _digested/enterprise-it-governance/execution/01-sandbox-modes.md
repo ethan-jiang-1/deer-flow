@@ -10,6 +10,9 @@ topics: [governance, execution]
 
 ## 七种沙箱模式
 
+![执行边界的四层防线](figures/execution-layers.svg)
+
+
 | 模式 | `sandbox.use` | 隔离级别 | 适用场景 |
 |------|--------------|---------|---------|
 | **Local** | `deerflow.sandbox.local:LocalSandboxProvider` | 无进程隔离，共享 host 内核 | 个人开发、信任环境 |
