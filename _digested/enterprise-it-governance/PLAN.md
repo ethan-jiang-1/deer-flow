@@ -24,9 +24,9 @@ DeerFlow 与个人玩具的区别在于：**它能被企业 IT 管起来**。治
 
 | 原文档写的 | v2.2.0 实际 | 证据 |
 |---|---|---|
-| Subagent 并发「≤3」 | 64 | `config/subagents_config.py:17` `MAX_CONCURRENT_SUBAGENT_CALLS = 64` |
-| 「无 per-run 预算上限」 | 有 | `subagents_config.py:50` `max_total_per_run` + `TokenBudgetConfig` |
-| 「Guardrail deny 不写 RunJournal」 | 已写 | `guardrails/middleware.py:171` `record_middleware`（定义在 `:131`），带 `allow`/`policy_id`/`reason_codes`/`fail_closed`/`user_role`/`provider_error` |
+| Subagent 并发「≤3」 | 64 | `packages/harness/deerflow/config/subagents_config.py:17` `MAX_CONCURRENT_SUBAGENT_CALLS = 64` |
+| 「无 per-run 预算上限」 | 有 | `packages/harness/deerflow/config/subagents_config.py:50` `max_total_per_run` + `TokenBudgetConfig` |
+| 「Guardrail deny 不写 RunJournal」 | 已写 | `packages/harness/deerflow/guardrails/middleware.py:171` `record_middleware`（定义在 `:131`），带 `allow`/`policy_id`/`reason_codes`/`fail_closed`/`user_role`/`provider_error` |
 | `backend/.deer-flow/users/` | `{project_root}/.deer-flow/users/` | 2.2 新增 `USER.md` 与 per-user `skills/` |
 
 这不是笔误——它会让 IT 依据错误信息判断「能力不足」或「已覆盖」。
@@ -45,7 +45,7 @@ v2.2.0 有完整的 OIDC/SSO：
 
 而原 `it-ops/` 全文 **`SSO`/`OIDC` 命中 0 次**。同样缺失的还有：登录限速的三档存储
 （`auto`/`memory`/`db`，`db` 让多 Gateway 副本共享锁禁）、PAT 的默认拒绝路由边界、
-11 个 RBAC 权限全表、`agents_api`、`multi_instance`、`DEER_FLOW_CREDENTIALS_KEY`、
+13 个 RBAC 权限全表、`agents_api`、`multi_instance`、`DEER_FLOW_CREDENTIALS_KEY`、
 `blob_storage`、`knowledge_base`、保留期。
 
 ### 0.3 结构上被淹没
@@ -102,7 +102,7 @@ _digested/
 | 域 | 现有 | 目标 | 净增 | 主要工作 |
 |---|---:|---:|---:|---|
 | `identity/` | 199 | 700 | +501 | **SSO/OIDC 全节（最大缺口）**、PAT、登录限速、`agents_api` |
-| `authorization/` | 149 | 500 | +351 | **11 个 RBAC 权限全表**、MCP 作用域、`personal_mcp` |
+| `authorization/` | 149 | 500 | +351 | **13 个 RBAC 权限全表**、MCP 作用域、`personal_mcp` |
 | `execution/` | 219 | 400 | +181 | 订正过期断言、扩展执行租约、MCP durable task |
 | `data/` | 107 | 450 | +343 | **凭据加密**、PII 脱敏、保留期、blob/knowledge 驻留 |
 | `audit/` | 152 | 490 | +338 | 订正「guardrail 不写 journal」+ **承接 `observability/07` 搬来的 6 条证据/可观测缺口** + 事件覆盖矩阵（见 §4.3） |
@@ -137,7 +137,7 @@ _digested/
 | `01-guardrail-layer.md` | 66 | 150 | Tool 级授权、可插拔 provider、2.2 三个内置门（Allowlist / TypeSafe / OpenAIDecisions） |
 | `02-bounded-autonomy.md` | 23 | 80 | 自动/人工边界 |
 | `03-configurability.md` | 60 | 100 | 可配置性总览（保留，订正） |
-| `04-rbac-permissions.md` | — | **150** | 🆕 **11 个 `resource:action` 权限全表**（`authz.py:67-86`）：`threads:read/write/delete`、`runs:create/read/cancel`、`projects:read/write/delete`、`memory:read/write`、`agents:read/write` |
+| `04-rbac-permissions.md` | — | **150** | 🆕 **13 个 `resource:action` 权限全表**（定义 `app/gateway/authz.py:63-86`，权威清单 `:161-175`）：`threads:read/write/delete`、`runs:create/read/cancel`、`projects:read/write/delete`、`memory:read/write`、`agents:read/write` |
 | `05-mcp-scope.md` | — | **100** | 🆕 `mcp_scope.py` 的 `v2:` 作用域键 + thread incarnation；personal MCP 的归属 |
 
 ### 3.3 `execution/` — 执行边界
@@ -326,6 +326,7 @@ _digested/
 | 行号越界独立抽查 | 见 `_upstream-sync/UPDATE_PLAN_8.md` §P7 脚本 | 越界 0 |
 | `file:line` 到 v2.2.0 树里核对 | 见 `_upstream-sync/UPDATE_PLAN_8.md` §P7 脚本 | 全中 |
 | **质量闸门** | `python3 _digested/enterprise-it-governance/tools/check_quality.py` | **exit 0**（阻塞 0） |
+| **锚点存在性** | `python3 _digested/enterprise-it-governance/tools/verify_anchors.py` | **exit 0**（120+ 锚点全在范围内） |
 
 ## 7. 执行顺序与提交
 
@@ -340,6 +341,17 @@ _digested/
 **搬迁任务与内容写作同批完成**——切分出的内容直接落到目标篇，不设「先留占位、后补内容」的中间态。
 
 每批提交前跑完整校验表（含 §4.7 第 7 条），提交信息记录「新增哪几篇、搬入哪几节、订正哪几条 2.2 断言」。
+
+### 7.x 已知的历史不变量偏离（非本次任务范围）
+
+`ethan` 分支相对 `v2.2.0` 有一处落在 `_digested/` 之外的差异：
+
+| 文件 | 引入提交 | 性质 |
+|---|---|---|
+| `backend/tests/support/detectors/blocking_io_changed.py` | `b56fe3f81`（perf: 改用 `git cat-file --batch` 批量取基线） | 既有提交，非本卷工作 |
+
+这与「`ethan` 只在三个文档目录内偏离 `main`」的约定不符，但**不由本次整理引入，也不在本次范围内**。
+需要单独决定是保留（若该性能改进需要保留）还是回退。记录在此以免反复重查。
 
 ## 8. 风险
 
@@ -376,7 +388,7 @@ _digested/
 
 | 来源类型 | 写法 | 例子 |
 |---|---|---|
-| 源码锚点 | `` `path/file.py:NNN` `` | `` `config/subagents_config.py:17` `` |
+| 源码锚点 | `` `path/file.py:NNN` `` | `` `packages/harness/deerflow/config/subagents_config.py:17` `` |
 | 配置契约 | `` `config.example.yaml:NNN-NNN` `` | `` `config.example.yaml:3509-3602` `` |
 | 上游文档 | `backend/docs/*.md` | `backend/docs/SSO.md` |
 | 代码注释原话 | 引用注释时**必须带行号** | `config.example.yaml:2372` 写"does not cover this path" |
@@ -427,10 +439,10 @@ done
 
 | 事实 | 正确值 | 唯一来源 | 已核 |
 |---|---|---|---|
-| Subagent 单响应并发 | 64 | `config/subagents_config.py:17` | ✅ |
-| per-run 总量上限 | `max_total_per_run` 存在 | `subagents_config.py:50` | ✅ |
-| Guardrail 决策入 journal | 是，带 6 字段 | `guardrails/middleware.py:171`（定义 `:131`） | ✅ |
-| RBAC 权限数 | 11 | `gateway/authz.py:67-86` | ✅ |
+| Subagent 单响应并发 | 64 | `packages/harness/deerflow/config/subagents_config.py:17` | ✅ |
+| per-run 总量上限 | `max_total_per_run` 存在 | `packages/harness/deerflow/config/subagents_config.py:50` | ✅ |
+| Guardrail 决策入 journal | 是，带 6 字段 | `packages/harness/deerflow/guardrails/middleware.py:171`（定义 `:131`） | ✅ |
+| RBAC 权限数 | 11 | `app/gateway/authz.py:67-86` | ✅ |
 | 登录限速默认 | 5 次 / 锁 300s | `config.example.yaml` auth 段 | 待核 |
 | 沙箱模式数 | 7（6 provider 类） | `concepts/sandbox/*` | ✅ |
 | PII 脱敏覆盖 | 有，**不覆盖**记忆提取出口 | `config.example.yaml:2372` | ✅ |
@@ -463,6 +475,7 @@ done
 
 - [ ] `check_digest.py` exit 0（断链、行号越界、锚点、环境变量）
 - [ ] `tools/check_quality.py` exit 0（本文 §9.2–§9.7 的自动化闸门）
+- [ ] `tools/verify_anchors.py` exit 0（所有 `file:line` 存在且在范围内）
 - [ ] 三目录铁律输出 `0`
 - [ ] 每篇 ≥3 处 `file:line`，且指向的断言正确
 - [ ] §9.5 事实登记表全部已核，无新旧矛盾

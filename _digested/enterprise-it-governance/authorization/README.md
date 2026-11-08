@@ -25,7 +25,7 @@ DeerFlow 的授权分两层：宿主层的 RBAC（11 个 resource:action）和 a
 
 | 文件 | 主题 | 内容 |
 |------|------|------|
-| 04-rbac-permissions.md | RBAC 权限全表 | 11 个 resource:action 权限与装饰器 |
+| 04-rbac-permissions.md | RBAC 权限全表 | 13 个 resource:action 权限、默认关闭的开关、条件下权限 |
 | 05-mcp-scope.md | MCP 作用域 | v2: 作用域键、thread incarnation、personal MCP 归属 |
 
 ---

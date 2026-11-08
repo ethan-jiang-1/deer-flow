@@ -24,10 +24,10 @@ topics: [governance, identity]
 | 规则 | 位置 | 效果 |
 |------|------|------|
 | **PAT 永不带 admin** | `app/gateway/app.py:1214-1221` | PAT 调用者即使属主是 admin，`is_admin=False` 且 `roles` 元组被**清空**（不是只去掉 `admin` 一项） |
-| **Agent run 句柄只认两种来源** | `app/gateway/extension_agent_runs.py:62` | 只接受 `AUTH_SOURCE_SESSION` / `AUTH_SOURCE_AUTH_DISABLED`；PAT 与 internal-owner 委托被拒 |
+| **Agent run 句柄只认两种来源** | `app/gateway/extension_agent_runs.py:70-73` | 只接受 `AUTH_SOURCE_SESSION` / `AUTH_SOURCE_AUTH_DISABLED`；PAT 与 internal-owner 委托被拒 |
 | **PAT 路由白名单默认拒绝** | `app/gateway/auth/pat.py:60` | `/api/plugins/*`、`/api/skill-mutations/*`、`/api/v1/admin/*` 不在表内 ⇒ PAT 够不到即使有 scope |
 
-第二条的理由值得 IT 注意：原话是 "PAT revocation and internal-owner delegation need separate durable grants. Never turn either into an unrestricted session capability."——PAT 撤销是**立即生效**的，但它可能已经被换成一个长期持有的句柄（agent run 句柄），句柄不会跟着撤销。所以这条路直接封掉，而不是靠事后修补。
+第二条的理由值得 IT 注意（注释原文在 `app/gateway/extension_agent_runs.py:70-73`）：原话是 "PAT revocation and internal-owner delegation need separate durable grants. Never turn either into an unrestricted session capability."——PAT 撤销是**立即生效**的，但它可能已经被换成一个长期持有的句柄（agent run 句柄），句柄不会跟着撤销。所以这条路直接封掉，而不是靠事后修补。
 
 ### 🆕 插件管理路由的 resolver 语义
 
@@ -40,3 +40,12 @@ topics: [governance, identity]
 
 ⚠️ **已知缺口**：这个 `PermissionError` **没有被 Gateway 翻译**成 403——如果插件路由不自己捕获，客户端看到的是 **500**。这是个宿主侧的一致性问题，插件作者必须自己 try/except。
 
+### 运维侧的两条核实结论
+
+| 结论 | 证据 |
+|---|---|
+| `/api/plugins`、`/api/skill-mutations`、`/api/v1/admin` **均未**出现在 `_PAT_ROUTE_RULES` 中 | `app/gateway/auth/pat.py:60` 起的规则表里无对应 path pattern |
+| CORS 允许来源只从 `GATEWAY_CORS_ORIGINS` 读取，逗号分隔，空值即不放开 | `app/gateway/csrf_middleware.py:116`、`:127` |
+
+所以「PAT 能不能调插件管理接口」的答案是**不能**——不是靠 scope 拦截，
+而是这些路由根本不在白名单内，默认拒绝直接生效。

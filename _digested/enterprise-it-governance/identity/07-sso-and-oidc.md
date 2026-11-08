@@ -15,15 +15,15 @@ provider（Keycloak、Azure AD、Okta、Google），走标准授权码流。
 |---|---|---|
 | OIDC discovery | 有，TTL 300s 缓存 | `app/gateway/auth/oidc.py` |
 | JWKS 缓存 | 有，同一 TTL | `app/gateway/auth/oidc.py` |
-| 授权码流 | 有 | `routers/auth.py:954`（`/oauth/{provider}`）、`:1030`（`/callback/{provider}`） |
+| 授权码流 | 有 | `app/gateway/routers/auth.py:954`（`/oauth/{provider}`）、`:1030`（`/callback/{provider}`） |
 | PKCE S256 | **默认开** | `config.example.yaml:3601` `pkce_enabled: true` |
 | nonce 校验 | **默认开** | `config.example.yaml:3602` `nonce_enabled: true` |
 | 多 provider 并存 | 有，每个 provider 一组配置 | `auth.oidc.providers.<id>` |
-| 自动建号 | 有，可关 | `user_provisioning.py:87` |
-| 邮箱域名白名单 | 有 | `user_provisioning.py:67-69` |
-| 强制已验证邮箱 | **默认开** | `user_provisioning.py:52` |
-| 管理员自动提升 | 有，按邮箱列表 | `user_provisioning.py:93`、`:117-120` |
-| 失败重定向契约 | 有，`sso_failed` | `routers/auth.py:1051`、`:1107`、`:1118` |
+| 自动建号 | 有，可关 | `app/gateway/auth/user_provisioning.py:87` |
+| 邮箱域名白名单 | 有 | `app/gateway/auth/user_provisioning.py:67-69` |
+| 强制已验证邮箱 | **默认开** | `app/gateway/auth/user_provisioning.py:52` |
+| 管理员自动提升 | 有，按邮箱列表 | `app/gateway/auth/user_provisioning.py:93`、`:117-120` |
+| 失败重定向契约 | 有，`sso_failed` | `app/gateway/routers/auth.py:1051`、`:1107`、`:1118` |
 
 这些能力**此前在本语料中一处未提**，是覆盖缺口而非能力缺口。
 
@@ -63,7 +63,7 @@ auth:
 
 `config.example.yaml:3601-3602` 两个键默认 `true`：
 
-- **PKCE（S256）**：授权码被截获也无法换取 token。`oidc_state.py:75` 的
+- **PKCE（S256）**：授权码被截获也无法换取 token。`app/gateway/auth/oidc_state.py:75` 的
   `compute_code_challenge` 实现 S256。
 - **nonce 校验**：ID token 必须回带授权请求里的 nonce，防重放。
 
@@ -71,28 +71,28 @@ auth:
 
 ### 3.2 state 的存储与时限
 
-`oidc_state.py:20-21`：
+`app/gateway/auth/oidc_state.py:20-21`：
 
 ```python
 OIDC_STATE_COOKIE_PREFIX = "df_oidc_state_"
 OIDC_STATE_MAX_AGE = 300  # 5 minutes
 ```
 
-state 存在**签名 cookie**里（`oidc_state.py:39` `_sign_state_payload`），
+state 存在**签名 cookie**里（`app/gateway/auth/oidc_state.py:39` `_sign_state_payload`），
 不落服务端存储——所以多副本部署无需共享 session。代价是 state 有效期固定 5 分钟，
 不适合多跳 IdP 链路（企业常见于跨域联邦），超时会得到 `sso_failed`。
 
 ### 3.3 失败契约
 
-OIDC 错误统一走**重定向**而非裸 500（`oidc.py:74` 注释明确这是设计意图）：
+OIDC 错误统一走**重定向**而非裸 500（`app/gateway/auth/oidc.py:74` 注释明确这是设计意图）：
 
 ```python
 # routers/auth.py:1118
 error_code = error_map.get(exc.status_code, "sso_failed")
 ```
 
-`oidc.py:69` 的 `_json_object` 在 provider 返回非 JSON 时抛 502 而非 500，
-同样是为了「keep the `sso_failed` redirect contract」（`oidc.py:377`、`:383`）。
+`app/gateway/auth/oidc.py:69` 的 `_json_object` 在 provider 返回非 JSON 时抛 502 而非 500，
+同样是为了「keep the `sso_failed` redirect contract」（`app/gateway/auth/oidc.py:377`、`:383`）。
 
 **对企业运维的含义**：SSO 故障表现为前端 `?error=sso_failed`，而非 5xx
 ——监控要盯这个查询参数，不能只盯 HTTP 状态码。
@@ -133,7 +133,7 @@ provisioning 只管登录时的赋值）。
 
 ## 5. 政策断点：SSO 策略不约束本地注册
 
-这是 `config.example.yaml:3537-3545` 用**整段注释**警告的陷阱，值得完整引用：
+这是 `config.example.yaml:3529-3535` 用**整段注释**警告的陷阱，值得完整引用：
 
 > Self-registration via `POST /api/v1/auth/register` is open by default: anyone
 > who can reach the Gateway may create a regular user account.
@@ -147,10 +147,10 @@ provisioning 只管登录时的赋值）。
 以为「只有公司邮箱能注册」，但任意访客仍可通过 `/api/v1/auth/register`
 用任何邮箱自建普通账号。SSO 策略只作用于 SSO 回调路径。
 
-**缓解**：`auth.local.allow_registration: false`（`auth_config.py:101`）。
+**缓解**：`auth.local.allow_registration: false`（`packages/harness/deerflow/config/auth_config.py:101`）。
 
 **不会锁死自己**：同一段注释说明首个 admin 永远通过 `/initialize` 创建
-（`routers/auth.py:820`），与此开关无关：
+（`app/gateway/routers/auth.py:820`），与此开关无关：
 
 > The first admin account is always created through `/initialize` regardless of this
 > setting, so turning it off cannot lock you out of a fresh install.
@@ -163,7 +163,7 @@ provisioning 只管登录时的赋值）。
 | 组/角色映射 | **无** | 角色只有 `admin`/`user` 两档，`admin_emails` 是邮箱硬比对，不读 IdP 的 group claim |
 | 后端登出（RP-initiated logout） | **无** | 本地登出清 cookie，不回跳 IdP 的 `end_session_endpoint`；IdP 侧会话仍存活 |
 | 多 IdP 的租户归属 | **部分** | 支持多 provider 并存，但账号与 provider 无绑定关系——同一邮箱从两个 IdP 登录会落到同一账号 |
-| state 有效期 | **固定 5 分钟** | `oidc_state.py:21`，不可配；长链路联邦 IdP 可能超时 |
+| state 有效期 | **固定 5 分钟** | `app/gateway/auth/oidc_state.py:21`，不可配；长链路联邦 IdP 可能超时 |
 
 ## 7. 与其他章节的关系
 

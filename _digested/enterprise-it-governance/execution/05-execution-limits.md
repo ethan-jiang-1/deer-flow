@@ -21,7 +21,7 @@ topics: [governance, execution]
 `SubagentLimitMiddleware` — 限制 lead agent 一次派发的 subagent 数量。
 
 > ⚠️ **v2.2.0 变更**：此前文档记为 `MAX_CONCURRENT_SUBAGENTS=3`（限幅 [2,4]）。2.2.0 的
-> `config/subagents_config.py:17` 是 `MAX_CONCURRENT_SUBAGENT_CALLS = 64`。总数另由
+> `packages/harness/deerflow/config/subagents_config.py:17` 是 `MAX_CONCURRENT_SUBAGENT_CALLS = 64`。总数另由
 > `subagents.max_total_per_run` 兜底（见 [成本与容量](../cost/01-cost-attribution.md)）。
 
 ```

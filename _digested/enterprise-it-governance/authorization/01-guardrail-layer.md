@@ -60,7 +60,7 @@ v2.1 只有名单门。v2.2 增加两个**模型判定的风险门**，都实现
 
 `GuardrailProvider` 是 protocol（不需要继承），任何 Python 类都行。把 `use` 指向你的实现即可接入外部 OAP 策略引擎。
 
-**middleware 填充的上下文字段**（`guardrails/middleware.py:76` 的 `_build_request`）：`thread_id`（`:92`）、`is_subagent`（`:93`）、`user_id`、`user_role`、`oauth_provider`、`oauth_id`、`run_id`、`tool_call_id`、`channel_user_id`、`is_internal`、`authz_attributes`，🆕 `tool_provenance`、🆕 `tool_identity`。所以 provider **可以**做 per-thread / per-agent / per-user 策略——2.1 早期文档说"不填充 `thread_id` 和 `is_subagent`"已经不成立。
+**middleware 填充的上下文字段**（`packages/harness/deerflow/guardrails/middleware.py:76` 的 `_build_request`）：`thread_id`（`:92`）、`is_subagent`（`:93`）、`user_id`、`user_role`、`oauth_provider`、`oauth_id`、`run_id`、`tool_call_id`、`channel_user_id`、`is_internal`、`authz_attributes`，🆕 `tool_provenance`、🆕 `tool_identity`。所以 provider **可以**做 per-thread / per-agent / per-user 策略——2.1 早期文档说"不填充 `thread_id` 和 `is_subagent`"已经不成立。
 
 **仍然拿不到的**：`tool_identity` 是**对象引用**，只在进程内有效，永不序列化、永不转发给远端 provider（`guardrails/provider.py` 注释）；需要跨进程判定时只能用 `tool_provenance` 这个可序列化的来源标签。
 

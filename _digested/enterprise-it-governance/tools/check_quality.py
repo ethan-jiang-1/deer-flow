@@ -84,6 +84,18 @@ def parse_frontmatter(text: str) -> dict[str, str]:
     return fm
 
 
+def strip_fences(text: str) -> str:
+    """移除 ``` 围栏内的内容，避免把代码注释误判为标题/断言。"""
+    out, in_fence = [], False
+    for line in text.splitlines():
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            out.append("")
+            continue
+        out.append("" if in_fence else line)
+    return "\n".join(out)
+
+
 def body_of(text: str) -> str:
     if not text.startswith("---"):
         return text
@@ -138,7 +150,7 @@ def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
         for key in ("title", "description", "topics"):
             if key not in fm:
                 rep.add("block", "style", rel, f"frontmatter 缺 `{key}`（§9.6）")
-        h1 = [l for l in lines if l.startswith("# ")]
+        h1 = [l for l in strip_fences(body).splitlines() if l.startswith("# ")]
         if len(h1) > 1:
             rep.add("warn", "style", rel, f"{len(h1)} 个一级标题（应唯一）")
         if nlines > 200:
