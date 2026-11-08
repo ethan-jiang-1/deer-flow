@@ -20,7 +20,7 @@ DeerFlow 给使用者的编排原语不是一棵中心调度树，而是一组**
 |------|------|
 | [../graph-engineering/](../graph-engineering/README.md) | 图工程标尺对表、操作面旋钮（07）、注入入口（08-09）——"用/扩"的视角 |
 | [../internals/runtime/](../internals/runtime/README.md) | RunManager / StreamBridge / journal 的机制解剖 |
-| [../concepts/subagent/](../concepts/subagent/README.md)、[../operations/scheduler.md](../operations/scheduler.md) | 单原语深挖 |
+| [../concepts/subagent/](../concepts/subagent/README.md)、[../enterprise-operations/scheduler.md](../enterprise-operations/scheduler.md) | 单原语深挖 |
 | **本目录** | **跨原语统一视角**：阶梯位置、完成语义、状态分类、预算叠加——回答"这些原语组合起来时系统到底保证了什么" |
 
 ## 统一维度矩阵（初版，随深挖修订）
@@ -69,7 +69,7 @@ DeerFlow 给使用者的编排原语不是一棵中心调度树，而是一组**
 | 03 subagent / fork（隔离、继承、continuable 控制面） | [concepts/subagent/](../concepts/subagent/README.md) + [06](06-Session谱系与冷恢复-线程运行与所有权.md)；fork 继承论证在 [10](10-反向借鉴-DSH原语对DeerFlow的可吸收点.md) 判定为值得借鉴 | 已答 + 委派 |
 | 04 ralph（fresh-agent 循环） | goal 为不同解；"轮间只传有界报告"在 [10](10-反向借鉴-DSH原语对DeerFlow的可吸收点.md) 列为吸收点 | 已判定 |
 | 05 goal 驾驶座（objective 写法、轮预算、终结纪律） | 机制散在 [../internals/runtime/goal-continuation.md](../internals/runtime/goal-continuation.md)；**驾驶座纪律本轮补为 [12](12-goal驾驶座-续轮准入评估熔断与收尾.md)** | 本轮补 |
-| 06 jobs / schedule（后台平台 + 时间平面） | [operations/scheduler.md](../operations/scheduler.md) + [01](01-完成语义与崩溃窗口-接受可见静止处置.md)/[05](05-组合模式与收尾纪律-跨原语协同.md) | 已答 + 委派 |
+| 06 jobs / schedule（后台平台 + 时间平面） | [enterprise-operations/scheduler.md](../enterprise-operations/scheduler.md) + [01](01-完成语义与崩溃窗口-接受可见静止处置.md)/[05](05-组合模式与收尾纪律-跨原语协同.md) | 已答 + 委派 |
 | 07 agent-teams | 无对应物；[10](10-反向借鉴-DSH原语对DeerFlow的可吸收点.md) 已判定 | 判定不借 |
 | 08 组合模式与收尾纪律 | [05](05-组合模式与收尾纪律-跨原语协同.md)（含冲突矩阵与两套 stop_reason 聚合） | 已答 |
 | 09 对照外部叙事 | [07](07-对照外部叙事-v1v2混淆与逐条核对.md)（v1/v2 混淆为 DeerFlow 特有误传） | 已答 |

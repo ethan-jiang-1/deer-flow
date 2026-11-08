@@ -368,4 +368,4 @@ if not getattr(knowledge_base_config, "enabled", False):
 4. 日志里 `Knowledge retrieval failed (<ExcType>)` → 有到达 provider；按 `PermissionError` / `ValidationError` / `RuntimeError` 分流。
 5. 拿到了结果但引用不显示 → 证据没通过 `sources_from_messages()` 的四道门（[02 §5](02-sources-and-budgets.md)）。
 
-→ 返回 [knowledge README](README.md)。相关：[../../operations/security/06-extension-boundary.md](../../operations/security/06-extension-boundary.md)（扩展能拿到什么）、[../../concepts/builtin-tools/D-task-toolsearch.md](../../concepts/builtin-tools/D-task-toolsearch.md)（`task` 与工具发现）、[../../internals/runtime/README.md](../runtime/README.md)（`run_agent` 的 runtime context）。
+→ 返回 [knowledge README](README.md)。相关：[../../enterprise-operations/security/06-extension-boundary.md](../../enterprise-operations/security/06-extension-boundary.md)（扩展能拿到什么）、[../../concepts/builtin-tools/D-task-toolsearch.md](../../concepts/builtin-tools/D-task-toolsearch.md)（`task` 与工具发现）、[../../internals/runtime/README.md](../runtime/README.md)（`run_agent` 的 runtime context）。

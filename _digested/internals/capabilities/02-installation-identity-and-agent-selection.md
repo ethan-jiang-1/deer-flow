@@ -155,7 +155,7 @@ sequenceDiagram
 - `agents_config.py:223`："This is tool selection, not a replacement for host authorization."
 - `routers/agents.py:55` 的 description 只说"installation selection"。
 
-因此一条选择**不会**：把 disabled server 打开（§4 第 4 点）、绕过 MCP 的执行白名单（[03-bundled-business.md](03-bundled-business.md) §3）、替别人取凭据（`user_auth`/`headers_from_context` 各自的 fail-closed 在 [../mcp/session-pool-oauth-cache-invalidation.md](../mcp/session-pool-oauth-cache-invalidation.md)）、或越过工具级风险门（[../../operations/security/03-guardrail.md](../../operations/security/03-guardrail.md)）。真正执行时仍走 MCP 会话池、拦截器链与 guardrail。
+因此一条选择**不会**：把 disabled server 打开（§4 第 4 点）、绕过 MCP 的执行白名单（[03-bundled-business.md](03-bundled-business.md) §3）、替别人取凭据（`user_auth`/`headers_from_context` 各自的 fail-closed 在 [../mcp/session-pool-oauth-cache-invalidation.md](../mcp/session-pool-oauth-cache-invalidation.md)）、或越过工具级风险门（[../../enterprise-operations/security/03-guardrail.md](../../enterprise-operations/security/03-guardrail.md)）。真正执行时仍走 MCP 会话池、拦截器链与 guardrail。
 
 ## 7. 与 skills 选择同构
 

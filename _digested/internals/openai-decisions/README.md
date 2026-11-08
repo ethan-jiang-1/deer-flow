@@ -81,7 +81,7 @@ flowchart LR
 | 相关域 | 关系 | 页面 |
 |--------|------|------|
 | TypeSafe 共享传输 | 本包是它的**第二个 dialect**；传输、鉴权、重试、截止预算、64 KiB 有界读取、四类错误原因全部继承，不复制 | [../typesafe/01-client-and-connection.md](../typesafe/01-client-and-connection.md) §一/§二、[../typesafe/02-adapters-failure-policy.md](../typesafe/02-adapters-failure-policy.md) §五 dialect |
-| Guardrail 风险门 | `OpenAIDecisionsGuardrailProvider` 是 `TypeSafeGuardrailProvider` 的子类，只换线协议；`guardrails.fail_closed: true` 时 refusal 也是拒绝 | [../../operations/security/03-guardrail.md](../../operations/security/03-guardrail.md)、[../../operations/security/04-trust-boundary.md](../../operations/security/04-trust-boundary.md) |
+| Guardrail 风险门 | `OpenAIDecisionsGuardrailProvider` 是 `TypeSafeGuardrailProvider` 的子类，只换线协议；`guardrails.fail_closed: true` 时 refusal 也是拒绝 | [../../enterprise-operations/security/03-guardrail.md](../../enterprise-operations/security/03-guardrail.md)、[../../enterprise-operations/security/04-trust-boundary.md](../../enterprise-operations/security/04-trust-boundary.md) |
 | Memory 判定 hook | pre-screen（省一次提取调用）与 signal classification（追加提示）各有一个 Decisions 兄弟类，失败方向仍是"照常提取" | [../../concepts/memory/manager-contract-and-backend-clients.md](../../concepts/memory/manager-contract-and-backend-clients.md) |
 | 配置系统 | **没有** `openai_decisions:` YAML section；配置全部写在三个消费者槽位的 `config` 里（+ 顶层 `typesafe:` 作为共享兜底层） | [../configuration/01-config-yaml.md](../configuration/01-config-yaml.md) |
 | 环境变量 | 默认 `api_key_env` 复用 `OPENAI_API_KEY` | [../../getting-started/05-environment.md](../../getting-started/05-environment.md) |

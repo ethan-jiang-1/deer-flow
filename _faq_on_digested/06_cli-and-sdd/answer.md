@@ -165,7 +165,7 @@ curl -N -X POST http://localhost:8001/api/runs/stream \
   }'
 ```
 
-> 完整 Gateway API 参考见 `_digested/operations/app-layer/01-api-reference.md`。
+> 完整 Gateway API 参考见 `_digested/enterprise-operations/app-layer/01-api-reference.md`。
 
 ## A.7 推荐实验路径
 
@@ -375,7 +375,7 @@ client.chat("继续之前的工作，实现 spec-3", thread_id="sdd-project")
 |------|------|
 | TUI 终端工作台（`deerflow` CLI 真值） | `_digested/getting-started/06-tui.md` |
 | Sandbox 三种实现 + 路径映射 | `_digested/concepts/sandbox/` |
-| Gateway API 完整参考 | `_digested/operations/app-layer/01-api-reference.md` |
+| Gateway API 完整参考 | `_digested/enterprise-operations/app-layer/01-api-reference.md` |
 | 系统 prompt 组装 | `deerflow/agents/lead_agent/prompt.py:1155`（`apply_prompt_template()`） |
 | 中间件全链（39 个条目位） | `_digested/internals/middleware/03-catalog.md` |
 | Agent 循环执行流 | `_digested/internals/agent-loop/` |

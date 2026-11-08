@@ -34,8 +34,8 @@ Agent 上线之后，最难的不是"能不能跑"，而是"跑出问题时你�
 
 ## 补充（深潜指向已有笔记）
 
-- 追踪深潜（LangSmith/Langfuse 双 provider 细节）→ [operations/tracing/](../operations/tracing/)
+- 追踪深潜（LangSmith/Langfuse 双 provider 细节）→ [enterprise-operations/tracing/](../enterprise-operations/tracing/)
 - RunJournal 深潜（回调 → 缓冲 → 刷盘 → token 分桶）→ [internals/runtime/04-journal.md](../internals/runtime/04-journal.md)
 - 错误处理 / loop 检测 / 断路器深潜 → [internals/agent-loop/04-error-handling-and-debugging.md](../internals/agent-loop/04-error-handling-and-debugging.md)
-- 审计/可观测的 IT 治理视角 + 缺口清单 → [operations/it-ops/04-audit-observability.md](../operations/it-ops/04-audit-observability.md)
-- 备份恢复 + 监控脚本 → [operations/backup-and-monitoring.md](../operations/backup-and-monitoring.md)
+- 审计/可观测的 IT 治理视角 + 缺口清单 → [../enterprise-it-governance/audit/README.md](../enterprise-it-governance/audit/README.md)
+- 备份恢复 + 监控脚本 → [enterprise-operations/backup-and-monitoring.md](../enterprise-operations/backup-and-monitoring.md)

@@ -110,7 +110,7 @@ flowchart LR
 | **作用域**（`deerflow/knowledge_scope.py`，194 行） | 本包消费它的三个函数；契约里的 `scope` 永远是 `execution_scope()`（剥掉 `display`）的结果 | [03 §7](03-tool-entry-and-failure-policy.md) |
 | **Middleware 链** | `KnowledgeScopeMiddleware`（`:40`）排在 InputSanitization 之后、ToolOutputBudget 之前；后者调本包的 `prune_sources()` | [../middleware/03-catalog.md](../middleware/03-catalog.md) |
 | **Gateway** | `/api/knowledge/capabilities` + 两个只读 `retrieval-catalog` 端点；管理面（`/api/knowledge/datasets`、`/events`）刻意 404 | [03 §6.4](03-tool-entry-and-failure-policy.md) |
-| **扩展契约** | `registry.knowledge_provider(name, provider)`（`backend/packages/harness/deerflow/extensions/registry.py:154-164`），extension-api ≥0.2.7，保留名 `ragflow`/`lightrag` | [../../operations/security/06-extension-boundary.md](../../operations/security/06-extension-boundary.md) |
+| **扩展契约** | `registry.knowledge_provider(name, provider)`（`backend/packages/harness/deerflow/extensions/registry.py:154-164`），extension-api ≥0.2.7，保留名 `ragflow`/`lightrag` | [../../enterprise-operations/security/06-extension-boundary.md](../../enterprise-operations/security/06-extension-boundary.md) |
 | **Capabilities 目录**（`deerflow/capabilities/`） | **无关**：那是插件/MCP/Lark/skill 的清单与 installation identity；`category: knowledge` 只是画廊分组标签 | [../capabilities/README.md](../capabilities/README.md) |
 | **Builtin tools** | 知识工具**不是** builtin：完全由 `config.yaml → tools[]` 驱动，`enabled=false` 时整组消失 | [../../concepts/builtin-tools/README.md](../../concepts/builtin-tools/README.md) |
 | **Typesafe risk-gate** | 同一类「fail-closed vs fail-soft」取舍：权限/作用域一律硬失败，证据清洗一律静默丢弃 | [../typesafe/README.md](../typesafe/README.md) |
@@ -150,4 +150,4 @@ CI 之外还有 `test_knowledge_contract_live.py`（29 行，打真实服务）�
 
 - `_digested/internals/README.md` **已有** `knowledge/` 一行（指向这里），无需改动。
 - `_digested/concepts/community-tools/README.md` 若尚未列出 `09-knowledge-abstraction.md` 与本文档的关系，可在其下补一条「深度版见 `internals/knowledge/`」——**未改动，交由维护者决定**。
-- `_digested/operations/security/04-trust-boundary.md` 的 `## 信任边界` 一节目前没有 knowledge 条目，可考虑补「知识证据只来自工具 artifact，`display` 永不到达 provider」——**未改动**。
+- `_digested/enterprise-operations/security/04-trust-boundary.md` 的 `## 信任边界` 一节目前没有 knowledge 条目，可考虑补「知识证据只来自工具 artifact，`display` 永不到达 provider」——**未改动**。

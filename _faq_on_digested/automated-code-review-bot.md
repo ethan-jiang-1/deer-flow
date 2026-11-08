@@ -115,7 +115,7 @@ curl "http://localhost:8001/api/console/runs?limit=20"
 
 ## 关联文档
 
-- 完整 GitHub 配置: `_digested/operations/github-integration.md`
+- 完整 GitHub 配置: `_digested/enterprise-operations/github-integration.md`
 - SOUL.md 编写: `_digested/concepts/lead-agent/02-soul-md-guide.md`
 - Sub-agent 配置: `_digested/concepts/subagent/dual-threadpool-and-lifecycle.md`
-- 备份监控: `_digested/operations/backup-and-monitoring.md`
+- 备份监控: `_digested/enterprise-operations/backup-and-monitoring.md`

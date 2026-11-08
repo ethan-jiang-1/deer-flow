@@ -138,4 +138,4 @@ wire 形态由 `test_robot_wire_contract`（`:19-39`）钉死：dingtalk 走 `?a
 - **保存配置不等于验证**：`docs/capability-center.md`："Configuration saves credentials without sending a message or creating a CRM record."；`health` 在发现接口里恒为 `unknown`（[01](01-catalog-and-adapters.md) §3.3）。
 - **不重写既有手工配置**：清单版本变化不会改写已存在的 CLI/手工连接（`docs/capability-center.md`："Existing manually configured CLI connections are not rewritten when the catalog entry changes."）。
 - **删除重装会换 identity** → 解绑 Agent 选择；修解释器路径请就地编辑 `command`。
-- 与执行期的关系同 [02](02-installation-identity-and-agent-selection.md) §6：本模块只提供"一个被允许启动的固定 server"，工具被调用后仍走 MCP 拦截器链与工具级风险门（[../../operations/security/03-guardrail.md](../../operations/security/03-guardrail.md)）。
+- 与执行期的关系同 [02](02-installation-identity-and-agent-selection.md) §6：本模块只提供"一个被允许启动的固定 server"，工具被调用后仍走 MCP 拦截器链与工具级风险门（[../../enterprise-operations/security/03-guardrail.md](../../enterprise-operations/security/03-guardrail.md)）。

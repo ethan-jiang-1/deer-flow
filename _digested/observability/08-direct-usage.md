@@ -28,7 +28,7 @@ topics: [observability, usage, logging, operations]
 | **run 事件** | `RunEventStore`（run.start / llm.* / run.error …） | DB 表 / JSONL / memory |
 | **agent 文件** | agent 在沙箱里读写的文件 + tool 输出外部化 | thread `user-data/{workspace,outputs}` + `.tool-results/` |
 
-排障时三条线都要能走：日志 grep `trace_id`、事件端点查 `run_id`、workspace 审查看 agent 到底改了哪些文件。完整磁盘清单见 [operations/backup-and-monitoring.md](../operations/backup-and-monitoring.md)。
+排障时三条线都要能走：日志 grep `trace_id`、事件端点查 `run_id`、workspace 审查看 agent 到底改了哪些文件。完整磁盘清单见 [enterprise-operations/backup-and-monitoring.md](../enterprise-operations/backup-and-monitoring.md)。
 
 ## 最小接入清单（copy-paste）
 

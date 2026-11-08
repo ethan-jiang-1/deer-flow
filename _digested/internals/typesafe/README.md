@@ -106,7 +106,7 @@ flowchart TB
 
 | 相关域 | 关系 | 页面 |
 |--------|------|------|
-| 安全 / 风险门 | `TypeSafeGuardrailProvider` 与 `OpenAIDecisionsGuardrailProvider` 是 2.2.0 三道工具级风险门里的两道，共用本层的传输与门语义 | [../../operations/security/03-guardrail.md](../../operations/security/03-guardrail.md)（「2.2.0 三道工具级风险门」节）、[../../operations/security/04-trust-boundary.md](../../operations/security/04-trust-boundary.md) |
+| 安全 / 风险门 | `TypeSafeGuardrailProvider` 与 `OpenAIDecisionsGuardrailProvider` 是 2.2.0 三道工具级风险门里的两道，共用本层的传输与门语义 | [../../enterprise-operations/security/03-guardrail.md](../../enterprise-operations/security/03-guardrail.md)（「2.2.0 三道工具级风险门」节）、[../../enterprise-operations/security/04-trust-boundary.md](../../enterprise-operations/security/04-trust-boundary.md) |
 | Memory 子系统 | `prescreen/` 与 `signals/` 两个判定子包用本层的 `Answer` / `sharing_key`；`judging.py` 提供两者共用的 batch digest 与答案缓存 | [../../concepts/memory/manager-contract-and-backend-clients.md](../../concepts/memory/manager-contract-and-backend-clients.md)、[../../concepts/memory/extract-queue-persist-pipeline.md](../../concepts/memory/extract-queue-persist-pipeline.md) |
 | 配置系统 | `typesafe:` 顶层块由 `config/typesafe_config.py` 的 `TypeSafeConfig`（strict 模式）承载；`guardrails.provider.config` / `memory.prescreen.config` / `memory.signal_classification.config` 是三个消费者层 | [../configuration/README.md](../configuration/README.md) |
 | 模型层（同构的"工厂 + 适配器"叙事） | 两者都是"一个入口 + 多个协议适配器"：模型层按 `model.use` 路由，本包按"backend + 消费者槽位"路由 | [../model-layer/README.md](../model-layer/README.md) |

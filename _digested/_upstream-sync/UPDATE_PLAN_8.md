@@ -100,15 +100,15 @@ type: plan
 |---|------|------------------------|------|
 | 1 | runtime + persistence | `internals/runtime/`, `internals/persistence/` | stream bridge（Redis 384→1068）、journal 1300→1977、manager 2424→3150、23 个新迁移、blob store |
 | 2 | middleware + agent-loop | `internals/middleware/`, `internals/agent-loop/`, `concepts/lead-agent/` | agents 99 文件改动、`skill_tool_policy` 中间件删除、middleware 工具进授权 |
-| 3 | subagent + scheduler + goal | `concepts/subagent/`, `operations/scheduler.md`, `internals/runtime/goal-continuation.md` | goal 驱动工作流、`max_concurrent_runs_per_user`、结构化错误信封 |
+| 3 | subagent + scheduler + goal | `concepts/subagent/`, `enterprise-operations/scheduler.md`, `internals/runtime/goal-continuation.md` | goal 驱动工作流、`max_concurrent_runs_per_user`、结构化错误信封 |
 | 4 | MCP | `internals/mcp/` | durable tasks 大改、session pool、`mcp_scope.py`、按用户连接 |
 | 5 | skills + capabilities | `concepts/skills-tools/`, 新 `capabilities/` | `tool_policy` 删除后重写、`allowed-tools` 降级、`skill_mutations` |
-| 6 | sandbox + tools | `concepts/sandbox/`, `concepts/builtin-tools/`, `operations/security/02` | 五个 provider 关停可重试、bash 硬超时、path guard 补漏 |
+| 6 | sandbox + tools | `concepts/sandbox/`, `concepts/builtin-tools/`, `enterprise-operations/security/02` | 五个 provider 关停可重试、bash 硬超时、path guard 补漏 |
 | 7 | memory + model-layer | `concepts/memory/`, `internals/model-layer/` | `cognitiveStyle`、词法排序、Markdown 容错、管理 API 按 agent 桶、模型目录加密 |
-| 8 | channels | `operations/channels/`, `operations/integration/04` | QQ 频道、微信扫码、主动通知、leader lease、`channel_runtime_configs` |
+| 8 | channels | `enterprise-operations/channels/`, `enterprise-operations/integration/04` | QQ 频道、微信扫码、主动通知、leader lease、`channel_runtime_configs` |
 | 9 | config + getting-started + TUI | `internals/configuration/`, `getting-started/` | config.example +770 行、`DEER_FLOW_*` 环境变量、多行编辑器 |
-| 10 | gateway + API + uploads | `operations/app-layer/`, `operations/integration/02` | 权限路由、`/health/ready`、上传严格化 |
-| 11 | security + authz + extensions | `operations/security/`, `internals/harness-hooks/`, `operations/it-ops/` | 凭据加密、fail-closed 默认、extension API 0.2.7、skill mutations |
+| 10 | gateway + API + uploads | `enterprise-operations/app-layer/`, `enterprise-operations/integration/02` | 权限路由、`/health/ready`、上传严格化 |
+| 11 | security + authz + extensions | `enterprise-operations/security/`, `internals/harness-hooks/`, `operations/it-ops/` | 凭据加密、fail-closed 默认、extension API 0.2.7、skill mutations |
 | 12 | frontend | `frontend/` | `@` 引用、斜杠菜单精简、产物句柄、UE 大量改动、content 手册 |
 | 13 | observability + testing + test-strategy | `observability/`, `testing/`, `test-strategy/` | `run.terminal`、per-LLM-call 遥测、四分片 CI、`skill-tests` job |
 | 14 | overview + harness + graph/orchestration | `overview/`, `harness/`, `harness-engineering/`, `graph-engineering/`, `orchestration-ladder/` | 架构图/组件/启动流、LIMIT 与计数、编排原语是否新增 |

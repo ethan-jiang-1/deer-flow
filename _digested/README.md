@@ -20,7 +20,8 @@ type: index
 | 🧪 测试策略和方法 | [testing/](testing/) | 测试金字塔、FakeToolCallingModel、CI 门禁、Agent 测试最佳实践 |
 | 🧬 测试体系研究 | [test-strategy/](test-strategy/) | DeerFlow 怎么测自己：思想与成文规矩、确定性 LLM 替身谱系、契约与跨栈 E2E、架构即测试、速度与隔离工程、前端与 TUI、持久化与恢复、上层应用测试面 |
 | 🔭 诊断和观察 | [observability/](observability/) | 日志 + trace_id 关联、RunEvent 事件流、追踪、Console API、调试工具箱、上线清单 |
-| 🚀 部署和运维 | [operations/](operations/) | 安全、部署、追踪、IM 通道、IT 治理、API 参考 |
+| 🏢 企业治理视角 | [enterprise-it-governance/](enterprise-it-governance/) | IT 怎么管起来：身份接入、授权、数据治理、审计追责、合规对照 |
+| 🚀 部署和运维 | [enterprise-operations/](enterprise-operations/) | 安全、部署、追踪、IM 通道、API 参考 |
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化、反馈三环 |
 | 🕸️ 图工程支持到哪儿 | [graph-engineering/](graph-engineering/) | 12 项三档支持度地图、部分支持边界、为什么没有任务 DAG、扩展路线、编排操作面与注入设计 |
@@ -40,7 +41,8 @@ _digested/
 ├── testing/                 # 测试策略 + 实践（开发者实操视角）
 ├── test-strategy/           # 测试体系研究（思想 / 分类学 / 机制咬合）
 ├── observability/           # 诊断与观察（日志 / 事件流 / 追踪 / 控制台 / 调试）
-├── operations/              # 安全、部署、运维
+├── enterprise-operations/   # 部署、运维、安全、通道、追踪（实现视角）
+├── enterprise-it-governance/ # 企业 IT 治理（身份/授权/执行/数据/审计/合规/成本/生命周期）
 ├── frontend/                # 前端架构
 ├── harness/                 # Agent 工程实践（AX/DX、可验证性、审计清单、参与规则五问）
 ├── harness-engineering/     # harness 工程质量评估（coding agent 视角）
@@ -76,7 +78,7 @@ _digested/
 
 ```
 # 按关键词查找
-prompt injection  → operations/security/03-guardrail.md (InputSanitization)
+prompt injection  → enterprise-operations/security/03-guardrail.md (InputSanitization)
 request secrets   → concepts/skills-tools/skill-md-and-tool-assembly.md
 goal continuation → internals/runtime/goal-continuation.md
 goal 驾驶座（续轮/熔断/收尾）→ orchestration-ladder/12-goal驾驶座-续轮准入评估熔断与收尾.md

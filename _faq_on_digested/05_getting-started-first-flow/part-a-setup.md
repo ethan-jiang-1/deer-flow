@@ -200,7 +200,7 @@ curl http://localhost:2026/api/models | python -m json.tool
 curl http://localhost:2026/api/skills | python -m json.tool
 ```
 
-> 完整 API 参考见 `_digested/operations/app-layer/` 和 `backend/docs/API.md`。
+> 完整 API 参考见 `_digested/enterprise-operations/app-layer/` 和 `backend/docs/API.md`。
 
 ### 方式 3：Python 嵌入式客户端
 

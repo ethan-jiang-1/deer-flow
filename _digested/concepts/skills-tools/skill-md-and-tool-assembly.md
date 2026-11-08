@@ -675,4 +675,4 @@ Transport：stdio、SSE、HTTP。OAuth 支持 client_credentials + refresh_token
 | /skill-name 不生效 | 保留命令 | `/new`、`/help` 等保留命令被拒绝 |
 
 ---
-> **See also:** [Security: Input Sanitization & Secrets Redaction](../../operations/security/03-guardrail.md) · [Middleware: SkillActivationMiddleware](../../internals/middleware/03-catalog.md) · [Testing Skills](../../testing/05-testing-skills-and-workflows.md)
+> **See also:** [Security: Input Sanitization & Secrets Redaction](../../enterprise-operations/security/03-guardrail.md) · [Middleware: SkillActivationMiddleware](../../internals/middleware/03-catalog.md) · [Testing Skills](../../testing/05-testing-skills-and-workflows.md)

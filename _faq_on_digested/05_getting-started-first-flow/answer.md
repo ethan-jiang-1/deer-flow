@@ -91,7 +91,7 @@ DeerFlow 官方推荐：**Doubao-Seed-2.0-Code**、**DeepSeek V3.2**、**Kimi 2.
 | Middleware 完整链（39 个条目位 + 时序） | `_digested/internals/middleware/03-catalog.md` |
 | 配置系统（双文件 + 热加载边界） | `_digested/internals/configuration/` |
 | 模型层（factory + provider patches） | `_digested/internals/model-layer/` |
-| Gateway API 和应用层 | `_digested/operations/app-layer/` |
+| Gateway API 和应用层 | `_digested/enterprise-operations/app-layer/` |
 | MCP 工具注入和缓存 | `_digested/internals/configuration/02-extensions-json.md` |
 | Sandbox（local vs Docker vs K8s） | `_digested/concepts/sandbox/` |
 

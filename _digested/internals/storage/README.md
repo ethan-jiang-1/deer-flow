@@ -82,7 +82,7 @@ flowchart LR
 | [../concepts/builtin-tools/A-runtime-control.md](../../concepts/builtin-tools/A-runtime-control.md) | `view_image` 的参数/校验链（⚠️ 该页「注入链路」一节仍是 v2.1 的 base64-in-state 描述，v2.2 已改为 metadata + 按需读取；以本目录 03 页为准） |
 | [../middleware/03-catalog.md](../middleware/03-catalog.md) | `ToolOutputBudgetMiddleware` 中间件条目 |
 | [../persistence/checkpoint-dual-mode-and-history-cache.md](../persistence/checkpoint-dual-mode-and-history-cache.md) | checkpoint 自己的 channel blob（`checkpoint_blobs` 表）——**与本文的 `BlobRef` 无关**，别混 |
-| [../../operations/security/04-trust-boundary.md](../../operations/security/04-trust-boundary.md) | artifact GET 的权限要求（`require_existing=True`）与"意外失败只记异常类型"的日志规则 |
+| [../../enterprise-operations/security/04-trust-boundary.md](../../enterprise-operations/security/04-trust-boundary.md) | artifact GET 的权限要求（`require_existing=True`）与"意外失败只记异常类型"的日志规则 |
 
 ## 上游文档与测试
 

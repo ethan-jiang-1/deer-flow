@@ -205,7 +205,7 @@ curl -N -X POST http://localhost:8001/api/threads/{id}/runs/stream -H "..." -d '
 - `POST /api/threads/{id}/runs/stream` — 有状态流式
 - `GET /api/threads/{id}/runs/{rid}/events` — 事后审计
 
-完整 API：`_digested/operations/app-layer/01-api-reference.md`
+完整 API：`_digested/enterprise-operations/app-layer/01-api-reference.md`
 
 ## 7. IM Channels
 

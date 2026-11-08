@@ -8,7 +8,7 @@ topics: [sandbox, isolation, filesystem]
 
 DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。
 
-> **交叉引用：** 七种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../../operations/security/02-sandbox-isolation.md)。
+> **交叉引用：** 七种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../../enterprise-operations/security/02-sandbox-isolation.md)。
 
 ## 抽象接口
 
@@ -530,4 +530,4 @@ flowchart TD
 - 本地沙箱上的被阻止 bash 产生明确的错误消息，指出不安全的边界并建议切换到 AIO
 
 ---
-> **See also:** [Security: Sandbox Isolation](../../operations/security/02-sandbox-isolation.md) · [Sandbox Governance](../../operations/it-ops/02-sandbox-governance.md) · [Env Policy (source)](../../../backend/packages/harness/deerflow/sandbox/env_policy.py)
+> **See also:** [Security: Sandbox Isolation](../../enterprise-operations/security/02-sandbox-isolation.md) · [Sandbox Governance](../../enterprise-it-governance/execution/README.md) · [Env Policy (source)](../../../backend/packages/harness/deerflow/sandbox/env_policy.py)

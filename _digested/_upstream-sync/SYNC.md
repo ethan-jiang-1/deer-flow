@@ -176,7 +176,7 @@ git diff --name-only -z "$NEW" ethan | tr '\0' '\n' \
 | 上游改了 | 需要复查的 digest |
 |---------|------------------|
 | `backend/.../agents/` | `concepts/lead-agent/`, `internals/middleware/`, `internals/agent-loop/` |
-| `backend/.../sandbox/` | `concepts/sandbox/`, `operations/security/` |
+| `backend/.../sandbox/` | `concepts/sandbox/`, `enterprise-operations/security/` |
 | `backend/.../subagents/` | `concepts/subagent/` |
 | `backend/.../skills/` | `concepts/skills-tools/` |
 | `backend/.../tools/` | `concepts/builtin-tools/` |
@@ -186,8 +186,8 @@ git diff --name-only -z "$NEW" ethan | tr '\0' '\n' \
 | `backend/.../memory/` | `concepts/memory/` |
 | `backend/.../runtime/` | `internals/runtime/` |
 | `backend/.../client.py` | `getting-started/` |
-| `backend/app/gateway/` | `operations/app-layer/` |
-| `backend/app/channels/` | `operations/channels/` |
+| `backend/app/gateway/` | `enterprise-operations/app-layer/` |
+| `backend/app/channels/` | `enterprise-operations/channels/` |
 | `frontend/` | `frontend/` |
 | `config.example.yaml` | `internals/configuration/`, `getting-started/` |
 | `backend/tests/` | `testing/`, `test-strategy/` |
@@ -195,7 +195,7 @@ git diff --name-only -z "$NEW" ethan | tr '\0' '\n' \
 | `contracts/` | `test-strategy/` |
 | `scripts/`（detect_* / check_agent_guidance / verify_versions） | `test-strategy/` |
 | `.github/workflows/` | `testing/`, `test-strategy/` |
-| `docker/` | `operations/deployment/` |
+| `docker/` | `enterprise-operations/deployment/` |
 | `extensions/sources/`, `examples/deerflow-extension-*` | `internals/harness-hooks/`（扩展平台）、`test-strategy/` |
 | `frontend/src/content/`（用户手册 en/zh） | 对应 `_digested/` 主题页 + `frontend/` |
 | 迁移文件（`backend/app/...migrations/versions/`） | `internals/persistence/` |

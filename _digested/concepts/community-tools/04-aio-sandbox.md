@@ -243,4 +243,4 @@ K3s 模式提供了 Local/Docker 所没有的资源限制（CPU/Mem）和 Pod �
 
 - Ownership store 完整设计（`own:`/`del:` 租约、renew 语义、孤儿对账）→ [concepts/sandbox/abstract-interface-and-seven-impls.md](../sandbox/abstract-interface-and-seven-impls.md)
 - 7 种沙箱实现对比 → [concepts/sandbox/abstract-interface-and-seven-impls.md](../sandbox/abstract-interface-and-seven-impls.md)
-- 沙箱安全隔离（seccomp/提权/网络）→ [operations/security/02-sandbox-isolation.md](../../operations/security/02-sandbox-isolation.md)
+- 沙箱安全隔离（seccomp/提权/网络）→ [enterprise-operations/security/02-sandbox-isolation.md](../../enterprise-operations/security/02-sandbox-isolation.md)

@@ -143,4 +143,4 @@ projects:
 
 ## 设计文档
 
-`docs/superpowers/specs/2026-09-12-projects-mvp-phase2-design.md`（606 行，含 §7 上下文 / §8 trash / §10-12 安全与边界）。上下文注入对 lead-agent 侧的影响见 [lead-agent/factory-and-threadstate.md](../lead-agent/factory-and-threadstate.md)；Gateway 路由见 [operations/app-layer](../../operations/app-layer/00-overview.md)。
+`docs/superpowers/specs/2026-09-12-projects-mvp-phase2-design.md`（606 行，含 §7 上下文 / §8 trash / §10-12 安全与边界）。上下文注入对 lead-agent 侧的影响见 [lead-agent/factory-and-threadstate.md](../lead-agent/factory-and-threadstate.md)；Gateway 路由见 [enterprise-operations/app-layer](../../enterprise-operations/app-layer/00-overview.md)。

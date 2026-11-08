@@ -225,7 +225,7 @@ resolve_project_context(thread_store, project_repo, thread_id, document_repo)
 
 **架构归档**：`archived/` 状态的项目成员仍保留 instructions 注入和只读 shelf 访问。
 
-> 完整设计文档：`docs/superpowers/specs/2026-09-12-projects-mvp-phase2-design.md`（606 行）。Gateway 侧 routers / trash 见 operations/app-layer。
+> 完整设计文档：`docs/superpowers/specs/2026-09-12-projects-mvp-phase2-design.md`（606 行）。Gateway 侧 routers / trash 见 enterprise-operations/app-layer。
 
 ---
 

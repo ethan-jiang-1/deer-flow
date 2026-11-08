@@ -69,7 +69,7 @@ flowchart LR
 | 工具装配 | `filter_mcp_plugins()` 在 `get_available_tools()` 里生效；`mcp_plugins` 三态与 skills 三态同构 | [../../concepts/builtin-tools/README.md](../../concepts/builtin-tools/README.md) |
 | 子代理/批量子代理 | `mcp_plugins` 通过 agent build metadata → `task_tool` / `subagents/batch_service.py` 传给子代理装配 | [../../concepts/builtin-tools/D-task-toolsearch.md](../../concepts/builtin-tools/D-task-toolsearch.md) |
 | 配置系统 | `capability` / `presentation` 是 `McpServerConfigResponse` 的 `extra="allow"` 携带字段，不是 schema 字段 | [../configuration/README.md](../configuration/README.md) |
-| 安全/信任边界 | `is_bundled_connection()` 是 stdio 执行白名单里的**唯一窄例外**；目录条目从不授予执行权 | [../../operations/security/03-guardrail.md](../../operations/security/03-guardrail.md)、[../../operations/security/04-trust-boundary.md](../../operations/security/04-trust-boundary.md) |
+| 安全/信任边界 | `is_bundled_connection()` 是 stdio 执行白名单里的**唯一窄例外**；目录条目从不授予执行权 | [../../enterprise-operations/security/03-guardrail.md](../../enterprise-operations/security/03-guardrail.md)、[../../enterprise-operations/security/04-trust-boundary.md](../../enterprise-operations/security/04-trust-boundary.md) |
 | 前端 | `frontend/src/core/capabilities/` 消费 catalog 与安全投影；`plugin-catalog.ts` 只做本地化，禁止从显示名推断 provider | [../../frontend/04-workspace-layout.md](../../frontend/04-workspace-layout.md) |
 
 ## 权威契约文档

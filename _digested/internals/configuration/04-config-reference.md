@@ -586,7 +586,7 @@ authorization:
           routes: {allow: ["threads:read", "runs:read"]}
 ```
 
-可插拔鉴权（AuthorizationProvider + 内置 RBAC）详见 [operations/security/01-auth.md](../../operations/security/01-auth.md)。配置可热更新。
+可插拔鉴权（AuthorizationProvider + 内置 RBAC）详见 [enterprise-operations/security/01-auth.md](../../enterprise-operations/security/01-auth.md)。配置可热更新。
 
 ### auth.local（登录限流）🔄 Sync #6
 
@@ -699,7 +699,7 @@ circuit_breaker:
 
 ## IM Channels
 
-详见 [operations/integration/04-im-channels.md](../../operations/integration/04-im-channels.md)。
+详见 [enterprise-operations/integration/04-im-channels.md](../../enterprise-operations/integration/04-im-channels.md)。
 
 ## Verification（tool 结果确定性收据）🆕
 
@@ -770,7 +770,7 @@ run_ownership:
   heartbeat_enabled: false  # 是否启用心跳续租
 ```
 
-`heartbeat_enabled=true` 是 `scheduler.multi_instance=true` 的前置条件之一（另两个：共享 Postgres、`run_events.backend=db`），否则启动直接拒绝该组合。scheduler digest 里的租约回收/接管语义见 [../../operations/scheduler.md](../../operations/scheduler.md)。restart-required。
+`heartbeat_enabled=true` 是 `scheduler.multi_instance=true` 的前置条件之一（另两个：共享 Postgres、`run_events.backend=db`），否则启动直接拒绝该组合。scheduler digest 里的租约回收/接管语义见 [../../enterprise-operations/scheduler.md](../../enterprise-operations/scheduler.md)。restart-required。
 
 ## dedupe_storage（入站 webhook 去重存储）🆕
 

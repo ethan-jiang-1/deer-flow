@@ -110,7 +110,7 @@ middleware 那一侧的细节（`guardrails/middleware.py:189-215`）：
 - `_record_guardrail_event(..., action="deny_tool_call", provider_error=True)`，且 `put_authorization_outcome(...)` 也写下这次结果（`:198-206`）；
 - async 分支逐字对称（`:240-267`）。
 
-**注意 fail-open 仍然存在**：`fail_closed: false` 时同一条异常变成 allow，但只有 `action="allow_tool_call_after_provider_error"` 且 `provider_error=True` 这一种记录方式——这是配置出来的策略，不是默认。默认值见 [../../operations/security/03-guardrail.md](../../operations/security/03-guardrail.md)。
+**注意 fail-open 仍然存在**：`fail_closed: false` 时同一条异常变成 allow，但只有 `action="allow_tool_call_after_provider_error"` 且 `provider_error=True` 这一种记录方式——这是配置出来的策略，不是默认。默认值见 [../../enterprise-operations/security/03-guardrail.md](../../enterprise-operations/security/03-guardrail.md)。
 
 ### 2.2 memory 的路径：异常等于"本轮没判"，于是照常
 
