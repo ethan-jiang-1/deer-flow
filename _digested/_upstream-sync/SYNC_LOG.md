@@ -8,6 +8,24 @@ type: index
 
 ---
 
+## #8 — 2026-11-08（同步，锚点 = v2.2.0 正式版；首次采用「重建式同步」）
+
+| 项目 | 值 |
+|------|-----|
+| **操作** | 同步（v2.1.0 → v2.2.0；同时把 `ethan` 收敛回「只有三个目录」的初心形态） |
+| **旧锚点** | `345f08be`（tag `v2.1.0`） |
+| **新锚点** | `58fc5bd5b`（**tag `v2.2.0`** = `upstream/2.2.x-dev` 的 HEAD，2026-11-04 发布） |
+| **上游新增 commits** | **1,239**（其中 v2.2.0-rc0 → v2.2.0 仅 5 个收尾 commit；Release 说明统计 1,068 个 PR） |
+| **⚠️ 分叉** | `v2.2.0` **不是** `upstream/main` 的祖先；main 已到 `2.3.0-dev`（`c69e9ef0b`，领先 142 commits）。与 #7 同策略：跟 release tag，不跟 main |
+| **`ethan` 形态变化** | 旧：160 commits、`git diff main ethan` 含 **37 个源码文件**（`backend/`、`docs/`、`examples/`、`AGENTS.md`，全来自自制测试策略提交 `0c1a6fad4`）。新：`v2.2.0` + 三个目录，**1 条提交** `5d441b9a7`，三目录之外**零差异**（37 个违反项中 21 个被 2.2.0 同名文件覆盖，16 个不再存在） |
+| **同步方式** | **重建式**（不是 merge）：`main` reset 到 tag → `ethan` 从 main 重开 → 三个目录整目录继承 → 一条提交。详见 [SYNC.md](SYNC.md)「未来同步时怎么做」 |
+| **安全网** | 分支 `ethan-backup-2026-11-08` = tag `pre-2.2.0-ethan` = `785295559`（旧 160 commits 全量） |
+| **校验** | `git diff v2.2.0 ethan` 三目录之外 0 文件；`v2.2.0..ethan` = 1 commit；三目录与备份逐目录 0 差异 |
+| **2.2.0 会打穿 digest 的 breaking changes** | ① 本地 dev 绑 loopback（`BIND_HOST`）；② 凭据静态加密 `DEER_FLOW_CREDENTIALS_KEY`（Fernet，逗号分隔可轮换）+ IM 凭据迁入 `channel_runtime_configs` 表（降级需重录 UI 机器人）；③ 多进程门更严（`GATEWAY_WORKERS>1`/`multi_instance`/`WEB_CONCURRENCY` 必须 Redis stream bridge；`channels.leader_lease`）；④ scheduler 错误改结构化信封 `{code,message,params}` + `max_concurrent_runs_per_user`（默认 2）+ DST 跳过的 `once` 返回 422；⑤ 线程删除级联删 runs/events/feedback；⑥ `tool_output.elide_superseded_writes` 改默认 false、skill `allowed-tools` 降为兼容元数据；⑦ 工具授权覆盖 middleware 工具；⑧ fail-closed 安全默认（委派 `web_fetch`/`web_capture` 后端拒 loopback、SSRF 拒 CGNAT `100.64.0.0/10`、IM `allowed_users` 解析失败即全拒、外部 `system`/`developer` 消息 400、`USER.md` 按用户隔离）；⑨ 上传/路径更严（Windows 保留名、同名 `_N` 后缀、`skipped_files`、`success` 语义、缺时间戳的 outline/preview 拒绝）；⑩ 斜杠菜单只剩 `/goal`+`/compact`（技能改用 `@` 引用）；⑪ API 形状收紧（run body 422/400、`wait` 错误信封、空 `event_types` 匹配无、keyed resume 503、MCP 连接按用户、SQLite `file:` URI 拒绝、`gpt-6` 系列默认 Responses API、`--print/--json` 失败退出 1）；⑫ `frontend` 面大量改动；⑬ 新增 extensions 全家桶（bookmarks / agent-teams / workflows / knowledge-management / knowledge-platform） |
+| **后续（未做）** | 两遍扫描：`345f08be..58fc5bd5b` 的 diff → 逐域核对 + `tools/check_digest.py` + 113 个带 `file:line` 断言的 digest 反向核对（1,239 commits 后行号几乎全漂）；新建 `UPDATE_PLAN_8.md`；推送 `origin` 待用户确认（强推） |
+
+---
+
 ## #7 — 2026-09-24（同步，锚点 = 正式版 tag）
 
 | 项目 | 值 |

@@ -37,21 +37,36 @@ type: index
         │
         ├─ 10 commits later（release 收尾：版本号/CHANGELOG/CI/两本手册）
         │
-        └─ 上游 tag v2.1.0（345f08be）← 锚点 #7（2026-09-21 之后，v2.1.0 正式版）
+        ├─ 1048 commits later（release 线：rc0 → 正式版，含 2.2 全部功能）
+        │
+        └─ 上游 tag v2.2.0（58fc5bd5b）← 锚点 #8（2026-11-04 发布，2026-11-08 同步）
 ```
 
-> ⚠️ **锚点 #7 的特殊之处**：`v2.1.0` tag 打在 release 分支 `2.1.x-dev` 上，**不是 `upstream/main` 的祖先**——
-> 两者在 `v2.1.0-rc0`（锚点 #6）处分叉。main 在 rc0 之后另有 **189 个 commit**（2.2 开发线），
-> 所以本次 `main` 镜像指向的是 **release tag**，而不是 `upstream/main`。下一次同步要同时处理这两条线。
+> ⚠️ **从 #7 起，锚点一直是 release tag，不是 `upstream/main`**：`v2.1.0`、`v2.2.0` 都打在 release 分支
+> （`2.1.x-dev` / `2.2.x-dev`）上，**不是 `upstream/main` 的祖先**。main 同时跑在更前面的开发线
+> （`v2.2.0` 时 main 已是 `2.3.0-dev`，领先 142 commits）。所以 `main` 镜像指向的是 **release tag**，
+> 不是 `upstream/main`。每次同步先判线，别默认跟 main。
 
-## 核心约定
+## 核心约定（铁律，不容例外）
 
 ```
-main   = 上游 bytedance/deer-flow 的镜像（一行不改）
-ethan  = main + _digested/ + _faq_on_digested/（129 个 commit，274 个文件，全部在这两个目录）
+main   = 上游 bytedance/deer-flow 的镜像（一行不改，指向最新 release tag）
+ethan  = main + 恰好三个目录：_digested/ + _faq_on_digested/ + _deerflow_application_agent_ready_development/
 ```
 
-> 计数口径：`git rev-list --count main..ethan` 与 `git ls-tree -r --name-only ethan -- _digested _faq_on_digested`；`git diff --name-only main ethan` 在 `_digested/`、`_faq_on_digested/` 之外应为空（每次同步后用这条自检）。
+**`ethan` 独有的只有这三个目录，其余每个字节都与 `main`（= 锚点 tag）完全相同。** 这是这个 fork 的初心，
+不是「大约如此」：任何落在三个目录之外的差异都是 bug，必须在同步时清掉，不许「顺手带过去」。
+
+> ⚠️ 历史教训（#8 时踩过）：`ethan` 曾有 37 个文件（`backend/`、`docs/`、`examples/`、`AGENTS.md`）来自一个
+> 自制的测试策略提交。核对时别只信「只有三个目录」这个前提——**永远先用下面的命令验证**，再决定怎么做。
+> 用 `-z` 输出，否则含空格/中文的文件名会被加引号转义，前缀匹配会误报。
+
+```bash
+# 唯一权威自检：三目录之外的差异必须为空
+git diff --name-only -z v2.2.0<锚点> ethan \
+  | tr '\0' '\n' | grep -vE '^(_digested|_faq_on_digested|_deerflow_application_agent_ready_development)/' \
+  | grep -c .          # 必须输出 0
+```
 
 **`main` 的 HEAD 就是我们消化内容对应的上游代码版本。** 这个 hash 是唯一的锚点。
 
@@ -61,41 +76,74 @@ ethan  = main + _digested/ + _faq_on_digested/（129 个 commit，274 个文件�
 
 | 项目 | 值 |
 |------|-----|
-| **`main` HEAD（= 消化基准）** | `345f08be`（**tag `v2.1.0`**，release 分支 `2.1.x-dev`） |
-| **旧锚点** | `769589e8`（tag `v2.1.0-rc0`，2026-09-21） |
-| **日期** | 2026-09-24（tag 切出日期） |
-| **上游变更规模** | 10 commits（90 files, +9,097 / −450） |
-| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #7 |
-| **上游当前状态** | tag 与 `upstream/main` **已分叉**：`upstream/main` = `3a862780`，rc0 之后另有 **189 commits**（925 files, +94,219 / −4,795，2.2 线）；上游最新 tag 仍是 `v2.1.0` |
-| **累积落后** | `162fb214` → `v2.1.0`（共 1,179 commits），[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...v2.1.0) |
+| **`main` HEAD（= 消化基准）** | `58fc5bd5b`（**tag `v2.2.0`**，release 分支 `2.2.x-dev` 的 HEAD） |
+| **旧锚点** | `345f08be`（tag `v2.1.0`，2026-09-24） |
+| **日期** | 2026-11-04（tag 发布）/ 2026-11-08（同步） |
+| **上游变更规模** | 1,239 commits（1,068 个 PR，v2.1.0 → v2.2.0） |
+| **同步日志** | [SYNC_LOG.md](SYNC_LOG.md) #8 |
+| **上游当前状态** | tag 与 `upstream/main` **已分叉**：`upstream/main` = `c69e9ef0b`（`2.3.0-dev`，v2.2.0 之后另有 142 commits）；上游最新 tag 仍是 `v2.2.0`（release 线无后续补丁） |
+| **累积落后** | `162fb214` → `v2.2.0`，[查看差异](https://github.com/bytedance/deer-flow/compare/162fb214...v2.2.0) |
+| **`ethan` 形态** | `v2.2.0` + 三个目录，**1 条提交**（`5d441b9a7`），三目录之外零差异 |
 
-## 未来同步时怎么看
+## 未来同步时怎么做（照抄即可，不用再讨论）
+
+**核心一步不是 merge，而是重建。** `ethan` 有上百个历史提交，`git merge` 会把那些提交里的源码差异全部放大成冲突；
+而我们的目标态永远简单——「新 tag + 三个目录」。所以直接构造目标态，然后一条提交：
 
 ```bash
+TAG=v2.2.0                      # ← 换成新 release tag
+NEW=$(git rev-parse "$TAG^{}")  # ← 目标 commit（annotated tag 要解引用）
+OLD=$(git rev-parse main)       # ← 旧锚点
+
 # 0. 拉上游（含 tag）+ 自己的 fork
 git fetch upstream --tags --prune && git fetch origin
 
-# 1. 先判断锚点走哪条线：release 分支还是 main
-git merge-base --is-ancestor v2.1.0 upstream/main && echo "tag 在 main 上" || echo "已分叉"
-git log --oneline -1 upstream/2.1.x-dev          # release 线的最新提交
-git rev-list --count v2.1.0..upstream/main       # main 线领先多少
+# 1. 判线 + 确认新 tag 存在（别假设有新版，先看）
+git ls-remote --tags upstream | grep -v '\^{}$' | awk -F/ '{print $3}' | sort -V | tail -5
+git merge-base --is-ancestor "$TAG" upstream/main && echo "tag 在 main 上" || echo "已分叉（正常）"
+git log --oneline -1 "upstream/$(echo $TAG | sed 's/^v//; s/\([0-9]*\.[0-9]*\)\..*/\1.x/')-dev" 2>/dev/null
+git rev-list --count "$TAG"..upstream/main       # main 线领先多少（2.3 开发线进度）
 
-# 2. 看多了什么（345f08be 是旧锚点，按上一步选定的新锚点替换）
-git log --oneline 345f08be..<新锚点>
-git diff --stat 345f08be..<新锚点>
+# 2. 安全网（两步都做：分支可 checkout，tag 抗误删）
+git branch -f "ethan-backup-$(date +%F)" ethan
+git tag -f "pre-${TAG#v}-ethan" ethan
 
-# 3. 同步 main 镜像到新锚点（tag 用 reset --hard；main 分支用 merge --ff-only）
-git checkout main && git reset --hard <新锚点>   # 或 git pull upstream main
+# 3. 校验旧 ethan 是否干净（三目录之外必须为 0；不为 0 就停下来报告，别硬带）
+git diff --name-only -z "$OLD" ethan \
+  | tr '\0' '\n' | grep -vE '^(_digested|_faq_on_digested|_deerflow_application_agent_ready_development)/' \
+  | grep -c .
 
-# 4. 合并到 ethan（ethan 只加 _digested/ + _faq_on_digested/，源码应无冲突）
-git checkout ethan && git merge main
+# 4. main 镜像 → 新 tag
+git checkout main && git reset --hard "$NEW"
 
-# 5. 更新这个文件：把「当前锚点」改成新的 main HEAD，并记一条 SYNC_LOG.md
+# 5. ethan 重建：从新 tag 开一条线，然后把三个目录「继承」过来
+git checkout -B ethan main
+git checkout "ethan-backup-$(date +%F)" -- \
+  _digested _faq_on_digested _deerflow_application_agent_ready_development
 
-# 6. 跑机械校验（tools/check_digest.py，只读、有问题退出码 1）
-python3 _digested/_upstream-sync/tools/check_digest.py
-git diff <新锚点> ethan -- . ':(exclude)_digested' ':(exclude)_faq_on_digested'   # 必须为空
+# 6. 提交前自检（必须 0），然后一条提交
+git diff --name-only -z "$NEW" ethan \
+  | tr '\0' '\n' | grep -vE '^(_digested|_faq_on_digested|_deerflow_application_agent_ready_development)/' \
+  | grep -c .
+git commit -m "chore(sync): move ethan to upstream $TAG (anchor #N)"
+
+# 7. 提交后再验一次 + 记录
+git rev-list --count "$NEW"..ethan                # 必须 1（除非额外加了三目录内的修正提交）
+git diff --name-only -z "$NEW" ethan | tr '\0' '\n' \
+  | grep -vE '^(_digested|_faq_on_digested|_deerflow_application_agent_ready_development)/' | grep -c .   # 必须 0
+# 更新本文件「当前锚点」+ 记 SYNC_LOG.md #N + 写 UPDATE_PLAN_N.md
+# 然后跑两遍扫描（下一节）
 ```
+
+**几条硬规矩**：
+
+1. **不要 `git merge`，不要 cherry-pick**。重建比合并简单、可预测、零冲突。
+2. **三目录整目录继承**（`git checkout <backup> -- <dir>`），不要挑文件，不要改内容——内容更新是「两遍扫描」阶段的事，
+   别混进同步提交里（否则同步提交不再可审计）。
+3. **发现三目录之外的差异时**：先停下报告，不要擅自删除或迁移用户的改动。由人决定是归档、丢弃还是加进允许区。
+4. **`origin` 推送要人点头**：`main`/`ethan` 都是强推，先做完第 6 步自检再问。
+5. **无新 tag 就如实说「没有新版本」**，不要因为 main 在动就把 main 当锚点（除非用户明确要开发线）。
+6. 文件名含空格/中文很常见，**所有 diff 校验都用 `-z` + `tr '\0' '\n'`**，否则引号转义会导致前缀匹配误报。
 
 ## 两遍扫描（sync 的固定套路）
 
@@ -135,3 +183,6 @@ git diff <新锚点> ethan -- . ':(exclude)_digested' ':(exclude)_faq_on_digeste
 | `scripts/`（detect_* / check_agent_guidance / verify_versions） | `test-strategy/` |
 | `.github/workflows/` | `testing/`, `test-strategy/` |
 | `docker/` | `operations/deployment/` |
+| `extensions/sources/`, `examples/deerflow-extension-*` | `internals/harness-hooks/`（扩展平台）、`test-strategy/` |
+| `frontend/src/content/`（用户手册 en/zh） | 对应 `_digested/` 主题页 + `frontend/` |
+| 迁移文件（`backend/app/...migrations/versions/`） | `internals/persistence/` |
