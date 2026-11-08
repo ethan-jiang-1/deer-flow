@@ -372,13 +372,13 @@ cleanup_written()            (:467)  异常/取消时回滚已写文件
 | 400 | `service.open()` 的 `ValueError`（配置/目录初始化非法） | `str(e)` | `routers/uploads.py:437-438`（`service.open()` 的 `except ValueError`） |
 | 400 | list 的 `ValueError` | `str(e)` | `routers/uploads.py:505`（`GET /list`，`except ValueError` 在 `:511-512`） |
 | 400 | delete：`PathTraversalError` | `Invalid path` | `routers/uploads.py:517`（DELETE，`except` 在 `:526-534`） |
-| 400 | delete：`normalize_filename` 的 `ValueError` | `str(e)` | `routers/uploads.py:531-532` |
+| 400 | delete：`normalize_filename` 的 `ValueError` | `str(e)` | `routers/uploads.py:527-528` |
 | 404 | delete 时文件不存在（`FileNotFoundError`）或目标是符号链接 | `File not found: <name>` | `routers/uploads.py:517`（`except FileNotFoundError` `:527-528`） |
 | **413** | 文件数 > `uploads.max_files`（默认 **10**，`DEFAULT_MAX_FILES`） | `Too many files: maximum is <n>` | `routers/uploads.py:70-72`（默认值）、`:418`（抛点） |
 | **413** | 单文件 > `uploads.max_file_size`（默认 **50 MiB**，`DEFAULT_MAX_FILE_SIZE`） | `File too large: <name>` | `app/gateway/upload_ingestion.py:330`（`_ingest_chunks` 上限分支） |
 | **413** | 单请求总量 > `uploads.max_total_size`（默认 **100 MiB**，`DEFAULT_MAX_TOTAL_SIZE`） | `Total upload size too large` | `app/gateway/upload_ingestion.py:332` |
 | 500 | 摄取过程中的其它异常（已 `cleanup_written()`） | `Failed to upload <name>: <e>` | `routers/uploads.py:472`（POST `except Exception`，detail `Failed to upload <name>.`） |
-| 500 | delete 的其它异常 | `Failed to delete <name>.`（**固定文本**，`OSError` 的主机路径只进日志） | `routers/uploads.py:531-534` |
+| 500 | delete 的其它异常 | `Failed to delete <name>.`（**固定文本**，`OSError` 的主机路径只进日志） | `routers/uploads.py:529-531` |
 | — | `UnsafeFilenameError`（文件名消毒失败） | **静默跳过**（记 warning，计入 `skipped_files`，不算错误） | `routers/uploads.py:453`（POST 逐文件循环） |
 | — | `UnsafeUploadDestinationError` | **静默跳过**并加入 `skipped_files` | `routers/uploads.py:453`（POST 逐文件循环） |
 | — | 空 part（未命名/零字节的表单部件） | 跳过并记 `"(unnamed file)"` | `routers/uploads.py:453`（POST 逐文件循环） |

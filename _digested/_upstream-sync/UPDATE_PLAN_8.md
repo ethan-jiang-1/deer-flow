@@ -264,6 +264,46 @@ PY
 本次结果 330 个未覆盖符号，按前缀聚类后立刻暴露 `ManagedModel*`（0 命中）与 `AgentPackage*`（0 命中）两个整片空白。
 **判读要点**：数量本身不是指标，**成体系的同前缀簇**才是缺口信号——单个未提到的辅助函数通常无需补写。
 
+### P7 复查补漏（独立抽查抓出的机械层盲区）
+
+P7 收尾后做了一次**不依赖 `check_digest.py` 的独立抽查**：用「`file:N` / `file:A-B` → 到 v2.2.0 树里比对该文件总行数」这个朴素口径，
+覆盖 `_digested` 全部 3,367 条可定位行号断言，**抓出 9 处 `:A-B` 上界超出文件末尾**——校验器一处都没报。
+
+根因：`LINE_REF_RE` 只匹配单行号 `:NNN`。遇到 `:113-122` 时它匹配到起点 `:113`（合法），
+**上界 122 从未被检查**，于是「文件变短、区间尾端越界」这整类错误对机械层完全隐形。
+
+修法不是逐条补 9 个例外，而是新增 `LINE_SPAN_RE` 把区间上界纳入 `line_in_range`——增强后立刻又抓出 FAQ 目录里第 10 处。
+这印证了 `tools/README.md`「例外要收敛成规则」：**抽查抓到的是一类错误时，要把口径写进校验器，而不是改完就走。**
+
+独立抽查脚本（不依赖校验器的容差逻辑，可随时重跑）：
+
+```python
+import re, subprocess, pathlib
+ROOT = pathlib.Path("/Users/bowhead/deer-flow")
+files = {f for f in subprocess.run(["git", "ls-tree", "-r", "--name-only", "v2.2.0"],
+         cwd=str(ROOT), capture_output=True, text=True).stdout.split(chr(10)) if f.strip()}
+cache = {}
+def nlines(p):
+    if p not in cache:
+        r = subprocess.run(["git", "show", "v2.2.0:" + p], cwd=str(ROOT),
+                           capture_output=True, text=True)
+        cache[p] = len(r.stdout.splitlines()) if r.returncode == 0 else None
+    return cache[p]
+pat = re.compile(r"`?([A-Za-z0-9_./-]+\.(?:py|ts|tsx|yaml|yml|md|json|mjs|sh))`?:(\d+)(?:-(\d+))?")
+bad = 0
+for md in (ROOT / "_digested").rglob("*.md"):
+    for m in pat.finditer(md.read_text(encoding="utf-8", errors="replace")):
+        p, hi = m.group(1), int(m.group(3) or m.group(2))
+        cands = [f for f in files if f.endswith("/" + p) or f == p]
+        if len(cands) != 1:
+            continue
+        n = nlines(cands[0])
+        if n is not None and hi > n:
+            bad += 1
+            print("  X", cands[0], m.group(2), "-", m.group(3) or "", ">", n, "<-", md.name)
+print("越界:", bad)
+```
+
 ### 遗留
 
 - **推送待用户批准**：`main` 与 `ethan` 都需要强推，未执行。

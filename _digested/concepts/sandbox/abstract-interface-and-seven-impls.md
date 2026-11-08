@@ -387,9 +387,9 @@ sandbox:
 
 | Provider | 位置 | 失败即回滚 + 抛出的情形 |
 |----------|------|------------------------|
-| **AIO** | `aio_sandbox_provider.py:2984-3073` | `_stop_idle_checker()` / `_stop_lease_renewal()` 抛错 → `_shutdown_called = False` 后 re-raise；有任何 sandbox 销毁失败 → `_cleanup_retry_ids` 累积这些 id，`_shutdown_called = False`，抛 `RuntimeError("Failed to destroy N sandbox(es) during AIO shutdown; retry shutdown")`；只有真正成功才 `_ownership.close()` / `discard_sandbox_lease_manager()` / `_acquire_serializer.close()` |
+| **AIO** | `aio_sandbox_provider.py:2984-3068` | `_stop_idle_checker()` / `_stop_lease_renewal()` 抛错 → `_shutdown_called = False` 后 re-raise；有任何 sandbox 销毁失败 → `_cleanup_retry_ids` 累积这些 id，`_shutdown_called = False`，抛 `RuntimeError("Failed to destroy N sandbox(es) during AIO shutdown; retry shutdown")`；只有真正成功才 `_ownership.close()` / `discard_sandbox_lease_manager()` / `_acquire_serializer.close()` |
 | **E2B** | `e2b_sandbox_provider.py:3081+` | 维护线程 join 超时 → 置 `_shutdown_cleanup_pending = True` 并抛 `_E2BMaintenanceShutdownTimeout`；下次 `shutdown()` 靠这个 pending 标志**放行重试**（`if self._shutdown_called and not self._shutdown_cleanup_pending: return`） |
-| **BoxLite** | `boxlite/provider.py:697-741` | 关闭 idle checker 或等待 `_pending_acquires == 0` 超时（5s）→ 抛 `RuntimeError("BoxLite in-flight acquisitions did not finish before shutdown timeout")` 并把 `_shutdown_called` 复位；另有 `_loop_cleanup_pending` 让「私有 loop 关不掉」也能重试 |
+| **BoxLite** | `boxlite/provider.py:697-739` | 关闭 idle checker 或等待 `_pending_acquires == 0` 超时（5s）→ 抛 `RuntimeError("BoxLite in-flight acquisitions did not finish before shutdown timeout")` 并把 `_shutdown_called` 复位；另有 `_loop_cleanup_pending` 让「私有 loop 关不掉」也能重试 |
 | **OpenSandbox** | `opensandbox/provider.py:562-579` | `_stop_idle_checker()` 抛错 → 复位 `_shutdown_called` 后 re-raise |
 | **Local** | `local/local_sandbox_provider.py:603-607` | 无外部资源，直接复用 `reset()`——本来就是幂等的 |
 

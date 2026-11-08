@@ -26,7 +26,7 @@ python3 _digested/_upstream-sync/tools/check_digest.py --only path_exists,line_i
 | 名称 | 查什么 |
 |------|--------|
 | `line_count` | `` `path`, N 行 `` 的文件长度断言（自动跳过 `+N 行`、`涨了 N 行`、`196 → 1549 行`、`第 93-100 行` 这类增量/区间写法，以及同名文件不唯一的情况） |
-| `line_in_range` | `path:NNN` 是否超出文件长度 |
+| `line_in_range` | `path:NNN` 是否超出文件长度；**`path:A-B` 区间同时校验上界**（sync #8 P7 补：旧版只看起点，漏掉整类「尾端越界」错误） |
 | `dead_link` | markdown 相对链接目标是否存在 |
 | `anchor` | `file.md#section` 的目标小节是否存在（slug 保留 `_`，容忍中英文标点） |
 | `path_exists` | 反引号里的路径式引用能否在源码树解析（支持裸文件名唯一匹配） |

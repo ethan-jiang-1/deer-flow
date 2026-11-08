@@ -46,7 +46,7 @@ outer_wrappers: [InputSanitization, KnowledgeScope, ToolOutputBudget,
 
 Layer 1 的排列意图（源码注释 `:370-393`）：`InputSanitization` 在最前 → 是最外层 `wrap_model_call`，内层（含 LLM 重试）看到的都是洗过的消息；`ToolResultSanitization` 排在 `ToolOutputBudget` **之后**，先中性化远程内容标签再做预算截断；`PiiRedaction` 排最后 → 是最内层 wrapper，tool 结果先脱敏、落盘副本才不含 PII。
 
-🆕 v2.2.0 的 `ArtifactResolutionMiddleware` 在 `tail` 里紧跟 `LLMErrorHandling`，并排在 Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress **之外**（`extensions/ordering.py:113-122` 的 `OrderingConstraint` 硬约束）：handle 必须在"对参数敏感"的授权/审计/写门/progress 策略之前解析成真实引用。`ToolReceiptMiddleware` 仍是最外层 `wrap_tool_call`（`:95-110` 约束它包住 ArtifactResolution/Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress 全部五个可能短路的环节）。
+🆕 v2.2.0 的 `ArtifactResolutionMiddleware` 在 `tail` 里紧跟 `LLMErrorHandling`，并排在 Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress **之外**（`extensions/ordering.py:113-120` 的 `OrderingConstraint` 硬约束）：handle 必须在"对参数敏感"的授权/审计/写门/progress 策略之前解析成真实引用。`ToolReceiptMiddleware` 仍是最外层 `wrap_tool_call`（`:95-110` 约束它包住 ArtifactResolution/Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress 全部五个可能短路的环节）。
 
 Sub-agent 通过 `build_subagent_runtime_middlewares()`（`:567`）使用同一基础层：`include_uploads=False`、`include_dangling_tool_call_patch=True`、`receipts_render_mode="always"`（子方上下文不渲染 ledger 就拿不到引用，Layer 1 直接失效）。
 

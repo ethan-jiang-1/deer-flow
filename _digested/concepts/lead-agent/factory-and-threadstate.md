@@ -136,7 +136,7 @@ System prompt 包含：
 - 🆕 `bash_available=False`（授权后的工具集里没有 `bash`）时，ACP/workspace-scripts 段降级为不含 bash 的措辞
 - 🆕 memory tool 段新增 `memory_get`
 
-**`lead_prompt_overlay`（v2.2.0）**：`apply_prompt_template()` 返回前最后一件事是 `app_config.lead_prompt_overlay.apply(rendered_prompt)`（`lead_agent/prompt.py:1289-1291`）。`PromptOverlay` 是 `{prepend: str, append: str}` 两个 `strict=True` 的字符串字面量，`apply()` 用 `"\n\n"` 把非空部分拼起来——**不做模板展开**，因此可以安全放操作方自己的指令文本；两者都为空时 prompt 字节完全不变（保住 prefix cache）。overlay 之后的 prompt 必须与 graph/descriptor 记录的 prompt 一致。
+**`lead_prompt_overlay`（v2.2.0）**：`apply_prompt_template()` 返回前最后一件事是 `app_config.lead_prompt_overlay.apply(rendered_prompt)`（`lead_agent/prompt.py:1289-1290`）。`PromptOverlay` 是 `{prepend: str, append: str}` 两个 `strict=True` 的字符串字面量，`apply()` 用 `"\n\n"` 把非空部分拼起来——**不做模板展开**，因此可以安全放操作方自己的指令文本；两者都为空时 prompt 字节完全不变（保住 prefix cache）。overlay 之后的 prompt 必须与 graph/descriptor 记录的 prompt 一致。
 
 **`context.locale`（v2.2.0）**：web run 可以在 runtime context 里给 `context.locale`（`en-US` / `zh-CN`）。它只作为**请求内**的语言偏好投影进人数据（DynamicContext 的 transient 块），静态 system prompt 与 locale 无关——所以切换语言的会话仍能复用 system prompt 前缀缓存。
 

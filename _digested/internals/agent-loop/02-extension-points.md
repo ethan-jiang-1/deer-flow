@@ -182,7 +182,7 @@ class MyMiddleware(AgentMiddleware):
     ...
 ```
 
-这意味着你的 middleware 会被插入到 `LoopDetectionMiddleware` **之后**；`@Prev` 则插到它之前。机制上装饰器只给类打标记（`cls._next_anchor` / `cls._prev_anchor`，`deerflow/agents/features.py:49-73`），真正的插入发生在装配期：SDK 路径是 `agents/factory.py::_insert_extra()`（`factory.py:474`），按锚点算下标后再插进链（无锚点的插到 `ClarificationMiddleware` 之前，插完再把 Clarification 弹回尾部）。
+这意味着你的 middleware 会被插入到 `LoopDetectionMiddleware` **之后**；`@Prev` 则插到它之前。机制上装饰器只给类打标记（`cls._next_anchor` / `cls._prev_anchor`，`deerflow/agents/features.py:49-70`），真正的插入发生在装配期：SDK 路径是 `agents/factory.py::_insert_extra()`（`factory.py:474`），按锚点算下标后再插进链（无锚点的插到 `ClarificationMiddleware` 之前，插完再把 Clarification 弹回尾部）。
 
 ### 第三步：注入到链中
 

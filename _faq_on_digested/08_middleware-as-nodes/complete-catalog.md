@@ -28,7 +28,7 @@
 | 8 | **SandboxMiddleware** | `before_agent`、`before_model`、`after_agent` | 获取 sandbox，存 `sandbox_id` 到 state；`before_model` 二次校验、`after_agent` 对称释放（栈语义） | ❌ |
 | 9 | **DanglingToolCallMiddleware** | `wrap_model_call` | 补充缺失的 ToolMessage + malformed id 恢复 + 无效参数清洗（用户中断/strict provider 不 400） | ❌ |
 | 10 | **LLMErrorHandlingMiddleware** | `wrap_model_call` | LLM API 出错时规范化错误为可恢复的 assistant-facing 错误（重试 + 断路器）。🆕 2.2：true empty stop 额外给一次 model-boundary 重试 | ❌ |
-| 11 | **ArtifactResolutionMiddleware** 🆕 | `wrap_tool_call` | 把 tool artifact handle 在**任何参数敏感策略之前**解析成真实引用（`tool_artifacts.resolve_handles_in_args`）。`extensions/ordering.py:113-122` 硬约束它包住 Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress | ✅ `tool_artifacts.enabled` |
+| 11 | **ArtifactResolutionMiddleware** 🆕 | `wrap_tool_call` | 把 tool artifact handle 在**任何参数敏感策略之前**解析成真实引用（`tool_artifacts.resolve_handles_in_args`）。`extensions/ordering.py:113-120` 硬约束它包住 Guardrail/SandboxAudit/ReadBeforeWrite/ToolProgress | ✅ `tool_artifacts.enabled` |
 | 12 | **ToolReceiptMiddleware** | `wrap_tool_call`（最外层） | 确定性 tool 收据（RFC #4651 layer 1）：每个 tool 结果盖 sha256 收据，模型调用前派生隐藏 ledger（r1..rN）。lead 默认 `delegation_only`、subagent 恒 `always` | ✅ `verification.receipts_enabled`（默认开） |
 | 13 | **GuardrailMiddleware**（authorization 实例） | `wrap_tool_call` | Layer 2 执行前授权检查：`GuardrailAuthorizationAdapter` 包 `AuthorizationProvider`，`fail_closed` 策略。**这是 2.2 之后 `allowed-tools` 权限上限的真正归属之一** | ✅ `authorization.enabled` |
 | 14 | **GuardrailMiddleware**（显式 provider 实例） | `wrap_tool_call` | 显式 guardrails provider（如内置 `AllowlistProvider(allowed_tools=..., denied_tools=...)`）。`allowed_tools=[]` = 全拒，`None` = 全放 | ✅ `guardrails.enabled` + `guardrails.provider` |

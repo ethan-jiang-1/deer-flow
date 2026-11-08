@@ -129,6 +129,9 @@ LINE_COUNT_RE = re.compile(r"`([A-Za-z0-9_./-]+\.(?:py|ts|tsx|yml|yaml|json|md|m
 LINE_RANGE_RE = re.compile(r"第\s*\d+\s*[-–~]\s*\d+\s*行|L\d+\s*[-–~]\s*L?\d+")
 DELTA_HINTS = ("大改", "净增", "净 +", "本轮", "涨了", "新增", "减少了", "去掉", "→", "->", "曾", "记为", "旧文档", "此前")
 LINE_REF_RE = re.compile(r"`?([A-Za-z0-9_./-]+\.(?:py|ts|tsx|yml|yaml))`?:(\d{1,5})")
+# 行区间 `<file>:A-B`：只校验起点会漏掉「尾端超出文件末尾」这一整类错误
+# （sync #8 P7 抽查发现 9 处，LINE_REF_RE 全都没抓到）。区间单独一版把上界也取出来。
+LINE_SPAN_RE = re.compile(r"`?([A-Za-z0-9_./-]+\.(?:py|ts|tsx|yml|yaml))`?:(\d{1,5})\s*[-–~]\s*(\d{1,5})")
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
 ANCHOR_RE = re.compile(r"\[[^\]]*\]\(([^)\s]*#[^)\s]+)\)")
 PATH_TOK_RE = re.compile(r"`([A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:py|ts|tsx|yml|yaml|json|mdx|sh|toml))`")
@@ -322,7 +325,23 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     if actual != claimed:
                         findings.append(("line_count", f"{rel_doc}:{no} {target} 声称 {claimed} 行，实际 {actual}"))
             if enabled("line_in_range"):
+                # 先处理区间（`file:A-B`），取到上界；否则 `:A` 的匹配会把 B 丢掉
+                span_ends = set()
+                for m in LINE_SPAN_RE.finditer(line):
+                    token, a, b = m.group(1), int(m.group(2)), int(m.group(3))
+                    span_ends.add(m.end())
+                    target = resolve_path(token, index)
+                    if not target:
+                        continue
+                    total = file_line_count(os.path.join(ROOT, target))
+                    if a > b:
+                        findings.append(("line_in_range", f"{rel_doc}:{no} {target}:{a}-{b} 区间起点大于终点"))
+                    elif b > total:
+                        findings.append(("line_in_range", f"{rel_doc}:{no} {target}:{a}-{b} 区间上界超出文件长度 {total}"))
                 for m in LINE_REF_RE.finditer(line):
+                    # 跳过已被区间覆盖的起点
+                    if any(m.start() <= e and m.end() <= e for e in span_ends):
+                        continue
                     token, n = m.group(1), int(m.group(2))
                     target = resolve_path(token, index)
                     if not target:

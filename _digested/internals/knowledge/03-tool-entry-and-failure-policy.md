@@ -354,7 +354,7 @@ if not getattr(knowledge_base_config, "enabled", False):
 | 不发 HTTP | `knowledge/` 四个文件没有 `httpx`/`requests` import；连接在 adapter/extension |
 | 不存凭据 | 契约无任何 secret 字段；RAGFlow 的 key 在 `knowledge_search.api_key`（`Wallet` 之外），WeKnora 在 `api_key_env` |
 | 不做资源 ACL | `KnowledgeRequestContext` docstring「never provider authorization」；`backend/docs/KNOWLEDGE.md` 反复写「DeerFlow does not … create a second ACL store」 |
-| 不提供管理面 | `/api/knowledge/datasets`（GET/POST）、`/api/knowledge/events` 都返回 404（`backend/tests/test_knowledge_router.py:274-287`）——只有 `capabilities` + 两个 `retrieval-catalog` 只读端点 |
+| 不提供管理面 | `/api/knowledge/datasets`（GET/POST）、`/api/knowledge/events` 都返回 404（`backend/tests/test_knowledge_router.py:274-286`）——只有 `capabilities` + 两个 `retrieval-catalog` 只读端点 |
 | 不持久化证据 | artifact 跟着 `ToolMessage` 走 checkpoint / run event，不由本包写库 |
 | 不做语义解析/重排 | 排序是 provider 的事；本包只看 `score` 的有限性（`contract.py:64`） |
 
