@@ -6,7 +6,7 @@
 
 ## 阶梯结构（运行时事实，对 v2.2.0 树核验）
 
-docs 站 harness 节（`frontend/src/content/en/harness/`，中文镜像在 `zh/harness/`，两套同结构维护）分三层：平铺 14 个 `.mdx`（另有 `_meta.ts` 导航配置），加三个专题子目录 `extensions/`（11 个主题页）、`subagents/`（11 个主题页）、`checkpoints/`（10 个主题页）。
+docs 站 harness 节（`frontend/src/content/en/harness/`，中文镜像在 `zh/harness/`，两套同结构维护）分三层：平铺 13 个 `.mdx`（另有 `_meta.ts` 导航配置），加三个专题子目录 `extensions/`（11 个主题页）、`subagents/`（11 个主题页）、`checkpoints/`（10 个主题页）。
 
 **第一层：起步与总览**
 
@@ -28,7 +28,7 @@ docs 站 harness 节（`frontend/src/content/en/harness/`，中文镜像在 `zh/
 
 （`extensions/` 在 v2.1.0 是 10 个主题页——没有 `plugins.mdx`；`checkpoints/` 整个子目录在 v2.1.0 不存在，是本版新增的会话检查点/恢复手册。）
 
-**双语**：en 与 zh 两套镜像同结构维护。**边界**：手册描述的是发布时的行为快照；它与代码的一致性靠主仓自己的文档纪律维持（见[指南预算与文档测试](./02-guidance-budgets-and-doc-tests.md)），不是独立保证——卷一的 integration-guide 快照警示（示例与源码三处不符）在 v2.2.0 仍未修正，就是这条边界的具体实例。
+**双语**：en 与 zh 两套镜像同结构维护。**边界**：手册描述的是发布时的行为快照；它与代码的一致性靠主仓自己的文档纪律维持（见[指南预算与文档测试](./02-guidance-budgets-and-doc-tests.md)），不是独立保证——v2.2.0 的 integration-guide 已修正 v2.1.0 的三处示例漂移；这条边界仍成立——文档与代码的一致性靠主仓纪律，不靠发布自动保证。
 
 ## 仓库内的架构与工程文档层（对 tag 核验）
 

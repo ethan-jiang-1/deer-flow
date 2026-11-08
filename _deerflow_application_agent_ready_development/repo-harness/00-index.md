@@ -12,7 +12,7 @@ DeerFlow 仓库的可参与性由五类机制叠加（正文页逐项取证）�
 
 1. **分层指南网络**——根 `AGENTS.md` 只做定位，深度下放到模块与子系统级指南，agent 按最近文件读规则；
 2. **指南本身的治理**——指南尺寸按目录深度设预算并进 CI，文档示例被测试直接执行，防止"给 agent 的指令"膨胀或过期；
-3. **应用手册与架构文档阶梯**——docs 站 harness 手册从快速上手到逐主题（14 个平铺页：快速上手、配置、定制、设计原则、集成、lead agent、记忆、中间件、沙箱、skill、工具等）再到三个专题子目录（扩展、子代理、检查点），再加上 v2.2.0 扩到 14 个的示例扩展，构成应用开发者现成的官方路径；docs/ARCHITECTURE.md 顶层架构总览与 backend/docs/ 工程文档层（48 个文件：设计/RFC、运行时行为、门禁配套、契约、扩展面设计、运维）构成面向贡献者与运维的第二层文档面；
+3. **应用手册与架构文档阶梯**——docs 站 harness 手册从快速上手到逐主题（13 个平铺页：快速上手、配置、定制、设计原则、集成、lead agent、记忆、中间件、沙箱、skill、工具等）再到三个专题子目录（扩展、子代理、检查点），再加上 v2.2.0 扩到 14 个的示例扩展，构成应用开发者现成的官方路径；docs/ARCHITECTURE.md 顶层架构总览与 backend/docs/ 工程文档层（48 个文件：设计/RFC、运行时行为、门禁配套、契约、扩展面设计、运维）构成面向贡献者与运维的第二层文档面；
 4. **可执行契约面**——`extension-api` 公共包（19 个文件）与跨组件 JSON 契约（`contracts/` 13 个文件）把"扩展能依赖什么"变成可对照的稳定表面，打包检查脚本 `scripts/check_extension.py` 把它变成可执行的门禁；
 5. **配置与检查面**——示例配置、配置版本升级指引（`config_version: 63`）、诊断工具与运行证据（`RunEvidenceReader`），以及 v2.2.0 新增的多实例/blob 存储/知识库/凭据加密四个配置面，让部署侧问题可定位。
 
@@ -24,7 +24,7 @@ DeerFlow 仓库的可参与性由五类机制叠加（正文页逐项取证）�
 |---|---|
 | [01-follow-a-fresh-agent.md](./01-follow-a-fresh-agent.md) | 一个新 agent 进仓第一小时读什么；指南网络的分层、最近文件规则、规模与 Copilot 专属指南面 |
 | [02-guidance-budgets-and-doc-tests.md](./02-guidance-budgets-and-doc-tests.md) | 指南预算 CI、文档示例进测试——给 agent 的指令也受门禁约束 |
-| [03-harness-docs-site.md](./03-harness-docs-site.md) | docs 站 harness 手册阶梯（14 个平铺页 + extensions/、subagents/、checkpoints/ 三个专题子目录）与仓库内架构/工程文档层：ARCHITECTURE 总览与 48 个 backend/docs |
+| [03-harness-docs-site.md](./03-harness-docs-site.md) | docs 站 harness 手册阶梯（13 个平铺页 + extensions/、subagents/、checkpoints/ 三个专题子目录）与仓库内架构/工程文档层：ARCHITECTURE 总览与 48 个 backend/docs |
 | [04-example-and-contracts.md](./04-example-and-contracts.md) | 14 个示例扩展包、`check_extension.py` 打包检查、extension-api 公共契约与 `contracts/` 13 个 JSON 契约的分工 |
 | [05-config-and-inspection.md](./05-config-and-inspection.md) | 示例配置、config 版本升级（63）、doctor 与运维诊断面，以及多实例/blob 存储/知识库/凭据加密四个新配置面 |
 | [06-boundaries-and-costs.md](./06-boundaries-and-costs.md) | 这套机制不给什么：startup-only 装载、扩展代码不在沙箱里执行、全栈插件面 experimental、能力有版本门槛、文档快照性与对策清单 |

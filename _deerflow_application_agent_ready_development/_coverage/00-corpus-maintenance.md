@@ -27,13 +27,30 @@
 - 含 Markdown 的目录必须有 README.md；
 - SVG 必须有固有 width/height 与 `<title>`/`<desc>`（当前语料共五张 SVG，分属三卷 figures/ 目录）。
 
+## 固定计数（v2.2.0，2026-11-08 复核）
+
+“现状清单”是最容易在 re-pin 时漏改的部分，因此把本语料引用的硬计数集中在这里；每轮重审先按命令重数，再改正文。
+
+| 事实 | v2.2.0 值 | 重数命令 |
+|---|---|---|
+| `AGENTS.md` 指南 | **57**（根 1 + 模块 3 + 子系统 53）；另有 1 个 `GITHUB_AGENTS.md` 同名文档 | `git ls-tree -r v2.2.0 \| grep 'AGENTS\.md$'` |
+| harness 平铺手册 | **13** 个 `.mdx` + `_meta.ts` | `git ls-tree --name-only v2.2.0:frontend/src/content/en/harness` |
+| harness 专题手册 | `extensions/` 11、`subagents/` 11、`checkpoints/` 10 | 分别 `git ls-tree --name-only v2.2.0:frontend/src/content/en/harness/<dir>` |
+| extension-api 包文件 | **19**（18 个 `.py` + `py.typed`） | `git ls-tree --name-only v2.2.0:backend/packages/extension-api/deerflow_extension_api \| wc -l` |
+| `contracts/` JSON | **13** | `git ls-tree -r --name-only v2.2.0:contracts \| wc -l` |
+| `backend/docs` | **48** | `git ls-tree --name-only v2.2.0:backend/docs \| wc -l` |
+| 示例扩展 | **14** | `git ls-tree -d --name-only v2.2.0:examples \| wc -l` |
+| CI workflows | **19** | `git ls-tree --name-only v2.2.0:.github/workflows \| grep -cE '\.ya?ml$'` |
+| `config_version` | **63** | `git show v2.2.0:config.example.yaml \| grep '^config_version:'` |
+| 迁移 head | **0048_extension_execution_leases** | `git show v2.2.0:backend/packages/harness/deerflow/persistence/migrations/AGENTS.md` |
+
 ## 重审触发路径
 
 | 上游变化 | 需要做什么 |
 |---|---|
 | 新 release tag 发布 | 评估 re-pin：逐条复核正文结论与链接，不能只替换 URL；旧结论过时要改写并在本页登记 |
 | extension-api 契约变化（贡献类型、placement、auth、run_evidence、execution fence） | 复核应用开发模型卷的接入形态与契约页、卷三示例与契约页 |
-| `AGENTS.md` 网络或 docs 站 harness 手册结构调整 | 复核开发 Harness 卷的现状清单（这类"现状清单"最容易在 re-pin 时漏改）；注意 v2.2.0 的手册结构是"14 个平铺页 + `extensions/`、`subagents/`、`checkpoints/` 三个专题子目录"，其中 `checkpoints/` 是本版新增，`extensions/` 本版多了 `plugins.mdx`——每次 re-pin 都要按 `git ls-tree` 重数页数，别沿用上一版的目录树 |
+| `AGENTS.md` 网络或 docs 站 harness 手册结构调整 | 复核开发 Harness 卷的现状清单（这类"现状清单"最容易在 re-pin 时漏改）；注意 v2.2.0 的手册结构是"13 个平铺页 + `_meta.ts` 导航 + `extensions/`、`subagents/`、`checkpoints/` 三个专题子目录"，其中 `checkpoints/` 是本版新增，`extensions/` 本版多了 `plugins.mdx`——每次 re-pin 都要按 `git ls-tree` 重数页数，别沿用上一版的目录树 |
 | PR 模板、CI workflows、发版或迁移制度变化 | 复核 SDLC 参考卷对应页 |
 | 示例扩展被移动、删除或扩容 | 复核新仓起步页的入口路径与卷三示例与契约页（v2.2.0 示例从 1 个增至 14 个；分组是语料自定的，重数时按目录与各包 description，不要照抄 `examples/README.md` 的 start-here/additional 列表） |
 | subagent catalog / custom agents / ACP 配置面变化 | 复核卷一第五种接入面与术语词条 |
@@ -43,7 +60,7 @@
 
 ### 2026-10-07 · 第 1 轮（建语料）
 
-- 钉定基线 v2.2.0（`345f08be`），确认其为宿主分支祖先；确认 tag 后宿主分支改动清单（49 个文件，含移植的测试策略材料），登记上文排除项。
+- 初钉基线记为 v2.2.0（实际 commit `345f08be` 是 v2.1.0；第 11 轮已纠正并 re-pin 到 v2.2.0 `58fc5bd5`），确认其为宿主分支祖先；确认 tag 后宿主分支改动清单（49 个文件，含移植的测试策略材料），登记上文排除项。
 - 建立骨架：入口 README、三卷（`application-development-model/`、`sdlc-reference/`、`repo-harness/`）各自的 README 与入口页、`_coverage/` 维护层。
 - 落地结构验证器 `verify.mjs` 与自测 `verify.test.mjs`（正例 + 四类负例），全部通过。
 - 三卷正文页本轮未建：卷入口页登记了各卷规划页清单与取证入口，后续轮次按页补齐并对 tag 逐条核验锚点。
@@ -176,7 +193,7 @@
 
 **事实精度修订**（6 处，均对 tag 亲测）：
 
-- 卷一 01：integration-guide 的"手册是快照"警示从一处扩为三处——`astream`/`ainvoke`（源码实为 `stream()`/`chat()`，client.py:770/1193）、`from deerflow.config import load_config`（实为 `get_app_config()`，`DEER_FLOW_CONFIG_PATH` 机制真实）、Gateway 挂载导入 `deerflow.app.gateway.main`（实为不发布层 `app.gateway`）；正文改述为源码真实 API，不再把手册示例当运行时事实。
+- 卷一 01：v2.1.0 的 integration-guide 有三处示例漂移——`astream`/`ainvoke`（源码实为 `stream()`/`chat()`）、`from deerflow.config import load_config`（实为构造时读配置/`get_app_config()`）、Gateway 挂载导入 `deerflow.app.gateway.main`（实为不发布层 `app.gateway`）；**v2.2.0 已全部修正**，第 12 轮据此改正文，不再把旧版手册当 v2.2.0 事实。
 - 卷一 01 与卷二 10：扩展来源从"三种"改为"成文规则（extensions 指南：公共索引 + 公共 Git-over-HTTPS + SSH/内嵌凭据拒收 + 本地快照）+ operations 手册 Accepted sources 表的五种接受形式"；"版本锁定/pinned"标注为示例形式而非 manager 强制规则（manager 接受任意合法 requirement）。
 - 卷一 01：技能部署侧位置补全为三处（`skills/public/` 随仓、`skills/custom/` gitignored 运行时目录、`.deer-flow/integrations/skills/{provider}/` 托管集成技能包）；`skills/parser.py` 写全路径 `backend/packages/harness/deerflow/skills/parser.py` 并注明手册简写。
 - 卷一 01：补 `POST /api/skills/install` 在 v2.2.0 源码同为 admin-only（routers/skills.py 的 `require_admin_user`；文档只标 upload 端点，代码比文档严）。
@@ -187,7 +204,7 @@
 
 - **卷一**：新增第五种接入面"custom agent 定义"（subagent catalog 三来源 built-in → config.yaml → managed 及优先级、`subagents.agents.<name>` per-agent 覆盖、skills 白名单与委派范围快照强制、`/api/subagents` 权限面、managed 存储 file/db、ACP 外部 agent 经 `invoke_acp_agent` 不走 task 目录）；新增"部署与运行时机制"节（guardrails 的 GuardrailMiddleware/三 provider/fail_closed 与沙箱·人工在环的分工、scheduler 非交互运行与 run-context 键的丢弃语义、IM 渠道绑定与 GitHub 事件驱动 agent）；术语表新增 custom agent、ACP agent、guardrails、非交互运行、渠道绑定五词条并扩读法提醒；形态计数全局 4→5（入口 README、卷一 00-index、卷 README、01 页与 development-loop、integration-forms 两图）。
 - **卷二**：01 页补 issue 表单面（bug-report 必填复现步骤与日志、feature-request"非平凡先开 Discussion"、config.yml 关闭空白 issue 并三路分流：问题→Q&A、想法→ideas、漏洞→security policy）；02 页补 RFC 原生层（backend/docs 三份 RFC + docs/plans 可插拔授权 RFC→实施记录→分期计划链，摘录"旧 RFC 示例与已合并代码及测试不一致时，以已合并契约为准"）；05 页补门禁配套文档（BLOCKING_IO_DETECTION 的静态/运行时互补、REPLAY_E2E 的 "fake green" 动机）。
-- **卷三**：01 页修正"不为单个工具单独维护指南"的过强声明（.github/copilot-instructions.md 213 行、"Trust this onboarding guide first"、与 AGENTS 网络互不引用且优先级主张不同）并补 29 份 AGENTS.md 清点（28 份指南：根 1 + 模块 3 + 子系统 24；第 29 份 backend/docs/GITHUB_AGENTS.md 是同名功能文档非指南）；00-index 机制三扩为"应用手册与架构文档阶梯"；03 页改题"应用手册与架构文档：两级文档阶梯"并新增"仓库内的架构与工程文档层"节（docs/ARCHITECTURE.md 七节总览 + backend/docs 40 文件五类：设计/RFC、运行时行为、门禁配套、契约、部署运维）；guidance-network 图同步（CLAUDE 框改三行并注 Copilot 专属指南、子系统层 ×24）。
+- **卷三**：01 页修正"不为单个工具单独维护指南"的过强声明（.github/copilot-instructions.md 当时记 213 行；第 12 轮对 v2.2.0 重数为 231 行，"Trust this onboarding guide first"、与 AGENTS 网络互不引用且优先级主张不同）并补 29 份 AGENTS.md 清点（28 份指南：根 1 + 模块 3 + 子系统 24；第 29 份 backend/docs/GITHUB_AGENTS.md 是同名功能文档非指南）；00-index 机制三扩为"应用手册与架构文档阶梯"；03 页改题"应用手册与架构文档：两级文档阶梯"并新增"仓库内的架构与工程文档层"节（docs/ARCHITECTURE.md 七节总览 + backend/docs 40 文件五类：设计/RFC、运行时行为、门禁配套、契约、部署运维）；guidance-network 图同步（CLAUDE 框改三行并注 Copilot 专属指南、子系统层 ×24）。
 
 **去除非原生概念**：入口 README 标题 "DeerFlow Application Agent-ready Development" 改为 "DeerFlow 应用开发语料"（"Agent-ready" 在 v2.2.0 零命中的工具圈流行语；用户决定目录名保留作外部制品标识）；卷二 README 补卷名免责声明（"SDLC" 在 v2.2.0 零命中，与卷三 repo-harness 卷名声明对齐）。正文经第 8/9 轮审计与本轮 token 抽查未再发现非原生残留。
 
@@ -199,25 +216,25 @@
 
 **逐条修正**（按卷）：
 
-- **入口 README / 三卷 README / 00-index**：AGENTS.md 文件数 29 → 58（根 1 + 模块 3 + 子系统 54，其中 `backend/docs/GITHUB_AGENTS.md` 仍是同名功能文档非指南，因此不计入子系统层）；接入形态仍为五种，但 extension 的贡献类型从"七种"改为"九种 + 实验性全栈插件面单独计数"的准确口径（v2.2.0 新增 `registry.plugin()` 全栈插件与 `registry.knowledge_provider()` 只读知识提供者）。
+- **入口 README / 三卷 README / 00-index**：以 `AGENTS.md` 结尾的文件数 29 → 58（其中指南 28 → 57：根 1 + 模块 3 + 子系统 53；另 1 个 `backend/docs/GITHUB_AGENTS.md` 是同名功能文档非指南）；接入形态仍为五种，但 extension 的贡献类型从"七种"改为"九种（含实验性全栈插件面与只读知识提供者）"的准确口径（v2.2.0 新增 `registry.plugin()` 全栈插件与 `registry.knowledge_provider()` 只读知识提供者）。
 - **卷一 01 新仓起步**：契约贡献类型 7 → 9（并补全栈插件与知识提供者是 v2.2.0 新增）；示例包引用从单一 `deerflow-extension-example` 改为 14 个示例包的入口表（新增 bookmarks、agent-teams、workflows、knowledge、knowledge-management、knowledge-platform、lightrag、weknora、retrieval、report-sections、jev-classify、jev-context、jev-screening）；补 v2.2.0 新增的部署配置面（`deployment.multi_instance`、`blob_storage`、`knowledge_base`、`DEER_FLOW_CREDENTIALS_KEY`）作为内嵌形态的运行时前提。
 - **卷一 02 术语**：贡献类型词条 7 → 9，并把"示例演示五种"限定为 `deerflow-extension-example` 这一个示例的自述范围（其余示例覆盖到全栈插件、知识提供者等更多贡献面）；`subagents.enabled` 配置键在 v2.2.0 不存在，相关表述改为按 `subagents.custom_agents` / `subagents.agents.<name>` 的实际配置面描述（若原文出现该键，按**已删除**处理）。
 - **卷一 03 交付与验收**：示例 README 的测试口径引文对 tag 重核未变；"组合验证没有现成模式"的边界补 v2.2.0 的新证据面——`run-evidence` 手册与 `RunEvidenceReader`（只读运行证据）、`ExtensionManager` 的 `list --json` 字段，说明证据的可取得性提升了，但仍不是随包交付的组合测试模式。
 - **卷二 03 TDD**、**卷二 04 PR 表面**：引文与模板结构 2.1 → 2.2 未变（PR 模板 diff 为空），仅复核确认；**卷二 06 架构契约**：uv 版本钉住测试仍强制四处一致（Dockerfile `UV_IMAGE`、两份 compose、全部 CI `setup-uv`），新增的 3 个 workflow 也各自钉了 `0.11.1`；**卷二 07 发版与版本门**：版本源从**四源变五源**——`backend/packages/harness/pyproject.toml` 加入版本源清单，`bump_version.sh` 同时刷新 `backend/uv.lock` 且需要 `uv` 在 `PATH`（`verify-versions.yml` 增加 `uv lock --check`，lock 过期同样跳过全部发布 job）；正文原写"四源"处改为五源并补 lock 维度；**卷二 08 迁移链**：迁移指南的 head 已到 `0048_extension_execution_leases`，正文引用的事故链（`0023_run_change_seq` 插队 → `0025_repair_run_change_seq`）在 v2.2.0 原文仍在，表述保留但补"当前 head"事实；**卷二 05 CI 门禁**：workflow 从 16 个增至 19 个，补 `extension-package-check.yml`（示例包打包检查 + 逐包隔离 pytest/ruff）、`jev-plugin-package.yml`（wheel 构建 + `verify_package.py`）、`backend-windows-live-policy.yml`（Windows live policy，周一定时），并把 `lint-check.yml` 新增的 `label-declarations` job 计入矩阵。
 
-- **卷三 01 参与路径**：`AGENTS.md` 网络 29 → 58 文件（子系统层 24 → 54，新增 `community/*` 12 份、`persistence`、`storage`、`typesafe`、`uploads`、`agents/task_continuity`、6 个 `examples/deerflow-extension-*`、`frontend/src/core/{auth,memory}`、`frontend/tests/e2e`、`skills/public/{data-analysis,video-generation}` 等）；"monorepo orientation layer" 自述与 "Where to Go Next" 节在 v2.2.0 已从根指南移除（根指南从"自称定位层"改为"实际承担定位"的描述），"root make vs module" 的经验规则也不再逐字存在，正文改为按现行的 `Module commands` 节描述；nearest-file 规则在 v2.2.0 的原话已变为 `backend/AGENTS.md` 的 "Read the nearest scoped `AGENTS.md` for subsystem ownership."（引文更新）。
+- **卷三 01 参与路径**：以 `AGENTS.md` 结尾的文件 29 → 58（指南 28 → 57，子系统层 24 → 53；另有 1 个 GITHUB_AGENTS 文档，新增 `community/*` 12 份、`persistence`、`storage`、`typesafe`、`uploads`、`agents/task_continuity`、6 个 `examples/deerflow-extension-*`、`frontend/src/core/{auth,memory}`、`frontend/tests/e2e`、`skills/public/{data-analysis,video-generation}` 等）；"monorepo orientation layer" 自述与 "Where to Go Next" 节在 v2.2.0 已从根指南移除（根指南从"自称定位层"改为"实际承担定位"的描述），"root make vs module" 的经验规则也不再逐字存在，正文改为按现行的 `Module commands` 节描述；nearest-file 规则在 v2.2.0 的原话已变为 `backend/AGENTS.md` 的 "Read the nearest scoped `AGENTS.md` for subsystem ownership."（引文更新）。
 - **卷三 02 指南预算与文档测试**：预算常量四个（16/20、28/32、40/48、80/96 KiB）对 tag 未变；根 `AGENTS.md` 实测 249 行 / 14167 字节（仍在 16 KiB 软线下），backend 24599 / frontend 32406 / scripts 32760 字节（均在模块硬线 32 KiB 内）；`agent-guidance` job 的两种触发（PR 用 `--base-ref`/`--head-ref`，push 用 `--before`/`--after`，都带 `--github-annotations`）与 `lint-check.yml` 新增的 `label-declarations` job 已补。文档示例测试一段按 tag 校正：`MIDDLEWARE_GUIDES` 五个文件与 10 个测试函数两版相同，v2.2.0 改的是三个测试的断言内容（`SkillToolPolicyMiddleware` → `SkillActivationMiddleware`、子代理链路补"模型长度防护"、"子代理没有这一阶段"删去 model-length）。
-- **卷三 03 手册阶梯**：`harness/` 节从"平铺 14 页 + extensions 10 页 + subagents 11 页"改为 v2.2.0 的实际树——平铺 14 个 `.mdx`、`extensions/` 11 个主题页（新增 `plugins`）、`subagents/` 11 个主题页、**`checkpoints/` 10 个主题页（v2.2.0 新增）**；backend/docs 从 40 文件改为 48 文件并补新增的 `KNOWLEDGE.md`、`blob-storage.md`、`RUN_INTERACTION_POLICY.md`、`extension-agent-runs.md`、`extension-model-invocation.md`、`mcp-control-leases.md`、`runtime-guidance-details.md`、`MEMORY_COGNITIVE_STYLE.md`；docs 顶层新增 `RELEASE_SOP.md`、`capability-center.md`、`full-stack-plugins.md`、`skill-evolution-host.md`、`skill-usage-ui.md` 等（`docs/pr-evidence` 不再存在）。
+- **卷三 03 手册阶梯**：`harness/` 节从"平铺 14 页 + extensions 10 页 + subagents 11 页"改为 v2.2.0 的实际树——平铺 13 个 `.mdx` + `_meta.ts`、`extensions/` 11 个主题页（新增 `plugins`）、`subagents/` 11 个主题页、**`checkpoints/` 10 个主题页（v2.2.0 新增）**；backend/docs 从 40 文件改为 48 文件并补新增的 `KNOWLEDGE.md`、`blob-storage.md`、`RUN_INTERACTION_POLICY.md`、`extension-agent-runs.md`、`extension-model-invocation.md`、`mcp-control-leases.md`、`runtime-guidance-details.md`、`MEMORY_COGNITIVE_STYLE.md`；docs 顶层新增 `RELEASE_SOP.md`、`capability-center.md`、`full-stack-plugins.md`、`skill-evolution-host.md`、`skill-usage-ui.md` 等（`docs/pr-evidence` 不再存在）。
 - **卷三 04 示例与契约**：`contracts/` 从 7 个 JSON 增至 13 个（新增 `knowledge_sources.v1.json`、`scheduled_goal_notes_contract.json`、`scheduled_task_errors_contract.json`、`thread_goal_contract.json`、`thread_origin_contract.json`、`ui_locales.v1.json`）；extension-api 目录从 12 个文件变为 19 个（新增 `agent_runs.py`、`completed_run_evidence.py`、`host_capabilities.py`、`model_invocation.py`、`plugins.py`、`settings.py`、`skill_mutations.py`；此前正文按"十个模块"计数时漏掉了 `py.typed` 与 `__init__.py`）；示例包从"一个示例演示五种贡献"改为 14 个示例的分层说明（`deerflow-extension-example` 仍是最小骨架，`workflows`/`knowledge-*` 是最大规模的组合示例）。
 - **卷三 05 配置与检查面**：`config_version` 从 2.1 期的值改为 **63**（chart 的 `values.yaml` 内置 `config_version: 63`，chart PR 校验会拦 lag）；补 v2.2.0 新增配置面 `deployment.multi_instance`（要求 `database.backend: postgres`、`run_events.backend: db`、`run_ownership.heartbeat_enabled: true` + Redis stream bridge，拒绝 `sandbox.ownership.type: memory` 与进程内浏览器工具）、`blob_storage`（默认 `enabled: false`、`backend: local_fs`）、`knowledge_base`（默认 `enabled: false`）、`DEER_FLOW_CREDENTIALS_KEY`（凭据加密键）；`make test-config-version`（配置升级集成测试）补入检查面。
 - **卷三 06 边界与代价**：保留六条负面事实；补两条 v2.2.0 的新边界——全栈插件面自述 experimental（`api_version: 1`，`enabled` 默认 false，内联资产 512 KiB 上限）、知识提供者在 extension-api 0.2.7 之前返回 False（旧宿主静默不提供）。
 - **卷二 10 扩展信任边界**：来源表从"五种接受形式"重核（v2.2.0 的 `operations.mdx` 的 Accepted sources 表含 5 个 Yes 与 6 个 No 行）；根指南的 privileges 句改为 v2.2.0 原话 "Restart Gateway after every mutation. Build hooks and extension code run with Gateway privileges; use only trusted operator sources."；补 guardrails 的 risk gate 面（TypeSafe/Jev 与 OpenAI Decisions 两个网络 provider，`fail_closed` 默认 true）作为"扩展之外的运行时信任边界"。
 
-**图示同步**：五张 SVG 的 `v2.1.0` 字样（10 处，含 `<desc>` 与正文文本）全部改为 `v2.2.0`；`guidance-network.svg` 的"子系统各有自己的 AGENTS.md（共 24 份）"改为 54 份，正文文本框里的 `×24` 与示例目录名清单（补 `storage`、`typesafe`、`community`）一并更新；`change-gate-levels.svg` 的等级说明按卷二 05 的新 workflow 数复核（该图不列 workflow 数字，无需改数）。
+**图示同步**：五张 SVG 的 `v2.1.0` 字样（10 处，含 `<desc>` 与正文文本）全部改为 `v2.2.0`；`guidance-network.svg` 的"子系统各有自己的 AGENTS.md（共 24 份）"改为 53 份，正文文本框里的 `×24` 与示例目录名清单（补 `storage`、`typesafe`、`community`）一并更新；`change-gate-levels.svg` 的等级说明按卷二 05 的新 workflow 数复核（该图不列 workflow 数字，无需改数）。
 
 **本轮几处值得单记的口径修正**（都是"数字对不上就改写为可核验口径"的例子）：
 
-- 卷三 04 原写 extension-api "按模块分面"清单**十个**——目录实际 12 个文件时是漏了 `py.typed` 与 `__init__.py`，v2.2.0 变成 19 个文件后改为"19 个文件，其中 17 个是可 import 的模块或包标记"，不再用"模块数"这个会被文件类型搅乱的口径。
+- 卷三 04 原写 extension-api "按模块分面"清单**十个**——目录实际 12 个文件时是漏了 `py.typed` 与 `__init__.py`，v2.2.0 变成 19 个文件后改为"19 个文件 = 18 个 `.py` + `py.typed`"，不再用"模块数"这个会被文件类型搅乱的口径。
 - 卷二 07 的"四源/五源"：v2.2.0 的第六处是 `backend/uv.lock`（两条根包记录，用 `uv lock --check` 判）。本语料统一说"五源 + lock"，并把 `container.yaml` 的引文换成含 "a stale backend/uv.lock" 的新句。
 - 卷二 06 的 uv 钉定：v2.2.0 里 `setup-uv` 出现在 12 个 workflow、共 15 次，全部 `version: "0.11.1"`、全部 `astral-sh/setup-uv@v7`；写"每个 workflow 都钉一次"会把 15 说成 12，已改为按"出现次数"表述。
 - 卷二 08 的迁移链：v2.1.0 的 head 是 `0025_repair_run_change_seq`（不是"0047 附近"），从 `0033_batch_result_artifact` 到 `0048_extension_execution_leases` 是 2.2 周期内新增的一段。
@@ -227,10 +244,21 @@
 
 1. 中间件文档的编号清单在 v2.2.0 为 **39 项**（含 "Custom middlewares" 与 "Configured extension middlewares" 两个非中间件条目），v2.1.0 同口径为 36 项。语料若出现"30 → 39"一类计数，其"30"无对应中间物证，宜改述为"文档清单 36 → 39 项"或直接不给数字。
 2. `skills.mdx` 说 `SKILL.md` 由 `skills/parser.py` 解析 "name, description, category, instructions, and any dependencies or tool requirements"，但 v2.2.0 的 `parse_skill_file` 只强制 `name` 与 `description`，`category` 由所在目录（public/custom）推导而非 frontmatter；这是上游手册与实现的措辞松紧问题，语料引用时应注明"category 来自目录"。
-3. `integration-guide.mdx` 的示例与源码的三处不符（`astream`/`ainvoke` vs `stream()`/`chat()`、`from deerflow.config import load_config` vs `get_app_config()`、`deerflow.app.gateway.main` 路径）在 v2.2.0 仍未修正——语料的"手册快照警示"仍然成立，已在卷一 01 保留。
+3. ~~`integration-guide.mdx` 的示例与源码的三处不符在 v2.2.0 仍未修正~~ — 第 12 轮复核关闭：这三处是 **v2.1.0** 的旧示例，v2.2.0 已改为 `DeerFlowClient()` / `stream()` / `chat()` / `app.gateway`；卷一 01 与卷三边界页已同步。
 4. `examples/README.md` 的自述覆盖范围（start-here 三个、additional 四个）与 `git ls-tree` 的 14 个目录不一致：部分示例（jev-*、retrieval、knowledge*）只在 README 的附加列表或子目录 README 里出现，语料按"目录实际存在"取证、不复制 README 的分类。这一条在本轮已按"14 个目录 + 四组用途"自行分组（卷三 04），分组依据是各包 `pyproject.toml` 的 description 与目录内容，不是上游 README 的措辞。
 
 本轮结构验证器与自测全部通过（`node verify.mjs` 与 `node verify.test.mjs`）。
+
+### 2026-11-08 · 第 12 轮（固定计数复核：指南网络与手册页数）
+
+对 `v2.2.0` tag 重数并修正三处“数字型事实”，语义结论不变：
+
+- **AGENTS.md**：`git ls-tree -r v2.2.0 | grep 'AGENTS\.md$'` 得 **58 个以 `AGENTS.md` 结尾的文件**，其中 **57 个是 `AGENTS.md` 指南**（根 1 + 模块 3 + 子系统 53），另 1 个是 `backend/docs/GITHUB_AGENTS.md` 功能文档；v2.1.0 同法为 29 个（28 个指南 + 1 个同名文档）。此前把 `GITHUB_AGENTS.md` 计入指南并把子系统写成 54，已改。
+- **docs 站 harness**：平铺目录实际是 **13 个 `.mdx` + `_meta.ts`**，不是 14 个平铺页；`extensions/` 11、`subagents/` 11、`checkpoints/` 10 不变。已改卷三 00-index、03 与维护页。
+- **图示**：`guidance-network.svg` 的子系统计数 `×54` 与 desc “共 54 份”同步改为 53。
+- **integration-guide**：第 11 轮把 v2.1.0 的三处旧示例漂移记成了 v2.2.0 仍未修正；复核确认 v2.2.0 已改为 `DeerFlowClient()` / `stream()` / `chat()` / `app.gateway`。卷一 01 的示例代码与“手册快照警示”、卷三 03/06 的同一说法已同步。
+
+本轮仍只做结构验证器覆盖的检查；`node verify.mjs` 与 `node verify.test.mjs` 通过。此轮是计数校正，不是新的 re-pin。
 
 ### 规划中的正文页（未建，建后在本表打钩并注明轮次）
 

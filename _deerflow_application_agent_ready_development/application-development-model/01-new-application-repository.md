@@ -31,21 +31,19 @@ agent = create_deerflow_agent(model)
 
 `create_deerflow_agent()` 返回带 DeerFlow 默认中间件链的编译后 LangGraph agent，可继续传 `tools`、`system_prompt`、`features`、`extra_middleware`、`plan_mode`、`checkpointer` 定制（[harness quick-start](https://github.com/bytedance/deer-flow/blob/v2.2.0/frontend/src/content/en/harness/quick-start.mdx)）。
 
-要线程式会话、模型/技能/记忆管理、文件上传等更完整的嵌入接口时，改用 `DeerFlowClient`（下面是 integration-guide 的示例代码；与 v2.2.0 源码的三处差异见随后的快照警示）：
+要线程式会话、模型/技能/记忆管理、文件上传等更完整的嵌入接口时，改用 `DeerFlowClient`（下面是 v2.2.0 integration-guide 的示例代码；v2.1.0 旧示例的 `load_config` / `astream` / `ainvoke` 不要照抄）：
 
 ```python
 from deerflow.client import DeerFlowClient
-from deerflow.config import load_config
 
-load_config()  # 读 config.yaml 或 DEER_FLOW_CONFIG_PATH
-client = DeerFlowClient()
+client = DeerFlowClient()  # 构造时读 config.yaml 或 DEER_FLOW_CONFIG_PATH
 ```
 
 > The client is thread-safe and designed to be instantiated once and reused across requests.
 >
 > — [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.2.0/frontend/src/content/en/harness/integration-guide.mdx)
 
-**部署前提（运行时事实，v2.2.0 新增配置面）**：内嵌形态下，如果你的部署要多实例共享一个数据库，必须在每个实例上声明 `deployment.multi_instance: true`（或 `DEER_FLOW_MULTI_INSTANCE=1`），启动门会强制 Postgres + Redis stream bridge + run ownership heartbeat；启用了存凭据的功能还需要共享的 `DEER_FLOW_CREDENTIALS_KEY`。另外 `blob_storage`（默认关）与 `knowledge_base`（默认关）是本版新增的两个可选配置面，详见[卷三·配置与检查面](../repo-harness/05-config-and-inspection.md)。关于嵌入接口本身：client 按 `thread_id` 隔离会话、可按 `agent_name` 切换命名 agent 配置；配置加载支持 `DEER_FLOW_CONFIG_PATH` 环境变量与显式路径参数；也可以直接组合底层 LangGraph 图（`make_lead_agent`）或把 Gateway 挂载为子应用——这些模式都在 [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.2.0/frontend/src/content/en/harness/integration-guide.mdx) 有示例。**手册快照警示（对 v2.2.0 源码核验）**：integration-guide 的示例有三处与该版本源码不符——client 方法手册写作 `astream`/`ainvoke`，源码实际是 `stream()` 与 `chat()`；配置加载手册写作 `from deerflow.config import load_config`，源码实际入口是 `get_app_config()`（`DEER_FLOW_CONFIG_PATH` 机制本身真实存在）；Gateway 挂载示例的导入 `deerflow.app.gateway.main` 在源码中不存在（Gateway 实际在不发布层的 `app.gateway`）。照抄手册代码前先对照源码核验（见[卷三·边界与代价](../repo-harness/06-boundaries-and-costs.md)的"文档是快照"条）。**应用仓建议**：内嵌形态下你的仓就是治理主体——线程隔离、checkpoint 持久化和配置路径都由你的应用决定，不要指望 DeerFlow 替你管理部署。
+**部署前提（运行时事实，v2.2.0 新增配置面）**：内嵌形态下，如果你的部署要多实例共享一个数据库，必须在每个实例上声明 `deployment.multi_instance: true`（或 `DEER_FLOW_MULTI_INSTANCE=1`），启动门会强制 Postgres + Redis stream bridge + run ownership heartbeat；启用了存凭据的功能还需要共享的 `DEER_FLOW_CREDENTIALS_KEY`。另外 `blob_storage`（默认关）与 `knowledge_base`（默认关）是本版新增的两个可选配置面，详见[卷三·配置与检查面](../repo-harness/05-config-and-inspection.md)。关于嵌入接口本身：client 按 `thread_id` 隔离会话、可按 `agent_name` 切换命名 agent 配置；配置加载支持 `DEER_FLOW_CONFIG_PATH` 环境变量与显式路径参数；也可以直接组合底层 LangGraph 图（`make_lead_agent`）或把 Gateway 挂载为子应用——这些模式都在 [integration-guide](https://github.com/bytedance/deer-flow/blob/v2.2.0/frontend/src/content/en/harness/integration-guide.mdx) 有示例。**手册快照警示（对 v2.2.0 源码核验）**：v2.2.0 的 integration-guide 已修正 v2.1.0 的三处示例漂移——示例使用 `DeerFlowClient()`（构造时读配置）、`stream()`/`chat()`，Gateway 挂载导入改为不发布层的 `app.gateway`。这三处不再作为 v2.2.0 的反例；但"文档是快照"的边界仍成立：引用前钉版本，升级时重读手册（见[卷三·边界与代价](../repo-harness/06-boundaries-and-costs.md)的"文档是快照"条）。**应用仓建议**：内嵌形态下你的仓就是治理主体——线程隔离、checkpoint 持久化和配置路径都由你的应用决定，不要指望 DeerFlow 替你管理部署。
 
 ### extension 包：一个正常的 Python 包，建在 checkout 之外
 
