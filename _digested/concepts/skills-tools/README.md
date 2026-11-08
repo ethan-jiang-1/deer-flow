@@ -23,6 +23,7 @@ topics: [skills, tools, review, scanner]
 | [skill-md-and-tool-assembly.md](skill-md-and-tool-assembly.md) | SKILL.md 与 frontmatter 白名单、legacy/deferred 双加载、`skill:activate` 与 slash 激活、SkillStorage / projection、`skill_manage` 写入门禁、Tool 系统 | 深入 |
 | [skill-package-intake.md](skill-package-intake.md) | `parser.py` / `installer.py` 边界、`.skill` 安装与失败清理、可执行嗅探、静态 + LLM 双层扫描、SkillScan 39 条规则 | 深入 |
 | [skill-review-core.md](skill-review-core.md) | readers 快照契约、analyzer 分类与 completeness、资源图、eval manifest、package digest、readiness 与 CLI 退出码 | 深入 |
+| [00-catalog.md](00-catalog.md) | `skills/public/` 23 个内置包的职责/入口/测试/机制页目录 | 概览 |
 
 ## 速览
 

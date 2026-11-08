@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "TypeSafe 契约面：客户端、连接、错误分类"
-description: "deerflow.typesafe 的接口契约逐行：TypeSafeClient 的请求骨架/有界读取/截止预算/重试与外层重试循环、AnswerSet 的两层结果、TypeSafeConnection 的三级优先级与按层凭据解析、public_parameters/credential_fingerprint/sharing_key 三种身份、validation.py 五个校验器的构造期失败时机。"
+description: 'deerflow.typesafe 的接口契约逐行：TypeSafeClient 的请求骨架/有界读取/截止预算/重试与外层重试循环、AnswerSet 的两层结果、TypeSafeConnection 的三级优先级与按层凭据解析、public_parameters/credential_fingerprint/sharing_key 三种身份、validation.py 五个校验器的构造期失败时机。'
 topics: ["typesafe", "契约", "传输层", "连接解析", "错误分类"]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # TypeSafe 契约面：客户端、连接、错误分类

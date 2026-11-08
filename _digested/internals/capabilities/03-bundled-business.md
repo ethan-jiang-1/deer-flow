@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Bundled business 集成 — 自带 HTTP 客户端的三个 MCP provider"
-description: "`deerflow/capabilities/business.py`（178 行）把 DingTalk / WeCom 群机器人与 HubSpot CRM 做成开箱可用的 MCP server：固定 provider 白名单、固定 launcher、固定 HTTPS 端点、`is_bundled_connection()` 对 MCP stdio 执行白名单的窄例外，以及"200 也要查 errcode / 错误不含 token / 不重试写操作"的失败策略。"
+description: 'Bundled business 集成 — 自带 HTTP 客户端的三个 MCP provider：架构、契约与源码锚点。'
 topics: [capabilities, business, mcp, notification, hubspot, security]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Bundled business 集成 — 自带 HTTP 客户端的三个 MCP provider

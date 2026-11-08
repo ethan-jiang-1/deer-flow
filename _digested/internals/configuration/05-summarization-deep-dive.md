@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Summarization 深度解析"
-description: "上下文压缩的完整机制：触发条件、保留策略、摘要生成、与 DurableContext 的协作、阈值选择指南。"
+description: '上下文压缩的完整机制：触发条件、保留策略、摘要生成、与 DurableContext 的协作、阈值选择指南。'
 topics: [summarization, context-window, middleware, configuration]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Summarization 深度解析

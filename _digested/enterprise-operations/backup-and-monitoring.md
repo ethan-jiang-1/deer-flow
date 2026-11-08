@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "备份恢复与监控"
-description: "生产数据备份策略、恢复流程、性能监控（Console API、LangFuse、token 追踪）。"
+description: '生产数据备份策略、恢复流程、性能监控（Console API、LangFuse、token 追踪）。'
 topics: [backup, restore, monitoring, observability, production]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 备份恢复与监控
@@ -18,6 +23,9 @@ topics: [backup, restore, monitoring, observability, production]
 | Agent 配置 | `.deer-flow/users/{uid}/agents/{name}/` | Markdown + YAML |
 | Skills | `skills/custom/` | Markdown 文件 |
 | 配置 | `config.yaml`, `extensions_config.json` | YAML/JSON |
+| **JWT 签名密钥** | `.deer-flow/.jwt_secret`（或 `AUTH_JWT_SECRET`） | 文件（0600） |
+| **初始管理员凭据** | `.deer-flow/admin_initial_credentials.txt`（登录后应删除） | 文件（0600） |
+| **静态凭据加密密钥** | `$DEER_FLOW_HOME/.credentials_key`（或 `DEER_FLOW_CREDENTIALS_KEY`） | 文件（0600；多副本必须显式设置） |
 
 ## 备份
 
@@ -134,7 +142,7 @@ export LANGFUSE_HOST=https://cloud.langfuse.com
 
 ### Token 追踪
 
-每次 run 的 `end` SSE 事件携带累积用量。`GET /api/threads/{id}/token-usage` 返回 per-model 和 per-caller（lead/subagent/middleware）细分。
+Gateway 的 `end` SSE 事件 `data` 为 `null`，**不携带**累计用量（`app/gateway/services.py:2999,3042,3051` 均为 `format_sse("end", None)`）；嵌入式 `DeerFlowClient` 的 `end` 才可能带 usage。成本/用量查询走 `GET /api/threads/{id}/token-usage`，返回 per-model 和 per-caller（lead/subagent/middleware）细分。
 
 ### RunJournal 延迟
 

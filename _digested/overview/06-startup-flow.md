@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "DeerFlow 启动与请求处理全流程"
-description: "![Startup Sequence](figures/startup-sequence.svg)"
+description: '![Startup Sequence](figures/startup-sequence.svg)'
 topics: [architecture, system-overview]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # DeerFlow 启动与请求处理全流程

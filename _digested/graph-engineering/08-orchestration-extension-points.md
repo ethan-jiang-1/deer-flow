@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "扩展点地图 — 往 DeerFlow 里加编排逻辑的六个入口"
-description: "按侵入深度排序的六个编排注入入口:prompt/skills、custom_agents、middleware、extension 包、SDK 直连、外部状态机——每个入口的契约、能力、部署面与选型决策。"
+description: '按侵入深度排序的六个编排注入入口:prompt/skills、custom_agents、middleware、extension 包、SDK 直连、外部状态机——每个入口的契约、能力、部署面与选型决策。'
 topics: [extension, middleware, custom-agents, sdk, orchestration]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 08 · 扩展点地图 — 往 DeerFlow 里加编排逻辑的六个入口
@@ -20,7 +25,7 @@ topics: [extension, middleware, custom-agents, sdk, orchestration]
 |---|------|------|---------|--------------|
 | ① | Prompt / Skills | 文本 | 教 lead 按流程走(skill 的流程化指令、验收标准措辞);**v2.2.0 起 `allowed-tools` 只是兼容元数据,不再过滤/授予/拒绝任何工具**(激活不再影响权限上限,由 agent 装配与执行授权统一持有) | 零代码;纯软约束,无机器保证 |
 | ② | Custom Agents | `config.yaml custom_agents` | 定义专职 worker(系统提示/工具白名单/skills/模型/预算) | YAML;每字段有 schema 校验;运行时可经 API 改 |
-| ④' | **Extension-first(先问插件)** | 根 `AGENTS.md` 的成文规则 | 加功能前先判定能否做成打包扩展;**只有 bug fix 和 agent loop / memory / 上下文压缩 / 认证这四类改动才留在 core**。现有钩子表达不了时,做法是**给扩展契约加一个通用钩子 + 一个用它的扩展**,不许把业务逻辑硬编码进核心 | 这是**流程规范而非机制**——但它把"该走 ③④ 还是直改 core"从品味问题变成了可判定的规则。v2.2.0 的六个参考实现在 `examples/deerflow-extension-{example,bookmarks,agent-teams,workflows,knowledge-management,knowledge-platform}/` |
+| ④' | **Extension-first(先问插件)** | 根 `AGENTS.md` 的成文规则 | 加功能前先判定能否做成打包扩展;**只有 bug fix 和 agent loop / memory / 上下文压缩 / 认证这四类改动才留在 core**。现有钩子表达不了时,做法是**给扩展契约加一个通用钩子 + 一个用它的扩展**,不许把业务逻辑硬编码进核心 | 这是**流程规范而非机制**——但它把"该走 ③④ 还是直改 core"从品味问题变成了可判定的规则。v2.2.0 的 **14 个**参考实现是 `examples/deerflow-extension-*`；逐个包的贡献点见 [internals/harness-hooks/10-extension-examples.md](../internals/harness-hooks/10-extension-examples.md) |
 | ③ | Middleware | Python 类进 agent 链 | **每个 step 的钩子 + 状态通道贡献 + 工具/模型调用包裹** | 代码;随图编译,通道进 checkpoint |
 | ④ | Extension 包 | PEP 621 包 + `install(registry, config)` | ③ 的全部 + 生命周期观察者 + Gateway 服务 + HTTP 路由 | 独立发布/升级/启停;执行于 Gateway 权限,仅信任源 |
 | ⑤ | SDK 直连 | `create_deerflow_agent(subagent_runtime=...)` | 自有执行容量/批量提交器/中间件全替换,进程内嵌 | 代码;绕开 Gateway(无 HTTP/UI 面) |
@@ -56,10 +61,12 @@ before_agent → [before_model → (wrap_model_call 洋葱) → LLM → after_mo
 
 装载:根 `config.yaml` 的 `plugins:` 列表(operator 控制,刻意不放 API 可写的 extensions_config.json);`required: true` 失败即拒绝启动(默认 false 容错降级)。分发:`deerflow extensions install/upgrade/list/enable/disable/remove`(uv 事务,失败回滚 pyproject+lock,本地目录是快照非软链)。
 
-**七个注册面**(`ExtensionRegistry` 协议,`extension-api/contracts.py:213`-`231`,七个 `def` 逐一对应下表):
+**九个注册面**(`ExtensionRegistry` 协议,`extension-api/contracts.py:199`-`231`,九个 `def` 逐一对应下表):
 
 | 注册面 | 编排用途 |
 |--------|---------|
+| `plugin(contribution)` | 注册插件贡献（发现元数据 / 前端 surface）；v2.2 新增 |
+| `knowledge_provider(name, provider)` | 注册知识检索 provider；v2.2 新增 |
 | `middlewares(contributor)` | 贡献 middleware(带 placement 定位)——**task_dag middleware 的交付通道** |
 | `task_lifecycle(contributor)` | **每个子代理任务的生命周期观察**(TaskInfo/TaskOutcome)——外部编排器的实时传感器 |
 | `system_model_observer(observer)` | 系统模型调用观察(标题/评估器等) |

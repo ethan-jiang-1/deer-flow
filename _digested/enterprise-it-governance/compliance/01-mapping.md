@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "合规对照总览"
-description: "GDPR / SOC 2 / ISO 27001 / EU AI Act 四套要求的对照入口。每条的现状与差距都指向展开篇，不在本页堆砌结论。"
+description: 'GDPR / SOC 2 / ISO 27001 / EU AI Act 四套要求的对照入口。每条的现状与差距都指向展开篇，不在本页堆砌结论。'
 topics: [governance, compliance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 合规对照总览

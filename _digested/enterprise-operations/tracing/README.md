@@ -1,19 +1,19 @@
 ---
 title: "Tracing — 追踪系统"
-description: "LangSmith + Langfuse 双 provider、两层附着策略，以及请求级 `X-Trace-Id` 与中间件审计事件。"
+description: "LangSmith + Langfuse 双 provider 的配置面，以及 loop detection / tool promotion 的运维侧审计细节；trace id 与注入机制以 observability 为 canonical。"
 type: index
 topics: [tracing, langsmith, langfuse, trace-id]
 ---
 
 # Tracing — 追踪系统
 
-> **定位**：排障与可观测视角的追踪说明——trace 挂在哪一层、双 provider 怎么选、请求 id 从哪来，以及审计事件如何随 run 落库。给接 tracing 后端和查线上问题的工程师看。
-> **边界**：日志、事件流与 Console 的全貌见 [observability/](../../observability/README.md)；成本归因见 [enterprise-it-governance/cost/](../../enterprise-it-governance/cost/README.md)。
+> **定位**：运维侧的 tracing 配置与审计补充——双 provider 怎么配、loop detection / tool promotion 的审计事件怎么落库。给接 tracing 后端和查线上问题的工程师看。
+> **边界**：trace id 的生成/下发/入口点绑定以 [observability/01](../../observability/01-logging-and-trace-context.md) 为 canonical；图根/模型级注入与 provider 机制以 [observability/03](../../observability/03-tracing-providers.md) 为 canonical；事件目录/信封见 [observability/02](../../observability/02-run-events-and-journal.md)。本目录不重写这些机制。日志、Console 全貌见 [observability/](../../observability/README.md)；成本归因见 [enterprise-it-governance/cost/](../../enterprise-it-governance/cost/README.md)。
 
 ## 阅读路径
 
-1. **先看**：[langsmith-langfuse-dual-provider.md](langsmith-langfuse-dual-provider.md) — 两层附着策略、双 provider、工厂模式与 Langfuse v4 合约。
-2. **深入**：[trace-ids-and-audit-events.md](trace-ids-and-audit-events.md) — `X-Trace-Id` 无条件签发、非 HTTP 入口绑定、审计事件持久化。
+1. **先看**：[langsmith-langfuse-dual-provider.md](langsmith-langfuse-dual-provider.md) — 双 provider 配置、工厂模式与 Langfuse v4 合约；注入机制链到 observability/03。
+2. **深入**：[trace-ids-and-audit-events.md](trace-ids-and-audit-events.md) — loop detection / tool promotion 审计；trace id 机制链到 observability/01。
 
 ## 本篇目
 
@@ -24,8 +24,8 @@ topics: [tracing, langsmith, langfuse, trace-id]
 
 ### 两篇怎么分工
 
-- 前者管**去哪**：provider 工厂、图根/模型两级附着、`inject_langfuse_metadata()` 双路径共享。
-- 后者管**凭什么串起来**：trace id 无条件签发且 ContextVar 是唯一源；loop detection / tool promotion 只记元数据，失败不打断 run。
+- 前者管**去哪**：provider 配置、工厂与环境变量；图根/模型两级附着和 `inject_langfuse_metadata()` 的 canonical 在 [observability/03](../../observability/03-tracing-providers.md)。
+- 后者管**审计补充**：loop detection / tool promotion 只记元数据，失败不打断 run；trace id 的 canonical 在 [observability/01](../../observability/01-logging-and-trace-context.md)。
 
 ## 宪章与约定
 

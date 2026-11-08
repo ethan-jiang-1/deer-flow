@@ -13,7 +13,7 @@ topics: [concepts, architecture, agent, tools]
 ## 阅读路径
 
 1. **先看**：[lead-agent/](lead-agent/README.md) — 从 `make_lead_agent` 工厂、ThreadState 与 SOUL.md 建立「Agent 是什么」。
-2. **再看**：[sandbox/](sandbox/README.md) — 统一执行抽象与七种 provider，回答「代码到底在哪跑、凭什么隔离」。
+2. **再看**：[sandbox/](sandbox/README.md) — 统一执行抽象与七种运行模式（六个 provider 类），回答「代码到底在哪跑、凭什么隔离」。
 3. **深入**：[subagent/](subagent/README.md) — 委派、容量准入、durable batch 与报告契约；配套读 [memory/](memory/README.md) 与 [skills-tools/](skills-tools/README.md)。
 
 ## 本篇目
@@ -21,7 +21,7 @@ topics: [concepts, architecture, agent, tools]
 | 文件 | 主题 | 深度 |
 |---|---|---|
 | [lead-agent/](lead-agent/README.md) | Lead Agent 工厂、ThreadState、SOUL.md 与 Node/State 设计 | 深入 |
-| [sandbox/](sandbox/README.md) | 统一沙箱抽象 + 七种实现：租约、受控出口、隔离记录 | 深入 |
+| [sandbox/](sandbox/README.md) | 统一沙箱抽象 + 七种运行模式（六个 provider 类）：租约、受控出口、隔离记录 | 深入 |
 | [subagent/](subagent/README.md) | 子 Agent 委派：容量准入、durable batch、RFC #4651 报告契约 | 深入 |
 | [memory/](memory/README.md) | 可插拔 Memory 后端、提取/持久化管线与 Manager 契约 | 深入 |
 | [skills-tools/](skills-tools/README.md) | SKILL.md 契约、存储/投影/导出、SkillScan 与 review core | 深入 |

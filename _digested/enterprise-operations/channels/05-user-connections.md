@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "用户 IM 频道连接"
-description: "浏览器端用户将自己的 IM 账号绑定到 DeerFlow 的连接管理流程：bind code 生命周期、single-active-owner 转移、凭据加密（DEER_FLOW_CREDENTIALS_KEY）、WeChat 扫码登录与 provider 差异。"
+description: '浏览器端用户将自己的 IM 账号绑定到 DeerFlow 的连接管理流程：bind code 生命周期、single-active-owner 转移、凭据加密（DEER_FLOW_CREDENTIALS_KEY）、WeChat 扫码登录与 provider 差异。'
 topics: [channels, im, user-connections, oauth]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 用户 IM 频道连接

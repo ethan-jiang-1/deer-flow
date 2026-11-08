@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "认证与授权"
-description: "DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链。"
+description: 'DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链。'
 topics: [security, auth, isolation-defense]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 认证与授权
@@ -128,7 +133,7 @@ headers={**create_internal_auth_headers(), **self._csrf_headers()}
 
 IP 来源：`request.client.host`。只有配置了 `AUTH_TRUSTED_PROXIES` 才信任 `X-Real-IP`，**不使用 `X-Forwarded-For`**（防伪造）。
 
-**局限：** 进程内 dict，多 worker 共享同一 IP 可绕过。
+**存储：** 默认 `auth.local.throttle_storage=auto`——`database.backend` 为 sqlite/postgres 时计数与锁禁写共享表，所有 Gateway 副本对同一 IP 使用同一份锁禁；只有 `memory` 档才是进程内 dict（N 个副本 = N 倍尝试机会）。详见 [identity/09-login-throttle.md](../../enterprise-it-governance/identity/09-login-throttle.md)。
 
 ---
 

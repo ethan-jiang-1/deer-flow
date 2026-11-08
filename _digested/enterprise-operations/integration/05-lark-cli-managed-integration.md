@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Lark CLI 托管集成（安装事务 / 凭据切换 / Pattern A-B）"
-description: "把官方 lark-cli 技能包与沙箱运行时托管给 DeerFlow：全局只读技能包、每用户凭据树事务、sandbox_runtime_mode 四态与 broker 边界。"
+description: '把官方 lark-cli 技能包与沙箱运行时托管给 DeerFlow：全局只读技能包、每用户凭据树事务、sandbox_runtime_mode 四态与 broker 边界。'
 topics: [integration, lark-cli, sandbox, broker]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Lark CLI 托管集成（安装事务 / 凭据切换 / Pattern A-B）

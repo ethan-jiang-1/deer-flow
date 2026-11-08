@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Knowledge 工具入口 — 执行时序、能力校验与失败策略"
-description: "`deerflow/knowledge/tools.py`（98 行）暴露三个 StructuredTool；`execute_knowledge_search()` 的 12 步时序决定「先验能力还是先加载 provider」；`search_provider()` 与 `validate_scope_capabilities()` 构成执行期第二道闸；失败被压成四类固定文本，provider 异常从未出现在模型可见输出里。附作用域从 Gateway 准入到 runtime context 再到 provider 的完整生命期。"
+description: 'Knowledge 工具入口 — 执行时序、能力校验与失败策略：架构、契约与源码锚点。'
 topics: [knowledge, tools, failure-policy, scope, middleware, gateway]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Knowledge 工具入口 — 执行时序、能力校验与失败策略

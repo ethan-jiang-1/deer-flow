@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "设计决策"
-description: "五处有据可查的取舍：CSRF 为什么是 double-submit 加 SameSite=strict 两层、Internal Token 为什么自动生成、user_id 为什么进 graph config、token_version 如何实现全端登出。"
+description: '五处有据可查的取舍：CSRF 为什么是 double-submit 加 SameSite=strict 两层、Internal Token 为什么自动生成、user_id 为什么进 graph config、token_version 如何实现全端登出。'
 topics: [governance, identity, design]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 设计决策

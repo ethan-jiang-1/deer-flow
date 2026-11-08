@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "治理卷审计修复计划"
-description: "针对 2026-11-08 全面审计发现的 BLOCKER/MAJOR/MINOR，按事实、结构、搬迁、工具链四条工作流逐项修复，并给出可执行的验收矩阵。"
+description: '针对 2026-11-08 全面审计发现的 BLOCKER/MAJOR/MINOR，按事实、结构、搬迁、工具链四条工作流逐项修复，并给出可执行的验收矩阵。'
 topics: [governance, plan, audit]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 治理卷审计修复计划

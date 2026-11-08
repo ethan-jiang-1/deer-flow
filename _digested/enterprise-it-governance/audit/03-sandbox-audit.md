@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "沙箱命令审计"
-description: "SandboxAuditMiddleware 的三级分类（block/warn/pass）、正则与 shlex 的判定方式，以及「审计只写日志」这个关键边界——它记录到 gateway.log，不落库。"
+description: 'SandboxAuditMiddleware 的三级分类（block/warn/pass）、正则与 shlex 的判定方式，以及「审计只写日志」这个关键边界——它记录到 gateway.log，不落库。'
 topics: [governance, audit, sandbox]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 沙箱命令审计

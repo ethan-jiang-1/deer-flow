@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Guardrail 插件：Protocol 协议 + 策略模式 + fail_closed"
-description: "- `deerflow/guardrails/provider.py` — `GuardrailProvider` Protocol + 数据类"
+description: 'Guardrail 插件：Protocol 协议 + 策略模式 + fail_closed：架构、契约与源码锚点。'
 topics: [hooks, extension, plugin-system]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Guardrail 插件：Protocol 协议 + 策略模式 + fail_closed

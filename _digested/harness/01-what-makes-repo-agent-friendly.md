@@ -1,6 +1,11 @@
 ---
+
+
+
 title: "什么样的仓库对 coding agent 友好 —— 标准、模式与反模式调研"
-description: "以一手来源梳理 agent-friendly repo 的公认标准：AGENTS.md 规范、Anthropic/OpenAI/Google/Cursor/Aider 的仓库级指引机制，并归纳为五维评估框架（上下文供给、可验证性、可执行环境、可修改性、安全护栏），每维度含判断标准、反模式与出处。"
+description: '以一手来源梳理 agent-friendly repo 的公认标准：AGENTS.md 规范、Anthropic/OpenAI/Google/Cursor/Aider 的仓库级指引机制，并归纳为五维评估框架（上下文供给、可验证性、可执行环境、可修改性、安全护栏），每维度含判断标准、反模式与出处。'
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 什么样的仓库对 coding agent 友好 —— 标准、模式与反模式调研

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "契约与跨栈 E2E"
-description: "契约如何在 Python/TS 两侧被同一份 JSON 钉住；mock E2E 的 fake-green 问题如何被两层 record/replay 跨栈层解决；#3352 案例——两侧单测全绿、真栈损坏的病只有真前端+真后端能抓。"
+description: '契约如何在 Python/TS 两侧被同一份 JSON 钉住；mock E2E 的 fake-green 问题如何被两层 record/replay 跨栈层解决；#3352 案例——两侧单测全绿、真栈损坏的病只有真前端+真后端能抓。'
 topics: [testing, contracts, e2e, replay]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 契约与跨栈 E2E

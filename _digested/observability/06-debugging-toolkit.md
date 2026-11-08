@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "诊断工具箱"
-description: "DeerFlow 内建了一组'自动诊断 + 可回滚'的手段：LLM 错误分类/重试/断路器、loop 检测、tool 错误元数据、输出预算外部化、checkpoint 回滚、support bundle。这里给诊断入口和速查。"
+description: 'DeerFlow 内建了一组''''自动诊断 + 可回滚''''的手段：LLM 错误分类/重试/断路器、loop 检测、tool 错误元数据、输出预算外部化、checkpoint 回滚、support bundle。这里给诊断入口和速查。'
 topics: [debugging, error-handling, loop-detection, circuit-breaker, rollback]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 诊断工具箱

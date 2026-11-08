@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "持久化与恢复测试"
-description: "租约、对账与唯一活跃约束：两种不杀进程的崩溃模拟习语、run ownership / scheduled-task / MCP 长任务的恢复面盘点、迁移回滚契约与跨后端等价。"
+description: '租约、对账与唯一活跃约束：两种不杀进程的崩溃模拟习语、run ownership / scheduled-task / MCP 长任务的恢复面盘点、迁移回滚契约与跨后端等价。'
 topics: [testing, persistence, recovery]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 持久化与恢复测试

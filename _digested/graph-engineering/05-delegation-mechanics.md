@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "委派机制解剖 — DeerFlow 动态性的端到端真相"
-description: "一条 task 和一条 batch 的完整生命周期:路由决策、派发、执行、隔离、结果回写、验收、durable 批处理——动态机器的真实形态与能力边界。"
+description: '一条 task 和一条 batch 的完整生命周期:路由决策、派发、执行、隔离、结果回写、验收、durable 批处理——动态机器的真实形态与能力边界。'
 topics: [subagent, delegation, task-tool, batch, acceptance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 05 · 委派机制解剖 — DeerFlow 动态性的端到端真相

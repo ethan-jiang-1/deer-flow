@@ -1,14 +1,19 @@
 ---
+
+
+
 title: "沙箱系统"
-description: "DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 7 种实现（Local/AIO/Provisioner/BoxLite/E2B/Tenki/OpenSandbox）。2.2.0 的关键增量：可重试的 shutdown、bash 硬超时的 124 退出码、AIO 隔离记录（quarantine）、投机式 prewarm、统一下载/读文件契约。"
+description: 'DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 7 种运行模式 / 6 个具体 provider 类（Provisioner 是 AIO 的 remote backend）。2.2.0 的关键增量：可重试的 shutdown、bash 硬超时的 124 退出码、AIO 隔离记录（quarantine）、投机式 prewarm、统一下载/读文件契约。'
 topics: [sandbox, isolation, filesystem]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 沙箱系统
 
 DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。
 
-> **交叉引用：** 七种沙箱的安全隔离对比见 [security/02-sandbox-isolation.md](../../enterprise-operations/security/02-sandbox-isolation.md)。
+> **交叉引用：** 七种运行模式的安全隔离对比见 [security/02-sandbox-isolation.md](../../enterprise-operations/security/02-sandbox-isolation.md)。
 
 ## 抽象接口
 
@@ -48,9 +53,9 @@ class SandboxProvider:
 
 `get_sandbox_provider()` 有构造竞态保护：双线程同时 cold-start 时，loser 的 provider 调 `shutdown()` 避免泄漏（issue #3721）。
 
-## 七种实现
+## 七种运行模式（六个 provider 类）
 
-所有实现共享 `WarmPoolLifecycleMixin`（`community/warm_pool_lifecycle.py`），提供 idle timeout、replicas 软上限、过期 warm entry 回收。AIO 把 active-idle 清理留在 provider 内，只把 warm-pool 过期委托给共享 mixin。
+六个具体 provider 类（Local / Aio / BoxLite / E2B / Tenki / OpenSandbox）共享 `WarmPoolLifecycleMixin`（`community/warm_pool_lifecycle.py`），提供 idle timeout、replicas 软上限、过期 warm entry 回收。AIO 把 active-idle 清理留在 provider 内，只把 warm-pool 过期委托给共享 mixin。**Provisioner（K3s）不是独立 provider 类**：它是 `AioSandboxProvider` 设置 `provisioner_url` 后选用的 `RemoteSandboxBackend` 分支（`aio_sandbox_provider.py:352-358`），因此算第 7 种运行模式，不计入 provider 类数。
 
 ### 1. LocalSandboxProvider（默认）
 
@@ -281,7 +286,7 @@ Agent/tool 路径用这个判断来决定是否需要虚拟路径转换。
 
 ## 共享组件契约（RFC #4741 / #5089 / #5128）🆕
 
-七种 provider 之上有一层**与具体后端无关**的共享组件：跨实例 ownership store 回答"**哪个 Gateway 实例可以 reap**"，下面这层回答"**同一 Gateway 内哪些并发执行还在用这个 client / 这个 scope**"，以及身份派生、路径匹配、远端搜索输出等可复用契约。
+六个具体 provider 类之上有一层**与具体后端无关**的共享组件：跨实例 ownership store 回答"**哪个 Gateway 实例可以 reap**"，下面这层回答"**同一 Gateway 内哪些并发执行还在用这个 client / 这个 scope**"，以及身份派生、路径匹配、远端搜索输出等可复用契约。
 
 ### 执行租约 `lease.py`（#5128）
 

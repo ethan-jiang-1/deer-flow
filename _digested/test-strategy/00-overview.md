@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "测试体系全景"
-description: "规模数字、四类 22 层测试地图、四个 Makefile 入口与执行路由表、真 API 用例清单、每层'不证明什么'，以及体系自评的已知缺口。"
+description: '规模数字、四类 22 层测试地图、四个 Makefile 入口与执行路由表、真 API 用例清单、每层''''不证明什么''''，以及体系自评的已知缺口。'
 topics: [testing, ci, quality-assurance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 测试体系全景
@@ -25,7 +30,7 @@ topics: [testing, ci, quality-assurance]
 | CI 测试门禁 | 19 个 workflow（14 个 `.yml` + 5 个 `.yaml`）中 9 个跑测试（backend-unit 4 分片 / blocking-io / frontend-unit / e2e 4 分片 / replay-e2e / skill-review + 其内 `skill-tests` job / extension-package-check / windows-live-policy / sandbox-image-smoke），另有 lint-check 与 verify-versions |
 | 时长基线 | `backend/.test_durations` **32,395** 行（v2.1.0 的 13,141 行的 2.5 倍，见 `05-speed-isolation.md` §1） |
 
-marker 计数（`backend/tests/` 内 grep marker 用法）：`asyncio` 2,921 处、`no_auto_user` 84 处、`integration` 17 处、`allow_blocking_io` 9 处、`live` 5 处（文件的 marker 出现次数；带 live 的**用例**远多于 5 个，见下）。
+marker 计数（`backend/tests/` 内 grep marker 用法）：`asyncio` **3,047** 处、`no_auto_user` **83** 处、`integration` **20** 处（4 个文件）、`allow_blocking_io` **11** 处、`live` **12** 处（10 个文件）。这是 marker 出现次数，不是用例数；带 live 的**用例**远多于 12 个，见下。
 
 **真 API 用例清单**（全部显式 opt-in，默认 CI 永不执行）：`live` 从 v2.1.0 的 3 个文件扩到 10+ 个文件——`test_client_live.py` 模块级 pytestmark（19 个用例）、`test_aio_sandbox_local_backend.py` 里 3 个 `@pytest.mark.live`（该文件 131 个用例中只有这 3 个真连 Docker），以及 v2.2.0 新增的一整族 `*_live.py`：`test_knowledge_contract_live.py`、`test_knowledge_management_extension_live.py`、`test_knowledge_phase1_live.py`、`test_managed_deepseek_live.py`、`test_managed_presets_live.py`、`test_qq_channel_live.py`、`test_weknora_extension_live.py`。其中 `test_managed_deepseek_live.py` 与 `test_managed_presets_live.py` 的被测门是 `DEER_FLOW_RUN_LIVE_TESTS=1` + vendor 凭证，`backend/tests/AGENTS.md` 明文限定：「A passing connectivity probe does not establish full agent compatibility」。`requires_llm` skipif 门 `test_client_e2e.py`：43 个用例中 11 个挂该装饰器（文件管理子集不需要 LLM，CI 里也真跑）；`test_deferred_tool_promotion_real_llm.py` 改用文件级 `pytestmark = pytest.mark.skipif(...)`（`:41`）；`MONOCLE_LIVE_TESTS=1` 门 monocle live 2 个用例。`test_client_live_policy.py` 的 13 个测试是 live 门自身与 CI 接线的策略测试（子进程重收集，不触网），其 5 条门策略用例被 `.github/workflows/backend-windows-live-policy.yml` 在 Windows 上逐节点点名执行。其余约 2.3 万个用例全部确定性运行。
 
@@ -103,15 +108,15 @@ marker 注册在 `backend/pyproject.toml` 的 `[tool.pytest.ini_options]`（`:86
 | 前端 Mock E2E | UI 交互流程 | Playwright `page.route()` 全量 mock 后端 | 85 个 spec / 369 个 `test(` | 不证明后端真实契约（见 `03-contract-e2e.md` 的 fake-green 问题） |
 | 前端 Auth E2E | 认证开启路径 | `frontend/playwright.auth.config.ts`，`DEER_FLOW_AUTH_DISABLED: "0"` | 3 个 spec / 10 个 `test(` | — |
 | 前端真后端 E2E | 跨栈契约 | 真前端 + 真 gateway + `ReplayChatModel` | 4 个 spec / 4 个 `test(` | 不证明真实模型输出 |
-| Live | 真实外部 API | `test_client_live.py`（三重门）、AIO sandbox Docker 冒烟、v2.2.0 新增 7 个 `*_live.py` | 9 个文件带 live marker；`requires_llm` 门另覆盖 `test_create_deerflow_agent_live.py` 与 `test_client_e2e.py` | 慢、有副作用，永不进默认 CI |
-| Integration（真服务） | 真 Redis/Postgres 语义 | `@pytest.mark.integration`，CI 起 Postgres 17 + Redis 7 | 3 个文件 17 处（`test_stream_bridge.py` 独占 16 处，其余为 `test_e2b_capacity_store_redis.py`、`test_sandbox_ownership_store.py`） | 服务不可用即跳过 |
+| Live | 真实外部 API | `test_client_live.py`（三重门）、AIO sandbox Docker 冒烟、v2.2.0 新增 7 个 `*_live.py` | **10 个文件**带 live marker（12 处）；`requires_llm` 门另覆盖 `test_create_deerflow_agent_live.py` 与 `test_client_e2e.py` | 慢、有副作用，永不进默认 CI |
+| Integration（真服务） | 真 Redis/Postgres 语义 | `@pytest.mark.integration`，CI 起 Postgres 17 + Redis 7 | **4 个文件 20 处**（`test_stream_bridge.py` 独占 16 处，其余为 `test_e2b_capacity_store_redis.py`、`test_sandbox_ownership_store.py`、`test_redis_stream_cleanup_gap.py`） | 服务不可用即跳过 |
 
 ### C. 契约层
 
 | 层 | 目的 | 入口/示例 | 规模 | 不证明什么 |
 |----|------|----------|------|-----------|
 | Record/Replay Golden | SSE 事件形状漂移 | `test_replay_golden.py` + 提交的 golden JSON | 2 个文件 + `backend/tests/fixtures/replay/` 2 个 fixture | 只断言形状不断言值（`02-deterministic-llm.md`） |
-| 跨语言契约 JSON | Python/TS 双端钉住同一文档 | `contracts/` 下 9 份根契约 + `contracts/skill_review/` 4 份 schema | v2.2.0 从 5 份根契约扩到 9 份（新增 `knowledge_sources.v1.json`、`scheduled_goal_notes_contract.json`、`scheduled_task_errors_contract.json`、`thread_goal_contract.json`、`thread_origin_contract.json`、`ui_locales.v1.json`），18 个测试文件引用 | — |
+| 跨语言契约 JSON | Python/TS 双端钉住同一文档 | `contracts/` 下 9 份根契约 + `contracts/skill_review/` 4 份 schema | v2.2.0 从 v2.1.0 的 3 份根契约扩到 9 份（新增 `knowledge_sources.v1.json`、`scheduled_goal_notes_contract.json`、`scheduled_task_errors_contract.json`、`thread_goal_contract.json`、`thread_origin_contract.json`、`ui_locales.v1.json`），18 个测试文件引用 | — |
 | Gateway 一致性 | SDK 路径 ↔ Gateway Pydantic 模型 | `TestGatewayConformance`（`test_client.py:4256`） | 1 个测试类 11 个测试方法（`:4264`-`:4445`） | 不起真 Gateway 进程 |
 | 迁移契约 | upgrade/downgrade 可回滚 | `test_migration_*.py` 逐 revision 断言已审定的回滚契约 | 31 个文件（v2.1.0 为 14） | — |
 

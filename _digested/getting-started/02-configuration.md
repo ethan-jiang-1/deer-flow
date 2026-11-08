@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "配置接入概览"
-description: "| 文件 | 用途 | 生成方式 |"
+description: '配置接入概览：架构、契约与源码锚点。'
 topics: [setup, configuration, quickstart]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 配置接入概览

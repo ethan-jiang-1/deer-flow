@@ -24,6 +24,7 @@ topics: [deployment, docker, nginx, k8s]
 | [01-docker.md](01-docker.md) | Docker Compose：5 服务、网络、DooD、上线清单 | 深入 |
 | [02-nginx-and-k8s.md](02-nginx-and-k8s.md) | Nginx 路由/SSE/限速 + K3s Provisioner | 深入 |
 | [03-custom-sandbox-image.md](03-custom-sandbox-image.md) | 自定义 Sandbox 镜像：预装包、image 字段、运行时 pip install | 深入 |
+| [04-multi-instance.md](04-multi-instance.md) | 多实例前置、启动门、Redis stream bridge、频道 leader lease 与 ExecutionFence | 深入 |
 
 ## 宪章与约定
 

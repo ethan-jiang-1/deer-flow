@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "测试模式参考"
-description: "DeerFlow 测试代码中用到的所有可复用模式：FakeRedis、FrozenDatetime、Fake evaluator、Textual pilot、hermetic replay、guardrail-at-apply。"
+description: 'DeerFlow 测试代码中用到的所有可复用模式：FakeRedis、FrozenDatetime、Fake evaluator、Textual pilot、hermetic replay、guardrail-at-apply。'
 topics: [testing, patterns, fixtures, mocking, deterministic]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 测试模式参考

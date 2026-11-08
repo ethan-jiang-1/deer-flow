@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "GDPR 对照"
-description: "六项 GDPR 要求对应的技术机制与缺口：访问权、删除权、处理记录、数据最小化、存储限制、跨境传输。每项给出现状边界。"
+description: '六项 GDPR 要求对应的技术机制与缺口：访问权、删除权、处理记录、数据最小化、存储限制、跨境传输。每项给出现状边界。'
 topics: [governance, compliance, gdpr]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # GDPR 对照

@@ -22,7 +22,7 @@ topics: [middleware, hooks, chain-assembly, agent-loop]
 |---|---|---|
 | [00-overview.md](00-overview.md) | 设计哲学、Flask 对比、哪些设计漂亮/哪些可疑、入口处思考 | 概览 |
 | [01-hooks-and-flow.md](01-hooks-and-flow.md) | 6 种 hook、正向/反向顺序、洋葱组合、graph node vs inline、异常传播 | 概览 |
-| [02-chain-assembly.md](02-chain-assembly.md) | 共享基础层 16 + lead-only 23、`RuntimeFeatures`、`@Next`/`@Prev`、config 驱动 | 深入 |
+| [02-chain-assembly.md](02-chain-assembly.md) | 共享基础层 19 + lead-only 20、`RuntimeFeatures`、`@Next`/`@Prev`、config 驱动 | 深入 |
 | [03-catalog.md](03-catalog.md) | 39 个条目位完整清单，按 hook 点分组，含位置编号与配置项 | 深入 |
 | [04-claude-code-comparison.md](04-claude-code-comparison.md) | 与 Claude Code Hooks 的概念映射、设计哲学与互相借鉴 | 深入 |
 
@@ -40,7 +40,7 @@ topics: [middleware, hooks, chain-assembly, agent-loop]
 
 ## 速览
 
-- **39 个条目位（v2.2）**：共享基础层 16 + lead-only 23；含 2.2 新增的 TerminalResponse / ModelLengthFinishReason / SafetyFinishReason。
+- **39 个条目位（v2.2）**：共享基础层 19（含 ToolProgress / ToolErrorHandling / ArtifactCapture）+ lead-only 20；含 2.2 新增的 TerminalResponse / ModelLengthFinishReason / SafetyFinishReason。
 - **6 种 hook**：before/after agent、before/after model、wrap model call、wrap tool call；正向/反向顺序由 LangChain compose 决定。
 - **基类与装配**：全部继承 `langchain.agents.middleware.AgentMiddleware`（`langchain>=1.3`）；`build_middlewares()`（v2.1 起公开，旧 `_build_middlewares` 已不存在）与 SDK 侧 `_assemble_from_features()` 两条装配路径，实现散在 `agents/middlewares/`、`guardrails/middleware.py`、`sandbox/middleware.py`。
 - **LoopDetection 的告警不进 `after_model`**：为保住 OpenAI/Moonshot 的 tool-call pairing（见 [00](00-overview.md)）。

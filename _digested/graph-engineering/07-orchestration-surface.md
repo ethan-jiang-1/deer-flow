@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "编排操作面 — 用 DeerFlow 跑工作流的 API 与配方"
-description: "面向'今后用 DeerFlow 编排 workflow'的操作手册:Run 控制全字段、durable batch 引擎语义、十一条组合配方(R1–R11)、观测面与边界陷阱,全部证据锚定。"
+description: '面向''''今后用 DeerFlow 编排 workflow''''的操作手册:Run 控制全字段、durable batch 引擎语义、十一条组合配方(R1–R11)、观测面与边界陷阱,全部证据锚定。'
 topics: [orchestration, api, batch, recipes, workflow]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 07 · 编排操作面 — API 全景 + 现状组合配方

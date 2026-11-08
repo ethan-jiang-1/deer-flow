@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "knowledge/ 统一只读检索契约 + WeKnora 扩展 provider"
-description: "2.2.0 把「只读知识库检索」从 RAGFlow/LightRAG 两个各自为政的 community 工具抽成 core 的一套 provider 中立契约：deerflow/knowledge/（capabilities、证据与引用、预算、工具面）+ deerflow/knowledge_scope.py（每轮作用域快照）+ 扩展注册口 registry.knowledge_provider()。RAGFlow 降级为兼容适配器之一，WeKnora 作为可安装扩展走同一条通用工具路径。"
+description: '2.2.0 把「只读知识库检索」从 RAGFlow/LightRAG 两个各自为政的 community 工具抽成 core 的一套 provider 中立契约：deerflow/knowledge/（capabilities、证据与引用、预算、工具面）+ deerflow/knowledge_scope.py（每轮作用域快照）+ 扩展注册口 registry.knowledge_provider()。RAGFlow 降级为兼容适配器之一，WeKnora 作为可安装扩展走同一条通用工具路径。'
 topics: [tools, community, knowledge, retrieval, citations, extensions]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # knowledge/ 统一只读检索契约 + WeKnora 扩展 provider

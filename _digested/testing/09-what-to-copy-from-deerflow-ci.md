@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "借鉴 DeerFlow 自己的测试实践"
-description: "DeerFlow 项目自己的 CI 配置、测试工具、验收模式——可以直接复制到你自己的项目中。"
+description: 'DeerFlow 项目自己的 CI 配置、测试工具、验收模式——可以直接复制到你自己的项目中。'
 topics: [testing, ci, automation, acceptance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 借鉴 DeerFlow 自己的测试实践

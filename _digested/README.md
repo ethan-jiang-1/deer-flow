@@ -28,6 +28,7 @@ topics: [index, navigation, research]
 | 🚀 部署和运维 | [enterprise-operations/](enterprise-operations/) | 安全、部署、追踪、IM 通道、API 参考 |
 | 🎨 前端怎么做的 | [frontend/](frontend/) | Next.js 16、流式渲染、状态管理 |
 | 📐 Harness 工程评估 | [harness-engineering/](harness-engineering/) | coding agent 视角的工程质量评估、agent 文档体系、证据文化、反馈三环 |
+| 🧭 仓库怎么对 agent 友好 | [harness/](harness/) | AGENTS.md 标准、工具/验证接口、60 条审计清单、DSH 28 维镜片 |
 | 🕸️ 图工程支持到哪儿 | [graph-engineering/](graph-engineering/) | 12 项三档支持度地图、部分支持边界、为什么没有任务 DAG、扩展路线、编排操作面与注入设计 |
 | 🪜 编排原语阶梯 | [orchestration-ladder/](orchestration-ladder/) | 跨原语统一视角：完成语义与崩溃窗口、状态三分法、资源预算叠加、选择语义边界句、goal 驾驶座、LangGraph 能力面榨取、组合模式、谱系与冷恢复、外部叙事核对、图计算本质重述（借鉴 DSH ladder 方法） |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程、机械校验器 `_digested/_upstream-sync/tools/check_digest.py` |

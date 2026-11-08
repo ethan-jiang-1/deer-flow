@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "OpenAI Decisions 连接解析与配置键"
-description: "`openai_decisions/client.py:55-93` 只做两件事：给出去哪家服务、把连接解析成 `base_url + /v1/decisions`。`model` 故意留空、`base_url` 默认值落在 `defaults` 层、`api_key_env` 走三层优先级，`endpoint_path` 由本模块绑死以免一个 Decisions 连接被构造成发往 Jev 的 URL。另附：没有 YAML section、只有 `use:` 一行、热重载签名看不到 endpoint。"
+description: 'OpenAI Decisions 连接解析与配置键：架构、契约与源码锚点。'
 topics: [openai-decisions, typesafe, configuration, connection, dialect]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # OpenAI Decisions 连接解析与配置键

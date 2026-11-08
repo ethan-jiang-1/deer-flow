@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Harness/App 边界测试"
-description: "`backend/tests/test_harness_boundary.py` — CI 强制执行两层 import 边界。"
+description: 'Harness/App 边界测试：架构、契约与源码锚点。'
 topics: [testing, ci, quality-assurance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Harness/App 边界测试

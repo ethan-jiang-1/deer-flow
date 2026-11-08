@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Docker 部署"
-description: "生产部署（`docker/docker-compose.yaml`）5 个服务（redis/nginx/frontend/gateway + 可选 provisioner），通过 `deer-flow` bridge 网络互联："
+description: '生产部署（`docker/docker-compose.yaml`）5 个服务（redis/nginx/frontend/gateway + 可选 provisioner），通过 `deer-flow` bridge 网络互联：'
 topics: [integration, sdk, docker-deploy]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Docker 部署

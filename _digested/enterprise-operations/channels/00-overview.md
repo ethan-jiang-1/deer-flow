@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "IM 通道系统全景"
-description: "DeerFlow 通过 IM 平台通道（Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、QQ、Buzz）让用户通过聊天消息与 Agent 交互，另有 Lark CLI 托管集成。"
+description: 'DeerFlow 通过 IM 平台通道（Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、QQ、Buzz）让用户通过聊天消息与 Agent 交互，另有 Lark CLI 托管集成。'
 topics: [channels, im, messaging]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # IM 通道系统全景

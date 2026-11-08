@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "持久化与流式"
-description: "backend: sqlite           # memory | sqlite | postgres"
+description: 'backend: sqlite # memory | sqlite | postgres'
 topics: [persistence, database, sqlite]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 持久化与流式
@@ -47,7 +52,7 @@ async def close_engine() -> None:
 
 ### ORM Models
 
-`persistence/models/__init__.py`（88 行）的 import + `__all__` 是唯一的显式注册入口：**22 个 Row 类 / 22 张表**（`persistence/models/__init__.py:17-36` 为 import，`:38-61` 为 `__all__` 的 22 项）。`RunEventRow` 是唯一留在 `models/run_event.py` 的模型，其余按实体子包分放。
+`persistence/models/__init__.py`（88 行）的 import + `__all__` 是唯一的显式注册入口：**38 个 Row 类 / 38 张表**（`persistence/models/__init__.py:17-47` 为 import，`:49-88` 为 `__all__` 的 38 项）。`RunEventRow` 是唯一留在 `models/run_event.py` 的模型，其余按实体子包分放。下表只列核心实体；完整注册清单以 `__all__` 为准，不要按表行数反推表数。
 
 | Row | 表 | 用途 |
 |-----|-----|------|
@@ -655,10 +660,10 @@ key 字符集限制为字母数字 + 下划线 + 连字符。这是注入防御 
 
 ## Alembic 迁移（`migrations/versions/`）
 
-迁移链现为 **0001 → 0025**（`alembic_version.version_num` 为 VARCHAR(32)，revision id 不得超长）。
+迁移链现为 **0001 → 0048（50 个 revision）**（`alembic_version.version_num` 为 VARCHAR(32)，revision id 不得超长）。v2.2.0 在 v2.1.0 的 0025 之后继续追加 0026–0048，head 是 `0048_extension_execution_leases`；完整链以 `persistence/migrations/versions/` 的 `down_revision` 为准。
 
-按 `down_revision` 逐文件实测（v2.1.0），实际串法是：
-`0001_baseline → … → 0018_oauth_identity_pg_partial → 0019_projects → 0020_threads_meta_project_id → 0021_batch_acceptance → 0019_thread_incarnations → 0022_scheduled_occurrence_seq → 0023_run_change_seq → 0023_user_preferences → 0024_project_documents → 0025_repair_run_change_seq`（**head**，也是唯一 head）。
+按 `down_revision` 逐文件实测（v2.1.0 基线），0025 及之前的实际串法是：
+`0001_baseline → … → 0018_oauth_identity_pg_partial → 0019_projects → 0020_threads_meta_project_id → 0021_batch_acceptance → 0019_thread_incarnations → 0022_scheduled_occurrence_seq → 0023_run_change_seq → 0023_user_preferences → 0024_project_documents → 0025_repair_run_change_seq`（v2.1.0 head；v2.2.0 继续到 0048）。
 **数字前缀 ≠ 链顺序**：`0019_thread_incarnations.down_revision == "0021_batch_acceptance"`（`0019_thread_incarnations.py:21-22`），`0022_scheduled_occurrence_seq.down_revision == "0019_thread_incarnations"`（`0022_scheduled_occurrence_seq.py:14-15`），`0023_user_preferences.down_revision == "0023_run_change_seq"`（`0023_user_preferences.py:6-7`）——即 `0019_thread_incarnations` 挂在 `0021` 之后、`0023_user_preferences` 挂在 `0023_run_change_seq` 之后。`0023_run_change_seq.py:14-15` 的 down 是 `0022`，`0024_project_documents.py:15-16` 的 down 是 `0023_user_preferences`，`0025_repair_run_change_seq.py:34-35` 的 down 是 `0024_project_documents`。head 断言见 `backend/tests/test_migration_0025_repair_run_change_seq.py:69-70`。
 
 下表为当前链上的 0017–0025（sync #6 新增/触及 0017–0024；sync #7 追加 **0025**）：

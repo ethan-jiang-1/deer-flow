@@ -1,12 +1,18 @@
 ---
+
+
+
+
 title: "共享 Utils 契约"
-description: "`backend/packages/harness/deerflow/utils/` 里被多处 import、因而必须当作契约的不变量：事件双发、文件/装配线程池与 ContextVar、消息身份、thread_id 规则、端口分配、图外 LLM 调用、outline 解析边界。"
+description: '共享 Utils 契约：架构、契约与源码锚点。'
 topics: [internals, utils, contract]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 共享 Utils 契约
 
-`backend/packages/harness/deerflow/utils/`（v2.1.0 实测，13 个模块）大多是一次性小工具，但有若干模块被多个子系统 import：**改它们的语义等于改所有调用方的语义**，所以这里只记非琐碎契约，不抄函数体。
+`backend/packages/harness/deerflow/utils/`（v2.2.0 实测，**21 个模块**；v2.1.0 基线为 13 个）大多是一次性小工具，但有若干模块被多个子系统 import：**改它们的语义等于改所有调用方的语义**，所以这里只记非琐碎契约，不抄函数体。下表按引用面列出 21 个模块；标“工具级”的只登记存在与边界，不展开实现。
 
 | 模块 | 引用它的文件数（`grep -rl 'deerflow.utils.<mod>'` over `packages/harness/deerflow` + `app`，排除 `utils/` 自身） | 是否契约级 |
 |------|------|------|
@@ -23,6 +29,14 @@ topics: [internals, utils, contract]
 | `file_outline.py` | 2 | ✅ |
 | `oneshot_llm.py` | 2 | ✅ |
 | `network.py` | 1（`aio_sandbox/local_backend.py`，每次起本地 sandbox 都走） | ✅ |
+| `atomic_write.py` | 20 | ✅（原子发布 + 权限继承） |
+| `file_lock.py` | 4 | ✅（非阻塞 advisory lock 的重试边界） |
+| `host_paths.py` | 5 | ✅（Windows 扩展路径/host 路径段） |
+| `goal_objective.py` | 4 | 部分（goal 文本归一化与 4,000 字符上限） |
+| `retry_after.py` | 3 | ✅（provider Retry-After 夹取到 24h） |
+| `bash_exit.py` | 2 | 部分（bash 结果里的退出码标记，不执行命令） |
+| `output_names.py` | 2 | ✅（输出文件防碰撞命名） |
+| `file_revision_metadata.py` | 0（由 `atomic_write` 内部调用） | 工具级（保留文件 ACL/权限，不展开） |
 
 ---
 

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "追踪三 Provider 综述"
-description: "LangSmith、Langfuse 是 graph-root 挂载的 LangChain callback（一次 run 一个根 trace）；Monocle 是 process-global OTel 自动插桩（只在 Gateway lifespan 初始化）。三者都靠环境变量开关。"
+description: 'LangSmith、Langfuse 是 graph-root 挂载的 LangChain callback（一次 run 一个根 trace）；Monocle 是 process-global OTel 自动插桩（只在 Gateway lifespan 初始化）。三者都靠环境变量开关。'
 topics: [tracing, observability, langsmith, langfuse, monocle]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 追踪三 Provider 综述

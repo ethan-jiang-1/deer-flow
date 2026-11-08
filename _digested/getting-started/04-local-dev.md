@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "本地开发：make dev"
-description: "`make dev` 启动 3 个本地服务（Gateway + Frontend + Nginx），用于个人开发环境。"
+description: '本地开发：make dev：架构、契约与源码锚点。'
 topics: [setup, configuration, quickstart]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 本地开发：make dev

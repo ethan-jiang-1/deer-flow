@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Web Search：12 种 Provider 对比"
-description: "所有 12 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回 "
+description: '所有 12 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回'
 topics: [tools, community, external-integration]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Web Search：12 种 Provider 对比

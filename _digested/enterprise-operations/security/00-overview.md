@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "安全全景"
-description: "一段用户 prompt 到 `rm -rf /` 被执行 — 中间到底隔了多少层防护？"
+description: '一段用户 prompt 到 `rm -rf /` 被执行 — 中间到底隔了多少层防护？'
 topics: [security, auth, isolation-defense]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 安全全景
@@ -13,7 +18,7 @@ topics: [security, auth, isolation-defense]
 | 问题 | 答案 |
 |------|------|
 | **纵深多少层？** | 粗粒度 7 层 / 细粒度 16 层（2.1 的 14 层 + 🆕 2.2.0 的插件 action 授权、插件管理授权）。详见 [04-trust-boundary.md](04-trust-boundary.md) 逐层代码定位 |
-| **七种沙箱差多少？** | Local(零隔离) → Docker(容器,但 seccomp=unconfined) → K3s(Pod,有资源限制但 allowPrivilegeEscalation) |
+| **七种沙箱运行模式差多少？** | Local(零隔离) → Docker(容器,但 seccomp=unconfined) → K3s(Pod,有资源限制但 allowPrivilegeEscalation) |
 | **四种凭据方式的区别？** | Browser(JWT+CSRF) → PAT(Bearer `dfp_`，scope 收窄+默认拒绝路由) → Internal(共享 token,跳过全部检查) → IM Channel(已有签名+内部 token) |
 | **Guardrail 拦截什么？** | 可插拔的 tool_call 执行前授权检查；三选一：`AllowlistProvider` 名单 / 🆕 `TypeSafeGuardrailProvider`（Jev 风险概率）/ 🆕 `OpenAIDecisionsGuardrailProvider`（同一门走 `/v1/decisions`）；默认 fail-closed |
 | **哪些命令会被审计拒绝？** | `rm -rf /`、`dd if=`、`mkfs`、base64 管道执行、fork bomb 等 ~20 种高危模式 |
@@ -62,8 +67,8 @@ Internal 路径的 `DEER_FLOW_INTERNAL_AUTH_TOKEN` 在模块加载时自动生�
 | 进程隔离 | 无 | 容器 namespace | Pod namespace |
 | 文件隔离 | 路径映射+穿越检查 | 容器 FS + bind mount | 容器 FS + volume |
 | Shell 执行 | `allow_host_bash=false` 阻止 | 完全允许 | 完全允许 |
-| CPU 限制 | 无 | 无 | 100m-1000m |
-| 内存限制 | 无 | 无 | 256Mi-1Gi |
+| CPU 限制 | 无（host 进程） | 默认 2 CPU（可调） | 100m-1000m |
+| 内存限制 | 无（host 进程） | 默认 2G / pids 512（可调） | 256Mi-1Gi |
 | seccomp | host 默认 | **unconfined(显式禁用)** | host 默认 |
 | 提权 | N/A | Docker 默认 | **allow=true** |
 | 网络出站 | 全通 | 全通(无限制) | 全通(无 NetworkPolicy) |
@@ -75,7 +80,7 @@ Internal 路径的 `DEER_FLOW_INTERNAL_AUTH_TOKEN` 在模块加载时自动生�
 
 ## 已知主要缺陷
 
-- **权限全放行** — 9 个权限定义但所有 authenticated user 都获得全部（authorization 默认 disabled；Phase 4 已把 effective permissions 贯通到 /auth/me 与前端 UI 门控，强制点仍在 Gateway）
+- **权限全放行** — 13 个权限定义但所有 authenticated user 都获得全部（authorization 默认 disabled；Phase 4 已把 effective permissions 贯通到 /auth/me 与前端 UI 门控，强制点仍在 Gateway）；权限表以 [authorization/04-rbac-permissions.md](../../enterprise-it-governance/authorization/04-rbac-permissions.md) 为准
 - **Docker seccomp 显式禁用** — `--security-opt seccomp=unconfined` 移除 ~44 个系统调用过滤
 - **K3s 允许提权** — `allow_privilege_escalation: true`，setuid 程序可用
 - **SandboxAudit 只覆盖 bash** — read_file/write_file/str_replace 无高危内容检测

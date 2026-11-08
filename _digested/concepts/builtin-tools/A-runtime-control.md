@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "A. Agent 运行时控制"
-description: "## present_files"
+description: 'A. Agent 运行时控制：架构、契约与源码锚点。'
 topics: [tools, builtin, sandbox-tools]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # A. Agent 运行时控制

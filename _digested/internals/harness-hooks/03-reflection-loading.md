@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "反射加载：`resolve_variable` / `resolve_class` 动态模块系统"
-description: "**核心文件：** `deerflow/reflection/resolvers.py:25-95`"
+description: '反射加载：`resolve_variable` / `resolve_class` 动态模块系统：架构、契约与源码锚点。'
 topics: [hooks, extension, plugin-system]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 反射加载：`resolve_variable` / `resolve_class` 动态模块系统

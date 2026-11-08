@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Skills 与 Tool 系统"
-description: "Skills 加载（legacy + deferred 双模式）、request-scoped secrets、slash 激活、Tool 装配链。"
+description: 'Skills 加载（legacy + deferred 双模式）、request-scoped secrets、slash 激活、Tool 装配链。'
 topics: [skills, tools, prompt-engineering]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Skills 与 Tool 系统

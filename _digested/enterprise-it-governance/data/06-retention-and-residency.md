@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "保留期与数据驻留"
-description: "唯一存在的自动保留机制是项目回收站（trash_retention_days，默认 30 天），启动 + 回收站列表惰性清扫。thread、memory、上传文件均无 TTL；blob 与 knowledge 由后端/provider 决定。数据驻留完全依赖部署形态。"
+description: '唯一存在的自动保留机制是项目回收站（trash_retention_days，默认 30 天），启动 + 回收站列表惰性清扫。thread、memory、上传文件均无 TTL；blob 与 knowledge 由后端/provider 决定。数据驻留完全依赖部署形态。'
 topics: [governance, data, retention, residency]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 保留期与数据驻留

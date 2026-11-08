@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Extension 安全边界 — 插件能力、授权目标与宿主授予"
-description: "v2.2.0 的 21 个新增/改写文件把扩展面从『可信 operator 代码自由发挥』收紧为『宿主逐项授予、逐次鉴权的窄能力』：plugin action/management 目标串、restart-bound host_access、model invocation 预算、skill mutation 发布闸门、completed-run evidence 只读投影。"
+description: 'v2.2.0 的 21 个新增/改写文件把扩展面从『可信 operator 代码自由发挥』收紧为『宿主逐项授予、逐次鉴权的窄能力』：plugin action/management 目标串、restart-bound host_access、model invocation 预算、skill mutation 发布闸门、completed-run evidence 只读投影。'
 topics: [security, extension, plugin, authz, capability-grant, skill-mutation, run-evidence]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Extension 安全边界 — 插件能力、授权目标与宿主授予

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "部署架构全景"
-description: "DeerFlow 支持 4 种部署模式，从个人开发到生产多租户。"
+description: 'DeerFlow 支持 4 种部署模式，从个人开发到生产多租户。'
 topics: [deployment, docker, kubernetes]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 部署架构全景

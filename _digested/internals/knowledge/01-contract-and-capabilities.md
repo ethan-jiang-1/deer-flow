@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Knowledge 契约 — 数据模型、能力位与操作投影"
-description: "`deerflow/knowledge/contract.py`（139 行）与 `providers.py`（186 行）：7 个 Pydantic 模型 + 6 个 Protocol 构成 provider 中立的数据面；`KnowledgeCapabilities` 的 12 个操作位决定「谁能做什么」；`operation_capabilities()` 把全局能力投影成单工具能力，`get_knowledge_capabilities()` 再把多个已配置工具取交集并按 provider 身份降级。"
+description: 'Knowledge 契约 — 数据模型、能力位与操作投影：架构、契约与源码锚点。'
 topics: [knowledge, contract, capabilities, providers, extensions]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Knowledge 契约 — 数据模型、能力位与操作投影

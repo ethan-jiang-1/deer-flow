@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Claude Code Hooks vs DeerFlow Middleware"
-description: "同一种理念，两种实现。两者都在 Agent 生命周期的关键节点挂入自定义逻辑，但面向不同的用户、用不同的方式。"
+description: '同一种理念，两种实现。两者都在 Agent 生命周期的关键节点挂入自定义逻辑，但面向不同的用户、用不同的方式。'
 topics: [middleware, hooks, interceptor-chain]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Claude Code Hooks vs DeerFlow Middleware
@@ -34,7 +39,7 @@ topics: [middleware, hooks, interceptor-chain]
 | **怎么跑** | 外部进程（stdin JSON → stdout JSON） | 进程内 Python 对象 |
 | **怎么排** | 并行（无顺序保证） | 顺序链（正向 setup / 反向 teardown） |
 | **多少个** | 29 种事件 | 6 种 hook 点 |
-| **多少个处理者** | 用户定义，无上限 | 39 个条目位（36 个内置类型 + 2 个通用槽位 + 1 个条件项）+ 用户可追加 |
+| **多少个处理者** | 用户定义，无上限 | 39 个条目位（含 2 个通用槽位与条件性同族条目；不是固定 36 个类）+ 用户可追加 |
 | **能阻塞吗** | 能（exit code 2） | 能（不调 handler()） |
 | **能修改输入吗** | 能（`updatedInput`） | 能（`request.override()`） |
 | **能注入上下文吗** | 能（`additionalContext`） | 能（返回 `{"messages": [...]}`） |
@@ -222,7 +227,7 @@ Human Pause（人机交互）——两种模式:
 1. **有序执行** — Claude Code 的并行执行语义导致 "没有顺序保证"。当 hook 之间有依赖关系时（"先校验权限，再审计命令"），并行模型迫使用户把逻辑塞进一个 hook 脚本。DeerFlow 的顺序链更清晰。
 2. **洋葱组合** — `wrap_model_call`/`wrap_tool_call` 的嵌套 callable 模式让 middleware 同时看到 request 和 response。Claude Code 用 `PreToolUse` + `PostToolUse` 两个分离事件来实现类似效果，但不如洋葱模式直观。
 3. **位置声明** — `@Next(GuardrailMiddleware)` / `@Prev(ClarificationMiddleware)` 比 Claude Code 的 "所有 hook 并行" 更精确。如果 Claude Code 支持 `@After(PreToolUse)` 或 `@Before(PostToolUse)` 定位，体验会更好。
-4. **框架内置 hook** — Claude Code 的 hook 全由用户定义，没有内置的。DeerFlow 的 36 个内置 middleware 类型提供了开箱即用的安全/观测/资源管理能力。
+4. **框架内置 hook** — Claude Code 的 hook 全由用户定义，没有内置的。DeerFlow 的 39 个条目位（含 2 个通用槽位与条件项）提供了开箱即用的安全/观测/资源管理能力；`agents/middlewares/` 下有 39 个 `class *Middleware`，但不是每个都在 lead 链中。
 
 ## 为什么理念如此相似？
 

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "IT 治理全景：12 个管理维度"
-description: "从企业 IT 视角看 DeerFlow：12 个管理维度的能力与缺口矩阵、成熟度自评、以及三条最需要提前知道的边界。"
+description: '从企业 IT 视角看 DeerFlow：12 个管理维度的能力与缺口矩阵、成熟度自评、以及三条最需要提前知道的边界。'
 topics: [governance, compliance, audit]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # IT 治理全景：12 个管理维度

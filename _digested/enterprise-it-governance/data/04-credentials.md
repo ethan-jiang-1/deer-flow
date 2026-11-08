@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "凭证管理"
-description: "三类凭据、两种存放形态：env/config 里是明文，落库的走 Fernet 加密（DEER_FLOW_CREDENTIALS_KEY）。密钥轮转与丢失的实际后果。"
+description: '三类凭据、两种存放形态：env/config 里是明文，落库的走 Fernet 加密（DEER_FLOW_CREDENTIALS_KEY）。密钥轮转与丢失的实际后果。'
 topics: [governance, data, credentials]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 凭证管理

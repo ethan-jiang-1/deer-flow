@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "前端架构全景"
-description: "DeerFlow 前端是一个 Next.js 16 App Router + React 19 应用，通过 SSE 连接到 LangGraph Python 后端。"
+description: 'DeerFlow 前端是一个 Next.js 16 App Router + React 19 应用，通过 SSE 连接到 LangGraph Python 后端。'
 topics: [frontend, nextjs, react]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 前端架构全景

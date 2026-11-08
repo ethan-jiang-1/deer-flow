@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "API 端点详解"
-description: "Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口为 `http://localhost:2026`。"
+description: 'Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口为 `http://localhost:2026`。'
 topics: [integration, sdk, docker-deploy]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # API 端点详解

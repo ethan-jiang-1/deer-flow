@@ -1,15 +1,19 @@
 ---
+
+
+
 title: "Middleware 完整目录"
-description: "39 个 middleware，按 hook 点分组。每个条目：文件位置、触发点、位置编号、用途、配置项、非显而易见的细节。"
+description: '39 个 middleware，按 hook 点分组。每个条目：文件位置、触发点、位置编号、用途、配置项、非显而易见的细节。'
 topics: [middleware, hooks, interceptor-chain]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Middleware 完整目录
 
-> **39 个条目位，分两阶段组装**（v2.2.0 口径）。来源：`_build_runtime_middlewares()`（`tool_error_handling_middleware.py:347`，经 `build_lead_runtime_middlewares` 导出）产出前 16 条，`build_middlewares()`（`lead_agent/agent.py:485`）再追加 23 条。这与 `agents/middlewares/AGENTS.md` 的 39 条编号（`AGENTS.md:60-176`）一一对应。
+> **39 个条目位，分两阶段组装**（v2.2.0 口径）。来源：`_build_runtime_middlewares()`（`tool_error_handling_middleware.py:347`，经 `build_lead_runtime_middlewares` 导出）产出前 **19** 条（1–19，含 `ToolProgress` / `ToolErrorHandling` / `ArtifactCapture` 三个共享尾部），`build_middlewares()`（`lead_agent/agent.py:485`）再追加 **20** 条（20–39）。本表与 `agents/middlewares/AGENTS.md` 的 39 条编号同量级，但 AGENTS.md 会合并同族条目，不能逐条对齐。
 
-> **"39" 的口径**（v2.2.0 用代码核实）：= **36 个内置 middleware 类型** + **2 个通用槽位**（#34 caller 传入的 `custom_middlewares`、#35 config 声明的 `load_configured_extension_middlewares()`——`configured_extensions.py` 只提供加载函数，本身不定义类）；外加 2 个条件性同族条目：`CompletedSubagentUsageMiddleware`（`token_usage_middleware.py:382`，仅当 token budget + usage 都开，见 #32）与 `SubagentDateContextMiddleware`（`dynamic_context_middleware.py`，仅 subagent 链，见文末）。
-> 36 个内置类型 = `agents/middlewares/` 目录下 **35 个被 lead 链引用的 `class *Middleware`**（该目录共 39 个定义，减去仅 subagent 用的 `SubagentDateContextMiddleware`、仅 subagent 链注册的 `CompletedSubagentUsageMiddleware`、`memory_middleware.py::MemoryMiddlewareState` 与 `clarification_middleware.py::ClarificationMiddlewareState` 两个 state 子类）**+** `sandbox/middleware.py::SandboxMiddleware` **+** `guardrails/middleware.py::GuardrailMiddleware`。
+> **“39”的口径**（v2.2.0 用代码核实）：本表列的是 **39 个“条目位”**，含 2 个通用槽位（caller 传入的 `custom_middlewares`、config 声明的 `load_configured_extension_middlewares()`）与条件性同族条目；它不是 `agents/middlewares/` 下的类数（该目录有 39 个 `class *Middleware`，lead 链不一定全部引用）。`CompletedSubagentUsageMiddleware` 只在 token budget + usage 都开时出现，`SubagentDateContextMiddleware` 只在 subagent 链。
 > **v2.1.0 → v2.2.0 的增减**：`SkillToolPolicyMiddleware` 已在 v2.2.0 删除（`skill_tool_policy_middleware.py` 已删除，#6935；`allowed-tools` 降级为兼容元数据）；新增 `KnowledgeScopeMiddleware`、`ArtifactResolutionMiddleware`、`ArtifactCaptureMiddleware`、`PiiRedactionMiddleware`、`ModelContentCompatibilityMiddleware` 五个实例位。AGENTS.md 仍把 `ToolReceiptMiddleware`+`ToolErrorHandlingMiddleware` 合并成同一条 #15、把两个 guardrail 实例合并成 #11 规律条目，而本表拆开计行，故两边编号不能逐条对齐。
 >
 > 单链**实际实例数**随配置变化（本表列的是"每种可能的条目"，不是某次装配的条数）。`tool_progress.enabled` / `token_budget.enabled` / `summarization.enabled` / `guardrails.enabled` / `authorization.enabled` / `pii_redaction.enabled` 默认关，`verification.receipts_enabled` / `read_before_write.enabled` / `safety_finish_reason.enabled` / `loop_detection.enabled` / `token_usage.enabled` / `tool_artifacts.enabled` 默认开；模型支持 vision、开 plan mode / subagent / deferred setup / 自定义扩展时再加。
@@ -35,15 +39,20 @@ topics: [middleware, hooks, interceptor-chain]
 | 15 | **SandboxAuditMiddleware** | `sandbox_audit_middleware.py` | 始终 | 审计 bash shell/file 操作的安全日志。命令分类是防御纵深与审计，**不是**安全边界。v2.1.0 起按**位置**判定命令替换（命令位 `$(curl u)` 拦截 / 值位 `x=$(curl u)` 放行，#4611） |
 | 16 | **ReadBeforeWriteMiddleware** | `read_before_write_middleware.py` | `read_before_write.enabled`（默认开） | 写文件前必须有 `read_file` 记录的 sha256 "读戳"，按 `(scope, path)` 串行化；读戳在 ToolMessage 上，丢失读戳即丢失标记。`elide_blocked_payloads`（默认开）：被拦 payload 在 model-bound request 中换成占位符（`elide_min_chars` 2000 起拦）。位于 ToolProgress/ToolErrorHandling 外层，被拦写不消耗 progress 槽位 |
 
-（该链的三层拼接见 `_build_runtime_middlewares()`：`outer_wrappers`（1-5）→ `thread_hooks`（6-8）→ `tail`（9-16 + `ToolProgress` + `ToolErrorHandling` + `ArtifactCapture`）。条目位 18 个，其中 Guardrail 最多两个实例。）
+（该链的三层拼接见 `_build_runtime_middlewares()`：`outer_wrappers`（1-5）→ `thread_hooks`（6-8）→ `tail`（9-19，含 `ToolProgress` / `ToolErrorHandling` / `ArtifactCapture`）。条目位 19 个，其中 Guardrail 最多两个实例。）
 
-## Lead-only 层（17-39）
+## 共享基础层尾部（17-19，Lead 和 Sub-agent 共用）
 
 | # | Middleware | 文件 | 条件 | 一句话 |
 |---|-----------|------|------|--------|
 | 17 | **ToolProgressMiddleware** | `tool_progress_middleware.py` | `tool_progress.enabled` | 停滞检测状态机：ACTIVE→WARNED→BLOCKED（RFC #3177）。在共享基础层 `tail` 中位于 `ToolErrorHandling` 外层以便读 `deerflow_tool_meta`。phase 迁移持久化到 `runtime/events`（`middleware:tool_progress`，run 重放可见，含 goal continuation 触发的 `reset`） |
 | 18 | **ToolErrorHandlingMiddleware** | `tool_error_handling_middleware.py` | 始终 | 工具异常→错误 ToolMessage。注入 `deerflow_tool_meta`（status/error_type/recoverable/recommended_action/source）。`task` 工具的异常包装也从同一结构化元数据生成 |
 | 19 | **ArtifactCaptureMiddleware** | `artifact_capture_middleware.py` | `tool_artifacts.enabled`（默认开） | 🆕 v2.2.0 新增。`before_model` hook（不是 `wrap_tool_call`，避免把 ToolMessage 包进 `Command`）：扫描消息尾部未捕获的 tool artifact，抽成 `ArtifactEntry` 写入 `ThreadState.tool_artifacts`；`tool_artifact_processed` 记录已处理条目 hash（防重启后重复扫描）。handle = `art_` + 8 hex，由 (thread_id, ToolMessage.id, tool_call_id, ordinal) 确定性派生——**是标识符不是所有权凭证**。见 `TOOL_ARTIFACTS.md` |
+
+## Lead-only 层（20-39）
+
+| # | Middleware | 文件 | 条件 | 一句话 |
+|---|-----------|------|------|--------|
 | 20 | **DynamicContextMiddleware** | `dynamic_context_middleware.py` | 始终 | 注入 `<system-reminder>`（日期 + 可选 memory），保持 system prompt 静态以复用 prefix cache。组装 model request 时插入 transient `<project>` 块 + 有界 `<documents>` 索引，记录 `project_context_revision`/`project_shelf_revision` 上下文事件。🆕 v2.2.0：`context.locale`（`en-US`/`zh-CN`）作为**仅请求内**的语言偏好投影为人数据，静态 system prompt 与 locale 无关 |
 | 21 | **SkillActivationMiddleware** | `skill_activation_middleware.py` | 始终 | 检测 `/skill-name task` 触发语法，注入 SKILL.md body；重算 request-scoped secret 绑定（slash + in-context 双源）。每个 run 只激活一次。🆕 v2.2.0：**不再收窄 toolset**——enabled/configured skills 只是可发现的元数据，不再约束工具集（#6935） |
 | 22 | **DeferredToolPromotionAuditMiddleware** | `tool_promotion_audit_middleware.py` | `deferred_setup.deferred_names` 非空 | 持久化实际生效的 deferred-tool promotion 决策（工具名 + catalog hash，不含敏感 payload），供可观测性/审计回放。位于 SkillActivation 之后 |

@@ -27,6 +27,7 @@ topics: [architecture, system-overview, onboarding]
 | [05-request-flow.md](05-request-flow.md) | 请求数据流：HTTP → Gateway → Agent → SSE | 深入 |
 | [06-startup-flow.md](06-startup-flow.md) | 启动全流程：6 阶段从命令到 `agent.astream` | 深入 |
 | [07-design-philosophy-evidence.md](07-design-philosophy-evidence.md) | 设计理念的源码证据：执行治理、SDLC、多实例三件套 | 深入 |
+| [08-upstream-docs-map.md](08-upstream-docs-map.md) | `docs/`、`backend/docs/`、`frontend/src/content` 的证据地图与范围声明 | 概览 |
 
 > 图示：`figures/` 下 10+ 张 SVG（四层同心圆、进程拓扑、启动时序、请求生命周期、sandbox 路径等），浏览器直接打开渲染；配色与绘制规范见 [figures/README.md](figures/README.md)。
 

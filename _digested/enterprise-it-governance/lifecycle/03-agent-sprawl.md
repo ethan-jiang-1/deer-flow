@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Agent 蔓延风险"
-description: "四条增殖路径、五项缺失的控制，以及为什么「没有 agent 清单」是这一卷最根本的治理缺口。"
+description: '四条增殖路径、五项缺失的控制，以及为什么「没有 agent 清单」是这一卷最根本的治理缺口。'
 topics: [governance, lifecycle]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Agent 蔓延风险

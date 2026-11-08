@@ -1,11 +1,16 @@
 ---
+
+
+
 title: "Session 谱系与冷恢复：线程、运行与所有权"
-description: "DeerFlow 的身份谱系分层（thread / run / 子代理双轨 id / batch item / occurrence / worker）、所有权平面（lease 心跳与双向围栏）、冷恢复完整时序、多 worker 边界与谱系断点。全部锚点父侧亲自核验。"
+description: 'DeerFlow 的身份谱系分层（thread / run / 子代理双轨 id / batch item / occurrence / worker）、所有权平面（lease 心跳与双向围栏）、冷恢复完整时序、多 worker 边界与谱系断点。全部锚点父侧亲自核验。'
 topics: [lineage, ownership, lease, cold-recovery, multi-worker, takeover]
 topic: orchestration-ladder/06
 repo: /Users/bowhead/deer-flow
 date: 2026-10-02
 status: verified（本篇为父侧亲写：子代理未按期交付后接管，所有锚点均在本会话亲自 read 核验）
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Session 谱系与冷恢复：线程、运行与所有权

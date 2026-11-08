@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Model Layer 全景"
-description: "怎么做到换模型不改代码？thinking/vision 怎么统一抽象？只有一个公开 API create_chat_model()，背后 7 个自定义适配器加 2 个标准 LangChain 直通。"
+description: '怎么做到换模型不改代码？thinking/vision 怎么统一抽象？只有一个公开 API create_chat_model()，背后 7 个自定义适配器加 2 个标准 LangChain 直通。'
 topics: [models, llm, provider-factory]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Model Layer 全景

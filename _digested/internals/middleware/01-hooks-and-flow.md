@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Hook 点与执行流"
-description: "Agent 的每一次 step 穿过 6 种 hook 点。理解每种 hook 的触发时机、执行方式、和它适合做什么，是理解整个 middleware 系统的基础。"
+description: 'Agent 的每一次 step 穿过 6 种 hook 点。理解每种 hook 的触发时机、执行方式、和它适合做什么，是理解整个 middleware 系统的基础。'
 topics: [middleware, hooks, interceptor-chain]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Hook 点与执行流

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Task Continuity — 任务连续性"
-description: "opt-in 的任务笔记 + 压缩历史召回：task_note/history_search/history_read 三工具、thread 级 SQLite 归档、retention/作用域/失败语义、与 memory 的边界、上游评测结论。"
+description: 'opt-in 的任务笔记 + 压缩历史召回：task_note/history_search/history_read 三工具、thread 级 SQLite 归档、retention/作用域/失败语义、与 memory 的边界、上游评测结论。'
 topics: [runtime, compaction, task-continuity, notes, recall]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Task Continuity — 任务连续性

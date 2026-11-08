@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "内部服务认证"
-description: "X-DeerFlow-Internal-Token 的完整契约：env 来源、每进程随机生成、owner 头如何借用用户身份、internal 角色为何不是 RBAC 角色。"
+description: 'X-DeerFlow-Internal-Token 的完整契约：env 来源、每进程随机生成、owner 头如何借用用户身份、internal 角色为何不是 RBAC 角色。'
 topics: [governance, identity, internal]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 内部服务认证

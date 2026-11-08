@@ -35,7 +35,7 @@ topics: [persistence, checkpointer, database, delta-channel]
 
 ## 速览
 
-- **三后端同一契约**：`memory` / `sqlite` / `postgres`，由工厂按 `database.backend` 选择；ORM 共 22 张表，Repository 模式隔离 SQL。
-- **迁移链**：Alembic 按 `down_revision` 排序而非数字前缀；0025 是修复型迁移（幂等重放被插队的 `0023_run_change_seq`，并把 `RunChangeClockRow` / `UserPreferenceRow` 补进 ORM 注册表）。
+- **三后端同一契约**：`memory` / `sqlite` / `postgres`，由工厂按 `database.backend` 选择；ORM 共 38 张表，Repository 模式隔离 SQL。
+- **迁移链**：Alembic 按 `down_revision` 排序而非数字前缀；当前 50 个 revision，head 是 `0048_extension_execution_leases`。0025 是 v2.1.0 的修复型迁移（幂等重放被插队的 `0023_run_change_seq`，并把 `RunChangeClockRow` / `UserPreferenceRow` 补进 ORM 注册表），不是当前 head。
 - **两种 checkpoint 表示**：full（整快照 `channel_values`）与 delta（哨兵 blob + 每步 writes）；模式编译进图，运行中不可改，full → delta 单向。
 - **delta 的 fail-closed 门**：元数据标记 `deerflow_checkpoint_channel_mode`，不匹配抛 `CheckpointModeMismatchError`；缓存只读、线程级 purge，memory 后端锁外 deepcopy。

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Harness / App 两层分层"
-description: "DeerFlow 后端最核心的架构决策：严格的两层拆分。"
+description: 'DeerFlow 后端最核心的架构决策：严格的两层拆分。'
 topics: [architecture, system-overview]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Harness / App 两层分层

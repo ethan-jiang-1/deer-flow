@@ -1,14 +1,19 @@
 ---
+
+
+
 title: "沙箱隔离"
-description: "七种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。"
+description: '七种沙箱运行模式（六个 provider 类）提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。'
 topics: [security, auth, isolation-defense]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 沙箱隔离
 
-七种沙箱提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。
+七种沙箱运行模式（六个 provider 类）提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射；Provisioner 是 AIO 的 remote backend 模式，不是独立 provider 类。
 
-> **交叉引用：** Sandbox ABC 抽象 + 七种实现架构见 [concepts/sandbox/abstract-interface-and-seven-impls.md](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。IT 治理视角（策略执行、审计可观测性）见 [../../enterprise-it-governance/execution/README.md](../../enterprise-it-governance/execution/README.md)。
+> **交叉引用：** Sandbox ABC 抽象 + 七种运行模式（六个 provider 类）架构见 [concepts/sandbox/abstract-interface-and-seven-impls.md](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。IT 治理视角（策略执行、审计可观测性）见 [../../enterprise-it-governance/execution/README.md](../../enterprise-it-governance/execution/README.md)。
 
 ## 挂入方式
 
@@ -69,8 +74,8 @@ Agent Loop 每轮 step 开始
 | **进程隔离** | 无 — `subprocess.run()` 直接在 host | Docker namespace | K8s Pod namespace |
 | **文件隔离** | 路径映射 + `..` 遍历检查 | 容器 FS + bind mounts | 容器 FS + volumes |
 | **Shell 执行** | `allow_host_bash` 控制 | 完全允许 | 完全允许 |
-| **CPU 限制** | 无 | 无 | 100m req / 1000m limit |
-| **内存限制** | 无 | 无 | 256Mi req / 1Gi limit |
+| **CPU 限制** | 无（host 进程） | 默认 2 CPU（`DEER_FLOW_SANDBOX_CPUS` 可调） | 100m req / 1000m limit |
+| **内存限制** | 无（host 进程） | 默认 2G / pids 512（`local_backend.py:240-242`） | 256Mi req / 1Gi limit |
 | **存储限制** | 无 | 无 | 500Mi ephemeral-storage |
 | **seccomp** | host 默认 | **`unconfined`（显式禁用）** | host 默认 |
 | **特权模式** | N/A（已是 host） | 非特权 | `privileged: false` |

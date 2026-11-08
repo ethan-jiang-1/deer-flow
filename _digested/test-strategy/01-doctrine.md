@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "测试思想与成文规矩"
-description: "TDD 强制、offline-first 三分法、live 三重门、确定性纪律、真一切只换模型、no-unpinned-invariant、scar-tissue 文化——DeerFlow 把测试纪律写进 AGENTS.md 链并用测试钉住。"
+description: 'TDD 强制、offline-first 三分法、live 三重门、确定性纪律、真一切只换模型、no-unpinned-invariant、scar-tissue 文化——DeerFlow 把测试纪律写进 AGENTS.md 链并用测试钉住。'
 topics: [testing, doctrine, agent-experience]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 测试思想与成文规矩

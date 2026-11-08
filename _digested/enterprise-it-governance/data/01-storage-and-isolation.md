@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "数据存储与隔离"
-description: "四类持久化数据各存在哪、per-user 目录布局的完整形态、OpenAI Assistants 兼容层的隔离继承，以及存储后端的选择如何影响多实例。"
+description: '四类持久化数据各存在哪、per-user 目录布局的完整形态、OpenAI Assistants 兼容层的隔离继承，以及存储后端的选择如何影响多实例。'
 topics: [governance, data]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 数据存储与隔离

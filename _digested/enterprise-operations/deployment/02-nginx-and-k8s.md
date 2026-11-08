@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Nginx 路由 + K3s Provisioner"
-description: "## Nginx 路由规则"
+description: 'Nginx 路由 + K3s Provisioner：架构、契约与源码锚点。'
 topics: [deployment, docker, kubernetes]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Nginx 路由 + K3s Provisioner
@@ -31,8 +37,8 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $forwarded_proto;
 
-        # 文件上传
-        client_max_body_size 100M;
+        # 长文本 prompt 上限；文件上传有单独的 uploads/projects location（100M）
+        client_max_body_size 20M;
     }
 
     # LangGraph 兼容入口：rewrite 成 Gateway 原生 /api/*
@@ -110,7 +116,10 @@ location /api/ {
 | `/api/sandboxes` | POST | 创建 Pod + NodePort Service |
 | `/api/sandboxes` | GET | 列出所有 sandbox |
 | `/api/sandboxes/{id}` | GET | 查询 sandbox 状态 |
+| `/api/sandboxes/{id}/presence` | GET | 查询 warm-pool presence |
 | `/api/sandboxes/{id}` | DELETE | 删除 Pod + Service |
+| `/api/capabilities` | GET | 返回 provisioner 能力清单 |
+| `/health` | GET | provisioner liveness |
 
 ### Pod Spec
 

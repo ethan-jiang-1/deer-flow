@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "七种沙箱模式"
-description: "从 Local 路径映射到 K8s Provisioner，三种隔离级别。"
+description: '从 Local 路径映射到 K8s Provisioner，三种隔离级别。'
 topics: [governance, execution]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 七种沙箱模式

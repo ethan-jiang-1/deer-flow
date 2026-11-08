@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Agent 中间件 Hook 系统：生命周期 + 定位 + 开关"
-description: "- `deerflow/agents/features.py` — `RuntimeFeatures` + `@Next`/`@Prev` 装饰器"
+description: 'Agent 中间件 Hook 系统：生命周期 + 定位 + 开关：架构、契约与源码锚点。'
 topics: [hooks, extension, plugin-system]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Agent 中间件 Hook 系统：生命周期 + 定位 + 开关

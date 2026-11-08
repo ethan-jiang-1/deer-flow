@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "REST API 端点文档"
-description: "v2.2.0 全部 Gateway 路由的穷举清单（221 条），以及「领域异常 → HTTP 映射」穷举表（每条带 file:line）。"
+description: 'v2.2.0 全部 Gateway 路由的穷举清单（221 条），以及「领域异常 → HTTP 映射」穷举表（每条带 file:line）。'
 topics: [gateway, api, rest, error-handling]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # REST API 端点文档

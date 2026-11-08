@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "剩余风险与设计取舍"
-description: "五类剩余风险（含一处此前误判为不存在的出站网络策略）、六层路径防护的设计逻辑，以及为什么是 per-thread 而非 per-user 沙箱。"
+description: '五类剩余风险（含一处此前误判为不存在的出站网络策略）、六层路径防护的设计逻辑，以及为什么是 per-thread 而非 per-user 沙箱。'
 topics: [governance, execution]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 剩余风险与设计取舍

@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Tracing — 追踪系统"
-description: "| 文件 | 行数 | 职责 |"
+description: 'Tracing — 追踪系统：架构、契约与源码锚点。'
 topics: [tracing, observability, langsmith]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Tracing — 追踪系统
@@ -51,54 +57,9 @@ flowchart TD
     end
 ```
 
-## 两层附着策略
+## 附着语义（canonical）
 
-### 层 1：图根级别（入口点附着）
-
-`make_lead_agent` 和 `DeerFlowClient.stream` 在调用 `graph.astream()` **之前**，将 handler 追加到 `config["callbacks"]`。
-
-**worker.py 实际代码（行 233-247）：**
-
-```python
-# 注入 RunJournal 作为 LangChain callback handler（token 统计 + 生命周期）
-if journal is not None:
-    config.setdefault("callbacks", []).append(journal)
-
-# 注入 Langfuse trace 元数据，Caller 提供的值通过 setdefault 优先
-inject_langfuse_metadata(
-    config,
-    thread_id=thread_id,
-    user_id=get_effective_user_id(),
-    assistant_id=record.assistant_id,
-    model_name=record.model_name,
-    environment=os.environ.get("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
-)
-```
-
-**client.py 实际代码（行 595-608）：**
-
-```python
-# 在图调用根注入 tracing callback + Langfuse metadata
-tracing_callbacks = build_tracing_callbacks()
-if tracing_callbacks:
-    existing_callbacks = list(config.get("callbacks") or [])
-    config["callbacks"] = [*existing_callbacks, *tracing_callbacks]
-
-inject_langfuse_metadata(
-    config,
-    thread_id=thread_id,
-    user_id=get_effective_user_id(),
-    assistant_id=self._agent_name or "lead-agent",
-    model_name=configurable.get("model_name") or self._model_name,
-    environment=self._environment or os.environ.get("DEER_FLOW_ENV") or os.environ.get("ENVIRONMENT"),
-)
-```
-
-**为什么必须是图根？** Langfuse v4 的 `CallbackHandler._parse_langfuse_trace_attributes()` 只在 `on_chain_start(parent_run_id=None)` 时触发。如果 callback 附着在模型级别，每个 LLM 调用都会成为独立的 trace，metadata 永远到不了根 trace。
-
-### 层 2：模型级别（图外调用者回退）
-
-`create_chat_model(attach_tracing=True)` 为不在 agent graph 内运行的调用者提供模型级附着。例如 `MemoryUpdater` 绕过了 graph，所以它只能靠模型级 callback。
+图根/模型级两层附着、worker/client 双路径的完整机制在 [observability/03](../../observability/03-tracing-providers.md) 维护；本页只保留 provider 配置与环境变量。v2.2.0 关键变化：worker 用装配后的 `effective_model`（`worker.py:1400-1410`），client 用 `effective_model_name`（`client.py:1059`）。
 
 ## 配置检测三层
 
@@ -284,17 +245,9 @@ def inject_langfuse_metadata(config, *, thread_id, user_id, ...):
 
 `setdefault` 确保前端设置的 `langfuse_session_id` 不被覆盖 — 外部系统可以注入自己的 session ID 来关联 DeerFlow trace 和外部 trace。
 
-## 双入口点一致性
+## 双入口点参数差异
 
-Gateway worker 和嵌入式 client 都调用同一个 `inject_langfuse_metadata()`，参数来源略有不同：
-
-| 参数 | Worker（worker.py:240） | Client（client.py:601） |
-|------|------------------------|------------------------|
-| `thread_id` | `thread_id`（请求参数） | `thread_id`（参数或 UUID4） |
-| `user_id` | `get_effective_user_id()` | `get_effective_user_id()` |
-| `assistant_id` | `record.assistant_id` | `self._agent_name or "lead-agent"` |
-| `model_name` | `record.model_name` | `configurable.get("model_name") or self._model_name` |
-| `environment` | `DEER_FLOW_ENV` / `ENVIRONMENT` | `self._environment` / `DEER_FLOW_ENV` / `ENVIRONMENT` |
+完整对照以 [observability/03](../../observability/03-tracing-providers.md) 为准；v2.2.0 的 `model_name` 分别取 `effective_model`（worker，`worker.py:1407`）与 `effective_model_name`（client，`client.py:1059`）。
 
 ## 配置
 

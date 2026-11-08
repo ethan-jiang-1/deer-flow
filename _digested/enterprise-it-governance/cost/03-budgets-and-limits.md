@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "预算与限额"
-description: "token_budget 的双阈值机制（默认关闭）、recursion_limit 的两级上限，以及为什么「没有货币预算」是这个体系的根本边界。"
+description: 'token_budget 的双阈值机制（默认关闭）、recursion_limit 的两级上限，以及为什么「没有货币预算」是这个体系的根本边界。'
 topics: [governance, cost, limits]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 预算与限额

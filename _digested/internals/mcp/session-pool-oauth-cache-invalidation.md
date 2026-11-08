@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "MCP 深度解析 — Session Pool、OAuth、缓存"
-description: "- `deerflow/mcp/cache.py` — 惰性初始化、content-signature 缓存失效、routing hints、per-server timeout"
+description: 'MCP 深度解析 — Session Pool、OAuth、缓存：架构、契约与源码锚点。'
 topics: [mcp, tools, protocol-integration]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # MCP 深度解析 — Session Pool、OAuth、缓存

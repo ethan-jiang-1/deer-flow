@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "反馈三环：DeerFlow 如何报告失败、落账反馈、在仓库里学习"
-description: "逐环盘点 DeerFlow 的反馈机制：失败如何变成模型可见的标记、反馈如何先落账再投影、仓库如何从失败中学习。含两条学习通道的区分——产品记忆（模型级）与工程学习（仓库级）的纪律必须分离。"
+description: '逐环盘点 DeerFlow 的反馈机制：失败如何变成模型可见的标记、反馈如何先落账再投影、仓库如何从失败中学习。含两条学习通道的区分——产品记忆（模型级）与工程学习（仓库级）的纪律必须分离。'
 topics: [feedback, error-handling, persistence, governance, memory]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 反馈三环：DeerFlow 如何报告失败、落账反馈、在仓库里学习

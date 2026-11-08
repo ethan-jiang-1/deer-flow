@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "部分支持的边界 — 四处各撑到哪儿"
-description: "◐ 档逐项剖析:动态分解、Fan-out、Session 外状态机、HITL 各自的能力边界与越过边界后的表现。v2 深挖修订。"
+description: '◐ 档逐项剖析:动态分解、Fan-out、Session 外状态机、HITL 各自的能力边界与越过边界后的表现。v2 深挖修订。'
 topics: [graph, dag, subagent, hitl]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 02 · 部分支持的边界 — 四处各撑到哪儿(v2,深挖修订)

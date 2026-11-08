@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Capability 目录 — 清单 schema、adapter 注册表与发现 API"
-description: "`builtin.json` 的 15 条清单如何被 `PluginManifest` 校验、`load_catalog()` 的三条失败策略、Gateway 侧 4 个 adapter 的 list/install 分工，以及 `/api/capabilities/*` 三个端点的权限、scope 与"失败隔离"语义。"
+description: 'Capability 目录 — 清单 schema、adapter 注册表与发现 API：架构、契约与源码锚点。'
 topics: [capabilities, catalog, manifest, adapters, gateway, api]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Capability 目录 — 清单 schema、adapter 注册表与发现 API

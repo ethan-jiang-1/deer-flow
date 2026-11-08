@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "resolve_variable — 动态加载"
-description: "DeerFlow 的核心 slogan 之一是"换模型/换 tool 不改代码"。实现这个的基础设施是 reflection 系统：`resolve_variable()` 和 `resolve_class()`。"
+description: 'DeerFlow 的核心 slogan 之一是"换模型/换 tool 不改代码"。实现这个的基础设施是 reflection 系统：`resolve_variable()` 和 `resolve_class()`。'
 topics: [configuration, hot-reload, yaml-config]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # resolve_variable — 动态加载

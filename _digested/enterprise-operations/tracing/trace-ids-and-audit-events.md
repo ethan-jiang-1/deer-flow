@@ -1,42 +1,25 @@
 ---
-title: "Tracing — 请求 Trace Id 与中间件审计事件"
-description: "X-Trace-Id 无条件签发、非 HTTP 入口点绑定、loop detection / deferred tool promotion 审计事件的持久化。"
-topics: [tracing, trace-id, observability, loop-detection, middleware]
+
+
+
+title: "Tracing — 中间件审计事件（运维侧补充）"
+description: 'loop detection / deferred tool promotion 的 run event 审计；trace id 与入口点绑定以 observability/01 为 canonical。'
+topics: [tracing, observability, loop-detection, middleware]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
-# 请求 Trace Id 与中间件审计事件
+# 中间件审计事件（运维侧补充）
 
-LangSmith/Langfuse 之外的另外两层可观测性：请求级关联 id（`X-Trace-Id` / `deerflow_trace_id`）与运行级审计事件（run event store 中的 `middleware:*` 事件）。
+> **边界**：请求级 trace id（`X-Trace-Id` / `deerflow_trace_id`）与非 HTTP 入口点绑定以 [observability/01](../../observability/01-logging-and-trace-context.md) 为 canonical；本页只保留 loop_detection / tool_promotion 两个运维侧审计细节，不再重写 trace id 机制。
 
 ## 源文件
 
 | 文件 | 职责 |
 |------|------|
-| `deerflow/trace_context.py` | ContextVar 源头：`ensure_trace_id` / `resolve_trace_id` / `ensure_trace_context` / `request_trace_context` |
-| `app/gateway/trace_middleware.py` | HTTP 入口：绑定 ContextVar + 回写响应头 + 未处理异常兜底 500 |
 | `agents/middlewares/loop_detection_middleware.py` | 循环检测决策 → `middleware:loop_detection` 审计事件 |
 | `agents/middlewares/tool_promotion_audit_middleware.py` | deferred 工具晋升 → `middleware:tool_promotion` 审计事件 |
 | `runtime/journal.py::record_middleware()` | 两类事件的统一持久化出口（RunJournal → run event store） |
-
-## Request Trace Id 无条件签发（#5119）
-
-- `TraceMiddleware` **不做任何配置门控**：每个 HTTP 请求都绑定一个 trace id，并始终回写 `X-Trace-Id` 响应头（在 `http.response.start` 写入，覆盖 SSE 等流式响应而不消费 body）。
-- `logging.enhance.enabled` 只决定日志记录是否打印 `trace_id` 字段——不影响 id 签发、响应头或 run metadata。因此中间件不读 `AppConfig`，与 `logging` 的重启生效契约解耦。
-- **ContextVar 是唯一源**，其余载体都是派生输出、从不读回：worker 把 id 盖到 runtime context 与 `config["metadata"]`，`services.start_run` 盖到 run record。调用方发来的 `deerflow_trace_id`（`body.metadata` / `body.config.context`）会被替换——迁就它会让持久化 run 与响应头、日志互相矛盾；调用方应通过 `X-Trace-Id` 请求头钉住 id。
-- 未处理异常由中间件自己发一个**带 header 的 plain 500**再 re-raise（替换 `ServerErrorMiddleware` 的响应——那一个响应恰恰最需要与日志关联）。该 500 位于 `CORSMiddleware` 之外，是 CORS-opaque 的（有意不复制 origin allowlist 以免两套策略漂移）；mid-stream 失败原样传播，已写入的 header 保留。
-
-## 非 HTTP 入口点绑定
-
-四个入口持有一个工作单元，但只有第一个在 ASGI 内：
-
-| 入口 | 绑定点 |
-|------|--------|
-| Gateway HTTP | `TraceMiddleware` |
-| 定时任务 occurrence | `ScheduledTaskService._attempt_queued_run` → `launch_scheduled_thread_run` |
-| MCP task notification | `launch_mcp_task_notification_run` |
-| IM inbound | `ChannelManager._worker_loop` |
-
-（嵌入式 / TUI / CLI 路径由 `DeerFlowClient.stream()` 按 `next()` 步绑定。）绑定作用域是**一次工作单元**而非轮询循环——复用的 worker task 上泄漏的绑定会把后续 occurrence 都标成第一个 id。`ensure_trace_context` 继承外层作用域，使层级调度绑定与 Gateway 请求内的 manual trigger 归入同一 trace；HTTP 的 `request_trace_context` 则刻意不继承——伪造的请求头不能回退到上一个请求的 id。
 
 ## Loop Detection 审计（#5127 / #5344 / #5245）
 

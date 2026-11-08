@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "快速启动"
-description: "- Python 3.12+"
+description: '快速启动：架构、契约与源码锚点。'
 topics: [setup, configuration, quickstart]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 快速启动

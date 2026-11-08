@@ -1,6 +1,11 @@
 ---
+
+
+
 title: "面向 agent 的工具与接口设计原则"
-description: "以 Anthropic《Writing effective tools for agents》、OpenAI function calling 指南、MCP 规范为准，深挖命名与命名空间、返回值 token 预算、错误信息设计、聚合操作、幂等与安全性、工具数量与选择负担。"
+description: '以 Anthropic《Writing effective tools for agents》、OpenAI function calling 指南、MCP 规范为准，深挖命名与命名空间、返回值 token 预算、错误信息设计、聚合操作、幂等与安全性、工具数量与选择负担。'
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 面向 agent 的工具与接口设计原则

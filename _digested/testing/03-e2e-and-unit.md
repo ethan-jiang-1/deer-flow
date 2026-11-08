@@ -1,10 +1,17 @@
 ---
+
+
+
 title: "E2E + 单元测试"
-description: "## Frontend 单元测试（Rstest）"
+description: '可抄的前端 Rstest / Playwright 与后端 pytest 测试样例；机制、分类与计数以 test-strategy 为 canonical。'
 topics: [testing, ci, quality-assurance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # E2E + 单元测试
+
+> **边界**：前端/TUI 测试的机制、分类与计数以 [test-strategy/06-frontend-and-tui.md](../test-strategy/06-frontend-and-tui.md) 为 canonical；本页只保留可抄的测试样例与运行方式，不重复维护统计口径。
 
 ## Frontend 单元测试（Rstest）
 

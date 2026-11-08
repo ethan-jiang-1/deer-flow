@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Agent 自修改：update_agent / setup_agent + SOUL.md 原子写入"
-description: "- `deerflow/tools/builtins/update_agent_tool.py` — agent 在对话中更新自己的 SOUL.md/config.yaml"
+description: 'Agent 自修改：update_agent / setup_agent + SOUL.md 原子写入：架构、契约与源码锚点。'
 topics: [hooks, extension, plugin-system]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Agent 自修改：update_agent / setup_agent + SOUL.md 原子写入

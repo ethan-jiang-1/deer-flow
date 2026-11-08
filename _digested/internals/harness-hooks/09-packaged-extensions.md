@@ -1,14 +1,20 @@
 ---
+
+
+
+
 title: "打包扩展（packaged extensions）：贡献点、CLI 管理与信任边界"
-description: "- `deerflow/extensions/` — 宿主侧加载/注册/中间件注入/钩子接线；`deerflow-extension-api` — 第三方扩展的公开契约"
+description: '打包扩展（packaged extensions）：贡献点、CLI 管理与信任边界：架构、契约与源码锚点。'
 topics: [extension, plugin-system, contribution-points]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 打包扩展（packaged extensions）：贡献点、CLI 管理与信任边界
 
 DeerFlow 的扩展机制分两半：宿主侧实现（`deerflow/extensions/`，加载、注册、接线）和公开契约包（`deerflow-extension-api`，`import: deerflow_extension_api.*`，第三方扩展的独立依赖）。第三方 Python 包暴露一个 `install(registry, config)` 函数，从 `config.yaml` 的 startup-only 顶层 `plugins:` 列表按序加载。
 
-> 权威事实来源：`backend/packages/harness/deerflow/extensions/AGENTS.md`（管理模型）、`backend/packages/extension-api/deerflow_extension_api/`（公开契约）、`examples/deerflow-extension-example/`（五种贡献的完整示例）。用户向手册（upstream v2.1.0 起）：`frontend/src/content/{en,zh}/harness/extensions/`（10 页，root `AGENTS.md` 明文指向它）。
+> 权威事实来源：`backend/packages/harness/deerflow/extensions/AGENTS.md`（管理模型）、`backend/packages/extension-api/deerflow_extension_api/`（公开契约）、`examples/deerflow-extension-example/`（五种贡献的完整示例）。用户向手册（upstream v2.1.0 起）：`frontend/src/content/{en,zh}/harness/extensions/`（11 页，root `AGENTS.md` 明文指向它）。
 
 ## 概念定位：三块扩展面，三种信任等级
 
@@ -56,7 +62,7 @@ class ExtensionSpec(BaseModel):
 
 `ExtensionRegistry` 是写接口（`deerflow_extension_api.contracts.ExtensionRegistry`），宿主实现额外携带 attribution / rollback / build。`build()` 产出不可变的 `LoadedExtensions`（`extensions/registry.py`），所有 entry 都带 source 字符串以便 diagnostic 和 provenance 指名道姓。
 
-公开契约暴露 **7 个注册方法**（示例包演示其中 5 个核心种类；agent-assembly 与 context-compaction 两个 observer 由后续 commit 补进契约）：
+公开契约暴露 **9 个注册方法**（示例包演示其中 5 个核心种类）：`plugin`、`knowledge_provider`、`middlewares`、`task_lifecycle`、`system_model_observer`、`agent_assembly_observer`、`context_compaction_observer`、`service`、`routers`。前两个是 v2.2 新增的注册面；示例包未演示 `plugin` / `knowledge_provider` / `agent_assembly_observer` / `context_compaction_observer`。
 
 ### 1. Middleware（`registry.middlewares(...)`）
 
@@ -194,7 +200,7 @@ Python build hook 和扩展运行时代码都以 **Gateway 权限**执行。所�
 
 ## extension-api 契约（`packages/extension-api/`）
 
-公开包 `deerflow-extension-api`（import 前缀 `deerflow_extension_api`）**绝不 import `deerflow`、不带框架依赖**；扩展自己声明 FastAPI/LangChain/LangGraph 依赖，因此可独立于宿主发布。当前 `API_VERSION = "0.2.1"`（`deerflow_extension_api/__init__.py:80`；参考示例里 `@extension(api="0.2.0")` 是示例声明的兼容基线，不是宿主版本）。pre-1.0：minor 可能 breaking，patch additive。
+公开包 `deerflow-extension-api`（import 前缀 `deerflow_extension_api`）**绝不 import `deerflow`、不带框架依赖**；扩展自己声明 FastAPI/LangChain/LangGraph 依赖，因此可独立于宿主发布。当前 `API_VERSION = "0.2.9"`（`deerflow_extension_api/__init__.py:105`；参考示例里 `@extension(api="0.2.0")` 是示例声明的兼容基线，不是宿主版本）。pre-1.0：minor 可能 breaking，patch additive。
 
 公开契约模块一览（核心 registry 在更早的 `contracts.py`）：
 
@@ -239,9 +245,9 @@ middleware 跑在 agent graph 里，只能经 `request.runtime` 触达宿主状�
 ## 与已有笔记的关系
 
 - 🆕 v2.1.0 的两处**文档侧**事实（代码契约未变，仅 AGENTS.md 措辞/说明被校正，读代码可得同一结论）：
-  - **贡献类型的措辞漂移**：根 `AGENTS.md` 的正文把打包扩展贡献写成 4 组——"middleware, lifecycle observers, Gateway services, and FastAPI HTTP routers"（v2.1.0 `#5769` 改写，删掉了旧句尾"…and FastAPI HTTP routers; the reference extension demonstrates all five"），而同一文件仓库树注释仍写 "five extension contribution kinds"。**三方事实**（用代码核实）：`ExtensionRegistry` 公开契约暴露 **7 个注册方法**（`contracts.py:192-217`：middlewares / task_lifecycle / system_model_observer / agent_assembly_observer / context_compaction_observer / service / routers），而 `examples/deerflow-extension-example/` 只注册其中 **5 个**（middleware / task lifecycle / system-model observer / service / router——缺 agent-assembly 与 context-compaction observer，见本文件「贡献点（registry surface）」一节）。所以"正文 4 组 / 树注释 5 种 / 契约 7 个"是**三套分类粒度**，不是能力增减；根文件那句"five"是特指示例包，不是契约总数。
+  - **贡献类型的措辞漂移**：根 `AGENTS.md` 的正文把打包扩展贡献写成 4 组——"middleware, lifecycle observers, Gateway services, and FastAPI HTTP routers"（v2.1.0 `#5769` 改写，删掉了旧句尾"…and FastAPI HTTP routers; the reference extension demonstrates all five"），而同一文件仓库树注释仍写 "five extension contribution kinds"。**三方事实**（用代码核实）：`ExtensionRegistry` 公开契约暴露 **9 个注册方法**（`contracts.py:199-231`：plugin / knowledge_provider / middlewares / task_lifecycle / system_model_observer / agent_assembly_observer / context_compaction_observer / service / routers），而 `examples/deerflow-extension-example/` 只注册其中 **5 个**（middleware / task lifecycle / system-model observer / service / router——缺 plugin、knowledge_provider、agent-assembly 与 context-compaction observer，见本文件「贡献点（registry surface）」一节）。所以"正文 4 组 / 树注释 5 种 / 契约 9 个"是**三套分类粒度**，不是能力增减；根文件那句"five"是特指示例包，不是契约总数。
   - **run evidence 的脱敏口径澄清**：`extensions/AGENTS.md` 由"metadata is secret-redacted"改为"metadata 只移除 legacy `auth_token` key（不存在其它脱敏）"，并写明 event content 原样返回、status 取自权威 run store；reader 把固定 scope **显式**传给事件读取（含全局 `None`），ambient 请求身份无法改变可见性；content/redacted metadata 是深拷贝快照——DTO 字段 frozen，但嵌套容器仍可局部修改而不触及宿主。
-- 参考实现：`examples/deerflow-extension-example/` 一个包演示 `ExtensionRegistry` 7 个注册方法里的 5 个（middleware 计 tool call、task lifecycle 折入 app scope、system-model observer 计数、service 绑 `ExtensionRuntimeDeps`、router `GET /api/extension-example/stats`）；未演示 `agent_assembly_observer` 与 `context_compaction_observer`。
+- 参考实现：`examples/deerflow-extension-example/` 一个包演示 `ExtensionRegistry` 9 个注册方法里的 5 个（middleware 计 tool call、task lifecycle 折入 app scope、system-model observer 计数、service 绑 `ExtensionRuntimeDeps`、router `GET /api/extension-example/stats`）；未演示 `plugin`、`knowledge_provider`、`agent_assembly_observer` 与 `context_compaction_observer`。
 - Gateway 接线（`create_app()` 加载 plugins、`app.state.extensions`、贡献路由最后 mount、principal resolver、通知 loop）见 [../../enterprise-operations/app-layer/00-overview.md](../../enterprise-operations/app-layer/00-overview.md)。
 - 配置面的 `plugins:` / `scheduler.recursion_limit` / `mcp_tasks` 见 [../configuration/04-config-reference.md](../configuration/04-config-reference.md)。
 - middleware 的 6 种 hook 点与 `@Next`/`@Prev` 定位见 [04-agent-middleware-hooks.md](04-agent-middleware-hooks.md)。

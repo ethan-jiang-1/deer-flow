@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "测试基建与平台工程"
-description: "support/ 助手层与静态检测器族、测试依赖的 dev 组治理、pre-commit 与 CI 执行预算（并发取消/超时）、跨平台精确 skip 习语、按路径加载的跨包测试、无覆盖率门禁的取舍。"
+description: 'support/ 助手层与静态检测器族、测试依赖的 dev 组治理、pre-commit 与 CI 执行预算（并发取消/超时）、跨平台精确 skip 习语、按路径加载的跨包测试、无覆盖率门禁的取舍。'
 topics: [testing, infrastructure, ci, cross-platform]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 测试基建与平台工程
@@ -56,7 +61,7 @@ topics: [testing, infrastructure, ci, cross-platform]
 | `blockbuster` | blocking-io 门禁的运行时引擎 |
 | `pytest-split` | `test-shard` 分片的机制本体（`05-speed-isolation.md` §1） |
 | `hypothesis` | 属性测试（全树仅 `test_delta_channel_state.py` 一处，定点武器） |
-| `pytest-asyncio` | async 测试（**2,921** 处 marker，v2.1.0 为 942——2.2.0 的 `test_channels.py` 与 `test_mcp_task_service.py` 两族把 async 用例数推高了一个量级） |
+| `pytest-asyncio` | async 测试（**3,047** 处 marker，v2.1.0 基线为 942——2.2.0 的 `test_channels.py` 与 `test_mcp_task_service.py` 两族把 async 用例数推高了一个量级） |
 | `monocle_apptrace` | "kept in the dev group so the tracing tests can import it without forcing it onto installs" |
 | `redis` | "pin it in the dev group so the stream-bridge tests can always import/exercise the redis bridge without forcing it into production installs" |
 | `textual` | "kept in the dev group so the terminal workbench can be run and tested locally / in CI" |

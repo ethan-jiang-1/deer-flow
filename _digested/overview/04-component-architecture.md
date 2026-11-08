@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "DeerFlow 组件结构图"
-description: "物理组件部署图：进程拓扑、端口映射、数据流向。"
+description: '物理组件部署图：进程拓扑、端口映射、数据流向。'
 topics: [architecture, system-overview]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # DeerFlow 组件结构图

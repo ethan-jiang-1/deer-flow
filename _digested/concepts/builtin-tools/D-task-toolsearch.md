@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "D. 任务委派 & 工具发现"
-description: "## task (Subagent)"
+description: 'D. 任务委派 & 工具发现：架构、契约与源码锚点。'
 topics: [tools, builtin, sandbox-tools]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # D. 任务委派 & 工具发现

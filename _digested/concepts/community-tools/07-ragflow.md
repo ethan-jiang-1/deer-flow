@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "RAGFlow — 只读知识库检索"
-description: "把 RAGFlow 当外部 RAG 知识库：operator 配置 dataset 白名单，agent 通过唯一的只读 knowledge_search 工具检索，结果格式化成带引用编号的紧凑文本。与 web_search 和内置 memory 检索都不同。"
+description: '把 RAGFlow 当外部 RAG 知识库：operator 配置 dataset 白名单，agent 通过唯一的只读 knowledge_search 工具检索，结果格式化成带引用编号的紧凑文本。与 web_search 和内置 memory 检索都不同。'
 topics: [tools, community, knowledge, rag, ragflow, retrieval]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # RAGFlow — 只读知识库检索

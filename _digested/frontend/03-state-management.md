@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "状态管理：TanStack Query、ThreadState、localStorage"
-description: "DeerFlow 前端使用三层状态架构：服务端状态（TanStack Query）、流式状态（LangGraph SDK）、本地偏好（localStorage + useSyncExternalStore）。"
+description: 'DeerFlow 前端使用三层状态架构：服务端状态（TanStack Query）、流式状态（LangGraph SDK）、本地偏好（localStorage + useSyncExternalStore）。'
 topics: [frontend, nextjs, react]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 状态管理：TanStack Query、ThreadState、localStorage

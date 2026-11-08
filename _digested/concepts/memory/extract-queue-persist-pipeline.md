@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Memory 系统 — 可插拔后端架构"
-description: "可插拔 Memory 后端架构，支持 middleware 和 tool 双模式、5 个可插拔后端（deermem/mem0/noop/openviking/honcho）。2.1 引入 consolidation、staleness review 和 hybrid fact eviction；2.2 新增 cognitiveStyle 摘要段与 cognitive 事实类别、确定性的词法相关性排序（含 IDF 与 MMR）、以及 prescreen/signal 信号门。"
+description: '可插拔 Memory 后端架构，支持 middleware 和 tool 双模式、5 个可插拔后端（deermem/mem0/noop/openviking/honcho）。2.1 引入 consolidation、staleness review 和 hybrid fact eviction；2.2 新增 cognitiveStyle 摘要段与 cognitive 事实类别、确定性的词法相关性排序（含 IDF 与 MMR）、以及 prescreen/signal 信号门。'
 topics: [memory, persistence, context-injection, pluggable-backend, consolidation, staleness, honcho, eviction, relevance, cognitive-style]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Memory 系统 — 可插拔后端架构

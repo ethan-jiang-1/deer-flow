@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "代码路径追踪：从 `run_agent()` 到 Pregel `tick()` 的完整调用链"
-description: "读完前面三篇你可能有一个困惑：**agent loop 的代码到底在哪？** 答案是：它不在 DeerFlow 里，而是在 **LangChain + LangGraph** 的源码中。DeerFlow 做的是在 loop 的每一个 hoo"
+description: '读完前面三篇你可能有一个困惑：**agent loop 的代码到底在哪？** 答案是：它不在 DeerFlow 里，而是在 **LangChain + LangGraph** 的源码中。DeerFlow 做的是在 loop 的每一个 hoo'
 topics: [agent-loop, langgraph, execution-model]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 代码路径追踪：从 `run_agent()` 到 Pregel `tick()` 的完整调用链
@@ -487,7 +492,7 @@ Agent Loop 核心     ✗ (没有)                   ✓ PregelLoop.tick() + ast
 Graph 构建          ✗ (没有)                   ✓ create_agent() → StateGraph
 条件路由            ✗ (没有)                   ✓ _make_model_to_tools_edge
 Middleware 协议     ✗ (没有)                   ✓ AgentMiddleware 基类 + 6 hook
-Middleware 实现     ✓ 39 个条目位 / 36 个内置类型   ✗ (没有)
+Middleware 实现     ✓ 39 个条目位（含槽位/条件项）   ✗ (没有)
 Middleware 装配     ✓ build_middlewares()      ✓ _chain_model_call_handlers
 State Schema        ✓ ThreadState              ✓ AgentState (基类)
 模型调用            ✓ create_chat_model()      ✓ model.invoke() in _execute_model_sync

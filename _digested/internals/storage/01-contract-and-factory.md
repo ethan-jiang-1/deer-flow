@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Blob 契约与工厂 — BlobRef / BlobStore 的病态输入、加密级失败分级与热重载单例"
-description: "`contract.py`（198 行）把 kind 语法、digest 形状、错误家族一次钉死在契约层，`manager.py`（224 行）用文件夹扫描 + 导入路径解析后端并维护一个按 (backend, backend_config) 判等的进程单例。含 6 条「契约级失败策略」表和 backend 作者核对清单。"
+description: 'Blob 契约与工厂 — BlobRef / BlobStore 的病态输入、加密级失败分级与热重载单例：架构、契约与源码锚点。'
 topics: [storage, blob-store, contract, factory, hot-reload, multi-instance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Blob 契约与工厂 — `contract.py` + `manager.py`

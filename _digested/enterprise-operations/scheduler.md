@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Scheduled Tasks 定时任务"
-description: "Cron 和一次性定时任务：配置、REST API、lease 分布式锁、执行生命周期、启动协调、调试指南。"
+description: 'Cron 和一次性定时任务：配置、REST API、lease 分布式锁、执行生命周期、启动协调、调试指南。'
 topics: [scheduler, cron, automation, background-tasks]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Scheduled Tasks 定时任务
@@ -236,6 +241,7 @@ cron 任务:
 | GET | `/api/scheduled-tasks/{id}/runs` | 运行历史（分页 `limit`(1-200,默认50)/`offset`；🆕 `status` 按 occurrence 状态过滤，#5384） |
 | POST | `/api/scheduled-tasks/preview-cron` 🆕 | 预览 cron 未来 N 个执行时刻 |
 | GET | `/api/threads/{id}/scheduled-tasks` | 线程关联任务 |
+| GET | `/api/threads/{id}/scheduled-task-events` | 线程级任务事件流（`routers/scheduled_tasks.py:505`） |
 
 ## 实现文件
 

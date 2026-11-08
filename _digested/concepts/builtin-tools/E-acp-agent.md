@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "E. 外部 Agent 集成"
-description: "## invoke_acp_agent"
+description: 'E. 外部 Agent 集成：架构、契约与源码锚点。'
 topics: [tools, builtin, sandbox-tools]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # E. 外部 Agent 集成

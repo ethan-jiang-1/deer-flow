@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Docker Compose 部署"
-description: "`docker/docker-compose.yaml` — 5 服务（nginx / frontend / gateway / redis / 可选 provisioner）："
+description: 'Docker Compose 部署：架构、契约与源码锚点。'
 topics: [deployment, docker, kubernetes]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Docker Compose 部署

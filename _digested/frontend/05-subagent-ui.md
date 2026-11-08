@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Subagent UI：TaskTracker 状态机"
-description: "DeerFlow 的 subagent 在前端有独立的 UI 状态追踪——不只是显示 tool call，而是将 subagent 视为一个持续运行的任务，实时显示其内部状态变更。"
+description: 'DeerFlow 的 subagent 在前端有独立的 UI 状态追踪——不只是显示 tool call，而是将 subagent 视为一个持续运行的任务，实时显示其内部状态变更。'
 topics: [frontend, nextjs, react]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Subagent UI：TaskTracker 状态机

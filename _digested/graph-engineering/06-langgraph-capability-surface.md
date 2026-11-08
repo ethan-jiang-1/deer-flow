@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "LangGraph 能力面 — 依赖提供什么,DeerFlow 用了什么"
-description: "langgraph 1.2.9 / langchain 1.x 的 DAG 能力在 DeerFlow 语境下的三分类:已用(含证据)/可用未用/结构不可用,以及 DeerFlow 对依赖的修正性补丁。"
+description: 'langgraph 1.2.9 / langchain 1.x 的 DAG 能力在 DeerFlow 语境下的三分类:已用(含证据)/可用未用/结构不可用,以及 DeerFlow 对依赖的修正性补丁。'
 topics: [langgraph, langchain, send, command, interrupt, capability]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 06 · LangGraph 能力面 — 依赖提供什么,DeerFlow 用了什么

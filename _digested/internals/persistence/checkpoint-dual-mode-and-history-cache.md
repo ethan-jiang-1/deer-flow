@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Checkpoint 双模式（full/delta）与 delta 历史缓存"
-description: "`database.checkpoint_channel_mode` 把 checkpointer 分成 full（整快照 channel_values）与 delta（LangGraph DeltaChannel：哨兵 blob + 每步 writes）两种存储表示；delta 模式下额外挂一层只读历史缓存 `CachedHistorySaver`。"
+description: 'Checkpoint 双模式（full/delta）与 delta 历史缓存：架构、契约与源码锚点。'
 topics: [persistence, checkpointer, delta-channel, cache, gateway]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Checkpoint 双模式（full/delta）与 delta 历史缓存

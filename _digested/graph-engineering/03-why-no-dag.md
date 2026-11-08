@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "为什么没有 DAG — 刻意取舍，而非缺失"
-description: "元图小到不需要切片；可变性收进对话的代价清单；对研究层'固定元图+动态任务DAG'终局命题的反例价值。"
+description: '元图小到不需要切片；可变性收进对话的代价清单；对研究层''''固定元图+动态任务DAG''''终局命题的反例价值。'
 topics: [graph, dag, architecture, tradeoff]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 03 · 为什么没有 DAG — 刻意取舍，而非缺失

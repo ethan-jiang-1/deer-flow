@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "前端架构"
-description: "| 类别 | 技术 | 版本 |"
+description: '前端架构：架构、契约与源码锚点。'
 topics: [frontend, nextjs, react]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 前端架构
@@ -120,7 +126,7 @@ frontend/src/
 │   └── dom/                     # 🆕 渲染活跃度观察
 │
 ├── content/                       # Nextra 内容源（en/zh：harness / application / introduction / reference / tutorials / posts）
-│   └── {en,zh}/harness/           # Harness 手册（subagents/ 11 页、extensions/ 11 页、checkpoints/ 11 页）
+│   └── {en,zh}/harness/           # Harness 手册（subagents/ 11 页、extensions/ 11 页、checkpoints/ 10 页）
 ├── hooks/                        # use-mobile, use-global-shortcuts
 ├── lib/                          # cn() utility, ime.ts（IME 组合期判定）
 ├── server/                       # Server-side utilities
@@ -135,7 +141,7 @@ frontend/src/
 | 目录 | 页数 | 用途 / 章节 |
 |------|------|-------------|
 | `harness/subagents/` | 11（`index` + 10 章） | 子 Agent 用户手册：`quick-start`、`catalog`、`delegation`、`results`、`limits`、`sandbox`、`observability`、`troubleshooting`、`developers`、`reference` |
-| `harness/extensions/` | 10（`index` + 9 章） | 扩展包开发者手册：`quick-start`、`runtime`、`middleware`、`observers`、`services-and-routes`、`run-evidence`、`operations`、`troubleshooting`、`reference` |
+| `harness/extensions/` | 11（`index` + 10 章） | 扩展包开发者手册：`quick-start`、`runtime`、`middleware`、`observers`、`services-and-routes`、`run-evidence`、`operations`、`plugins`、`troubleshooting`、`reference` |
 
 v2.1.0 前 `subagents` 是单文件 `subagents.mdx`；改为目录后 `index.mdx` 用 `asIndexPage: true` 充当章节首页（`/docs/harness/subagents` 链接不变，`configuration.mdx` / `tools.mdx` / `sandbox.mdx` 仍指向该目录路径，因此 `_meta.ts` 不列 `index`，否则 Nextra `_meta` 校验失败、所有 docs 页面返回 500 —— 见 `d818a083` commit body）；en/zh 的 `middlewares.mdx` 各有一个锚点改指 `.../subagents/limits#…`（en `#runaway-guards`、zh `#失控行为防护`，zh 用本地化标题锚点）。`extensions` 为 v2.1.0 新增目录，harness 的 `_meta.ts` 同时新增 `extensions` 条目（en `"Extensions"` / zh `"扩展包"`）。
 
@@ -210,15 +216,17 @@ WorkspaceContainer
 ### 用户偏好持久化
 
 ```typescript
-// core/settings/store.ts
-// localStorage based
-interface Settings {
-  modelName: string;
-  thinkingEnabled: boolean;
-  planMode: boolean;
-  subagentEnabled: boolean;
-  theme: "light" | "dark";
-  language: "en-US" | "zh-CN";
+// core/settings/local.ts
+// localStorage based; 以实际 LocalSettings 为准
+interface LocalSettings {
+  notification: { enabled: boolean };
+  projectsDisplayMode: "flat" | "grouped";
+  tokenUsage: { headerTotal: boolean; inlineMode: TokenUsageInlineMode };
+  context: Omit<AgentThreadContext, "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled" | "model_name" | "reasoning_effort"> & {
+    model_name?: string;
+    mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
+    reasoning_effort?: ReasoningEffortValue;
+  };
 }
 ```
 
@@ -227,8 +235,8 @@ interface Settings {
 ### 输入框状态
 
 - Composer busy-state: 谁管理输入框在提交后的 loading 状态
-- Pre-submit upload: 文件在选择后立即上传（不等提交），`UploadsMiddleware` 注入到对话上下文
-- WebSocket lifecycle: `useThreadStream` hook 管理
+- 上传时机: 发送时调用 `uploadFiles`（`core/threads/hooks.ts:2736`），不是选择即上传；`UploadsMiddleware` 注入到对话上下文
+- WebSocket lifecycle: 聊天流用 `useStream`（`core/threads/hooks.ts:2156`）；浏览器实时画面用 `components/workspace/browser-view/use-browser-stream.ts:148` 的 `WebSocket`
 
 ### 消息渲染
 

@@ -1,4 +1,7 @@
 ---
+
+
+
 title: LangGraph 能力面榨取——依赖提供但 DeerFlow 未用/未用满的编排能力
 type: deep-dive
 status: complete
@@ -6,6 +9,9 @@ ladder: orchestration-ladder
 index: 04
 upstream: _digested/graph-engineering/06-langgraph-capability-surface.md
 sibling: 00-map.md, 01-完成语义与崩溃窗口-接受可见静止处置.md
+description: 'LangGraph 能力面榨取——依赖提供但 DeerFlow 未用/未用满的编排能力：架构、契约与源码锚点。'
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 04 · LangGraph 能力面榨取：未用原语与接入设计

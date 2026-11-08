@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Middleware 就是 Loop 的结构"
-description: "在 [[00-loop-anatomy]] 里我们说了 loop 本身不自写。那么 DeerFlow 的代码到底"写"了什么？**写了 loop 每一圈的每一个钩子。** middleware 系统就是 DeerFlow agent loo"
+description: '在 [[00-loop-anatomy]] 里我们说了 loop 本身不自写。那么 DeerFlow 的代码到底"写"了什么？**写了 loop 每一圈的每一个钩子。** middleware 系统就是 DeerFlow agent loo'
 topics: [agent-loop, langgraph, execution-model]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Middleware 就是 Loop 的结构
@@ -68,7 +73,7 @@ Agent middleware 思维（deerflow）:
 
 ## 装配逻辑：为什么分散在两处
 
-**39 个条目位**不是在同一个函数里一次性组装的（口径见 [../middleware/03-catalog.md](../middleware/03-catalog.md)：**36 个内置 middleware 类型 + 2 个通用槽位（caller `custom_middlewares` 与 config 声明的 extension middlewares）= 38 个条目位**，另加 1 个只在该条件成立时注册的 `CompletedSubagentUsageMiddleware`，合计 39）。它们分两段：
+**39 个条目位**不是在同一个函数里一次性组装的（口径见 [../middleware/03-catalog.md](../middleware/03-catalog.md)：**共享基础层 19 + lead-only 20 = 39**，含 2 个通用槽位与条件性同族条目；不要把条目位等同于 middlewares 目录的类数）。它们分两段：
 
 ```
 build_lead_runtime_middlewares(app_config)  ← 共享基础层（16 个条目位，subagent 也复用）

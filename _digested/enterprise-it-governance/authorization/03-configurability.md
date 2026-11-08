@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "策略可配置性总览"
-description: "哪些策略能在 config.yaml 里改、哪些写死在代码里，以及各自的热生效行为。核心事实：三项安全关键配置需要重启才生效。"
+description: '哪些策略能在 config.yaml 里改、哪些写死在代码里，以及各自的热生效行为。核心事实：三项安全关键配置需要重启才生效。'
 topics: [governance, authorization]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 策略可配置性总览

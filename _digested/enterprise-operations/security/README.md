@@ -7,7 +7,7 @@ topics: [security, defense-in-depth, sandbox, guardrail]
 
 # 安全与信任边界
 
-> **定位**：实施视角的安全卷——从 Auth 到 OS 隔离的纵深防御、七种沙箱的 13 维差异、Guardrail 与 SandboxAudit 的分工，以及 v2.2.0 的扩展能力授予面。给做安全加固与上线评审的运维/安全工程师看。
+> **定位**：实施视角的安全卷——从 Auth 到 OS 隔离的纵深防御、七种沙箱运行模式的 13 维差异、Guardrail 与 SandboxAudit 的分工，以及 v2.2.0 的扩展能力授予面。给做安全加固与上线评审的运维/安全工程师看。
 > **边界**：控制点该不该批、缺口如何定级见 [企业 IT 治理卷](../../enterprise-it-governance/README.md)；部署与镜像构建见 [deployment/](../deployment/README.md)。
 
 ## 阅读路径

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "路径防穿透"
-description: "六层叠加的路径防护、每层的真实实现位置与边界，以及一个容易被忽略的事实：CWD 注入用的是分号而不是 &&。"
+description: '六层叠加的路径防护、每层的真实实现位置与边界，以及一个容易被忽略的事实：CWD 注入用的是分号而不是 &&。'
 topics: [governance, execution]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 路径防穿透

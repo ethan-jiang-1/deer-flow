@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "配置系统全景"
-description: "DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、缓存策略和热更新行为。"
+description: 'DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、缓存策略和热更新行为。'
 topics: [setup, configuration, quickstart]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 配置系统全景

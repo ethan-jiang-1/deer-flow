@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "MCP 拦截器 + 扩展配置：interceptor 链 + Gateway 写回"
-description: "- `deerflow/mcp/tools.py:173-285` — `get_mcp_tools()` 工具加载"
+description: 'MCP 拦截器 + 扩展配置：interceptor 链 + Gateway 写回：架构、契约与源码锚点。'
 topics: [hooks, extension, plugin-system]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # MCP 拦截器 + 扩展配置：interceptor 链 + Gateway 写回

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "config.yaml 全段参考"
-description: "DeerFlow 有两个配置文件，都放在项目根目录。"
+description: 'DeerFlow 有两个配置文件，都放在项目根目录。'
 topics: [configuration, hot-reload, yaml-config]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # config.yaml 全段参考
@@ -629,7 +634,7 @@ database:
 
 **注意**：`database.*`、`checkpointer.*` 等基础设施字段改后需重启才生效（见 `CLAUDE.md` 热加载表）。
 
-**迁移**：`database.backend` 为 sqlite/postgres 时，Gateway 启动会在 `init_engine` 里自动跑 `persistence/bootstrap.py::bootstrap_schema()`（空库 `create_all` + `stamp head`；legacy 库只回填 baseline 表再 `upgrade head`；已版本化库直接 `upgrade head`），日常升级不需要手工执行 alembic。revision 从 `0001_baseline` 串到当前 head **`0025_repair_run_change_seq`**（`persistence/migrations/versions/`）；未知 revision、空版本表或多行版本表会拒绝启动。见 [internals/persistence/db-checkpointer-store-backends.md](../persistence/db-checkpointer-store-backends.md)。
+**迁移**：`database.backend` 为 sqlite/postgres 时，Gateway 启动会在 `init_engine` 里自动跑 `persistence/bootstrap.py::bootstrap_schema()`（空库 `create_all` + `stamp head`；legacy 库只回填 baseline 表再 `upgrade head`；已版本化库直接 `upgrade head`），日常升级不需要手工执行 alembic。revision 从 `0001_baseline` 串到当前 head **`0048_extension_execution_leases`**（50 个 revision，`persistence/migrations/versions/`）；未知 revision、空版本表或多行版本表会拒绝启动。见 [internals/persistence/db-checkpointer-store-backends.md](../persistence/db-checkpointer-store-backends.md)。
 
 ## Run Events
 
@@ -1022,3 +1027,37 @@ lead_prompt_overlay:
   - 运行时通过 `POST /api/skills/install` 安装 .skill zip 会自动追加
 
 两个文件都支持通过 Gateway API 运行时修改（`PUT /api/mcp/config`、`PUT /api/skills/{name}`）。
+
+---
+
+## 附：v2.2.0 补充子键（25 个）
+
+以下子键在 v2.2.0 的 `config.example.yaml` 中存在，但未在前文逐段展开；默认值与行号以该文件为准。
+
+| 键 | 默认值 | 作用 | `config.example.yaml` |
+|---|---|---|---|
+| `logging.enhance.format` | `text` | trace 增强日志格式（`text` / `json`） | `:55` |
+| `token_budget.max_input_tokens` | `null` | 可选的输入侧单独上限；null 表示只受总预算约束 | `:108` |
+| `token_budget.max_output_tokens` | `null` | 可选的输出侧单独上限 | `:109` |
+| `token_budget.hard_stop_threshold` | `1.0` | 达到预算的该比例即强制停止 | `:111` |
+| `tool_search.auto_promote_top_k` | `3` | 自动晋升 deferred tool 的 top-k | `:1400` |
+| `tool_output.externalize_min_chars` | `12000` | 超过该字符数的 tool 结果外置到磁盘 | `:1423` |
+| `tool_output.preview_head_chars` | `2000` | 外置结果预览头部字符数 | `:1426` |
+| `tool_output.preview_tail_chars` | `1000` | 外置结果预览尾部字符数 | `:1427` |
+| `tool_output.fallback_max_chars` | `30000` | 无法外置时的兜底截断上限 | `:1428` |
+| `tool_output.fallback_head_chars` | `8000` | 兜底截断保留的头部字符数 | `:1429` |
+| `tool_output.fallback_tail_chars` | `3000` | 兜底截断保留的尾部字符数 | `:1430` |
+| `tool_output.storage_subdir` | `.tool-results` | 外置结果在 thread 数据目录下的子目录 | `:1431` |
+| `tool_output.exempt_tools` | `["read_file","read_file_tool"]` | 永不外置的工具名 | `:1432` |
+| `tool_artifacts.detect_refs_in_text` | `true` | 从文本中检测 artifact 引用 | `:1467` |
+| `tool_artifacts.inject_model_context` | `true` | 把 artifact handle/元数据注入模型上下文 | `:1469` |
+| `tool_artifacts.resolve_handles_in_args` | `true` | 执行前置解析 tool-call 参数里的 artifact handle | `:1471` |
+| `projects.search_max_chars_per_document` | `1000000` | 单项目文档进入检索上下文的最大字符数 | `:1646` |
+| `projects.search_max_total_chars` | `8000000` | 项目文档检索的总字符上限 | `:1647` |
+| `sandbox.prewarm` | `false` | 是否为 AIO 沙箱做投机式预热 | `:1723` |
+| `sandbox.prewarm_max_concurrent` | `1` | 预热并发上限 | `:1727` |
+| `sandbox.bash_command_timeout` | `600` | bash 命令硬超时（秒） | `:1763` |
+| `skill_evolution.security_fail_closed` | `true` | 审核模型不可用时是否 fail-closed（阻止写入） | `:2590` |
+| `database.pool_recycle` | `300` | 连接池 recycle 秒数 | `:2738` |
+| `database.command_timeout` | `30` | 数据库命令超时（秒） | `:2741` |
+| `scheduler.max_concurrent_runs_per_user` | `2` | 每个 owner 的调度 run 并发上限（0=关闭） | `:2869` |

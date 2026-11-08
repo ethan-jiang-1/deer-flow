@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "日志体系与 trace_id 请求关联"
-description: "DeerFlow 的日志是标准 Python logging + 一个可选的 trace 关联增强。logging.enhance 打开后，trace_id 同时进日志、HTTP 响应头、Langfuse metadata 三处，靠一个 ContextVar 串起来。"
+description: 'DeerFlow 的日志是标准 Python logging + 一个可选的 trace 关联增强。logging.enhance 打开后，trace_id 同时进日志、HTTP 响应头、Langfuse metadata 三处，靠一个 ContextVar 串起来。'
 topics: [logging, trace-id, observability, correlation]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 日志体系与 trace_id 请求关联
@@ -84,6 +89,19 @@ DeerFlow 的日志本身是朴素的 Python `logging`，真正的价值在一个
 3. 其他情况 → 铸造新 id
 
 > ⚠️ **v2.1.0-rc0 起客户端 supplied 的 `metadata.deerflow_trace_id` / `config.context` 副本被忽略并覆盖**——响应头、日志、持久化 run 三者不能 disagree。跨服务钉关联 id 请发 **`X-Trace-Id` 请求头**。
+
+## 非 HTTP 入口点绑定
+
+四个入口持有一个工作单元，但只有第一个在 ASGI 内：
+
+| 入口 | 绑定点 |
+|------|--------|
+| Gateway HTTP | `TraceMiddleware` |
+| 定时任务 occurrence | `ScheduledTaskService._attempt_queued_run` → `launch_scheduled_thread_run` |
+| MCP task notification | `launch_mcp_task_notification_run` |
+| IM inbound | `ChannelManager._worker_loop` |
+
+绑定作用域是**一次工作单元**而非轮询循环——复用的 worker task 上泄漏的绑定会把后续 occurrence 都标成第一个 id。`ensure_trace_context` 继承外层作用域，使层级调度绑定与 Gateway 请求内的 manual trigger 归入同一 trace；HTTP 的 `request_trace_context` 则刻意不继承——伪造的请求头不能回退到上一个请求的 id。
 
 ## 嵌入式 / TUI / CLI 路径
 

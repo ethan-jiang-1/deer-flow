@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "社区工具集成全景"
-description: "DeerFlow 在 `deerflow/community/` 下集成了 25+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图、只读知识库检索（统一 `knowledge/` 契约 + RAGFlow/LightRAG/WeKnora）和沙箱隔离。"
+description: 'DeerFlow 在 `deerflow/community/` 下集成了 25+ 个外部工具 provider，覆盖 web 搜索、网页抓取、图片搜索、浏览器截图、只读知识库检索（统一 `knowledge/` 契约 + RAGFlow/LightRAG/WeKnora）和沙箱隔离。'
 topics: [tools, community, external-integration]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 社区工具集成全景

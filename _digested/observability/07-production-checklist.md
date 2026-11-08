@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "生产上线清单"
-description: "要上线前：开什么（SQL 后端、trace 关联、追踪、定价）、日常看什么、排障走哪条路、已知缺口是什么、怎么自己补告警。诚实版——DeerFlow 给原料，不给聚合仪表盘。"
+description: '要上线前：开什么（SQL 后端、trace 关联、追踪、定价）、日常看什么、排障走哪条路、已知缺口是什么、怎么自己补告警。诚实版——DeerFlow 给原料，不给聚合仪表盘。'
 topics: [production, observability, checklist, alerting]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 生产上线清单

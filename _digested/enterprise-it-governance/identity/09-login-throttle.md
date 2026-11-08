@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "登录限速与锁禁"
-description: "auth.local 的三个键：5 次/300 秒的默认策略、auto/memory/db 三档存储、多副本下锁禁是否共享。以及企业 NAT 出口导致的整办公室误锁问题。"
+description: 'auth.local 的三个键：5 次/300 秒的默认策略、auto/memory/db 三档存储、多副本下锁禁是否共享。以及企业 NAT 出口导致的整办公室误锁问题。'
 topics: [governance, identity, brute-force, multi-instance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 登录限速与锁禁

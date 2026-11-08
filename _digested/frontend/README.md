@@ -27,14 +27,15 @@ topics: [frontend, nextjs, react, streaming]
 | [04-workspace-layout.md](04-workspace-layout.md) | Drag 面板（artifacts / browser / sidecar / details）、Projects、虚拟化、command palette、Capability Center | 深入 |
 | [05-subagent-ui.md](05-subagent-ui.md) | TaskTracker 状态机、批量执行与后台任务 UI、managed subagent 注册表 | 概览 |
 | [06-architecture.md](06-architecture.md) | 技术栈全景、core 模块索引、扩展运行时、Pagefind 搜索与已删除面 | 深入 |
+| [07-feature-map.md](07-feature-map.md) | 41 个 `core/` 目录的职责/入口/后端 owner 地图 + 8 个功能面短节 | 深入 |
 
 ## 速览
 
 - **基线**：同步 #8 从 `v2.1.0` 迁到 `v2.2.0`（2026-10-29，两 tag 间 1239 commits / 1068 merged PR）；改动面 `src/core` 142 文件、`src/components` 140、`src/content` 90、`tests/unit` 228、`tests/e2e` 67。
 - **流与输入**：`TERMINAL_RUN_STATUSES` 短路、`MAX_STREAM_GAP_RECOVERIES = 5` 与 `stream_replay_gap` 恢复循环、新 tab 接手活跃 run；composer 的 `/` 菜单只剩 `/goal` 与 `/compact`，inline `@` 引用（skill / file / conversation / extension，最多 16 个 skill）配 voice input 与 IME 守卫。
 - **界面增量**：知识检索落到 UI（`core/knowledge/`、`[citation:…]` → `knowledge-source-<id>` 锚点、Sources 面板）、定时任务改为列表优先、Capability Center 三 tab（plugins / skills / extensions）与插件页面路由、thread origin / 未读与 15s `thread-activity` 轮询、Pagefind 双语搜索；删除面为 `components/ai-elements/` 14 个模块、`proxy-policy.ts`、`thread-scheduled-tasks-link.tsx`。
-- **同步 #6 / v2.1.0**（#6 的逐条增量见各篇 🆕 段）：Capability Center 迁出 Settings 到 `/workspace/capabilities`、Projects / Trash UI、conversation references 与 outline、模型收藏与偏好跨浏览器同步、`message-order.ts` / `stream-state.ts` 排序重构、Artifacts 表格预览（Worker）与 zip 下载；v2.1.0 的两处改动见 [04-workspace-layout.md](04-workspace-layout.md)（侧栏 kebab 裁切 #5681 → #5682）与 [06-architecture.md](06-architecture.md)（`src/content/{en,zh}/harness/` 手册重构：subagents 11 页、extensions 11 页、checkpoints 11 页）。
-- **关键路径**：`core/api/api-client.ts`、`core/threads/hooks.ts`、`core/streamdown/`、`components/workspace/workspace-container.tsx` 与 `input-box.tsx`、`core/projects/`、`core/capabilities/`、`core/knowledge/`、`core/extensions/`；完整模块索引见 [06-architecture.md](06-architecture.md)。
+- **同步 #6 / v2.1.0**（#6 的逐条增量见各篇 🆕 段）：Capability Center 迁出 Settings 到 `/workspace/capabilities`、Projects / Trash UI、conversation references 与 outline、模型收藏与偏好跨浏览器同步、`message-order.ts` / `stream-state.ts` 排序重构、Artifacts 表格预览（Worker）与 zip 下载；v2.1.0 的两处改动见 [04-workspace-layout.md](04-workspace-layout.md)（侧栏 kebab 裁切 #5681 → #5682）与 [06-architecture.md](06-architecture.md)（`src/content/{en,zh}/harness/` 手册重构：subagents 11 页、extensions 11 页、checkpoints 10 页）。
+- **关键路径**：`core/api/api-client.ts`、`core/threads/hooks.ts`、`core/streamdown/`、`components/workspace/workspace-container.tsx` 与 `input-box.tsx`、`core/projects/`、`core/capabilities/`、`core/knowledge/`、`core/extensions/`；架构级模块索引见 [06-architecture.md](06-architecture.md)；41 个 `core/` 目录的功能面地图与八个重点短节见 [07-feature-map.md](07-feature-map.md)。
 
 ## 宪章与约定
 

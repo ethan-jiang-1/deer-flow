@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Lead Agent 系统"
-description: "DeerFlow 的核心：`make_lead_agent` 工厂函数创建与 LangGraph 兼容的 Agent。"
+description: 'DeerFlow 的核心：`make_lead_agent` 工厂函数创建与 LangGraph 兼容的 Agent。'
 topics: [agent, factory, threadstate]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Lead Agent 系统

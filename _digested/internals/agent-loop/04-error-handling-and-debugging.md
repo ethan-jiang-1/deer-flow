@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "错误处理与调试"
-description: "Loop detection 双层检测、LLM 错误分类与重试、Tool 错误元数据、日志配置、调优参数。"
+description: 'Loop detection 双层检测、LLM 错误分类与重试、Tool 错误元数据、日志配置、调优参数。'
 topics: [error-handling, debugging, loop-detection, logging, circuit-breaker]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 错误处理与调试

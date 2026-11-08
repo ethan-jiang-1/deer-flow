@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "网关架构全景"
-description: "- `app/gateway/app.py` — FastAPI 应用 + lifespan"
+description: '网关架构全景：架构、契约与源码锚点。'
 topics: [gateway, api, rest]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 网关架构全景

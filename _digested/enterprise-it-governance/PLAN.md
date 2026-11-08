@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "企业 IT 治理卷 — 重构计划"
-description: "把 _digested 里的企业视角从『运维的一个子话题』提升为独立一卷：8 个治理域、27 篇、目标约 3200 行。本文件是待审阅的执行计划。"
+description: '把 _digested 里的企业视角从『运维的一个子话题』提升为独立一卷：8 个治理域、27 篇、目标约 3200 行。本文件是待审阅的执行计划。'
 topics: [governance, plan]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 企业 IT 治理卷 — 重构计划
@@ -278,7 +283,7 @@ _digested/
 
 | 文件 | 为什么留 |
 |---|---|
-| `concepts/sandbox/*` | 沙箱 ABC 与七种实现——「怎么做的」，不是「够不够」 |
+| `concepts/sandbox/*` | 沙箱 ABC 与七种运行模式（六个 provider 类）——「怎么做的」，不是「够不够」 |
 | `internals/harness-hooks/05-guardrail-plugin.md` | Provider 协议与自定义写法——实现手册 |
 | `internals/runtime/04-journal.md` | RunJournal 回调与 token 累加——内部机制 |
 | `getting-started/05-environment.md` | 环境变量全表——配置参考 |

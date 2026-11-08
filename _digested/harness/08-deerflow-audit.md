@@ -1,6 +1,11 @@
 ---
+
+
+
 title: "deer-flow 仓库 Agent-Friendly 审计报告（60 条实测）"
-description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审计：五维打分、加权总评 A-、Top 问题清单、亮点清单与整改路线图。全部证据来自只读命令实测，日期 2026-06。"
+description: '按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审计：五维打分、加权总评 A-、Top 问题清单、亮点清单与整改路线图。全部证据来自只读命令实测，日期 2026-06。'
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # deer-flow 仓库 Agent-Friendly 审计报告（60 条实测）

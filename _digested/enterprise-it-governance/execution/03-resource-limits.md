@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "资源管控与隔离"
-description: "输出截断（可配）、命令长度与 null byte 拒绝（不可配）、sandbox 实例缓存 256、per-thread 隔离的真实边界。"
+description: '输出截断（可配）、命令长度与 null byte 拒绝（不可配）、sandbox 实例缓存 256、per-thread 隔离的真实边界。'
 topics: [governance, execution]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 资源管控与隔离

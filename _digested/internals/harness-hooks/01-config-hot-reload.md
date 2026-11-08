@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "配置热重载：mtime 侦测 + 路径感知 + 原子替换"
-description: "**核心文件：** `deerflow/config/app_config.py:360-389`"
+description: '配置热重载：mtime 侦测 + 路径感知 + 原子替换：架构、契约与源码锚点。'
 topics: [hooks, extension, plugin-system]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 配置热重载：mtime 侦测 + 路径感知 + 原子替换

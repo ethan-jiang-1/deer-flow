@@ -21,6 +21,7 @@ topics: [mcp, session-pool, oauth, durable-tasks]
 |---|---|---|
 | [session-pool-oauth-cache-invalidation.md](session-pool-oauth-cache-invalidation.md) | Session Pool / 作用域键 v2 / OAuth 落库 / 内容签名缓存失效 / 工具加载 / 管理面 / 个人连接 | 深入 |
 | [durable-tasks.md](durable-tasks.md) | driver 抽象与 runtime 桥、控制租约、永久失败分类、persistence 与 migrations、router 与通知 | 深入 |
+| [02-scopes-and-per-user.md](02-scopes-and-per-user.md) | `mcp_scope.py` 的会话身份编码 / per-user 连接解析 / fail-closed 守卫 | 深入 |
 
 ## 宪章与约定
 

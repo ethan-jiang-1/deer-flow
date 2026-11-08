@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Producers 与消费者 — 两个写入点、三条读路径与一张失败策略表"
-description: "v2.2.0 只有两个写入点（`view_image_tool` 的 `viewed-image`、`ToolOutputBudgetMiddleware` 的 `tool-output`）和三个消费点（`ViewImageMiddleware`、artifact GET 路由、tool-output 还原）。写入失败按“说清楚 vs 静默降级”分成两类；所有读取都是 best-effort；checkpoint 里只有引用，字节永不过界。"
+description: 'v2.2.0 只有两个写入点（`view_image_tool` 的 `viewed-image`、`ToolOutputBudgetMiddleware` 的 `tool-output`）和三个消费点（`ViewImageMiddleware`、artifact GET 路由、tool-output 还原）。写入失败按“说清楚 vs 静默降级”分成两类；所有读取都是 best-effort；checkpoint 里只有引用，字节永不过界。'
 topics: [storage, blob-store, producers, view-image, tool-output, failure-policy]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Producers 与消费者 — 引用怎么跨进程，失败怎么降级

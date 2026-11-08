@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "子 Agent 系统"
-description: "Lead Agent 把复杂任务委派给后台子 Agent 并行执行。"
+description: 'Lead Agent 把复杂任务委派给后台子 Agent 并行执行。'
 topics: [subagent, orchestration, parallel-execution]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 子 Agent 系统

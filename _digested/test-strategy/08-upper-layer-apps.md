@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "上层应用测试面"
-description: "建在 DeerFlow 之上的东西怎么测：Python 扩展、技能、MCP 集成、IM 渠道、custom agents、下游 agent 应用——每层已有什么资产、你该怎么测。"
+description: '建在 DeerFlow 之上的东西怎么测：Python 扩展、技能、MCP 集成、IM 渠道、custom agents、下游 agent 应用——每层已有什么资产、你该怎么测。'
 topics: [testing, extensions, skills, mcp, channels]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 上层应用测试面
@@ -92,13 +97,13 @@ DeerFlow 是**平台**——测试面必须延伸到嫁接在它之上的东西�
 - **中层**（`test_client_e2e.py`，43 个测试，真模块 + 真 LLM）：`requires_llm` skipif 门在 CI/无 key 时跳过——**文件管理子集不需要 LLM，CI 里也真跑**；
 - **顶层**（`test_client_live.py`，19 个测试，live 三重门）：可产生 API 费用与本地沙箱副作用。
 
-**TUI 是"下游应用"的参考样例**：它是 `DeerFlowClient` 之上的 UI shell，不 fork agent 行为（同一 config、同一 `DEER_FLOW_HOME`、同一 checkpointer），16 个 `test_tui_*.py` 全部进 backend-unit CI（pyproject 里 textual 的注释原文："kept in the dev group so the terminal workbench can be run and tested locally / in CI"）。**你基于 harness 包或 client 构建自己的 agent 应用时，TUI 的测试分档（纯层直接单测 + pilot 测 App 层 + persistence round-trip）就是官方背书的模板**，拆解见 `06-frontend-and-tui.md` §三；更实操的模式集（FakeToolCallingModel、interrupt_before 轨迹截停、prompt 注入断言、middleware 测试模板）见 `_digested/testing/04-agent-test-patterns.md` 与 `_digested/testing/05-testing-skills-and-workflows.md`。
+**TUI 是"下游应用"的参考样例**：它是 `DeerFlowClient` 之上的 UI shell，不 fork agent 行为（同一 config、同一 `DEER_FLOW_HOME`、同一 checkpointer），19 个 `test_tui_*.py` 全部进 backend-unit CI（pyproject 里 textual 的注释原文："kept in the dev group so the terminal workbench can be run and tested locally / in CI"）。**你基于 harness 包或 client 构建自己的 agent 应用时，TUI 的测试分档（纯层直接单测 + pilot 测 App 层 + persistence round-trip）就是官方背书的模板**，拆解见 `06-frontend-and-tui.md` §三；更实操的模式集（FakeToolCallingModel、interrupt_before 轨迹截停、prompt 注入断言、middleware 测试模板）见 `_digested/testing/04-agent-test-patterns.md` 与 `_digested/testing/05-testing-skills-and-workflows.md`。
 
 ## 八、上层应用测试资产总表（硬事实）
 
 | 层 | 测试资产 | 离线/在线 | 门禁位置 |
 |---|---|---|---|
-| Python 扩展（宿主合同面） | `test_extension_*.py` 20 文件 + `test_gateway_extension_service_lifecycle.py` | 离线（FakeRegistry/FakeRuntime） | backend-unit（4 分片） |
+| Python 扩展（宿主合同面） | `test_extension_*.py` 31 文件 + `test_gateway_extension_service_lifecycle.py` | 离线（FakeRegistry/FakeRuntime） | backend-unit（4 分片） |
 | 示例扩展包 | `examples/deerflow-extension-example/tests/`（FakeRegistry + ASGITransport） | 离线 | **无 CI（手动）** |
 | 技能系统（harness） | `test_skill*` 37 文件 | 离线 | backend-unit |
 | 技能生成脚本 | 根 `tests/skills/`（importlib + FakeResp） | 离线（dummy key） | **无 CI（手动）** |
@@ -111,8 +116,8 @@ DeerFlow 是**平台**——测试面必须延伸到嫁接在它之上的东西�
 | DeerFlowClient | `test_client.py` 189 例（含 Pydantic 合同） | 离线 | backend-unit |
 | DeerFlowClient e2e/live | `test_client_e2e.py` 43 例 / `test_client_live.py` 19 例 | 混合 / 在线 | 文件管理子集进 CI；live 手动 |
 | SSE 跨栈契约 | `test_replay_golden.py` + e2e-real-backend 4 spec | 离线（无 key 无网络） | replay-e2e（双侧触发） |
-| 跨语言契约 JSON | 三份 contracts + 双端测试 | 离线 | backend-unit + frontend-unit |
-| TUI | 16 个 `test_tui_*.py` | 离线 | backend-unit |
+| 跨语言契约 JSON | 9 份 contracts + 双端测试 | 离线 | backend-unit + frontend-unit |
+| TUI | 19 个 `test_tui_*.py` | 离线 | backend-unit |
 | 沙箱真镜像 | `test_aio_sandbox_local_backend.py`（`-m live`，`repo@sha256`） | 在线（真 Docker） | sandbox-image-smoke（paths 触发） |
 | 真服务集成 | `@pytest.mark.integration`（Redis/Postgres） | 在线（CI service 容器） | backend-unit（显式 env 注入防静默跳过） |
 

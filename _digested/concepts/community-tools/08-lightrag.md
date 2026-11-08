@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "LightRAG — 只读知识库检索（knowledge_search 的第二 provider）"
-description: "LightRAG 是 knowledge_search 工具的第二 provider（与 RAGFlow 二选一）：operator 配置自建 LightRAG 服务地址，agent 通过同一个只读 knowledge_search 工具检索。2.2.0 起它的工具侧改走 knowledge/ 契约（content_and_artifact + 稳定引用），capabilities 只有 search+sources，因此拒绝任何 dataset/document 收窄。"
+description: 'LightRAG 是 knowledge_search 工具的第二 provider（与 RAGFlow 二选一）：operator 配置自建 LightRAG 服务地址，agent 通过同一个只读 knowledge_search 工具检索。2.2.0 起它的工具侧改走 knowledge/ 契约（content_and_artifact + 稳定引用），capabilities 只有 search+sources，因此拒绝任何 dataset/document 收窄。'
 topics: [tools, community, knowledge, rag, lightrag, retrieval]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # LightRAG — 只读知识库检索（knowledge_search 的第二 provider）

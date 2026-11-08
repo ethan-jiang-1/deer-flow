@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Record/Replay E2E 测试"
-description: "ReplayChatModel 确定性 Gateway 测试：输入哈希匹配、volatile 字段归一化、caller-aware key、golden JSON。零 API key。"
+description: 'ReplayChatModel 确定性 Gateway 测试：输入哈希匹配、volatile 字段归一化、caller-aware key、golden JSON。零 API key。'
 topics: [testing, e2e, record-replay, deterministic]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Record/Replay E2E 测试
@@ -16,50 +21,9 @@ DeerFlow 最先进的测试模式。录一次（需要 API key），永久回放
 | `backend/tests/replay_provider.py` | `ReplayChatModel` — 415 行确定性 LLM |
 | `backend/tests/test_replay_golden.py` | Layer 1 replay：构造 Gateway → 断言 event 序列 |
 
-## ReplayChatModel 核心机制
+## 机制（canonical）
 
-录下来的 trace 按**归一化输入哈希**索引，不按调用序号——因为 lead agent、TitleMiddleware、subagent 的模型调用交错发生。
-
-### 1. 输入归一化（哈希前消除 volatile 字段）
-
-```python
-_UUID_RE = re.compile(r"[0-9a-fA-F]{8}-...-[0-9a-fA-F]{12}")
-_ISO_TS_RE = re.compile(r"\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?")
-_PATH_RE = re.compile(r"(?:/private)?/(?:var/folders|tmp)/[^\s\"']*")
-_SYSTEM_REMINDER_RE = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
-```
-
-### 2. System message 排除
-
-System prompt 是实现细节——把它放进哈希会让每次 prompt 改动导致全部 fixture 失效：
-
-```python
-def _canonical_messages(messages: list[BaseMessage]) -> str:
-    for message in messages:
-        if message.type == "system":
-            continue  # 排除
-        if additional_kwargs.get("hide_from_ui"):
-            continue  # 框架注入也排除
-```
-
-### 3. Caller-aware key
-
-不同调用方（lead agent、title middleware、evaluator）可能对相同对话发出相同 LLM 调用。`hash_input_key` 把 caller identity 编入 key，防止竞争：
-
-```python
-def hash_input_key(conversation_hash: str, *, caller: str | None) -> str:
-    payload = json.dumps({"caller": caller, "conversation_hash": conversation_hash})
-    return hashlib.sha256(payload.encode()).hexdigest()
-```
-
-### 4. bind_tools 是空操作
-
-Record 的 turn 已携带真实 `tool_calls`，不需要真实 schema binding：
-
-```python
-def bind_tools(self, tools, **kwargs):
-    return self
-```
+ReplayChatModel 的输入归一化、system message 排除、caller-aware key、`bind_tools` 空操作等内部机制，以 [test-strategy/02-deterministic-llm.md](../test-strategy/02-deterministic-llm.md) 为 canonical；本页只保留“怎么录、怎么回放、怎么断言”的操作面。
 
 ## Golden JSON 格式
 

@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "托管模型路由（Managed Models）"
-description: "管理员在 Web 上建的模型 profile 怎么变成一次真实的 LLM 调用？provider 路由为什么必须留在服务端、不能由客户端或模型 ID 推断？密钥、revision、probe 的边界在哪？"
+description: '管理员在 Web 上建的模型 profile 怎么变成一次真实的 LLM 调用？provider 路由为什么必须留在服务端、不能由客户端或模型 ID 推断？密钥、revision、probe 的边界在哪？'
 topics: [models, llm, config, gateway, security]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 托管模型路由（Managed Models）

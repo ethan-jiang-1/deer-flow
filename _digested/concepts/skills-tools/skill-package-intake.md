@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Skill 包摄入：解析、安装与 SkillScan 规则表"
-description: "`skills/parser.py` 的 frontmatter 解析边界、`skills/installer.py` 的 .skill 安装链路与失败清理、SkillScan 全量规则表/上限/异常类型。"
+description: 'Skill 包摄入：解析、安装与 SkillScan 规则表：架构、契约与源码锚点。'
 topics: [skills, installer, parser, skillscan, contract]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Skill 包摄入：解析、安装与 SkillScan 规则表

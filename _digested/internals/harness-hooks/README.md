@@ -14,7 +14,7 @@ topics: [hooks, hot-reload, reflection-loading, extensions]
 
 1. **先看**：[01-config-hot-reload.md](01-config-hot-reload.md) — `get_app_config()` 的三步检测与路径解析链。
 2. **再看**：[03-reflection-loading.md](03-reflection-loading.md) — `resolve_variable` / `resolve_class`，6 种扩展机制的共同底座。
-3. **深入**：[09-packaged-extensions.md](09-packaged-extensions.md) — 打包扩展的 7 类贡献点、CLI 事务与信任边界。
+3. **深入**：[09-packaged-extensions.md](09-packaged-extensions.md) — 打包扩展的 9 个注册方法、CLI 事务与信任边界。
 
 ## 本篇目
 
@@ -28,7 +28,8 @@ topics: [hooks, hot-reload, reflection-loading, extensions]
 | [06-mcp-interceptors.md](06-mcp-interceptors.md) | MCP 拦截器链、OAuth 注入、Gateway 写回与读取管道 | 深入 |
 | [07-context-config-override.md](07-context-config-override.md) | ContextVar 栈：per-request 隔离、测试注入、多租户路径 | 深入 |
 | [08-agent-self-modification.md](08-agent-self-modification.md) | `update_agent_tool` / `setup_agent_tool`：对话中原子更新 SOUL.md / config.yaml | 深入 |
-| [09-packaged-extensions.md](09-packaged-extensions.md) | 7 类贡献点、`deerflow extensions` CLI、manager 事务与锁、信任边界 | 深入 |
+| [09-packaged-extensions.md](09-packaged-extensions.md) | 9 个注册方法、`deerflow extensions` CLI、manager 事务与锁、信任边界 | 深入 |
+| [10-extension-examples.md](10-extension-examples.md) | 14 个 `examples/deerflow-extension-*` 包的贡献点/测试/入口地图 | 深入 |
 
 ## 宪章与约定
 

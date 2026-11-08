@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "生产认证配置"
-description: "生产环境 JWT 认证设置的分步指南：环境变量、多用户隔离、Nginx 速率限制。"
+description: '生产环境 JWT 认证设置的分步指南：环境变量、多用户隔离、Nginx 速率限制。'
 topics: [auth, production, security, deployment]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 生产认证配置

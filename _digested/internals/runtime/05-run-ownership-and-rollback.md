@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "Run Ownership 与 Rollback"
-description: "Multi-worker 部署下的运行归属（lease/heartbeat/orphan recovery）、取消语义、rollback 机制、交付回执（delivery receipt）。"
+description: 'Multi-worker 部署下的运行归属（lease/heartbeat/orphan recovery）、取消语义、rollback 机制、交付回执（delivery receipt）。'
 topics: [runtime, ownership, rollback, multi-worker, delivery]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Run Ownership 与 Rollback

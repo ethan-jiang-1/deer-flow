@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "工作区布局：Drag 面板、响应式、Command Palette"
-description: "## 顶层 Shell"
+description: '工作区布局：Drag 面板、响应式、Command Palette：架构、契约与源码锚点。'
 topics: [frontend, nextjs, react]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 工作区布局：Drag 面板、响应式、Command Palette

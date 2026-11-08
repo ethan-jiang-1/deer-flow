@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "系统全景"
-description: "![Agent Runtime 同心圆分层](figures/agent-runtime-overview.svg)"
+description: '![Agent Runtime 同心圆分层](figures/agent-runtime-overview.svg)'
 topics: [architecture, system-overview]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 系统全景

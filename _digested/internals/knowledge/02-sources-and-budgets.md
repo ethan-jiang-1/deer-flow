@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Knowledge 证据链 — 引用语法、证据信封与预算裁剪"
-description: "`deerflow/knowledge/sources.py`（155 行）定义「模型看到的文本」与「artifact 里的结构化证据」如何同步裁剪：`format_result` 整条丢弃放不下的 hit、`citation()` 转义不可信标题、`prune_sources()` 在预算变换后清理悬空引用、`sources_from_messages()` 只认工具消息并按内容重算 ID，`forward_sources()` 只把子 agent 真正引用过的证据转发给父。"
+description: 'Knowledge 证据链 — 引用语法、证据信封与预算裁剪：架构、契约与源码锚点。'
 topics: [knowledge, citations, budget, artifact, subagent, contract]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Knowledge 证据链 — 引用语法、证据信封与预算裁剪

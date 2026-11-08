@@ -21,6 +21,7 @@ topics: [internals, architecture, agent-runtime, contracts]
 | 文件 | 主题 | 深度 |
 |---|---|---|
 | [shared-utils-contract.md](shared-utils-contract.md) | `deerflow/utils/` 被多域依赖的不变量：事件双发、文件/装配线程池、消息身份、thread_id、图外 oneshot LLM | 深入 |
+| [authz/README.md](authz/README.md) | `authz/` 的三块契约：RBAC 默认 allow、plugin principal fail-closed、sandbox:execute 复用前重查 | 深入 |
 | [agent-loop/README.md](agent-loop/README.md) | Agent loop 归属、middleware 即结构、扩展点、代码追踪、错误处理 | 概览 |
 | [capabilities/README.md](capabilities/README.md) | 声明式能力目录：清单、adapter、installation identity、MCP 选择 | 概览 |
 | [configuration/README.md](configuration/README.md) | 两套配置文件、字段参考、动态加载、上下文压缩 | 概览 |

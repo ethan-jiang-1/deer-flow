@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "LangGraph Node 与 State 设计指南"
-description: "设计 Agent 时的核心决策：两个固定 node、middleware 即 node、ThreadState 扩展、sub-agent 独立图。"
+description: '设计 Agent 时的核心决策：两个固定 node、middleware 即 node、ThreadState 扩展、sub-agent 独立图。'
 topics: [langgraph, agent-design, state-management, nodes]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # LangGraph Node 与 State 设计指南

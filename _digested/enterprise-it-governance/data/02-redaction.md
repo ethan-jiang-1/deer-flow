@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "输出与错误脱敏"
-description: "mask_local_paths_in_output 的映射顺序与四类覆盖：skills、per-user 自定义技能、ACP workspace、user-data。以及它防的是什么、不防什么。"
+description: 'mask_local_paths_in_output 的映射顺序与四类覆盖：skills、per-user 自定义技能、ACP workspace、user-data。以及它防的是什么、不防什么。'
 topics: [governance, data, redaction]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 输出与错误脱敏

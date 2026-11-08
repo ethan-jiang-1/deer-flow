@@ -1,11 +1,16 @@
 ---
+
+
+
 title: "图计算的本质：DeerFlow 编排的统一重述"
-description: "用前六篇的已核验事实回答 DSH 11 的同族问题：DeerFlow 编排里真实的图有哪些？引擎对图做什么、拒绝什么？为什么分界画在这里？以'Agent 是原子'统一重述全部原语。"
+description: '用前六篇的已核验事实回答 DSH 11 的同族问题：DeerFlow 编排里真实的图有哪些？引擎对图做什么、拒绝什么？为什么分界画在这里？以''''Agent 是原子''''统一重述全部原语。'
 topics: [graph, orchestration, synthesis, unified-view]
 topic: orchestration-ladder/08
 repo: /Users/bowhead/deer-flow
 date: 2026-10-02
 status: verified（综合页：所有锚点在前七篇中已亲自核验，此处仅引用）
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 图计算的本质：DeerFlow 编排的统一重述

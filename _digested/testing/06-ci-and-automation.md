@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "CI 与自动化测试"
-description: "从本地实验到 CI 流水线：GitHub Actions 模板、@requires_llm 标记、环境隔离、Token 预算、决策矩阵。"
+description: '从本地实验到 CI 流水线：GitHub Actions 模板、@requires_llm 标记、环境隔离、Token 预算、决策矩阵。'
 topics: [testing, ci, automation, github-actions, isolation]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # CI 与自动化测试

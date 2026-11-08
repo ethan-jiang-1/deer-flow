@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "变更控制"
-description: "扩展与插件授予、Skill mutation 七步流。"
+description: '扩展与插件授予、Skill mutation 七步流。'
 topics: [governance, lifecycle]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 变更控制

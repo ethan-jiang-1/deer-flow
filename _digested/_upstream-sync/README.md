@@ -7,8 +7,8 @@ topics: [upstream-sync, release-anchor, digest]
 
 # 上游同步
 
-> **定位**：追踪 `ethan` 与 bytedance/deer-flow 上游的同步关系，回答「当前消化的是哪个上游版本、下次怎么同步、这轮改了什么」；给维护 digest 的人看。当前锚点 #8 / v2.2.0（`58fc5bd5b`，2026-11-08 同步）。
-> **边界**：只记锚点、同步流程与更新计划，不重复 digest 正文；`ethan` 只在三个目录上区别于上游（`_digested/`、`_faq_on_digested/`、`_deerflow_application_agent_ready_development/`），同步是**重建**而非 merge（完整命令见 [SYNC.md](SYNC.md)）。
+> **定位**：追踪 `ethan` 与 bytedance/deer-flow 上游的同步关系，回答「当前消化的是哪个上游版本、下次怎么同步、这轮改了什么」；另保留全库审计修复台账。给维护 digest 的人看。当前锚点 #8 / v2.2.0（`58fc5bd5b`，2026-11-08 同步）。
+> **边界**：只记锚点、同步流程、更新计划与维护性审计，不重复 digest 正文；`ethan` 只在三个目录上区别于上游（`_digested/`、`_faq_on_digested/`、`_deerflow_application_agent_ready_development/`），同步是**重建**而非 merge（完整命令见 [SYNC.md](SYNC.md)）。
 
 ## 阅读路径
 

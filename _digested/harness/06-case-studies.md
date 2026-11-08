@@ -1,6 +1,11 @@
 ---
+
+
+
 title: "案例研究：六个真实仓库的 agent 指引文件精读"
-description: "精读 openai/codex、apache/airflow、electron/electron、temporalio/sdk-java、deer-flow 等真实开源项目的 AGENTS.md / CLAUDE.md，分析各自的取舍、亮点与缺陷，附仓库链接与原文摘录。"
+description: '精读 openai/codex、apache/airflow、electron/electron、temporalio/sdk-java、deer-flow 等真实开源项目的 AGENTS.md / CLAUDE.md，分析各自的取舍、亮点与缺陷，附仓库链接与原文摘录。'
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 案例研究：六个真实仓库的 agent 指引文件精读

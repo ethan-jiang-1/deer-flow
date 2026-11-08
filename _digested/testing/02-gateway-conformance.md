@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "Gateway 一致性测试"
-description: "`backend/tests/test_client.py::TestGatewayConformance` — 验证 `DeerFlowClient`（SDK 直接调用）返回的 dict 与 Gateway HTTP API 的 Pyda"
+description: 'Gateway 一致性测试：架构、契约与源码锚点。'
 topics: [testing, ci, quality-assurance]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # Gateway 一致性测试

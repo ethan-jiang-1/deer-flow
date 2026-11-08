@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "链装配：Middleware 是怎么串起来的"
-description: "两阶段组装：共享基础层 16 + lead-only 23。声明式分层构建器 + `extensions/ordering.py` 的最终顺序校验。理解这个才能把自定义 middleware 挂到正确位置。"
+description: '两阶段组装：共享基础层 19 + lead-only 20（共 39 个条目位）。声明式分层构建器 + `extensions/ordering.py` 的最终顺序校验。理解这个才能把自定义 middleware 挂到正确位置。'
 topics: [middleware, hooks, interceptor-chain]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 链装配：Middleware 是怎么串起来的
@@ -42,7 +47,7 @@ outer_wrappers: [InputSanitization, KnowledgeScope, ToolOutputBudget,
              ToolErrorHandling, ArtifactCapture(cond tool_artifacts.enabled)]   ← Layer 3
 ```
 
-（以上即三个列表的拼接顺序；Guardrail 最多两个实例——authorization 与显式 guardrail provider 各一；条目位共 16 个 + `ToolProgress` 与 `ArtifactCapture` 两个条件位，见[目录](03-catalog.md)。）
+（以上即三个列表的拼接顺序；Guardrail 最多两个实例——authorization 与显式 guardrail provider 各一；共享基础层共 19 个条目位（1–19，含 `ToolProgress` / `ToolErrorHandling` / `ArtifactCapture`），见[目录](03-catalog.md)。）
 
 Layer 1 的排列意图（源码注释 `:370-393`）：`InputSanitization` 在最前 → 是最外层 `wrap_model_call`，内层（含 LLM 重试）看到的都是洗过的消息；`ToolResultSanitization` 排在 `ToolOutputBudget` **之后**，先中性化远程内容标签再做预算截断；`PiiRedaction` 排最后 → 是最内层 wrapper，tool 结果先脱敏、落盘副本才不含 PII。
 
@@ -56,13 +61,13 @@ Sub-agent 通过 `build_subagent_runtime_middlewares()`（`:567`）使用同一�
 
 文件：`deerflow/agents/lead_agent/agent.py:485`
 
-在共享基础层之后依次追加 23 个：
+在共享基础层之后依次追加 20 个条目位（20–39）：
 
 ```python
 def build_middlewares(config, ...) -> list[AgentMiddleware]:
     middlewares = build_lead_runtime_middlewares(app_config=..., lazy_init=True, ...)
 
-    # 17-19: 上下文管理
+    # 上下文管理
     middlewares.append(DynamicContextMiddleware(...))          # 日期 + 可选 memory
     middlewares.append(SkillActivationMiddleware(...))         # slash 激活（不收窄工具）
     if deferred_setup and deferred_setup.deferred_names:
@@ -70,14 +75,14 @@ def build_middlewares(config, ...) -> list[AgentMiddleware]:
     # （v2.1.0 的 SkillToolPolicyMiddleware 已在 v2.2.0 删除）
     middlewares.append(DurableContextMiddleware(...))
 
-    # 20-24: 可选 + 始终
+    # 可选 + 始终
     if summarization.enabled: middlewares.append(SummarizationMiddleware(...))
     if is_plan_mode:           middlewares.append(TodoListMiddleware(...))
     if token_usage.enabled:    middlewares.append(TokenUsageMiddleware())
     middlewares.append(TitleMiddleware(...))
     if memory_enabled and ...:  middlewares.append(MemoryMiddleware(...))
 
-    # 25-31: vision + MCP + guard trio
+    # vision + MCP + guard trio
     if model_supports_vision: middlewares.append(ViewImageMiddleware())
     if mcp_routing_middleware is not None: middlewares.append(mcp_routing_middleware)
     if tool_search.enabled:
@@ -90,7 +95,7 @@ def build_middlewares(config, ...) -> list[AgentMiddleware]:
     if token_budget.enabled and token_usage.enabled:
         middlewares.append(CompletedSubagentUsageMiddleware())   # 🆕 只回填已完成子方用量
 
-    # 32-37: 尾部
+    # 尾部
     middlewares.append(ModelContentCompatibilityMiddleware())   # 🆕 请求视图读时清洗
     if custom_middlewares:      middlewares.extend(custom_middlewares)
     middlewares.extend(load_configured_extension_middlewares(...))

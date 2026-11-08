@@ -1,7 +1,13 @@
 ---
+
+
+
+
 title: "上传安全管道"
-description: "`deerflow/uploads/manager.py` (798 行，v2.2.0 实测) + `uploads/companions.py` — 与 FastAPI 无关的纯业务逻辑"
+description: '上传安全管道：架构、契约与源码锚点。'
 topics: [gateway, api, rest]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 上传安全管道

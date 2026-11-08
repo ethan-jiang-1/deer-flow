@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "用户隔离"
-description: "per-user 目录布局、ID 校验防路径穿越、legacy 布局的共存，以及 auth-disabled 模式下所有人共享 default 用户的四个后果。"
+description: 'per-user 目录布局、ID 校验防路径穿越、legacy 布局的共存，以及 auth-disabled 模式下所有人共享 default 用户的四个后果。'
 topics: [governance, identity, isolation]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 用户隔离

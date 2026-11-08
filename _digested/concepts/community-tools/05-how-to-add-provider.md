@@ -1,7 +1,12 @@
 ---
+
+
+
 title: "如何添加新的 Tool Provider"
-description: "一步一步指南：创建一个新的社区工具 provider，从目录结构到 config.yaml 注册，含认证模式。"
+description: '一步一步指南：创建一个新的社区工具 provider，从目录结构到 config.yaml 注册，含认证模式。'
 topics: [tools, community, integration, howto]
+verified_against: v2.2.0
+last_verified: 2026-11-08
 ---
 
 # 如何添加新的 Tool Provider
