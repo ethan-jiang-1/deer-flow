@@ -353,6 +353,25 @@ _digested/
 这与「`ethan` 只在三个文档目录内偏离 `main`」的约定不符，但**不由本次整理引入，也不在本次范围内**。
 需要单独决定是保留（若该性能改进需要保留）还是回退。记录在此以免反复重查。
 
+### 7.y 已核实的关键事实修正（B/C 批）
+
+以下断言经 v2.2.0 源码核实后**修正或补全**，全部已落入正文：
+
+| 原文档断言 | 核实结果 | 影响篇目 |
+|---|---|---|
+| 「无 per-run 预算上限」 | **错**。`token_budget` 存在，双阈值（0.8 warn / 1.0 hard-stop），默认关闭 | `cost/03` |
+| 「无自动数据保留策略」 | **部分错**。项目回收站有 `trash_retention_days`（默认 30 天），但**只在启动时清扫** | `data/06` |
+| 「凭证以明文存在」 | **不完整**。落库凭据是 Fernet 加密（`DEER_FLOW_CREDENTIALS_KEY`），多实例未设该 env 会拒绝启动 | `data/04` |
+| 「上传只有类型白名单」 | **遗漏三项配额**：10 文件 / 50MB 单文件 / 100MB 总量 | `data/03` |
+| 「Skills 扫描只有 LLM 一层」 | **错**。静态规则 + LLM 两层，且无法解析时 fail-closed 为 block | `data/03` |
+| 「SandboxAudit 非结构化」 | **错**。已是结构化 JSON，但**只写 gateway.log、不落库** | `audit/02` |
+| 「conversion 白名单 8 类」 | **错**，实为 7 类 | `data/03` |
+
+同时新增三条**盲区**发现（已写入 `audit/03`）：
+1. subagent 内的 guardrail 拒绝在 journal 里不可见（无 `__run_journal`）
+2. allow 决策不落库（有意设计），导致「证明被授权」比「证明被拒绝」更难
+3. 文件类工具（`read_file`/`write_file`）完全不走 SandboxAudit
+
 ## 8. 风险
 
 | 风险 | 影响 | 缓解 |
@@ -368,7 +387,7 @@ _digested/
 质量不是写完了再看看，而是**每篇交付前必须过的闸门**。下面四条闸门对应四类具体的
 失败模式，每条都有可执行的检查方式。
 
-**闸门已自动化**：`tools/check_quality.py` 实现 §9.2–§9.7 的全部检查，
+**闸门已自动化**：`_digested/enterprise-it-governance/tools/check_quality.py` 实现 §9.2–§9.7 的全部检查，
 当前跑出 26 处阻塞、27 处告警——这些就是本卷开工前的质量基线，也是终点的对照。
 
 ### 9.1 已发现的质量问题（现状基线）
@@ -474,8 +493,8 @@ done
 每批提交前逐条确认：
 
 - [ ] `check_digest.py` exit 0（断链、行号越界、锚点、环境变量）
-- [ ] `tools/check_quality.py` exit 0（本文 §9.2–§9.7 的自动化闸门）
-- [ ] `tools/verify_anchors.py` exit 0（所有 `file:line` 存在且在范围内）
+- [ ] `_digested/enterprise-it-governance/tools/check_quality.py` exit 0（本文 §9.2–§9.7 的自动化闸门）
+- [ ] `_digested/enterprise-it-governance/tools/verify_anchors.py` exit 0（所有 `file:line` 存在且在范围内）
 - [ ] 三目录铁律输出 `0`
 - [ ] 每篇 ≥3 处 `file:line`，且指向的断言正确
 - [ ] §9.5 事实登记表全部已核，无新旧矛盾

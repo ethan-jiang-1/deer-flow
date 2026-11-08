@@ -1,43 +1,71 @@
 ---
-title: "合规对照"
-description: "GDPR / SOC2 / ISO27001 / EU AI Act 逐条映射。"
+title: "合规对照总览"
+description: "GDPR / SOC 2 / ISO 27001 / EU AI Act 四套要求的对照入口。每条的现状与差距都指向展开篇，不在本页堆砌结论。"
 topics: [governance, compliance]
 ---
 
-# 合规对照
+# 合规对照总览
 
-GDPR / SOC2 / ISO27001 / EU AI Act 逐条映射。
+本页是入口。四套要求各自展开成一篇，本页只给**一句话现状**与定位。
 
-## 合规考量
+## 1. 四套要求的定位
 
-### GDPR 相关
+| 标准 | 性质 | DeerFlow 能提供什么 |
+|---|---|---|
+| **GDPR** | 法规（欧盟） | 技术机制 + 明确的缺口清单 |
+| **SOC 2** | 审计框架（服务商） | 控制项的技术证据 |
+| **ISO 27001** | 管理体系（组织） | 同上 |
+| **EU AI Act** | 法规（欧盟） | 透明度与人工监督的技术点 |
 
-| 要求 | DeerFlow 现状 | 差距 |
-|------|-------------|------|
-| **数据访问权** | Per-user 存储 → 技术上可导出 `users/{user_id}/` | 无内建导出工具 |
-| **数据删除权** | `DELETE /api/threads/{id}` → 删除 thread 数据 | 无批量删除；memory 无自动过期 |
-| **数据处理记录** | 审计日志 + tracing → 能追溯 agent 操作 | 日志非结构化，需手动解析 |
-| **数据最小化** | 无数据分类标签；memory 提取全量对话事实 | 无敏感数据自动识别 |
-| **跨境传输** | 取决于 LLM provider（API 调用→数据传输到 provider） | 使用海外 provider（Anthropic/OpenAI）时自动触发跨境 |
+**共同的边界**：DeerFlow 自身**不出具任何合规证明**。它能提供的是
+「某项控制有没有对应实现、证据在哪」。证书与审计报告由部署方取得。
 
-### SOC2 / ISO27001
+> ⚠️ **本卷不构成合规结论**。以下对照只描述「有/没有对应技术机制」，
+> 不判定任何系统是否满足某项标准，也不替代法律或审计意见。
+> 每条结论都附 `file:line` 供自行复核。
 
-| 控制域 | DeerFlow 能力 | 证据 |
-|--------|-------------|------|
-| **访问控制** | JWT + per-user isolation | `security/01-auth.md` |
-| **审计日志** | SandboxAudit + RunJournal + tracing | `../audit/README.md` |
-| **变更管理** | Config 版本控制（git）+ hot-reload | `configuration/` |
-| **风险评估** | 沙箱隔离 + guardrail + 循环检测 | `00-overview.md` 12 维度矩阵 |
-| **供应商管理** | LLM provider 依赖（Anthropic/OpenAI/等） | 需要自行评估各 provider 合规状态 |
+## 2. GDPR 一句话现状
 
-**核心差距：** DeerFlow 有技术控制，但缺乏合规文档（SOC2 report、ISO27001 证书）。如果你的企业需要通过这些审计，DeerFlow 是**你可以纳入合规范围的基础设施组件**，但本身不出具合规证明。
+详细见 [02-gdpr.md](02-gdpr.md)。
 
-### EU AI Act（2026 年 8 月生效）
+| 权利/要求 | 现状 |
+|---|---|
+| 访问权 | per-user 存储使导出**技术上可行**，但**无导出端点** |
+| 删除权 | thread 可删（`routers/threads.py:758`）；memory、上传无 TTL，需手工 |
+| 处理记录 | RunJournal + tracing 有记录能力；结构化程度见 [../audit/01-audit-chain.md](../audit/01-audit-chain.md) |
+| 数据最小化 | PII 脱敏**默认关闭**（`config.example.yaml:1538`） |
+| 存储限制 | 仅项目回收站有 30 天 TTL（`projects_config.py:49-52`） |
+| 跨境传输 | 取决于 provider endpoint 配置；另有 TypeSafe 出站不受脱敏覆盖 |
 
-DeerFlow 作为一个通用 Agent 框架，不属于高风险 AI 系统（不直接用于关键基础设施、执法、教育评分等）。但**你的 use case 可能是**。如果你用 DeerFlow 构建面向消费者的金融服务 agent，那它就在 EU AI Act 范围内。
+## 3. SOC 2 / ISO 27001 一句话现状
 
-需要评估的要素：
-- Agent 自主性级别（DeerFlow 的 bounded autonomy → 可配置）
-- 人工监督机制（ClarificationMiddleware 提供对话式交互，非权限审批）
-- 透明性（模型回复的 AI 标签、用户被告知在与 AI 交互的程度）
+详细见 [03-soc2-iso27001.md](03-soc2-iso27001.md)。
 
+四个控制域里，DeerFlow 在**技术控制**上的覆盖较好（访问控制、审计、变更管理），
+在**组织与文档**层面完全不提供——那不是软件能提供的东西。
+
+## 4. EU AI Act 一句话现状
+
+详细见 [04-eu-ai-act.md](04-eu-ai-act.md)。
+
+DeerFlow 是通用框架，不直接落入高风险类别；但它提供的人工监督原语
+（clarification、approval）**不等于**高风险系统要求的「人在回路审批」。
+两者的差别在展开篇里逐条对照。
+
+## 5. 三条贯穿性结论
+
+| # | 结论 | 依据 |
+|---|---|---|
+| 1 | **有技术控制，无合规证明** | 全部四篇 |
+| 2 | **默认配置偏宽松**（PII 脱敏关闭、注册开放、授权默认关闭） | `config.example.yaml:1538`、`auth_config.py:101`、`authz.py:287` |
+| 3 | **缺口集中在数据生命周期**（保留期、导出、驻留） | [../data/06-retention-and-residency.md](../data/06-retention-and-residency.md) |
+
+第 2 条不是缺陷——默认值面向「快速跑起来」；但它意味着
+**合规姿态不能靠默认值达成**，必须显式配置。
+
+## 6. 与其他章节的关系
+
+- 审计证据链：[../audit/01-audit-chain.md](../audit/01-audit-chain.md)
+- 数据生命周期：[../data/06-retention-and-residency.md](../data/06-retention-and-residency.md)
+- PII 脱敏：[../data/05-pii-redaction.md](../data/05-pii-redaction.md)
+- 授权默认关闭：[../authorization/04-rbac-permissions.md](../authorization/04-rbac-permissions.md) §2

@@ -63,8 +63,7 @@ def mask_local_paths_in_output(output: str, thread_data: ThreadDataState | None)
 > Custom mount host paths are masked by `LocalSandbox._reverse_resolve_paths_in_output()`.
 
 **含义**：`mask_local_paths_in_output` 只负责**内置**的四类路径。
-用户自定义的挂载点（`ACTUAL_TO_VIRTUAL_MAPPINGS` 之类）由沙箱自己的
-`_reverse_resolve_paths_in_output()` 处理。
+用户自定义的挂载点由沙箱自己的 `_reverse_resolve_paths_in_output()` 处理。
 
 **这是评审时的易漏点**：两份实现、两处覆盖。排查「某个路径没被脱敏」时
 要同时看这两个函数。
