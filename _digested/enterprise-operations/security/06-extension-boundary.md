@@ -374,13 +374,14 @@ plugins:
 
 authorization:
   enabled: true
+  fail_closed: true
   provider:
     use: deerflow.authz.rbac:RbacAuthorizationProvider
-  roles:
-    analyst:
-      plugin_actions: ["acme.reports/run-report"]      # 单 action
-      plugin_management: ["acme.reports/permissions.read"]
-      plugin_actions: ["acme.reports/ex-port"]         # action 名允许 - 与 _，不允许 .
+    config:
+      roles:
+        analyst:
+          plugin_actions: ["acme.reports/run-report", "acme.reports/export-report"]
+          plugin_management: ["acme.reports/permissions.read"]
 # 未列 plugin_actions / plugin_management 的 role = 这两类资源不受限（向后兼容）
 # plugin_pages 键尚不存在：声明式页面授权是后续 slice
 ```

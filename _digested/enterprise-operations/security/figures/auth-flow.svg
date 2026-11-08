@@ -141,7 +141,7 @@
   <text x="760" y="442" font-size="11" fill="#555">⑤ Agent 执行</text>
   <rect x="760" y="450" width="300" height="44" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
   <text x="775" y="468" font-size="10" fill="#2e7d32">user_id = "default" (内部用户)</text>
-  <text x="775" y="486" font-size="10" fill="#2e7d32">所有 thread/memory/upload 隔离在 default 下</text>
+  <text x="775" y="486" font-size="10" fill="#2e7d32">所有数据隔离在 default 下</text>
 
   <!-- Failure -->
   <rect x="760" y="508" width="300" height="100" rx="6" fill="#ffebee" stroke="#ef9a9a" stroke-width="0.5"/>
@@ -149,6 +149,6 @@
   <text x="775" y="546" font-size="10" fill="#555">· internal token 泄露 = 全部 IM 用户被攻破</text>
   <text x="775" y="562" font-size="10" fill="#555">· 所有 IM 用户共享 "default" user_id</text>
   <text x="775" y="578" font-size="10" fill="#555">· 无 per-IM-user 身份映射</text>
-  <text x="775" y="594" font-size="10" fill="#555">· 多 worker 需手动设同一 DEER_FLOW_INTERNAL_AUTH_TOKEN</text>
+  <text x="775" y="594" font-size="10" fill="#555">· 多 worker 需设同一内部 token</text>
 
 </svg>

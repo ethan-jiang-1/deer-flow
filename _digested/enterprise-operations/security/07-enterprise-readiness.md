@@ -18,6 +18,8 @@ last_verified: 2026-11-08
 4. DSH、Pi 这些还没进企业 Radar、但存在感在上升的 harness，安全思路差在哪？
 5. 如果要把 DeerFlow 卖进企业，差距怎么补、话该怎么讲、哪些事不该承诺？
 
+> **与治理卷的分工**：本文回答「技术机制够不够、和企业平台差在哪、差距怎么补」；控制点该不该批、条款级合规映射、数据生命周期与成本/生命周期治理，见 [enterprise-it-governance](../../enterprise-it-governance/README.md)。两卷共享 `file:line` 证据，但本文偏「安全工程 + 采购基准」，治理卷偏「控制点 + 合规判断」，不重复铺开。
+
 > **口径**：DeerFlow 事实以 v2.2.0 源码为准，判断性段落附 `file:line`；外部厂商以 2026-11 官方文档为准，营销口径单独标注。Google 与 OpenAI 的租户内细节本次未能独立核实，文中标「未证实」。
 
 ---
@@ -168,6 +170,8 @@ OWASP 在 2026-08-04 更新了 LLM Top 10（本文用 2026 编号，括号内为
 | **ASI07 不安全 agent 间通信** | subagent 继承父身份；无 agent 间认证 | 🔴 弱 | 伪造/重放 agent 消息无检测；subagent 共享父级权限 |
 | **ASI10 失控 agent** | 无行为异常检测、无全局 kill switch | 🔴 弱 | 只能 cancel run/thread；无法只停某一个 agent |
 
+> **一个边界**：DeerFlow 不训练模型，LLM05 里的「训练数据投毒」不直接适用；但 RAG/记忆投毒、工具结果投毒、MCP 描述投毒都适用，别因为「不训练」就跳过这一行。
+
 **这张表最重要的一行是 ASI03。** 企业最怕的不是「模型说错话」，而是「一个被注入的 agent 用某个高管/管理员的权限删了东西」。DeerFlow 的 sandbox 能限制「删哪里」，guardrail 能限制「用什么删」，但**不能回答「这是哪个 agent 干的、能不能只撤这个 agent」**。这是身份问题，不是权限问题；加多少层 regex 都补不上。
 
 [^1]: Anthropic, "Prompt injection defenses"（厂商自测，非第三方复现）: https://www.anthropic.com/research/prompt-injection-defenses
@@ -274,6 +278,10 @@ DSH（DeepSeek Harness）和 Pi（Pi Agent Platform）目前**大体还不在**�
 | **供应链** | SkillScan + 插件 grant + MCP stdio allowlist；无 SBOM/签名 | 包级 seam 与 fail-closed；企业级 SBOM/签名**未证实** | Sigstore 签名的 npm provenance、依赖门禁、**公开披露** high/moderate advisory 与豁免到期日 |
 | **企业控制面** | 部分：OIDC/RBAC/审计原语；无 NHI/DLP/合规证书 | local-first；IdP/多租户/DLP/合规**未证实** | team/company 模式；企业 IdP、租户隔离、证书**未证实** |
 
+![三种 harness 的安全哲学：运行时纵深、能力约束、策略执行](figures/harness-security-philosophies.svg)
+
+> **图读法**：三列是三种「安全投入放在哪」的选择，不是成熟度排名。底部轴只是相对默认姿态的示意（DeerFlow 偏松、Pi 居中、DSH 偏紧），不是评分；真正的差距在底部的「共同缺口」——三家公开材料里都没有完整的企业控制面。
+
 **三条路线的差别，一句话概括：**
 
 - **DeerFlow 是「运行时纵深」**：假设 agent 会出错，叠 middleware、sandbox、audit；强在可扩展、可自托管，弱在默认松、治理层薄。
@@ -320,6 +328,8 @@ DSH（DeepSeek Harness）和 Pi（Pi Agent Platform）目前**大体还不在**�
 | 3 | **审计不足以「证明」** | SandboxAudit 只写 `gateway.log` 不落库；正常 allow 决策不写 RunJournal；RunJournal 无链/HMAC，有库写权限者可改；无 SIEM 导出、无 eDiscovery | 出事只能翻日志，不能按用户/agent/工具出证据包；合规评审过不了 | 采集 gateway.log + RunEvent 到 SIEM；自己补 allow 决策事件 | 代码 + 集成 |
 | 4 | **默认配置是开发者姿态** | `guardrails.enabled: false`、`authorization.enabled: false`（→ 13 权限全放行）、`pii_redaction.enabled: false`、`token_budget.enabled: false`；README 明说默认本地可信环境 | 直接暴露到企业网络 = 高风险；评审第一页就卡住 | 提供 hardened profile / 部署基线；setup wizard 只覆盖 sandbox/bash，不覆盖这四项；当前没有官方 preset | 产品 |
 
+> 这些断言的 `file:line` 索引在 [08-control-checklist.md](08-control-checklist.md) 的「关键断言的证据索引」，方便逐条复核。
+
 ### 5.2 P1：能上线，但需要平台层补
 
 | # | 缺口 | 证据 | 企业后果 | 现有绕过 |
@@ -337,9 +347,9 @@ DSH（DeepSeek Harness）和 Pi（Pi Agent Platform）目前**大体还不在**�
 | **API 限流 / 防滥用** | 登录限流 + LLM 并发上限 + subagent 并发；**无全局 per-user API 限流** | Nginx/网关 `limit_req`；按用户/租户配额；对 run 创建、上传、导出做独立限速 |
 | **数据保留 / 删除 / 导出** | thread 可删；memory/uploads 无 TTL；无导出端点；事件删除会把 seal 置 partial | 定义保留期与 DSR 流程；外接导出/法务保留；定期清理 memory/uploads |
 | **日志 / trace 中的 prompt/PII** | secrets redaction 覆盖 trace/checkpoint；PII 脱敏只作用在 model-bound 内容，日志/trace 不保证 | 关闭或脱敏外部 trace；日志接入 SIEM 前做 DLP；不要把 prompt 原文当普通日志 |
-| **容器运行时暴露** | DooD overlay 挂 `/var/run/docker.sock`（host root 等价）；provisioner RBAC 覆盖 namespace 内所有 Pod/Service | 生产用 provisioner/rootless/socket proxy；专用 namespace + OPA/Kyverno |
+| **容器运行时暴露** | DooD overlay 挂 `/var/run/docker.sock`（host root 等价）；provisioner RBAC 覆盖 namespace 内所有 Pod/Service/Pod 日志 | 生产用 provisioner/rootless/socket proxy；专用 namespace + OPA/Kyverno |
 
-这三项在代码评审里不显眼，但在企业上线评审里经常是「最后一公里」：功能都对，就是不敢开。
+这四项在代码评审里不显眼，但在企业上线评审里经常是「最后一公里」：功能都对，就是不敢开。
 
 ### 5.3 P2：定位问题，不一定要补
 
@@ -362,7 +372,7 @@ DSH（DeepSeek Harness）和 Pi（Pi Agent Platform）目前**大体还不在**�
 2. **Agent 身份（NHI）**：给每个 agent 一个可认证的身份（哪怕是「用户身份 + agent_id + 受限 scope」的轻量版），让工具调用、审计、撤销都能按 agent 维度工作。这是所有「最小权限」叙事的前提。
 3. **审计导出（Audit Export）**：把 RunEvent/SandboxAudit/Guardrail 决策做成稳定的 JSONL/OTLP 导出，补上 allow 决策与工具入参出参的摘要；不要求 WORM，先做到「能进 SIEM、能按用户/agent/工具查」。
 
-这三件事都不要求 DeerFlow 变成「平台」，但能把 P0 从「没有」变成「有原语 + 可集成」。相比之下，自己去造 DLP、SIEM、IdP 是重复造轮子，不如定义好集成接口。
+这三件事都不要求 DeerFlow 变成「平台」，但能把 P0 从「没有」变成「有原语 + 可集成」。相比之下，自己去造 DLP、SIEM、IdP 是重复造轮子，不如定义好集成接口。审批与 NHI 的接口、状态机、事件和验收标准见 [09-approval-and-nhi-design.md](09-approval-and-nhi-design.md)。
 
 ---
 
@@ -383,7 +393,7 @@ DSH（DeepSeek Harness）和 Pi（Pi Agent Platform）目前**大体还不在**�
 | 卖法 | 适合谁 | 能承诺什么 | 不能承诺什么 |
 |------|--------|------------|--------------|
 | **A. 运行时/组件**（推荐） | 有自己 AI 平台、IdP、SIEM 的大型企业 | 「可自托管、可审计源码、控制点可插拔、数据不出你的边界」 | 「开箱即企业安全」「我们有合规证书」 |
-| **B. 加固一体机** | 中型企业，想要参考架构 | 「 hardened profile + 网络隔离 + SIEM 接入 + 备份/升级」 | 「多租户 SaaS」「7×24 SOC」 |
+| **B. 加固一体机** | 中型企业，想要参考架构 | 「hardened profile + 网络隔离 + SIEM 接入 + 备份/升级」 | 「多租户 SaaS」「7×24 SOC」 |
 | **C. 托管 SaaS** | 小客户/试用 | 「我们替你运维」 | 目前不具备：无多租户、无证书、无 SLA、无 IR；不要硬卖 |
 
 **最危险的是把 A 说成 C。** 企业评审一旦发现「默认全权限、没有 agent 身份、审计不入库」，信任会瞬间归零；反过来，如果一开始就说清「我们是运行时，平台层由你们补；这是责任矩阵和集成清单」，反而更容易过。
@@ -473,13 +483,134 @@ DeerFlow 的差异化应该建立在「**运行时在你的 VPC 里、策略你�
 
 ---
 
+### 7.6 加固配置基线（起点，不是一键开关）
+
+下面是一份**最小加固基线**，把「默认关」的四项打开，并把沙箱和注册策略收紧。它不是一键配置：工具名、角色、域名都要按你的环境改；`token_secret` 是占位符，生产必须换成 ≥16 字符的随机值，建议由 secret manager 注入。
+
+![默认配置 vs 加固基线：七个开关](figures/default-vs-hardened.svg)
+
+> **图读法**：左列是 v2.2.0 的默认姿态，右列是下面 YAML 打开后的状态；红/绿点只表示「默认/加固」，不是风险评分。底部的「仍未解决」是配置补不出来的部分。
+
+```yaml
+# 1) 关闭自助注册
+auth:
+  local:
+    allow_registration: false
+
+# 2) 工具级授权：零依赖 allowlist；生产可换 TypeSafe/OpenAI Decisions
+guardrails:
+  enabled: true
+  fail_closed: true
+  provider:
+    use: deerflow.guardrails.builtin:AllowlistProvider
+    config:
+      allowed_tools:
+        - bash
+        - read_file
+        - write_file
+        - str_replace
+        - ls
+        - glob
+        - grep
+        - web_search
+        - web_fetch
+        - view_image
+
+# 3) RBAC：按角色收窄；default_role 给未绑定 IM 用户
+authorization:
+  enabled: true
+  fail_closed: true
+  default_role: viewer
+  provider:
+    use: deerflow.authz.rbac:RbacAuthorizationProvider
+    config:
+      roles:
+        admin:
+          tools: {allow: "*"}
+          routes: {allow: "*"}
+        analyst:
+          tools: {allow: "*", deny: ["update_agent"]}
+          routes:
+            allow:
+              - threads:read
+              - threads:write
+              - runs:create
+              - runs:read
+              - runs:cancel
+              - projects:read
+              - projects:write
+              - memory:read
+          models: {allow: "*"}
+          skills: {allow: "*"}
+          sandbox: {allow: "*"}
+          mcp_servers: {allow: "*"}
+          plugin_actions: {allow: []}       # 按需加具体 action target
+          plugin_management: {allow: []}
+        viewer:
+          tools: {allow: ["web_search", "read_file", "ls", "glob", "grep"]}
+          routes:
+            allow:
+              - threads:read
+              - runs:read
+              - projects:read
+              - memory:read
+          models: {allow: "*"}
+          skills: {allow: []}
+          sandbox: {allow: "*"}
+          mcp_servers: {allow: []}
+          plugin_actions: {allow: []}
+          plugin_management: {allow: []}
+
+# 4) PII 脱敏：token_secret 用 secret manager 注入，必须 ≥16 字符
+pii_redaction:
+  enabled: true
+  token_secret: change-me-to-a-long-random-string   # 占位符，生产必须替换
+  redact_email: true
+  redact_api_key: true
+  redact_credit_card: true
+  redact_phone: true
+  redact_national_id: true
+
+# 5) 每 run token 预算（不是货币预算）
+token_budget:
+  enabled: true
+  max_tokens: 200000
+  warn_threshold: 0.8
+  hard_stop_threshold: 1.0
+
+# 6) 容器沙箱 + 出网 allowlist（Docker 28+；K3s 需自建 NetworkPolicy）
+sandbox:
+  use: deerflow.community.aio_sandbox:AioSandboxProvider
+  allow_host_bash: false
+  network:
+    mode: allowlist
+    allow_domains:
+      - pypi.org
+      - files.pythonhosted.org
+      - registry.npmjs.org
+      - github.com
+    approval: prompt
+    temporary_grant_ttl: 300
+```
+
+以上 6 段已按 v2.2.0 的 `AuthAppConfig` / `GuardrailsConfig` / `AuthorizationConfig` / `PiiRedactionConfig` / `TokenBudgetConfig` / `SandboxConfig` 做 Pydantic 校验，不是拍脑袋写的 YAML。示例里的 `token_secret` 不是秘密：生产必须替换；过短或缺失会 fail-closed。
+
+**还要配的环境/网关**：
+
+- `AUTH_JWT_SECRET`、`DEER_FLOW_INTERNAL_AUTH_TOKEN`、`BETTER_AUTH_SECRET`、`DEER_FLOW_CREDENTIALS_KEY`（见 [05-production-auth-setup.md](05-production-auth-setup.md)）。
+- `GATEWAY_ENABLE_DOCS=false`、`GATEWAY_CORS_ORIGINS`、`AUTH_TRUSTED_PROXIES`。
+- Nginx/Ingress 的登录与 API `limit_req`、TLS、安全响应头。
+- 日志/SandboxAudit 外送 SIEM；备份与恢复演练。
+
+> **重要**：这份基线仍然**没有** NHI、强制审批、DLP、不可变审计、SBOM/签名、合规证书。它只是把「默认裸奔」变成「有基本门禁」，不要把它当成企业级安全的全部。
+
 ## 8. 结语：安全不是二值，是三个变量的函数
 
 把这一章压缩成一句话：
 
-> **攻击面 × 可见性 × 可恢复性。**
+> **攻击面 × 可见性 × 可问责性。**
 
-DeerFlow 在**攻击面收敛**上做得不错：沙箱、路径防护、guardrail、密钥脱敏、插件 grant，都是实打实的工程。它在**可见性**上刚过及格线：有 RunJournal、SandboxAudit、tracing，但 allow 不落库、日志不入库、没有 SIEM 导出。它在**可恢复性**上最弱：没有 agent 身份、没有审批、没有 kill switch、没有 IR。
+DeerFlow 在**攻击面收敛**上做得不错：沙箱、路径防护、guardrail、密钥脱敏、插件 grant，都是实打实的工程。它在**可见性**上刚过及格线：有 RunJournal、SandboxAudit、tracing，但 allow 不落库、日志不入库、没有 SIEM 导出。它在**可问责性**上最弱：没有 agent 身份、没有审批、没有 kill switch、没有 IR——出事既说不清是谁做的，也很难快速止损。
 
 所以「DeerFlow 上企业，安全到底有多少？」的准确回答不是「很多」或「很少」，而是：
 
@@ -489,4 +620,4 @@ DeerFlow 在**攻击面收敛**上做得不错：沙箱、路径防护、guardra
 
 ---
 
-> **See also:** [00-overview.md](00-overview.md)（纵深与已知缺陷） · [03-guardrail.md](03-guardrail.md)（工具级风险门） · [04-trust-boundary.md](04-trust-boundary.md)（16 层信任链） · [06-extension-boundary.md](06-extension-boundary.md)（插件授予面） · [08-control-checklist.md](08-control-checklist.md)（85 项评审清单） · [企业 IT 治理卷](../../enterprise-it-governance/README.md)（身份/授权/数据/审计/合规的治理视角） · [compliance/01-mapping.md](../../enterprise-it-governance/compliance/01-mapping.md)（合规对照）
+> **See also:** [00-overview.md](00-overview.md)（纵深与已知缺陷） · [03-guardrail.md](03-guardrail.md)（工具级风险门） · [04-trust-boundary.md](04-trust-boundary.md)（16 层信任链） · [06-extension-boundary.md](06-extension-boundary.md)（插件授予面） · [08-control-checklist.md](08-control-checklist.md)（85 项评审清单） · [09-approval-and-nhi-design.md](09-approval-and-nhi-design.md)（P0 最小设计） · [企业 IT 治理卷](../../enterprise-it-governance/README.md)（身份/授权/数据/审计/合规的治理视角） · [compliance/01-mapping.md](../../enterprise-it-governance/compliance/01-mapping.md)（合规对照）

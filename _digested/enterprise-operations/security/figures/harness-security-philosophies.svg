@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 602" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>三种 harness 的安全哲学：边界放在哪，企业补什么</title>
+  <desc>不是谁更强，而是工程投入放在不同层；三家公开材料里都没有完整的企业控制面。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="602" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">三种 harness 的安全哲学：边界放在哪，企业补什么</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">不是谁更强，而是工程投入放在不同层；三家公开材料里都没有完整的企业控制面。</text>
+<rect x="30.0" y="88.0" width="300.0" height="360.0" rx="12" fill="#ffffff" stroke="#60a5fa" stroke-width="1.4"/>
+<rect x="30.0" y="88.0" width="300.0" height="64.0" rx="12" fill="#1d4ed8" stroke="none" stroke-width="0"/>
+<rect x="30" y="140" width="300" height="12" fill="#1d4ed8"/>
+<text x="180.0" y="114.0" font-size="15" fill="#ffffff" font-weight="700" text-anchor="middle">DeerFlow</text>
+<text x="180.0" y="134.0" font-size="9.5" fill="#ffffff" font-weight="400" text-anchor="middle" opacity="0.9">运行时纵深</text>
+<text x="46.0" y="172.0" font-size="9" fill="#1d4ed8" font-weight="700" text-anchor="start">边界</text>
+<text x="46.0" y="188.0" font-size="9.2" fill="#1e3a8a" font-weight="400" text-anchor="start">middleware + sandbox；插件同进程</text>
+<text x="46.0" y="219.0" font-size="9" fill="#1d4ed8" font-weight="700" text-anchor="start">默认</text>
+<text x="46.0" y="235.0" font-size="9.2" fill="#1e3a8a" font-weight="400" text-anchor="start">本地可信；</text>
+<text x="46.0" y="248.0" font-size="9.2" fill="#1e3a8a" font-weight="400" text-anchor="start">guardrails/authorization/PII/token</text>
+<text x="46.0" y="261.0" font-size="9.2" fill="#1e3a8a" font-weight="400" text-anchor="start">budget 默认关</text>
+<text x="46.0" y="292.0" font-size="9" fill="#1d4ed8" font-weight="700" text-anchor="start">强项</text>
+<text x="46.0" y="308.0" font-size="9.2" fill="#1e3a8a" font-weight="400" text-anchor="start">16 层纵深、可扩展、可自托管、</text>
+<text x="46.0" y="321.0" font-size="9.2" fill="#1e3a8a" font-weight="400" text-anchor="start">SkillScan/插件 grant</text>
+<text x="46.0" y="352.0" font-size="9" fill="#1d4ed8" font-weight="700" text-anchor="start">缺口</text>
+<text x="46.0" y="368.0" font-size="9.2" fill="#1e3a8a" font-weight="400" text-anchor="start">NHI、强制审批、审计导出、DLP、合规证书</text>
+<rect x="46.0" y="412.0" width="268.0" height="22.0" rx="6" fill="#eff6ff" stroke="#60a5fa" stroke-width="0.8"/>
+<text x="180.0" y="427.0" font-size="8.5" fill="#1d4ed8" font-weight="600" text-anchor="middle">开源可改 · 自托管优先</text>
+<rect x="348.0" y="88.0" width="300.0" height="360.0" rx="12" fill="#ffffff" stroke="#a78bfa" stroke-width="1.4"/>
+<rect x="348.0" y="88.0" width="300.0" height="64.0" rx="12" fill="#6d28d9" stroke="none" stroke-width="0"/>
+<rect x="348" y="140" width="300" height="12" fill="#6d28d9"/>
+<text x="498.0" y="114.0" font-size="15" fill="#ffffff" font-weight="700" text-anchor="middle">DSH</text>
+<text x="498.0" y="134.0" font-size="9.5" fill="#ffffff" font-weight="400" text-anchor="middle" opacity="0.9">能力约束 + 审批</text>
+<text x="364.0" y="172.0" font-size="9" fill="#6d28d9" font-weight="700" text-anchor="start">边界</text>
+<text x="364.0" y="188.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">OS 级约束：bwrap / Landlock / Seatbelt</text>
+<text x="364.0" y="201.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">/ Windows ACL</text>
+<text x="364.0" y="232.0" font-size="9" fill="#6d28d9" font-weight="700" text-anchor="start">默认</text>
+<text x="364.0" y="248.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">workspace-write + ask；不能执行即拒绝，</text>
+<text x="364.0" y="261.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">不降级</text>
+<text x="364.0" y="292.0" font-size="9" fill="#6d28d9" font-weight="700" text-anchor="start">强项</text>
+<text x="364.0" y="308.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">每次调用 policy；one-shot approval；</text>
+<text x="364.0" y="321.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">full/partial 报告</text>
+<text x="364.0" y="352.0" font-size="9" fill="#6d28d9" font-weight="700" text-anchor="start">缺口</text>
+<text x="364.0" y="368.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">企业 IdP、多租户、DLP、合规；未见公开</text>
+<text x="364.0" y="381.0" font-size="9.2" fill="#4c1d95" font-weight="400" text-anchor="start">材料</text>
+<rect x="364.0" y="412.0" width="268.0" height="22.0" rx="6" fill="#f5f3ff" stroke="#a78bfa" stroke-width="0.8"/>
+<text x="498.0" y="427.0" font-size="8.5" fill="#6d28d9" font-weight="600" text-anchor="middle">本地优先 · 默认紧</text>
+<rect x="666.0" y="88.0" width="300.0" height="360.0" rx="12" fill="#ffffff" stroke="#4ade80" stroke-width="1.4"/>
+<rect x="666.0" y="88.0" width="300.0" height="64.0" rx="12" fill="#15803d" stroke="none" stroke-width="0"/>
+<rect x="666" y="140" width="300" height="12" fill="#15803d"/>
+<text x="816.0" y="114.0" font-size="15" fill="#ffffff" font-weight="700" text-anchor="middle">Pi</text>
+<text x="816.0" y="134.0" font-size="9.5" fill="#ffffff" font-weight="400" text-anchor="middle" opacity="0.9">策略执行</text>
+<text x="682.0" y="172.0" font-size="9" fill="#15803d" font-weight="700" text-anchor="start">边界</text>
+<text x="682.0" y="188.0" font-size="9.2" fill="#14532d" font-weight="400" text-anchor="start">工具语义层：路径、shell、secret</text>
+<text x="682.0" y="201.0" font-size="9.2" fill="#14532d" font-weight="400" text-anchor="start">redaction</text>
+<text x="682.0" y="232.0" font-size="9" fill="#15803d" font-weight="700" text-anchor="start">默认</text>
+<text x="682.0" y="248.0" font-size="9.2" fill="#14532d" font-weight="400" text-anchor="start">permission modes + human-action gate；</text>
+<text x="682.0" y="261.0" font-size="9.2" fill="#14532d" font-weight="400" text-anchor="start">受控工具 fail-closed</text>
+<text x="682.0" y="292.0" font-size="9" fill="#15803d" font-weight="700" text-anchor="start">强项</text>
+<text x="682.0" y="308.0" font-size="9.2" fill="#14532d" font-weight="400" text-anchor="start">动作级细规则；Sigstore；公开 advisory</text>
+<text x="682.0" y="321.0" font-size="9.2" fill="#14532d" font-weight="400" text-anchor="start">与到期日</text>
+<text x="682.0" y="352.0" font-size="9" fill="#15803d" font-weight="700" text-anchor="start">缺口</text>
+<text x="682.0" y="368.0" font-size="9.2" fill="#14532d" font-weight="400" text-anchor="start">明确不是 OS 沙箱；企业控制面未见</text>
+<rect x="682.0" y="412.0" width="268.0" height="22.0" rx="6" fill="#f0fdf4" stroke="#4ade80" stroke-width="0.8"/>
+<text x="816.0" y="427.0" font-size="8.5" fill="#15803d" font-weight="600" text-anchor="middle">不是 OS 沙箱 · 工具策略细</text>
+<text x="30.0" y="486.0" font-size="9.5" fill="#475569" font-weight="700" text-anchor="start">相对默认姿态（示意，不是评分）</text>
+<line x1="60" y1="510" x2="940" y2="510" stroke="#cbd5e1" stroke-width="1.5"/>
+<text x="60.0" y="528.0" font-size="8.5" fill="#475569" font-weight="700" text-anchor="start">松</text>
+<text x="940.0" y="528.0" font-size="8.5" fill="#475569" font-weight="700" text-anchor="end">紧</text>
+<circle cx="240" cy="510" r="7" fill="#1d4ed8" stroke="#ffffff" stroke-width="2"/>
+<text x="240.0" y="500.0" font-size="9" fill="#1d4ed8" font-weight="700" text-anchor="middle">DeerFlow</text>
+<circle cx="500" cy="510" r="7" fill="#15803d" stroke="#ffffff" stroke-width="2"/>
+<text x="500.0" y="500.0" font-size="9" fill="#15803d" font-weight="700" text-anchor="middle">Pi</text>
+<circle cx="760" cy="510" r="7" fill="#6d28d9" stroke="#ffffff" stroke-width="2"/>
+<text x="760.0" y="500.0" font-size="9" fill="#6d28d9" font-weight="700" text-anchor="middle">DSH</text>
+<rect x="30.0" y="536.0" width="940.0" height="48.0" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+<text x="46.0" y="556.0" font-size="9.5" fill="#0f172a" font-weight="700" text-anchor="start">共同缺口</text>
+<text x="46.0" y="573.0" font-size="9.2" fill="#475569" font-weight="400" text-anchor="start">IdP/SCIM、多租户、DLP/数据分类、合规证书、7×24 IR——公开材料里三家都没有完整答案；差别在中间三层的投入分配。</text>
+</svg>

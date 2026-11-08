@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 538" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>默认配置 vs 加固基线：七个开关</title>
+  <desc>左列是 v2.2.0 默认姿态，右列是 7.6 的加固基线；六段配置已做 schema 校验。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="538" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">默认配置 vs 加固基线：七个开关</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">左列是 v2.2.0 默认姿态，右列是 7.6 的加固基线；六段配置已做 schema 校验。</text>
+<rect x="30.0" y="90.0" width="940.0" height="34.0" rx="8" fill="#334155" stroke="none" stroke-width="0"/>
+<text x="140.0" y="112.0" font-size="10" fill="#ffffff" font-weight="700" text-anchor="middle">开关</text>
+<text x="430.0" y="112.0" font-size="10" fill="#ffffff" font-weight="700" text-anchor="middle">默认（开发者姿态）</text>
+<text x="790.0" y="112.0" font-size="10" fill="#ffffff" font-weight="700" text-anchor="middle">加固（企业基线）</text>
+<rect x="30.0" y="124.0" width="940.0" height="46.0" rx="0" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<text x="44.0" y="152.0" font-size="10" fill="#0f172a" font-weight="700" text-anchor="start">自助注册</text>
+<circle cx="264" cy="147" r="4" fill="#b91c1c"/>
+<text x="276.0" y="151.0" font-size="9.3" fill="#7f1d1d" font-weight="400" text-anchor="start">开（allow_registration: true）</text>
+<circle cx="624" cy="147" r="4" fill="#15803d"/>
+<text x="636.0" y="151.0" font-size="9.3" fill="#14532d" font-weight="400" text-anchor="start">关</text>
+<rect x="30.0" y="170.0" width="940.0" height="46.0" rx="0" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+<text x="44.0" y="198.0" font-size="10" fill="#0f172a" font-weight="700" text-anchor="start">工具级授权</text>
+<circle cx="264" cy="193" r="4" fill="#b91c1c"/>
+<text x="276.0" y="197.0" font-size="9.3" fill="#7f1d1d" font-weight="400" text-anchor="start">关（guardrails.enabled: false）</text>
+<circle cx="624" cy="193" r="4" fill="#15803d"/>
+<text x="636.0" y="197.0" font-size="9.3" fill="#14532d" font-weight="400" text-anchor="start">开 + allowlist + fail-closed</text>
+<rect x="30.0" y="216.0" width="940.0" height="46.0" rx="0" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<text x="44.0" y="244.0" font-size="10" fill="#0f172a" font-weight="700" text-anchor="start">RBAC</text>
+<circle cx="264" cy="239" r="4" fill="#b91c1c"/>
+<text x="276.0" y="243.0" font-size="9.3" fill="#7f1d1d" font-weight="400" text-anchor="start">关（13 权限全放行）</text>
+<circle cx="624" cy="239" r="4" fill="#15803d"/>
+<text x="636.0" y="243.0" font-size="9.3" fill="#14532d" font-weight="400" text-anchor="start">开 + admin / analyst / viewer</text>
+<rect x="30.0" y="262.0" width="940.0" height="46.0" rx="0" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+<text x="44.0" y="290.0" font-size="10" fill="#0f172a" font-weight="700" text-anchor="start">PII 脱敏</text>
+<circle cx="264" cy="285" r="4" fill="#b91c1c"/>
+<text x="276.0" y="289.0" font-size="9.3" fill="#7f1d1d" font-weight="400" text-anchor="start">关（pii_redaction.enabled: false）</text>
+<circle cx="624" cy="285" r="4" fill="#15803d"/>
+<text x="636.0" y="289.0" font-size="9.3" fill="#14532d" font-weight="400" text-anchor="start">开 + 5 类 + HMAC token</text>
+<rect x="30.0" y="308.0" width="940.0" height="46.0" rx="0" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<text x="44.0" y="336.0" font-size="10" fill="#0f172a" font-weight="700" text-anchor="start">每 run 预算</text>
+<circle cx="264" cy="331" r="4" fill="#b91c1c"/>
+<text x="276.0" y="335.0" font-size="9.3" fill="#7f1d1d" font-weight="400" text-anchor="start">关（token_budget.enabled: false）</text>
+<circle cx="624" cy="331" r="4" fill="#15803d"/>
+<text x="636.0" y="335.0" font-size="9.3" fill="#14532d" font-weight="400" text-anchor="start">开 + 200k + 80% warn</text>
+<rect x="30.0" y="354.0" width="940.0" height="46.0" rx="0" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1"/>
+<text x="44.0" y="382.0" font-size="10" fill="#0f172a" font-weight="700" text-anchor="start">沙箱 / 出网</text>
+<circle cx="264" cy="377" r="4" fill="#b91c1c"/>
+<text x="276.0" y="381.0" font-size="9.3" fill="#7f1d1d" font-weight="400" text-anchor="start">Local / 全通 / host bash 关</text>
+<circle cx="624" cy="377" r="4" fill="#15803d"/>
+<text x="636.0" y="381.0" font-size="9.3" fill="#14532d" font-weight="400" text-anchor="start">Docker / allowlist / no host bash</text>
+<rect x="30.0" y="400.0" width="940.0" height="46.0" rx="0" fill="#ffffff" stroke="#e2e8f0" stroke-width="1"/>
+<text x="44.0" y="428.0" font-size="10" fill="#0f172a" font-weight="700" text-anchor="start">文档 / CORS</text>
+<circle cx="264" cy="423" r="4" fill="#b91c1c"/>
+<text x="276.0" y="427.0" font-size="9.3" fill="#7f1d1d" font-weight="400" text-anchor="start">/docs 开 / CORS 未设</text>
+<circle cx="624" cy="423" r="4" fill="#15803d"/>
+<text x="636.0" y="427.0" font-size="9.3" fill="#14532d" font-weight="400" text-anchor="start">docs 关 / CORS 精确 / trusted proxies</text>
+<line x1="250" y1="90" x2="250" y2="446" stroke="#e2e8f0"/>
+<line x1="610" y1="90" x2="610" y2="446" stroke="#e2e8f0"/>
+<rect x="30.0" y="460.0" width="940.0" height="64.0" rx="10" fill="#fef2f2" stroke="#f87171" stroke-width="1"/>
+<text x="46.0" y="483.0" font-size="9.5" fill="#991b1b" font-weight="700" text-anchor="start">仍未解决（配置补不出来）</text>
+<text x="46.0" y="504.0" font-size="9.2" fill="#7f1d1d" font-weight="400" text-anchor="start">NHI、强制审批、不可变审计、DLP/分类、SBOM/签名、合规证书、多租户</text>
+</svg>

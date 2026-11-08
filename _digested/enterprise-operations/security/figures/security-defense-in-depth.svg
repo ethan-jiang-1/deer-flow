@@ -87,6 +87,6 @@
 <text x="38.0" y="632.0" font-size="8.5" fill="#b91c1c" font-weight="700" text-anchor="middle">执行</text>
 <line x1="60" y1="640" x2="960" y2="640" stroke="#e2e8f0"/>
 <text x="60.0" y="662.0" font-size="9.5" fill="#475569" font-weight="400" text-anchor="start">默认开 = 代码内建且默认生效；默认关 = 需要显式配置；看模式/看部署 = 取决于 sandbox provider 与集群策略。</text>
-<text x="60.0" y="682.0" font-size="9.5" fill="#475569" font-weight="400" text-anchor="start">粗粒度 7 层见 00-overview；16 层细粒度与端到端执行流见 04-trust-boundary。</text>
+<text x="60.0" y="682.0" font-size="9.5" fill="#475569" font-weight="400" text-anchor="start">粗粒度 8 道关口见 00-overview；16 层细粒度与端到端执行流见 04-trust-boundary。</text>
 <text x="960.0" y="662.0" font-size="9" fill="#94a3b8" font-weight="400" text-anchor="end">* 仅 authorization.enabled=true 时生效；依赖插件安装与声明</text>
 </svg>

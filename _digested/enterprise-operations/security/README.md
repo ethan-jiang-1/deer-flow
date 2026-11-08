@@ -16,6 +16,8 @@ topics: [security, defense-in-depth, sandbox, guardrail]
 2. **再看**：[04-trust-boundary.md](04-trust-boundary.md) — 16 层防护在代码中的位置与端到端执行流。
 3. **深入**：[07-enterprise-readiness.md](07-enterprise-readiness.md) — OWASP 对照、企业平台基准、P0/P1 差距、责任边界与 20 问应答。
 4. **延伸**：[06-extension-boundary.md](06-extension-boundary.md) — 插件逐项授予、`host_access`、model invocation 预算、skill 发布闸门。
+5. **对照**：[08-control-checklist.md](08-control-checklist.md) — 85 项控制清单，直接用于安全评审表/RFP。
+6. **补法**：[09-approval-and-nhi-design.md](09-approval-and-nhi-design.md) — 审批闸门与 NHI 的最小设计（接口/状态机/事件/验收）。
 
 ## 本篇目
 
@@ -30,6 +32,7 @@ topics: [security, defense-in-depth, sandbox, guardrail]
 | [06-extension-boundary.md](06-extension-boundary.md) | 扩展安全边界：授权目标、宿主授予、发布闸门 | 深入 |
 | [07-enterprise-readiness.md](07-enterprise-readiness.md) | 企业级 Agent 安全：OWASP 对照、平台基准、DSH/Pi 路线、差距与责任边界 | 深入 |
 | [08-control-checklist.md](08-control-checklist.md) | 85 项企业安全评审控制清单：状态、证据、企业需补 | 工具 |
+| [09-approval-and-nhi-design.md](09-approval-and-nhi-design.md) | P0 补法：审批闸门与 Agent 身份的最小设计草案 | 设计 |
 
 ## 宪章与约定
 

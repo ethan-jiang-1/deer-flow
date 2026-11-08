@@ -12,6 +12,8 @@ last_verified: 2026-11-08
 >
 > **状态口径**：✅ = 有且可执行（可能仍需配置）；🟡 = 有原语，但不完整、默认关或只覆盖部分路径；❌ = 没有，或只有文档没有实现。
 >
+> **与治理卷的关系**：本清单只列「技术控制项 → 证据 → 企业需补」；条款级映射（GDPR / SOC 2 / ISO 27001 / EU AI Act）见 [compliance/01-mapping.md](../../enterprise-it-governance/compliance/01-mapping.md)，数据生命周期与成本治理见 [data/](../../enterprise-it-governance/data/README.md) 与 [cost/](../../enterprise-it-governance/cost/README.md)。
+
 > **边界**：本清单按 v2.2.0 **默认配置**评估；开启 `authorization`、`guardrails`、`pii_redaction`、`network.mode` 等配置会改变部分状态，备注列已注明。它不是合规结论，也不替代渗透测试与审计。
 
 ---
@@ -77,7 +79,7 @@ last_verified: 2026-11-08
 | E7 | 资源限额 | 🟡 | Docker 2 CPU/2G/pids 512；K8s requests/limits；Local 无 cgroup；磁盘无配额 | 生产要加 PVC/磁盘配额与 namespace quota |
 | E8 | 路径防护 | ✅ | 6 层：`..` 拒绝、虚拟路径族、read_only、resolved containment、sandbox containment、symlink 过滤 | 关注 TOCTOU 与并发写；已有细粒度锁 |
 | E9 | Docker socket / DooD 暴露 | 🟡 | 默认 compose 不挂；`docker-compose.dood.yaml` 挂 `/var/run/docker.sock`，等于 host root | 生产用 provisioner/rootless/socket proxy；不要给插件 |
-| E10 | Provisioner RBAC 范围 | 🟡 | 可 get/list/watch/create/delete 命名空间内所有 Pod/Service；不能按 label 限权 | 专用 namespace + OPA/Kyverno；最小权限 |
+| E10 | Provisioner RBAC 范围 | 🟡 | 可 get/list/watch/create/delete 命名空间内所有 Pod/Service/Pod 日志；不能按 label 限权 | 专用 namespace + OPA/Kyverno；最小权限 |
 
 ## F. 数据保护（10）
 
@@ -153,14 +155,41 @@ last_verified: 2026-11-08
 
 ---
 
+## 附：关键断言的证据索引
+
+下面这 18 条是 07/08 里最容易被人问「凭什么」的判断，逐条给 `file:line`。行号是 v2.2.0 树上的起点；后续同步时优先核对函数名。
+
+| # | 断言 | 证据 |
+|---|------|------|
+| 1 | `authorization` 默认关闭，关闭时返回全部 13 个路由权限 | `backend/packages/harness/deerflow/config/authorization_config.py:29`、`backend/app/gateway/authz.py:288` |
+| 2 | `guardrails` 默认关闭 | `backend/packages/harness/deerflow/config/guardrails_config.py:21` |
+| 3 | `pii_redaction` 默认关闭 | `backend/packages/harness/deerflow/config/pii_redaction_config.py:22` |
+| 4 | `token_budget` 默认关闭 | `backend/packages/harness/deerflow/config/token_budget_config.py:9` |
+| 5 | 本地注册默认开启 | `backend/packages/harness/deerflow/config/auth_config.py:101` |
+| 6 | 登录限流默认 `auto`（sqlite/postgres 下共享表） | `backend/packages/harness/deerflow/config/auth_config.py:131`、`backend/app/gateway/auth/login_throttle.py:57` |
+| 7 | PAT 默认拒绝管理面/插件/skill mutation 路由 | `backend/app/gateway/auth/pat.py:60` |
+| 8 | Docker 沙箱 cap-drop + no-new-privileges | `backend/packages/harness/deerflow/community/aio_sandbox/local_backend.py:1979` |
+| 9 | Docker seccomp 默认 unconfined，可收紧 | `backend/packages/harness/deerflow/community/aio_sandbox/local_backend.py:2010` |
+| 10 | Docker 沙箱默认不强制 `--user` | `backend/packages/harness/deerflow/community/aio_sandbox/local_backend.py:2032` |
+| 11 | K3s sandbox Pod `allowPrivilegeEscalation: true` | `docker/provisioner/app.py:1089` |
+| 12 | DooD overlay 挂 `/var/run/docker.sock` | `docker/docker-compose.dood.yaml:26` |
+| 13 | Provisioner RBAC 覆盖 namespace 内所有 Pod/Service/日志 | `deploy/helm/deer-flow/templates/provisioner-rbac.yaml:27` |
+| 14 | Guardrail 只记录 deny / fail-open，正常 allow 不落库 | `backend/packages/harness/deerflow/guardrails/middleware.py:131` |
+| 15 | SandboxAudit 写 `gateway.log`，不落库 | `backend/packages/harness/deerflow/agents/middlewares/sandbox_audit_middleware.py:495` |
+| 16 | MCP 工具描述原样进入 prompt | `backend/packages/harness/deerflow/mcp/tools.py:847` |
+| 17 | Agent 身份只有 `get_effective_user_id()`，无 NHI | `backend/packages/harness/deerflow/runtime/user_context.py:101` |
+| 18 | `host_access` 自述「不是沙箱」 | `backend/packages/harness/deerflow/extensions/host_access.py:1` |
+
+> 这 18 条只覆盖「默认值/边界」类断言；具体机制的证据在 [03-guardrail.md](03-guardrail.md)、[04-trust-boundary.md](04-trust-boundary.md)、[06-extension-boundary.md](06-extension-boundary.md) 的逐段引用里。
+
 ## 怎么用这张表
 
-1. **先筛 ❌**：B1/B2/B4、D1/D2/D3、E6、F3/F4/F8、G4/G5/G8、H4/H5/H6、I4/I7/I8、J1/J2/J8 是「没有就是没有」的项，靠配置补不出来。
+1. **先筛 ❌**：B1/B2/B4、D1/D2/D3、E6、F3/F4/F8、G4/G5/G8、H4/H5/H6、I4/I7/I8/I10、J1/J2/J8/J10/J11/J12 是「没有就是没有」的项，靠配置补不出来。
 2. **再筛「默认关」**：C1/C2/F2、`token_budget`、`network.mode` 都是「有但默认不生效」。评审时要求部署方出示实际配置，不要看代码里有没有。
-3. **最后看「有但不完整」**：A1/A4、C4/C5/C6/C7、E3/E4/E5/E7、F2/F5/F6、G6/G7、H2/H3、I1/I6——这些是最容易被销售话术模糊掉的部分，逐条要证据。
+3. **最后看「有但不完整」**：A1/A4/A9、C4/C5/C6/C7、E3/E4/E5/E7/E9/E10、F2/F5/F6/F9/F10、G6/G7、H2/H3、I1/I6/I9——这些是最容易被销售话术模糊掉的部分，逐条要证据。
 4. **不要把 ✅ 当「绝对安全」**：✅ 只表示「这个控制存在且可执行」，不表示「配置正确」「没有被绕过」「经过渗透测试」。
 
-> 配套分析见 [07-enterprise-readiness.md](07-enterprise-readiness.md)：为什么这些缺口存在、企业平台怎么做、三种卖法与责任边界。
+> 配套分析见 [07-enterprise-readiness.md](07-enterprise-readiness.md)：为什么这些缺口存在、企业平台怎么做、三种卖法与责任边界。P0 的补法（审批闸门/NHI 的接口与验收）见 [09-approval-and-nhi-design.md](09-approval-and-nhi-design.md)。
 
 ---
 
