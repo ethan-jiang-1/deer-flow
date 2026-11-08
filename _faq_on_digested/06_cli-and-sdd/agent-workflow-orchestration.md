@@ -167,7 +167,7 @@ result = agent.invoke(state, config={"configurable": {"thread_id": "research-1"}
 
 `RuntimeFeatures` 是一个声明式配置对象（`deerflow/agents/features.py:18`）——你选 `sandbox=True`，框架自动装配对应的中间件链。不能同时用 `middleware`（完全接管）和 `features`（`create_deerflow_agent()` 的 docstring 明确写了 "Cannot be combined"）；`extra_middleware` 也只在 `features` 模式下可用，靠 `@Next`/`@Prev` 定位插入点。
 
-> 🔄 同步 #8（v2.2.0）：原文写「框架自动装配对应的中间件链（14 个）」——**这个数字已不再成立**，v2.2.0 的 lead 链是 39 个条目位分两阶段组装（`_build_runtime_middlewares()` 前 16 条 + `build_middlewares()` 追加 23 条，`lead_agent/agent.py:485`），具体装几条取决于你开了哪些 feature。以后别再引用固定条数，以 `_digested/internals/middleware/03-catalog.md` 为准。另外 `RuntimeFeatures` 现在有 12 个开关：`sandbox` / `memory`（含 `memory_config`）/ `summarization` / `subagent` / `vision` / `auto_title` / `guardrail` / `loop_detection` / `token_budget`，默认值分别是 `sandbox=True`、`loop_detection=True`，其余 `False`。`create_deerflow_agent()` 还新增了 `subagent_runtime` 与 `pii_redaction_config` 两个关键字参数（`deerflow/agents/factory.py:67`）：直接 SDK 建图时若要与 lead agent 共享原生 subagent 容量，必须显式传 `subagent_runtime`。
+> 🔄 同步 #8（v2.2.0）：原文写「框架自动装配对应的中间件链（14 个）」——**这个数字已不再成立**，v2.2.0 的 lead 链是 39 个条目位分两阶段组装（`_build_runtime_middlewares()` 前 19 条 + `build_middlewares()` 追加 20 条，`lead_agent/agent.py:485`），具体装几条取决于你开了哪些 feature。以后别再引用固定条数，以 `_digested/internals/middleware/03-catalog.md` 为准。另外 `RuntimeFeatures` 现在是 **9 个开关 + `memory_config` 字段**：`sandbox` / `memory` / `summarization` / `subagent` / `vision` / `auto_title` / `guardrail` / `loop_detection` / `token_budget`，默认值分别是 `sandbox=True`、`loop_detection=True`，其余 `False`。`create_deerflow_agent()` 还新增了 `subagent_runtime` 与 `pii_redaction_config` 两个关键字参数（`deerflow/agents/factory.py:67`）：直接 SDK 建图时若要与 lead agent 共享原生 subagent 容量，必须显式传 `subagent_runtime`。
 
 ### 层次 3：自定义 Sub-agent 类型
 

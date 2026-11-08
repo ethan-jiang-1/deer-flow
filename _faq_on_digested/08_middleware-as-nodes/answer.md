@@ -18,7 +18,7 @@
 
 **"middleware 在 DeerFlow 里到底是什么角色？"**
 
-Middleware 是 DeerFlow 的**业务逻辑插件系统**。LangChain 提供了 middleware 的抽象接口（`AgentMiddleware`），DeerFlow 写了 **36 个内置实现 + 2 个通用槽位 = 39 个条目位**（v2.2.0，sync #8；v2.1.0 是 37）——负责总结、标题、记忆、错误处理、安全检查等等。每个 middleware 通过覆写 hook 方法，把自己的逻辑"注入"到 agent 循环的正确位置。
+Middleware 是 DeerFlow 的**业务逻辑插件系统**。LangChain 提供了 middleware 的抽象接口（`AgentMiddleware`），DeerFlow 的 lead 链是 **39 个条目位 = 19 个共享基础层 + 20 个 lead-only 层**（v2.2.0，sync #8；v2.1.0 是 37）——负责总结、标题、记忆、错误处理、安全检查等等。每个 middleware 通过覆写 hook 方法，把自己的逻辑"注入"到 agent 循环的正确位置。
 
 > ⚠️ **2.2.0 变化**：v2.1.0 的 `SkillToolPolicyMiddleware` 已在 v2.2.0 **删除**（`agents/middlewares/skill_tool_policy_middleware.py` 整文件已删除，#6935；`skills/tool_policy.py` 同样已删除），它那条 hook→node 位也一起下线。详见[下文](#deerflow-实际上有多少-node)。
 
@@ -178,7 +178,7 @@ for m in middleware:
 
 ## DeerFlow 实际上有多少 node？
 
-DeerFlow 有 **39 个 middleware 条目位**（v2.2.0；组装分两阶段：`tool_error_handling_middleware.py` 的 `build_lead_runtime_middlewares()`（`:538`，内部 `_build_runtime_middlewares()` `:347`）产出共享基础层 16 条 + `lead_agent/agent.py` 的 `build_middlewares()`（`agent.py:485`）再追加 23 条 lead-only 层）。但不是每个都覆写了 4 个 node 类 hook。按 v2.2.0 源码逐个类 AST 扫描（只看 DeerFlow 侧类**自身**定义的 hook）：
+DeerFlow 有 **39 个 middleware 条目位**（v2.2.0；组装分两阶段：`tool_error_handling_middleware.py` 的 `build_lead_runtime_middlewares()`（`:538`，内部 `_build_runtime_middlewares()` `:347`）产出共享基础层 19 条 + `lead_agent/agent.py` 的 `build_middlewares()`（`agent.py:485`）再追加 20 条 lead-only 层）。但不是每个都覆写了 4 个 node 类 hook。按 v2.2.0 源码逐个类 AST 扫描（只看 DeerFlow 侧类**自身**定义的 hook）：
 
 | node 类 hook | 定义它的类（lead 链上） | 数量 |
 |---|---|---|
@@ -199,7 +199,7 @@ DeerFlow 有 **39 个 middleware 条目位**（v2.2.0；组装分两阶段：`to
 
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 总数 35 → 37（新增 `ToolReceiptMiddleware` #12 与 `DeferredToolPromotionAuditMiddleware` #22）。
 >
-> 🔄 同步 #8（v2.2.0）：37 → **39 条目位**。**删除** `SkillToolPolicyMiddleware`（`skill_tool_policy_middleware.py` 整文件已删除，#6935；`skills/tool_policy.py` 同样已删除；`allowed-tools` 降级为兼容元数据）；**新增** `KnowledgeScopeMiddleware`（#2）、`PiiRedactionMiddleware`（#5，默认关）、`ArtifactResolutionMiddleware`（#11）、`ArtifactCaptureMiddleware`（#19）、`ModelContentCompatibilityMiddleware`（#36）。共享基础层 14 → 16，lead-only 层 23 不变。旧的 "~44 / ~46" 估算作废。
+> 🔄 同步 #8（v2.2.0）：37 → **39 条目位**。**删除** `SkillToolPolicyMiddleware`（`skill_tool_policy_middleware.py` 整文件已删除，#6935；`skills/tool_policy.py` 同样已删除；`allowed-tools` 降级为兼容元数据）；**新增** `KnowledgeScopeMiddleware`（#2）、`PiiRedactionMiddleware`（#5，默认关）、`ArtifactResolutionMiddleware`（#11）、`ArtifactCaptureMiddleware`（#19）、`ModelContentCompatibilityMiddleware`（#36）。共享基础层 14 → 19，lead-only 层 23 → 20。旧的 "~44 / ~46" 估算作废。
 
 ---
 
@@ -399,7 +399,7 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 - `langchain/agents/factory.py`（LangChain 1.3.14 库源码）：固定 node `:1502/:1506`，middleware node 创建 `:1509-1592`，关键节点定义 `:1592-1620`，before_model 边 `:1715-1733`，after_model 反向边 `:1737-1750`，after_agent 反向边 `:1753-1775`，`_add_middleware_edge` `:1957-1990`，`_get_can_jump_to` `:491-523`（先看 sync `__can_jump_to__` 再看 async）
 - `langchain/agents/middleware/types.py`：`AgentMiddleware` 抽象类定义（hook 默认实现 `:419-780`，`hook_config(can_jump_to=...)` `:867`）
-- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` `:485` 起，lead-only 层 23 条，尾部顺序 `:747-778`（`ClarificationMiddleware` 在 `:778` 必须最后，最后再 `compose_with_extensions()` `:786-800`）
+- `deerflow/agents/lead_agent/agent.py`：`build_middlewares()` `:485` 起，lead-only 层 20 条，尾部顺序 `:747-778`（`ClarificationMiddleware` 在 `:778` 必须最后，最后再 `compose_with_extensions()` `:786-800`）
 - `deerflow/agents/middlewares/tool_error_handling_middleware.py`：`_build_runtime_middlewares()` `:347`（共享基础层 outer_wrappers → thread_hooks → tail，拼接点 `:529`）与 `build_lead_runtime_middlewares()` `:538`
 
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 组装改两阶段——共享基础层在 `build_lead_runtime_middlewares()`，lead-only 层在 `build_middlewares()`；新增 `ToolReceiptMiddleware` 与 `DeferredToolPromotionAuditMiddleware`。
@@ -408,4 +408,4 @@ ToolMessage(content="Error: RuntimeError('command not found')\n Please fix your 
 
 ## 补充文件
 
-- [complete-catalog.md](complete-catalog.md) —— **完整 39 个 middleware 条目位一览表**（sync #8，v2.2.0；按顺序、按 hook 类型分类）
+- [complete-catalog.md](complete-catalog.md) —— **39 条目位的算法、两阶段拆分与 canonical 目录指引**（sync #8，v2.2.0；完整逐条表见 `_digested/internals/middleware/03-catalog.md`）

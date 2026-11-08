@@ -19,7 +19,7 @@ DeerFlow（Deep Exploration and Efficient Research Flow）是字节跳动开源�
 
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 数量 18 → 37（`_digested/internals/middleware/03-catalog.md`）。
 
-> 🔄 同步 #8（v2.2.0）：middleware 口径再变——现在是 **39 个条目位**（`_digested/internals/middleware/03-catalog.md` 按 v2.2.0 重写：`_build_runtime_middlewares()` 产出前 16 条 + `build_middlewares()`（`deerflow/agents/lead_agent/agent.py:485`）追加 23 条）。v2.2.0 新增 `KnowledgeScopeMiddleware` / `ArtifactResolutionMiddleware` / `ArtifactCaptureMiddleware` / `PiiRedactionMiddleware` / `ModelContentCompatibilityMiddleware`，`SkillToolPolicyMiddleware` **已删除**；lead 链默认约 24 条、全开约 30 条。Sub-agent 数也一并订正：默认并发 3（`MAX_CONCURRENT_SUBAGENTS`，`deerflow/subagents/executor.py:2337`），合法上限 64，且有 `subagents.max_total_per_run`（默认 6）的**每次 run 总数**兜底。
+> 🔄 同步 #8（v2.2.0）：middleware 口径再变——现在是 **39 个条目位**（`_digested/internals/middleware/03-catalog.md` 按 v2.2.0 重写：`_build_runtime_middlewares()` 产出前 19 条 + `build_middlewares()`（`deerflow/agents/lead_agent/agent.py:485`）追加 20 条）。v2.2.0 新增 `KnowledgeScopeMiddleware` / `ArtifactResolutionMiddleware` / `ArtifactCaptureMiddleware` / `PiiRedactionMiddleware` / `ModelContentCompatibilityMiddleware`，`SkillToolPolicyMiddleware` **已删除**；lead 链默认约 24 条、全开约 30 条。Sub-agent 数也一并订正：默认并发 3（`MAX_CONCURRENT_SUBAGENTS`，`deerflow/subagents/executor.py:2337`），合法上限 64，且有 `subagents.max_total_per_run`（默认 6）的**每次 run 总数**兜底。
 
 技术栈：Python 3.12+ / Node.js 24+ / LangGraph / Next.js 16 / FastAPI / Nginx
 

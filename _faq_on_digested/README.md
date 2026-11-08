@@ -46,9 +46,9 @@ _faq_on_digested/
 | 12 | DeerFlow 的设计理念：运行时边界 + 研发流程与质量治理 | [12-deerflow-design-philosophy/](12-deerflow-design-philosophy/) |
 | 13 | DeerFlow 有没有 DSH 那套「录制会话快照」思想（跨仓对照 + 形状分析 + 缺口值价） | [13_deerflow-record-replay/](13_deerflow-record-replay/) |
 
-> 注：全部答案已对照同步 #6（v2.1.0-rc0，431892e1..769589e8）后的代码复核——受影响处（middleware 18→37、Node.js 24+、config_version 45、`make start SKIP_FRONTEND_BUILD=1`、`/health/ready`、DeerFlowClient 多用户内嵌复用 #5206 与流式修复 #5408/#5479、trace id 无条件下发 #5119、Projects/Trash/Capability Center 新前端）均以 `> 🔄 同步 #6（v2.1.0-rc0）：...` 附注标出，源码行号引用已重核更新。
+> 注：本索引已切到 **同步 #8（v2.2.0 = 58fc5bd5）** 基线；13 个 `answer.md` 均有 `同步 #8` 复核标记，细节页随所属 answer。正文中的 `同步 #6（v2.1.0-rc0）` / `#7（v2.1.0）` 保留为历史增量记录，不再作为当前口径。
 >
-> 🔄 同步 #7（v2.1.0 = 345f08be）：v2.1.0 相对 rc0 的实质源码改动不涉及本 FAQ 引用的任何行号出处，故上表按同步 #6 复核的行号继续有效；本轮另抽查了清单外引用，修正了个别早已漂移的行号/计数与失效的 digest 交叉链接；各文件中的 `v2.1.0-rc0` 标记保留为历史同步记录。
+> 版本敏感计数以 `_digested/` 为 canonical；本 FAQ 只保留结论和证据锚点，尤其 **middleware 39 个条目位 = 19 个共享基础层 + 20 个 lead-only 层**（v2.1.0 为 37），完整逐条目录见 `_digested/internals/middleware/03-catalog.md`，不在 FAQ 里维护第二份。
 
 ## 配方（Recipe）
 

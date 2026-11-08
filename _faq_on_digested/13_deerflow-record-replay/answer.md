@@ -1,5 +1,7 @@
 # A13: DeerFlow 有没有 DSH 那套「录制会话快照」的思想？
 
+> 🔄 同步 #8（v2.2.0）：本页的机制清单、事件字段与源码锚点已按 v2.2.0 重核；`docs/testing/` 与 `deerflow.testing` 的 fork 自制内容已从证据链移除。
+
 ![一页看懂：左列（蓝）思想同源——DeerFlow 测试策略明写移植自 DSH，第⑤级台阶「组装转录」对应快照层，录制/回放/两层消费/发布包四个零件全在；中列（绿）形状相反——DSH trajectory 夹具、位置绑定、pin request/header、一份文件两用，DeerFlow hash-by-input、顺序无关、排除 system prompt、回放输入与 SSE golden 期望分离；右列（琥珀与红）生产侧不对等与三个缺口——checkpoint+run_events 都不含模型请求面，于是没有 run→fixture 导出器（bug 复现断头）、没有 override 等价物（四类失败）、没有调用数对账（少了调用无感知）；底部一句话记法：思想同源，形状相反；多层证据各管一面，生产落盘缺 model-visible](./figures/answer-overview.svg)
 
 ## 一分钟答案

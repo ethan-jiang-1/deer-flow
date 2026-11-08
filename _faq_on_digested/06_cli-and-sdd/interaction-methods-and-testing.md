@@ -427,7 +427,7 @@ DEER_FLOW_SKILLS_PATH=../deer-flow/skills \
 
 ## C.3 CI 阶段
 
-DeerFlow 自己的 CI 流水线（`.github/workflows/` 下 16 个 workflow）：
+DeerFlow 自己的 CI 流水线（`.github/workflows/` 下 19 个 workflow）：
 
 ```yaml
 # .github/workflows/agent-review.yml

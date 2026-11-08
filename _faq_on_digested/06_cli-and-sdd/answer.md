@@ -383,7 +383,7 @@ client.chat("继续之前的工作，实现 spec-3", thread_id="sdd-project")
 
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 总数当时为 37 个（新增 `ToolReceiptMiddleware` 与 `DeferredToolPromotionAuditMiddleware`），digest 目录迁移为 `_digested/internals/middleware/`。本 FAQ 描述的 CLI/REPL/SDD 工作流本身不受影响，但上表源码行号已按 v2.1.0-rc0 更新。
 
-> 🔄 同步 #8（v2.2.0）：middleware 口径从 37 改为 **39 个条目位**（分两阶段组装：`_build_runtime_middlewares()` 前 16 条 + `build_middlewares()` 追加 23 条），v2.2.0 新增 `KnowledgeScopeMiddleware` / `ArtifactResolutionMiddleware` / `ArtifactCaptureMiddleware` / `PiiRedactionMiddleware` / `ModelContentCompatibilityMiddleware`，`SkillToolPolicyMiddleware` 已删除（#6935）。`apply_prompt_template()` 现位于 `prompt.py:1155`（原 L1070 已漂移）。CLI 侧最大的变化是**多了可安装的 `deerflow` 命令**，见 A.1 与 `_digested/getting-started/06-tui.md`。
+> 🔄 同步 #8（v2.2.0）：middleware 口径从 37 改为 **39 个条目位**（分两阶段组装：`_build_runtime_middlewares()` 前 19 条 + `build_middlewares()` 追加 20 条），v2.2.0 新增 `KnowledgeScopeMiddleware` / `ArtifactResolutionMiddleware` / `ArtifactCaptureMiddleware` / `PiiRedactionMiddleware` / `ModelContentCompatibilityMiddleware`，`SkillToolPolicyMiddleware` 已删除（#6935）。`apply_prompt_template()` 现位于 `prompt.py:1155`（原 L1070 已漂移）。CLI 侧最大的变化是**多了可安装的 `deerflow` 命令**，见 A.1 与 `_digested/getting-started/06-tui.md`。
 
 ## 相关 FAQ
 
