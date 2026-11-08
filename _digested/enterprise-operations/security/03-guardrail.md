@@ -400,7 +400,7 @@ Skill archive 解压时拒绝 zip 成员名中的冒号（`:`）——防止 NTF
 |------|------|
 | **ToolResultSanitization 不清洗本地 tool 输出** | 有意为之（信任 sandbox 内容）；MCP 结果已通过 `deerflow_mcp` 标签纳入覆盖（#4839），残余缺口仅剩 extension/社区工具若既非首方网络工具又非 MCP 来源 |
 | **Output 层无主动内容扫描** | `SafetyFinishReasonMiddleware` 只在 provider 返回 `content_filter` 时反应——不主动扫描 agent 输出中的 PII/密钥 |
-| **审计日志非结构化** | SandboxAudit 的日志是 `logger.info()` 文本，不是结构化 JSON |
+| **审计日志不落库** | SandboxAudit 是结构化 JSON（`json.dumps`），但只写 `gateway.log`、不落 DB；接 SIEM 需日志采集 |
 | **SkillScan 是 best-effort** | 静态分析不能捕获所有动态行为；obfuscated 代码可以绕过 |
 | 🆕 **风险门只覆盖 `tools` 列出的工具** | 未探测的工具、MCP 工具、subagent 里的调用都是绕过路径；`tools` 收窄过猛等于没开 |
 | 🆕 **风险门会把参数原样出网** | 送的是工具名 + 完整参数 JSON，**不脱敏**；这是新增的 egress 通道，需与数据保护对齐 |

@@ -136,7 +136,7 @@ subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md
 | per-user / per-tenant 配额 | **无** | 所有限额都是 per-run 或全局 |
 | 预算耗尽的告警 | **部分** | 有 warn 上下文警告（给模型），无运维告警 |
 | 跨 run 的累计上限 | **无** | 每个 run 独立计数 |
-| 模型级单价配置 | **无** | 无价格字段 |
+| 模型级单价配置 | **部分** | `models[*].pricing` 是 extra 字段（无 schema 强制）；Console 仅在配置后计价 |
 | 预算执行的 journal 事件 | **无** | 触发 hard stop 会写 `runs.stop_reason`（`backend/packages/harness/deerflow/agents/middlewares/token_budget_middleware.py:303-314`），但没有 journal 事件与运维告警 |
 
 **最后一条值得注意**：`hard_stop_threshold` 触发时剥离 tool_calls，

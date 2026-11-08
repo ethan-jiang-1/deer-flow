@@ -455,7 +455,7 @@ done
 
 | 态 | 写法模板 | 例子 |
 |---|---|---|
-| **无** | 「DeerFlow 无 X」+ 已确认搜索过 | kill switch：`grep -r "kill_switch" backend/` 零命中 |
+| **无** | 「DeerFlow 无 X」+ 已确认搜索过 | kill switch：无全局 agent 开关；`channels.github.enabled` 等 per-channel 开关存在（`github_webhooks.py:303`） |
 | **有但不覆盖** | 「有 X，但**不覆盖 Y**」+ 行号 | PII 脱敏存在，但 `config.example.yaml:2372`：不覆盖记忆提取出口 |
 | **部分闭合** | 「X 已改善，但 Y 未闭合」+ 两侧证据 | 操作完整性：有 `evidence_seal_state`，但**不**能证明 agent 只做了声称的事 |
 
