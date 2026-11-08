@@ -66,11 +66,16 @@ delta checkpoint **不存完整 `channel_values`**，直接读 saver 只会看�
 
 | 方法 | 行为 |
 |------|------|
-| `bind(graph, checkpointer, *, store=None, mode="full")` | 把 checkpointer/store 挂到图上，返回 accessor |
+| `bind(graph, checkpointer, *, store=None, mode="full", direct_namespace=False)` | 把 checkpointer/store 挂到图上，返回 accessor；`direct_namespace` 见下 |
 | `get` / `aget` | `graph.get_state()` 后过 `raise_if_snapshot_incompatible` |
+| `get_tuple` / `aget_tuple`（`:178` / `:183`） | 直接返回原始 `CheckpointTuple`（仍先过 `_prepare_config` 的 mode 注入），不物化 state |
 | `get_metadata` / `aget_metadata` | 只读 checkpoint metadata，**不物化 channel state**（走 `checkpointer.get_tuple` + tuple 门） |
 | `history` / `ahistory` | 逐条过门；`limit <= 0` 返回空列表；手工截断到 `limit`（不信任底层实现） |
 | `update` / `aupdate` | 先过写前门，再 `graph.update_state()` |
+
+**`direct_namespace`（`checkpoint_state.py:117`/`:127`/`:140-148`）**：状态变更用的单节点图没有子图可委派，所以当 config 带 `checkpoint_ns` 时，`_prepare_config()` 会把 accessor 自己的 checkpointer 显式写进 `configurable[CONFIG_KEY_CHECKPOINTER]`（`langgraph._internal._constants`），让 LangGraph 在**图自身**上读写该 namespace，包括回读 update 之后的 config。这是对 LangGraph 私有键的依赖（注释写明按 LangGraph 1.2.9 校验，升级需复核）。唯一调用点：`app/gateway/services.py:1491`（`build_checkpoint_state_mutation_accessor()` 传 `direct_namespace=True`）。
+
+**`aget` 的 delta 重试（`checkpoint_state.py:158-176`）**：delta 物化可能在 LangGraph 解析出最新 checkpoint 之后再做第二次 saver 读，而 retention 恰好在这段间隔里删掉尾部"只有 metadata 的叶子"；`CachedHistorySaver` 于是走不到已消失目标的父链，首次物化会得到空的 `messages` channel。所以对**未钉住 checkpoint_id** 的 latest-state 读，`aget` 会拿返回的 `snapshot.config` 再 `aget_tuple` 校验目标仍在，不在则从新 head 重读**一次**；显式指定历史 checkpoint 的读仍 fail-closed，绝不静默换到别的 checkpoint。
 
 配套的**只读图 introspection**（供调用方回退到 schema 集合，stub accessor 返回 `None`）：
 
@@ -92,12 +97,15 @@ delta checkpoint **不存完整 `channel_values`**，直接读 saver 只会看�
 
 ```python
 CACHE_FORMAT_VERSION = 1
+valid_history_entry(entry, *, channel=None) -> bool   # :26 条目形状校验（writes 为三元组列表）
 make_history_key(key_prefix, thread_id, checkpoint_ns, checkpoint_id, channel) -> str
 #   f"{key_prefix}:{thread_id}:{sha256(ns \x00 checkpoint_id \x00 channel)[:24]}"
 thread_key_stem(key_prefix, thread_id) -> f"{key_prefix}:{thread_id}:"
 ```
 
 `thread_id` 保持可读（运维排障），其余分量用 `\x00` 分隔后哈希，避免含 `:` 的 namespace 产生歧义键。
+
+**`valid_history_entry()`（`base.py:26`）**：校验 `writes` 是列表且每项是 `(task_id: str, channel: str, value)` 三元组（`channel` 参数给定时还要求写记录属于该 channel）。两个消费方：wrapper 在**读缓存**时用它把畸形/旧形状条目降级为 miss（`cached_saver.py:132`/`:178`/`:222`/`:253`），redis 后端在**读写两端**都用它（`:92`/`:114`）——因为三字符的字符串也能被解包成"三元组"，只查 `len()` 会凭空造出一个 channel 值。
 
 两个 Protocol：
 
@@ -108,20 +116,24 @@ thread_key_stem(key_prefix, thread_id) -> f"{key_prefix}:{thread_id}:"
 
 **唯一的删除 API 是 thread 级**，且它存在的理由是**数据生命周期**而不是正确性：源 checkpoint 被擦除时（thread 删除、租户下线、GDPR 式擦除），该 thread 的缓存历史载荷必须一起消失，而不是留到 LRU 淘汰或 TTL 过期。
 
-`CheckpointCacheStats`：`hits` / `misses` / `evictions` / `entries`（`.as_dict()`）。统计里若出现 `compose_hits` / `full_walks`，那是 `CachedHistorySaver` 自己合并进去的（见 §4.4）。
+`CheckpointCacheStats`：`hits` / `misses` / `evictions` / `entries` / `write_serialization_failures`（`.as_dict()`；最后一项只有 redis 后端会累加，见 §4.2）。统计里若出现 `compose_hits` / `full_walks`，那是 `CachedHistorySaver` 自己合并进去的（见 §4.4）。
 
 ### 4.2 后端
 
 | 后端 | 类 | 特性 |
 |------|----|------|
-| memory（默认） | `MemoryCheckpointHistoryCache` | 进程内 `OrderedDict` LRU，命中路径**零序列化**；copy-on-read/write（`writes` 列表新拷、`seed` 共享且从不原地改）；`enabled = max_entries > 0`，`max_entries=0` 即全关 |
+| memory（默认） | `MemoryCheckpointHistoryCache` | 进程内 `OrderedDict` LRU，命中路径**零序列化**；`enabled = max_entries > 0`，`max_entries=0` 即全关 |
 | redis | `RedisCheckpointHistoryCache` | `MGET`/`pipeline(transaction=False)` + `SETEX`；值用下游 saver 的 `serde.dumps_typed/loads_typed`，`tag + \x00 + payload` 拼一字节串；`ttl_seconds=0` 显式关闭过期（只靠 redis maxmemory）；`adelete_thread` 用 `SCAN(match=stem+"*", count=500)` + `UNLINK` |
+
+**memory 后端的线程安全与拷贝语义**（`checkpoint_cache/memory.py`，`threading.Lock` 在 `:22`）：`get_many`/`set_many`/`delete_thread`/`stats`/`aclose` 都在锁内改 registry，但条目现在用 `deepcopy`（`_copy_entry` `:15`）**双向**深拷——读写两侧都不再共享 `seed`，嵌套 payload 归调用方所有。深拷刻意移到**锁外**做（`get_many` `:33`/`set_many` `:48`）：用户 payload 可以实现 `__deepcopy__`，不能让它持锁执行任意代码。
 
 redis 后端的**降级策略**（性能开关不能变成可用性开关）：
 
 - `mget` 抛 `RedisError` → 记 warning、当全 miss 返回（`misses += len(keys)`），**从不**让请求失败。
-- 写失败 → 记 warning 跳过，下次读重算。
-- 线程清理失败 → 记 warning，残留条目靠 TTL 兜底（源数据已删，所以**从不 raise**）。
+- **单条解码失败也只是 miss**（`redis.py:85-99`）：`loads_typed` 抛错或 `valid_history_entry` 判否 → warning（只记异常类型名）+ `misses += 1`，从权威 checkpoint 重建该条历史。
+- 写失败 → 记 warning 跳过，下次读重算；单条**序列化**失败只跳过该条（其余条目照常写）并累加 `write_serialization_failures`（`:120`）。
+- 线程清理：`SCAN` 的 `match` 现在把 stem 里的 `\ * ? [` **逐字符转义**（`:141-142`）——配置的 namespace 是字面前缀，不是 Redis glob；结果再按连接池 encoder 编码后的 stem 前缀二次过滤（`:144`/`:149`），因为 redis-py 用连接的 encoder 解码 `SCAN` 结果，写死 UTF-8 会在别的编码下静默跳过自己的键。失败仍只 warning，残留靠 TTL 兜底（源数据已删，所以**从不 raise**）。
+- 所有 warning 走 `_warn()`（`:27`）：`suppress(Exception)` 包住 `logger.warning`，保证可选的诊断路径本身不改变上述 fallback 行为。
 - redis 是可选 extra：client 与 `RedisError` 都惰性 import，缺包时报带安装命令的 `ImportError`（`REDIS_INSTALL`）。
 
 ### 4.3 工厂与部署身份（`checkpoint_cache/provider.py`，102 行）
@@ -147,14 +159,17 @@ checkpoint_cache_key_prefix(app_config)
 `CachedHistorySaver(inner, cache, *, key_prefix)` 是**任何** `BaseCheckpointSaver` 的 read-through delta-history 包装：
 
 - 构造时 `self.serde = inner.serde`（实例属性遮蔽基类默认 `JsonPlusSerializer`）。
+- `source_saver` 属性（`:85`）暴露权威行所属的内层 saver；storage 层的 retention 直接对 `_inner` 操作（wrapper 没有删行 API），见下。
 - `__getattr__` 兜住 saver 特有的额外属性（如 `AsyncSqliteSaver.setup`）并转发给 inner；基类**具体定义**的方法都显式转发（`get_tuple`/`list`/`put`/`put_writes`/`get_next_version` + async 孪生），所以 `__getattr__` 只在基类没定义时才触发。
 - **唯一被覆写的行为是 delta channel history**（`aget_delta_channel_history` / `get_delta_channel_history`）；其余读写原样透传。
 
-算法（`_aresolve` / `_resolve_sync`，`_COMPOSE_MAX_DEPTH = 8`）：
+**对内层 saver 的契约**（模块 docstring 首段）：内层 saver 必须按 checkpoint 返回**升序 `(task_id, idx)`** 的 delta 历史，且每个 task 的 `pending_writes` 按 `idx` 升序。仓内 memory/sqlite/postgres 三个后端都满足；基类 saver 的默认历史 walk **不保证**。因此 `_channel_writes()`（`:53`）在取某 channel 的待写记录后按 `task_id` 做稳定排序：`CheckpointTuple.pending_writes` 在**跨 task** 维度是存储/完成顺序，`InMemorySaver` 按 task 到达顺序而非 `task_id` 顺序排列，逐条 compose 会在 fan-out superstep（多个并行 task 写同一 channel）上与内层 saver 不一致；对已 `ORDER BY task_id, idx` 的 sqlite/postgres 是 no-op。
+
+算法（`_aresolve` `:153` / `_resolve_sync` `:239`，`_COMPOSE_MAX_DEPTH = 8`）：
 
 1. 取目标 tuple；`cache.enabled == False` 或 tuple 不存在 → 直接走 inner（"对所有条目都 miss 再 compose"严格比原始 walk 更费）。
-2. 按 channel 建键、批量 `aget_many`；命中进 `found`，未命中进 `missing`。
-3. 未命中的按 **compose** 解析：沿 `parent_config` 递归——父的 `channel_values[channel]` 存在 → 记 `compose_hits`，返回 `{writes: 父的该 channel writes, seed: 父值}`；否则查父的历史缓存，仍 miss 且 depth 未耗尽就再递归；**depth 归零**（冷链）则退化为对**那一层**做**一次** inner fast-path walk（`_full_walks += 1`，2 条 SQL），而不是逐祖先 tuple 爬。
+2. 按 channel 建键、批量 `aget_many`；**`valid_history_entry()` 为真**的命中进 `found`，未命中或畸形条目进 `missing`（畸形条目按 miss 处理，从权威 checkpoint 重算，`base.py:26`）。
+3. 未命中的按 **compose** 解析：沿 `parent_config` 递归——父的 `channel_values[channel]` 存在 → 记 `compose_hits`，返回 `{writes: 父的该 channel writes, seed: 父值}`；否则查父的历史缓存（同样过 `valid_history_entry`），仍 miss 且 depth 未耗尽就再递归；**depth 归零**（冷链）则退化为对**那一层**做**一次** inner fast-path walk（`_full_walks += 1`，2 条 SQL），而不是逐祖先 tuple 爬。
 4. 每一层 compose 结果都回写缓存（暖前沿跟着 run 走），最终 `entry = {writes: 父历史.writes + 本层writes, seed: 继承}`。
 5. 返回时对每个 channel 兜底 `{"writes": []}`。
 
@@ -168,6 +183,7 @@ checkpoint_cache_key_prefix(app_config)
 | `prune` / `aprune` | 转发后对每个 thread `purge`——prune **重写**这些 thread 的链，不能让缓存历史指向已删祖先或 prune 前的链 |
 | `delete_for_runs` / `adelete_for_runs` | **只转发，不清缓存**：run 级删除无法廉价映射回 thread；条目**仍然是正确的**（封闭链论证不受其它链影响），残留保留由 LRU/TTL 兜底。代码注释明确 "No in-tree callers today" |
 | `copy_thread` / `acopy_thread` | 只转发（新 thread 自会重新预热） |
+| `ainvalidate_history_cache(thread_id)`（`:344`） | 只 `_apurge_thread(thread_id)`，不碰内层。给**外部绕过 wrapper 的链变更**（storage 层保留策略直接删 `_inner` 的行）用：把失效入口留在 wrapper 上，Gateway 不必接触缓存内部。 |
 | `stats()` | 后端 stats 合并 `compose_hits` / `full_walks` |
 
 **同步/异步约束**：同步 `get_delta_channel_history` 自带 `get_many`/`set_many` 检查，缺失就抛 `TypeError("sync get_delta_channel_history requires a SyncCheckpointHistoryCache (memory backend)")`。这解释了 §5 里"同步 provider 拒绝 redis"。
@@ -176,11 +192,13 @@ checkpoint_cache_key_prefix(app_config)
 
 两处 provider 都按"**有效模式 = 进程冻结值 or `database.checkpoint_channel_mode`**"判断，只有 `delta` 才包：
 
-- **async**（`runtime/checkpointer/async_provider.py:216-256`，Gateway/FastAPI lifespan 路径）：`_select_inner_checkpointer()` 按 `legacy checkpointer: 段 → 统一 database: 段 → 默认 InMemorySaver` 选内层 saver，然后 `async with make_checkpoint_cache(app_config, serde=saver.serde) as cache: yield CachedHistorySaver(saver, cache, key_prefix=checkpoint_cache_key_prefix(app_config))`。
-- **sync**（`runtime/checkpointer/provider.py:165-193`，CLI/内嵌/TUI 路径）：`mode == "delta"` 且 `database.checkpoint_cache.type == "redis"` → 直接 `ValueError("database.checkpoint_cache.type 'redis' is not supported on the sync checkpointer path (TUI/embedded); use 'memory'.")`；否则包同一个 `CachedHistorySaver`，但缓存**是模块级单例**（`_checkpointer_cache` / `_checkpointer_cache_prefix`），而不是每次调用新建：
+- **async**（`make_checkpointer()` `runtime/checkpointer/async_provider.py:220`，包缓存在 `:247-255`；Gateway/FastAPI lifespan 路径）：`_select_inner_checkpointer()` 按 `legacy checkpointer: 段 → 统一 database: 段 → 默认 InMemorySaver` 选内层 saver，然后 `async with make_checkpoint_cache(app_config, serde=saver.serde) as cache: yield CachedHistorySaver(saver, cache, key_prefix=checkpoint_cache_key_prefix(app_config))`。
+- **sync**（`_wrap_sync_if_delta()` `runtime/checkpointer/provider.py:163-193`，CLI/内嵌/TUI 路径）：`mode == "delta"` 且 `database.checkpoint_cache.type == "redis"` → 直接 `ValueError("database.checkpoint_cache.type 'redis' is not supported on the sync checkpointer path (TUI/embedded); use 'memory'.")`；否则包同一个 `CachedHistorySaver`，但缓存**是模块级单例**（`_checkpointer_cache` / `_checkpointer_cache_prefix`），而不是每次调用新建：
   - **容量或命名空间变化时重建**（`_max_entries != cache_config.max_entries` 或 `_checkpointer_cache_prefix != key_prefix`）——旧前缀下的条目不可达、也不再被 thread purge 覆盖，所以必须整体换掉。
   - `checkpointer_context()` 路径上不持 `_checkpointer_lock` 重赋该单例是**刻意**的：竞态最坏结果是两个 wrapper 各拿一份新 memory cache，last writer wins，而缓存是纯性能的。
   - 这也解释了 sync 只支持 memory 后端：缓存本来就是进程内的。
+
+**异步 provider 的承载上下文一律 drain**（`async_provider.py` 的 `drained_async_context`）：sqlite saver（两处 `from_conn_string`）、postgres `pool`、以及 `_ensure_postgres_schema_with_pool()` 里 `pool.connection()` 的连接退出，都过 `drained_async_context`。调用方取消不能留下"连接仍被借出、而 pool 自己的 teardown 已经在跑"的状态。`make_checkpoint_cache()` 的 `aclose()` 同理走 `await_drained(cache.aclose())`（`checkpoint_cache/provider.py:84`/`:99`）。
 
 **注意**：`checkpoint_cache` 是**纯性能**配置——"never frozen, never required to match across processes"；改它不需要重启，不同 worker 用不同后端/容量也是安全的（条目不可变，共享后端天然一致）。
 
@@ -205,6 +223,8 @@ delta 的 messages reducer 是 `merge_message_writes`（见 `agents/AGENTS.md` �
 - delta 模式下**不允许**绕过 `CheckpointStateAccessor` 直接读 saver 的 `channel_values`——那不是"读到旧值"，而是读到哨兵/残缺值。
 - full 进程读 delta thread 会**报错而不是降级**；要迁移必须显式物化并转换 checkpoint。
 - `snapshot_frequency` 不进元数据，所以不同节奏的 checkpoint 之间**没有**可检测的标记差异——只能靠"所有进程同值"这一运维约束。
-- 缓存**永不需要 invalidation**；`adelete_thread` 是生命周期 API，不是正确性 API。
+- 缓存**永不需要 invalidation**；`adelete_thread` 是生命周期 API，不是正确性 API。唯一需要主动失效的是**绕过 wrapper 的链变更**（retention 直接删 `_inner` 的行），入口是 `CachedHistorySaver.ainvalidate_history_cache()`（§4.4）。
 - `delete_for_runs` 后会留下该 run 的缓存条目（受 LRU/TTL 约束），这是**有意**的，不是 bug。
 - `checkpoint_graph_cache.accessor_graph_max` 可以热改；`checkpoint_channel_mode` / `checkpoint_delta.snapshot_frequency` 不可以。
+- `direct_namespace` 依赖 LangGraph 私有键 `CONFIG_KEY_CHECKPOINTER`（`checkpoint_state.py:146`，注释按 1.2.9 校验）；升级 LangGraph 必须复核该常量位置，否则状态变更写入会落到默认 namespace。
+- 缓存条目形状不是"信任内部产物"：redis 后端一个畸形条目就是一次 miss，不是一次请求失败（§4.2）。

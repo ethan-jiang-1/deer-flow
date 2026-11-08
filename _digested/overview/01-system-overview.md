@@ -48,7 +48,7 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 
 | 阶段 | Hook 点 | 参与 middleware（共 37 个中的代表） |
 |------|--------|----------|
-| 调用 LLM 前 | `wrap_model_call` | InputSanitization, ToolOutputBudget, ToolResultSanitization, DynamicContext, SkillActivation, SkillToolPolicy, DurableContext, ViewImage, McpRouting, DeferredToolFilter, SystemMessageCoalescing 等 11 个 MW |
+| 调用 LLM 前 | `wrap_model_call` | InputSanitization, ToolOutputBudget, ToolResultSanitization, DynamicContext, SkillActivation, DurableContext, ViewImage, McpRouting, DeferredToolFilter, SystemMessageCoalescing 等（v2.2.0 起 `SkillToolPolicyMiddleware` 已删除，`allowed-tools` 降级为兼容元数据） |
 | 调用 LLM | — | `model.invoke(messages)` → AIMessage (text 或 tool_calls) |
 | LLM 返回后 | `after_model` | SubagentLimit, LoopDetection, TokenBudget, TerminalResponse, SafetyFinishReason 等 5 个 MW |
 | Tool 执行前 | `wrap_tool_call` | Guardrail, SandboxAudit, ReadBeforeWrite 等 3 个 MW |

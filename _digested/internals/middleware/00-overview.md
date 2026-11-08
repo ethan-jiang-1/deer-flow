@@ -1,12 +1,14 @@
 ---
 title: "Middleware 设计哲学与批判性分析"
-description: "37 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？"
+description: "39 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？"
 topics: [middleware, hooks, interceptor-chain]
 ---
 
 # Middleware 设计哲学与批判性分析
 
-37 个 middleware，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？
+39 个 middleware 条目位，6 种 hook 点，一个扁平列表。这是 DeerFlow 架构上最聪明的设计，还是只是把一堆功能塞进了叫 "middleware" 的抽屉里？
+
+> **v2.2.0 口径**：条目位从 37 涨到 39（新增 `KnowledgeScope` / `PiiRedaction` / `ArtifactResolution` / `ArtifactCapture` / `ModelContentCompatibility` / `CompletedSubagentUsage`，删除 `SkillToolPolicyMiddleware`——`skill_tool_policy_middleware.py` 已删除）。单条链的**实际实例数**随配置变化（默认配置下 lead 链约 24 条，全条件打开时约 30 条），下面说的"层"是这个意思，不是固定 39。逐条清单见[目录](03-catalog.md)，顺序见[链装配](02-chain-assembly.md)。
 
 ## 入口处思考
 
@@ -22,13 +24,13 @@ topics: [middleware, hooks, interceptor-chain]
 | 关掉自动总结 | `config.yaml` → `summarization.enabled: false` |
 | 关掉 plan mode (todo list) | 请求时不传 `plan_mode=True` |
 | 看 middleware 执行日志 | 日志级别 DEBUG，搜索 middleware 名称 |
-| 换掉某个 middleware 的默认实现 | `RuntimeFeatures` 传自定义实例（SDK 路径）或 `extra_middleware` + `@Prev` 覆盖（lead agent 路径） |
+| 换掉某个 middleware 的默认实现 | `RuntimeFeatures` 传自定义实例（SDK 路径；`RuntimeFeatures` 定义在 `deerflow/agents/features.py:18`，不在 factory.py）或 `extra_middleware` + `@Prev` 覆盖（lead agent 路径） |
 
 **关键理解：** middleware 链是 Agent 每一次 step 都经过的管道。它不是 HTTP 层的 middleware（那是 AuthMiddleware/CSRFMiddleware 的事），而是 **Agent Loop 内部的扩展点**。
 
 ## 是什么
 
-DeerFlow 的 middleware 系统位于 LangGraph agent loop 和 LLM/tool 执行之间。每次 agent step 都要穿过这 37 层：
+DeerFlow 的 middleware 系统位于 LangGraph agent loop 和 LLM/tool 执行之间。每次 agent step 都要穿过这条链（条目位 39，默认配置下约 24 个实例）：
 
 ```
 Agent Loop 一轮 step:
@@ -129,7 +131,7 @@ DeerFlow 更像**在 Flask 的 `before_request`/`after_request` 基础上，额�
 
 Flask 的 `@app.before_request` 装饰器顺序完全取决于 Python 文件的 import 顺序——脆弱、隐式、难以追踪。DeerFlow 的 `@Next(ClarificationMiddleware)` / `@Prev(GuardrailMiddleware)` 是**显式、声明式**的定位，带冲突检测（两个 middleware 抢同一个 anchor 会报错），支持交叉引用（A 跟在 B 后面，B 跟在 C 后面，最终 C→B→A）。
 
-这是这套系统最让我惊喜的设计。`_insert_extra()` 的实现（`deerflow/agents/factory.py:433-506`）用迭代插入 + 环形依赖检测，干净利落。
+这是这套系统最让我惊喜的设计。`_insert_extra()` 的实现（`deerflow/agents/factory.py:474`，支持 `@Next`/`@Prev`、anchor 迭代解析、Clarification 强制回尾）用迭代插入 + anchor 收敛 + 环形依赖检测，干净利落。🆕 v2.2.0 还给 `extensions/ordering.py` 加了声明式 `OrderingConstraint(outer, inner, reason)`：核心不变量（ToolProgress 在 ToolErrorHandling 外层、ToolReceipt 包住五个可能短路的策略层、ArtifactResolution 在策略层外层）在 extensions 贡献合并后的**最终栈**上一次性校验，broken invariant 直接 `RuntimeError`。
 
 ### 3. LoopDetection 的警告注入时机体现了对 LLM provider 的深刻理解
 
@@ -159,7 +161,7 @@ class RuntimeFeatures:
 
 ### 1. 扁平硬编码位置——没有优先级系统
 
-37 个 middleware 的位置是 `build_middlewares()` 里的 append 顺序决定的。如果你想让自己的 middleware 插在 GuardrailMiddleware 和 SandboxAuditMiddleware 之间，你必须知道它们的类名并用 `@Next`/`@Prev`。
+39 个条目位的位置是 `_build_runtime_middlewares()`（共享基础层）加 `build_middlewares()`（lead-only 层）的 append 顺序决定的。如果你想让自己的 middleware 插在 GuardrailMiddleware 和 SandboxAuditMiddleware 之间，你必须知道它们的类名并用 `@Next`/`@Prev`。
 
 Flask 后来也面临同样的问题——Blueprints 的 `before_request` 执行顺序取决于 blueprint 注册顺序，调试起来很痛苦。更成熟的方案是**优先级数字**（如 Django middleware 的 `MIDDLEWARE` 列表里每个元素有明确的序号），或者**阶段分组**（如 `SERVER`, `SECURITY`, `APPLICATION`, `OBSERVABILITY`）。
 
@@ -167,7 +169,7 @@ DeerFlow 的 `@Next`/`@Prev` 部分解决了这个问题，但只要有人动了
 
 ### 2. 两条装配路径有重复代码
 
-`build_middlewares()` (lead_agent/agent.py:484) 和 `_assemble_from_features()` (deerflow/agents/factory.py:197) 是两个独立的函数，各自维护一份 middleware 装配逻辑。两条路径的 middleware 集合不完全一致（factory 路径少了 LLMErrorHandling、SandboxAudit、DynamicContext、TokenUsage、DeferredToolFilter、SafetyFinishReason），而且同一 middleware 在两条路径中的位置也不同。
+`build_middlewares()` (`deerflow/agents/lead_agent/agent.py:485`) 和 `_assemble_from_features()` (`deerflow/agents/factory.py:205`) 是两个独立的函数，各自维护一份 middleware 装配逻辑。两条路径的 middleware 集合不完全一致（factory 路径少了 LLMErrorHandling、SandboxAudit、DynamicContext、TokenUsage、DeferredToolFilter、SafetyFinishReason），而且同一 middleware 在两条路径中的位置也不同。
 
 这就意味着：**你在 lead agent 路径下测试通过的 middleware 行为，在 SDK 路径下可能不一样。** 两条路径应该共享同一份 middleware 列表构建逻辑，只通过 config/feature flag 控制开关。
 
@@ -202,32 +204,45 @@ DeerFlow 的 `@Next`/`@Prev` 部分解决了这个问题，但只要有人动了
 3. `@Next`/`@Prev` 定位 + 冲突检测 + 循环依赖检测说明作者预见到了第三方 middleware 的集成需求
 4. SafetyFinishReason 的排序（利用反向分发获得最先执行权）说明作者有意识地利用执行顺序特性
 
-**但它不够"open"。** Flask 的 middleware 生态系统之所以繁荣，是因为任何人都可以 `pip install flask-xxx` 然后装饰一下就接入。DeerFlow 的 middleware 需要你了解 37 个 middleware 的位置关系、选了正确的 anchor、处理 `@Next`/`@Prev` 的冲突——门槛远高于 Flask。这是一个**内部架构的整洁 > 外部扩展的便利**的选择——对于 ByteDance 的内部项目可能合理，对于开源项目可能限制了社区贡献。
+**但它不够"open"。** Flask 的 middleware 生态系统之所以繁荣，是因为任何人都可以 `pip install flask-xxx` 然后装饰一下就接入。DeerFlow 的 middleware 需要你了解这 39 个条目位的位置关系、选了正确的 anchor、处理 `@Next`/`@Prev` 的冲突——门槛远高于 Flask。这是一个**内部架构的整洁 > 外部扩展的便利**的选择——对于 ByteDance 的内部项目可能合理，对于开源项目可能限制了社区贡献。
 
 **类比：** 如果 Flask 是自动挡（装饰器随便加，框架自己理顺序），DeerFlow 就是手动挡（`@Next(A)` 挂三档，`@Prev(B)` 挂四档）——更精确、更可控，但需要你知道档位在哪。
 
 ## 完整示例：自定义 Middleware
 
 ```python
-from langchain.agents.middleware import AgentMiddleware, Next, Prev
+from langchain.agents.middleware import AgentMiddleware
+from langchain_core.messages import ToolMessage
+
+from deerflow.agents.features import Next, Prev          # 注意：Next/Prev/RuntimeFeatures 都在 features.py
+from deerflow.agents.factory import create_deerflow_agent
 from deerflow.agents.middlewares.tool_error_handling_middleware import ToolErrorHandlingMiddleware
 
+
+@Prev(ToolErrorHandlingMiddleware)   # 期望位置：ToolErrorHandling 之前（外层）
 class AuditLoggingMiddleware(AgentMiddleware):
     """每次 tool 执行后记录审计日志。"""
 
-    def after_tool(self, state, runtime):
-        last_msg = state["messages"][-1]
-        if hasattr(last_msg, "name"):
-            print(f"[AUDIT] tool={last_msg.name} thread={runtime.context.get('thread_id')}")
-        return None  # 不修改 state
+    def wrap_tool_call(self, request, handler):
+        name = request.tool_call.get("name")
+        result = handler(request)
+        if isinstance(result, ToolMessage):
+            print(f"[AUDIT] tool={name} status={result.status}")
+        return result          # 不改 state、不改结果
 
-# 使用 extra_middleware 注入（自动定位在 ToolErrorHandling 之前）
-from deerflow.agents.factory import create_deerflow_agent, RuntimeFeatures
+
 agent = create_deerflow_agent(
     model=model,
-    features=RuntimeFeatures(sandbox=True),
-    extra_middleware=[(AuditLoggingMiddleware(), Prev(ToolErrorHandlingMiddleware))],
+    tools=[...],
+    system_prompt="...",
+    features=RuntimeFeatures(sandbox=True),        # features 与 middleware(全量接管) 互斥
+    extra_middleware=[AuditLoggingMiddleware()],   # 用 @Next/@Prev 定位；无 anchor 的会插到 Clarification 之前
 )
 ```
 
-`@Next(X)` / `@Prev(X)` 定位机制让你精确控制插入位置，无需知道链中其他 middleware 的索引。
+三点必须注意：
+
+1. **没有 `after_tool` hook。** `AgentMiddleware` 的 6 个 hook 是 `before_agent` / `before_model` / `wrap_model_call` / `after_model` / `wrap_tool_call` / `after_agent`。要看 tool 结果，用 `wrap_tool_call` 拿 handler 的返回值。
+2. **`Next`/`Prev` 是普通函数不是装饰器工厂**：`features.py:49`（`Next`）与 `:61`（`Prev`）各接一个 `AgentMiddleware` 子类，把 `_next_anchor`/`_prev_anchor` 打在**类**上并返回该类，所以只能以 `@Prev(X)` 类装饰器形式使用；`extra_middleware` 收的是**实例列表**（`_insert_extra` 读 `type(mw)._next_anchor`）。同一 anchor 上两个 `@Next`（或一 `@Next` 一 `@Prev`）会 `ValueError`，anchor 无法解析也会报错并列出未解析的名字。
+3. **`@Prev(X)` 的语义是"放在 X 前面"**，在 `wrap_tool_call` 洋葱里前面 = 外层；如果想让自己的 wrapper 看到最终结果就在 X 之后（`@Next(X)`）。
+

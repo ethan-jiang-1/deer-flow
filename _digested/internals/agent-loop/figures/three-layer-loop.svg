@@ -102,7 +102,7 @@
 
   <!-- Middleware Onion inside Layer 1 -->
   <rect x="120" y="470" width="860" height="34" rx="6" fill="#7c3aed" opacity="0.1" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="6,3"/>
-  <text x="140" y="492" fill="#c4b5fd" font-size="9" font-weight="bold">每圈穿过 18 层 middleware → 展开见下方 Layer 2</text>
+  <text x="140" y="492" fill="#c4b5fd" font-size="9" font-weight="bold">每圈穿过 middleware 包装层 → 展开见下方 Layer 2</text>
 
   <!-- arrow connecting Layer 1 to Layer 2 details -->
   <line x1="550" y1="508" x2="550" y2="530" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrowPurple)"/>

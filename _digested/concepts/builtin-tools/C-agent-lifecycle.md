@@ -13,7 +13,7 @@ topics: [tools, builtin, sandbox-tools]
 ## setup_agent
 
 **源码**: `packages/harness/deerflow/tools/builtins/setup_agent_tool.py:16`
-**加载条件**: bootstrap 模式（`configurable` 中 `is_bootstrap: true`，`agent.py:1057` 将 `setup_agent` 追加到 `get_available_tools()` 返回值之后）
+**加载条件**: bootstrap 模式（`configurable` 中 `is_bootstrap: true`，`agents/lead_agent/agent.py:1170` 的 `raw_tools = get_available_tools(...) + [setup_agent]` 把 `setup_agent` 追加到 `get_available_tools()` 返回值之后；2.1 记录的行号 `agent.py:1057` 已位移）
 **Tool Name**: `setup_agent`
 
 ### 用途
@@ -74,7 +74,7 @@ except Exception as e:
 ## update_agent
 
 **源码**: `packages/harness/deerflow/tools/builtins/update_agent_tool.py:70`
-**加载条件**: custom agent 模式（`configurable` 中 `agent_name` 已设置且非 bootstrap，`agent.py:1176` 将 `update_agent` 追加到 `get_available_tools()` 返回值之后）
+**加载条件**: custom agent 模式（`configurable` 中 `agent_name` 已设置且非 bootstrap，`agents/lead_agent/agent.py:1318` 的 `extra_tools = [update_agent] if agent_name and not is_webhook_channel else []` 决定是否追加；2.1 记录的行号 `agent.py:1176` 已位移）。🆕 **2.2 新增 webhook 通道抑制**：`_WEBHOOK_CHANNELS = frozenset({"github"})`（`agent.py:92`），`channel_name` 由 `ChannelManager._resolve_run_params` 塞进 `run_context`（`agent.py:1315-1317`）。理由写在 `agent.py:1302-1310` 的注释里：webhook 的 prompt 来自任意外部评论者，任何能在配置仓库里发 `@<bot>` 的人都能过触发门，若还能拿到 `update_agent` 就能改掉 agent 的 `tool_groups` / `SOUL.md` / `model` 且**对后续每个 run 生效**；自我改写只应留在操作者可信任的面（聊天 UI、HTTP API）。bootstrap 与直接调用不带 `channel_name`，因此 `update_agent` 仍可用。
 **Tool Name**: `update_agent`
 
 ### 用途
@@ -131,7 +131,7 @@ agent_dir = paths.user_agent_dir(user_id, agent_name)
 
 ## skill_manage
 
-**源码**: `packages/harness/deerflow/tools/skill_manage_tool.py:262-263`（`@tool("skill_manage")` 装饰器 + `async def skill_manage_tool`；实现主体自 `:123` 起，v2.1.0 实测）
+**源码**: `packages/harness/deerflow/tools/skill_manage_tool.py:354`（`@tool("skill_manage", parse_docstring=True)` 装饰器 + `async def skill_manage_tool` 薄壳，`:355-382`；实现主体 `_skill_manage_impl` 自 `:216` 起，同步桥在同文件末行 `skill_manage_tool.func = make_sync_tool_wrapper(...)`）。2.1 里 `:262-263` 那组行号已随 2.2 的锁重构位移。
 **加载条件**: `skill_evolution.enabled: true`（`config.yaml` 中 `skill_evolution` 段）
 **Tool Name**: `skill_manage`
 
@@ -164,23 +164,28 @@ agent_dir = paths.user_agent_dir(user_id, agent_name)
 
 ### 安全扫描
 
-**两级扫描，静态的先跑**（`skill_manage_tool.py:91-101`）：
+**两级扫描，静态的先跑**（`skill_manage_tool.py:163-188` 的 `_scan_static_candidate_or_raise` + `:131-140` 的 `_scan_or_raise`）：
 
-1. **确定性静态扫描** `enforce_static_scan()` —— 在临时目录里对"**候选 skill 树**"（现有整棵 skill 树 + 本次改动覆盖其上的文件）跑静态规则；命中 `block` 直接抛 `StaticScanBlockedError`，**不进入**第 2 步的 LLM 审核。
-2. **LLM 审核** `scan_skill_content()`：
+1. **确定性静态扫描** `enforce_static_scan()` —— 在临时目录里对"**候选 skill 树**"（现有整棵 skill 树 + 本次改动覆盖其上的文件）跑静态规则；命中 `block` 直接抛 `StaticScanBlockedError`，**不进入**第 2 步的 LLM 审核。🆕 2.2 起现有树是在 **`managed_read(skill_storage)` 内** `shutil.copytree` 出来的（`skill_manage_tool.py:170-176`），与宿主 mutation 服务的读路径共享同一把 guard 锁——否则插件正在 CAS 发布时可能拷到半新半旧的树。候选文件的落盘用 `write_text(..., encoding="utf-8", newline="")`（`:177-180`）：默认文本模式会在扫描器读它之前把 LF 改写成 CRLF，导致"扫的内容"和"最终发布的内容"不是同一份字节。
+2. **LLM 审核** `scan_skill_content()`（`skill_manage_tool.py:131-140`）：
 
 ```python
-result = await scan_skill_content(content, executable=executable, location=location)
+result = await scan_skill_content(content, executable=executable, location=location,
+                                  static_findings=static_findings or [], attach_tracing=False)
 if result.decision == "block":
     raise ValueError(f"Security scan blocked the write: {result.reason}")
+if executable and result.decision != "allow":
+    raise ValueError(f"Security scan rejected executable content: {result.reason}")
 ```
 
 - `action=create/edit/patch` → `executable=False`（SKILL.md 本身不可执行）
 - `action=write_file` + 路径在 `scripts/` 下 → `executable=True`（额外校验）
 - 决策三态：`allow`（放行）/ `warn`（警告但允许）/ `block`（拒绝）
-- `delete` / `remove_file` 不跑扫描，history 里固定记 `scanner={"decision":"allow","reason":"Deletion requested."}`（`:215,:249`）
+- `delete` / `remove_file` 不跑扫描，history 里固定记 `scanner={"decision":"allow","reason":"Deletion requested."}`（`skill_manage_tool.py:298,339`）
 
-`patch` 的 `expected_count` 语义（`:188-190`）：**给了就必须精确相等**，否则 `ValueError("Expected N replacements but found M.")`；**不给则只替换 1 次**（不是全局替换）。附带文件路径走 `skill_storage.ensure_safe_support_path()` 白名单校验（`:225`）。
+`patch` 的 `expected_count` 语义（`skill_manage_tool.py:275-281`）：**给了就必须精确相等**，否则 `ValueError("Expected N replacements but found M.")`；**不给则只替换 1 次**（不是全局替换）。附带文件路径走 `skill_storage.ensure_safe_support_path()` 白名单校验（`:307`），目录会被拒（`:308-309`）。
+
+🆕 **可执行判定改用共享规则**：`executable = is_code_file(path, content[:8].encode("utf-8", "surrogatepass"))`（`skill_manage_tool.py:321`，`is_code_file` 来自 `skills/package_files.py`）。判据是三条并集——位于顶层 `scripts/` 下、任意层级命中代码后缀（21 个，含 `.py`/`.js`/`.ts`/`.sh`/`.bat`/`.psm1`/`.vbs` 等）、或**无后缀且以 shebang 开头**。注释写明了为什么不再用子串匹配：位于 `references/` 或 `templates/` 下、路径里恰含 `scripts` 字样的静态支持文件（如 `overview.md`）会被子串匹配误判成可执行；而只认 `scripts/` 成员又会漏掉 `references/`、`assets/` 下真正可运行的 `.py` / `.js`。`prev_content` 走 `read_optional_text(skill_storage, target)`（`:312-314`），不做 utf-8 严格解码炸穿。
 
 ### 只读保护
 
@@ -189,18 +194,38 @@ if result.decision == "block":
 
 ### 并发
 
-锁粒度是 **`(user_id, skill_name)`**（`skill_manage_tool.py:33-42`，`WeakValueDictionary[tuple[str,str], asyncio.Lock]`）——同一用户对同一 skill 串行化，**不同用户之间不互相阻塞**（早期文档写的"同一 skill name"会让人误以为跨用户互锁）。
+锁粒度是 **`(user_id, skill_name)`**（`skill_manage_tool.py:97-110`，`WeakValueDictionary[tuple[str,str], _SkillLock]`，字典由 `_skill_locks_guard = threading.Lock()` 保护）——同一用户对同一 skill 串行化，**不同用户之间不互相阻塞**。
+
+⚠️ **锁类型在 2.2 换了（上游 #5846）**：不再是 `asyncio.Lock`，而是自定义的 **`_SkillLock`**（`skill_manage_tool.py:40-92`）。原因写在类 docstring 里：同步包装 `skill_manage_tool.func` 给**每次调用一个独立的 `asyncio.run` 循环**，而 `asyncio.Lock` 绑定在创建它的循环上，会让其它循环上的等待者永久挂住。现在的实现：
+
+- 等待者各自持有一个 `Future` + 自己的 `asyncio.AbstractEventLoop`，通过 `await asyncio.wrap_future(waiter)` 停在自己的循环上——**等待不占 executor 线程**（否则等锁本身会吃满默认线程池）。
+- `_release()` 把锁**直接交接给最老的等待者**（FIFO），因此后到的调用不能插队。
+- 取消安全：`__aenter__` 捕获 `BaseException` 时，若 `waiter.cancel()` 返回 `False`（说明释放方已经把锁交出去了），就自己 `_release()` 往下传，否则后面的等待者会饿死；`_release()` 用 `set_running_or_notify_cancel()` 让抢在取消之前的那个 future 生效，并在**状态锁之外** `set_result`，避免持锁时调度唤醒。
 
 ### 历史记录
 
-每次操作记录到 skill 目录下的 history（含 action、author=`"agent"`、thread_id、prev_content、new_content、scanner 结果）。
+每次操作记录到 skill 目录下的 history（含 action、author=`"agent"`、thread_id、prev_content、new_content、scanner 结果）。记录由 `_history_record(...)`（`skill_manage_tool.py:119-128`）统一构造，非删除类 action 的 `scanner` 里还会带 `static_findings`（如 `:236`）。
 
-> 变更后刷新：**per-user** 版本 `refresh_skills_system_prompt_cache_async(user_id=…)`（`agents/lead_agent/prompt.py:265`）才是实际调用点；无参版本 `:238` 只服务 SDK/无用户上下文路径。cache 失效不重建 storage 单例（详见 [skills-tools 的存储契约](../../concepts/skills-tools/skill-md-and-tool-assembly.md)）。
+> 变更后刷新：**per-user** 版本 `refresh_user_skills_system_prompt_cache_async(user_id)`（`agents/lead_agent/prompt.py:373`）才是实际调用点；无参版本 `refresh_skills_system_prompt_cache_async()`（`prompt.py:347`）只服务 SDK/无用户上下文路径。cache 失效不重建 storage 单例（详见 [skills-tools 的存储契约](../../concepts/skills-tools/skill-md-and-tool-assembly.md)）。
 
+### 变更落地单元 `_settle_skill_mutation` 🆕（2.2）
+
+所有六个 action（含 `delete` / `remove_file`）都以同一个形式收尾：`await _settle_skill_mutation(user_id, name, persist)`（`skill_manage_tool.py:190-215`）。它把四件事打包成**一个 drained 单元**：
+
+1. `await persist()` —— 真正写盘 + 写 history（各 action 传进去的闭包）；
+2. `await refresh_user_skills_system_prompt_cache_async(user_id)` —— 本进程的 prompt 缓存；
+3. `publish_skills_cache_reset(user_id=user_id)`，跑在 `_to_thread` 里（文件系统 IO，`prompt.py:121-160`）——**共享失效标记**，让共享同一份 home 卷的其它 Gateway 进程也丢掉缓存的技能列表；
+4. 整体包在 `await_drained(...)` 里。
+
+为什么需要 `await_drained`：取消 `asyncio.to_thread` 只会放弃 await，**不会杀掉 worker**。所以一个被取消的 run 若在写盘后展开，就会留下"写已经落地、本进程与其它进程还在发旧技能列表"的状态。`await_drained` 保证这套尾巴跑完。
+
+第 3 步失败时**不会**把整个操作报成失败：只记 `logger.error`，然后抛 `SkillCacheResetPublishError("The change to custom skill '<name>' was applied, but other Gateway processes were not notified and may keep serving the previous skill list: ...")`——语义是"写入已持久化，别重试"，因为模型看到"写入失败"会去重试。
+
+共享标记本体：`SKILLS_CACHE_RESET_MARKER = SharedResetMarker("skills-cache-reset")`（`prompt.py:76-77`），`publish_skills_cache_reset()` 在 `prompt.py:121-160` 里 `publish(config_path, user_id=user_id)` 并返回 generation。Gateway 侧 `POST /api/skills/reload` 用的是同一套机制。
 
 ### prompt 缓存刷新
 
-所有修改操作后都调用 `refresh_skills_system_prompt_cache_async()`，确保下一个 turn system prompt 中的技能列表是最新的。
+所有修改操作**结束时**（在 `_settle_skill_mutation` 内）都调用 `refresh_user_skills_system_prompt_cache_async(user_id)`，确保下一个 turn system prompt 中的技能列表是最新的——并额外发布跨进程失效标记，见上。
 
 ---
 

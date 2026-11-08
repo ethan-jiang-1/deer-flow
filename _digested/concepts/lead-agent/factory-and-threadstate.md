@@ -121,27 +121,60 @@ system_prompt = apply_prompt_template(
     available_skills=skills,
     is_bootstrap=is_bootstrap,
     app_config=resolved_app_config,
+    interaction_policy=interaction_policy,                     # 🆕 v2.2.0
+    bash_available=has_bash_tool(authorized_tools),            # 🆕 v2.2.0
+    ...
 )
 ```
 
 System prompt 包含：
 - 基础 Agent 行为指令
-- 启用的 Skills 列表及 container path
+- 启用的 Skills 列表及 container path（`allowed-tools` 只作兼容元数据，不再收窄工具集）
 - Subagent 使用说明
 - Bootstrap 模式特殊指令（如果创建新 Agent）
+- 🆕 `interaction_policy` 决定的三块文案：`interaction_thinking_guidance`（交互模式下鼓励先问再动）、`clarification_system` + `clarification_reminder`（非交互模式下**移除** `ask_clarification` 指引并改成"不要追问，自己决断"）
+- 🆕 `bash_available=False`（授权后的工具集里没有 `bash`）时，ACP/workspace-scripts 段降级为不含 bash 的措辞
+- 🆕 memory tool 段新增 `memory_get`
+
+**`lead_prompt_overlay`（v2.2.0）**：`apply_prompt_template()` 返回前最后一件事是 `app_config.lead_prompt_overlay.apply(rendered_prompt)`（`lead_agent/prompt.py:1289-1291`）。`PromptOverlay` 是 `{prepend: str, append: str}` 两个 `strict=True` 的字符串字面量，`apply()` 用 `"\n\n"` 把非空部分拼起来——**不做模板展开**，因此可以安全放操作方自己的指令文本；两者都为空时 prompt 字节完全不变（保住 prefix cache）。overlay 之后的 prompt 必须与 graph/descriptor 记录的 prompt 一致。
+
+**`context.locale`（v2.2.0）**：web run 可以在 runtime context 里给 `context.locale`（`en-US` / `zh-CN`）。它只作为**请求内**的语言偏好投影进人数据（DynamicContext 的 transient 块），静态 system prompt 与 locale 无关——所以切换语言的会话仍能复用 system prompt 前缀缓存。
+
+### 6.5 交互策略 `interaction_policy`（🆕 v2.2.0）
+
+`agents/interaction_policy.py` 把"这次 run 能不能向用户追问"变成一个显式、可测试的判定，而不是散落在各处的 flag：
+
+```python
+class RunInteractionMode(StrEnum):
+    INTERACTIVE = "interactive"
+    AUTONOMOUS  = "autonomous"
+    WEBHOOK     = "webhook"
+    SCHEDULED   = "scheduled"
+
+def resolve_run_interaction_policy(config) -> RunInteractionPolicy: ...
+```
+
+判定输入（按优先级）：内部认证调用方带的 `interaction_mode` runtime key → `non_interactive` 开关 → `channel_name == "github"` → scheduled/webhook 能力。`disable_clarification` 与 `non_interactive` 只对**内部认证**的调用方生效，客户端自带的同名值会被丢弃。策略只暴露 `allows_clarification` 等布尔结论，供两处消费：prompt 模板删掉 `ask_clarification` 指引，以及工具装配不注册 `ask_clarification`（`ASK_CLARIFICATION_TOOL_NAME`）。
 
 ### 7. 构建 Middleware 并 create_agent
 
 ```python
-middlewares = build_middlewares(config, model_name, agent_name)
+middlewares = build_middlewares(config, model_name, agent_name, ...)   # lead_agent/agent.py:485
+layer_one = layer_one_outcome(authorization_candidates, authorized_tools)
+middlewares, declared_authorized = narrow_declared_tools(middlewares, ..., outcome=layer_one)  # :1379
+bound_middlewares = normalize_middleware_state_schemas(middlewares, mode)                      # :1403
+verify_declared_tool_view(bound_middlewares, authorized_names=declared_authorized)             # :1404
 graph = create_agent(
-    model=model,
-    tools=tools,
-    middleware=middlewares,
-    state_schema=ThreadState,
-    checkpointer=checkpointer,
+    model=chat_model,
+    tools=final_tools,
+    middleware=bound_middlewares,
+    system_prompt=system_prompt,
+    state_schema=get_thread_state_schema(mode),
+    context_schema=dict,
 )
 ```
+
+🆕 **v2.2.0：中间件声明工具的 Layer-1 授权（`middlewares/tool_declarations.py`）**。LangChain 在宿主工具列表被授权过滤**之后**才把 `middleware.tools` 折进绑定集，因此 middleware 声明的工具会绕过第 1 层授权。修复方式是在装配期做五步闭环：`layer_one_outcome()` 固化普通 pass 的判词 → `collect_declared_tools()` 收集声明（非 list/tuple 抛 `DeclaredToolViewError`）→ `decide_declared_tools()` 用**同一个 provider 实例**只裁决没见过的名字（已裁决的复用原判词）→ `apply_declared_tool_view()` **复制**被削的 middleware（绝不改调用方实例）→ `verify_declared_tool_view()` 在最终栈上复检。`authorization.enabled` 不为真时全部跳过并返回原始 list 对象。
 
 `create_agent()` 来自 `langchain.agents`，内部创建 LangGraph `StateGraph`，绑定 middleware 再到各个 lifecycle hook。
 
@@ -215,7 +248,15 @@ class ThreadState(AgentState):
     # 🆕 v2.1.0-rc0 新增：
     task_notes: dict | None              # 任务笔记（TaskNotesChannel 自定义 reducer，opt-in task_continuity）
     task_history: dict | None            # 压缩历史召回记录（NotRequired）
+    # 🆕 v2.2.0 新增：
+    goal_outcome: NotRequired[GoalOutcomeState | None]              # 目标达成快照（普通 LastValue 通道，无 reducer）
+    tool_artifacts: Annotated[list[ArtifactEntry], merge_tool_artifacts]        # tool artifact 注册表
+    tool_artifact_processed: Annotated[list[str], merge_artifacts]              # 已处理条目的去重 hash 台账
 ```
+
+🆕 **v2.2.0 的 `tool_artifacts` / `tool_artifact_processed`（issue #4676）**：`ArtifactEntry` 是 tool 结果里轻量引用的持久形态——模型只看得到短 `handle`（`art_` + 8 hex），真实引用（`real_ref`：路径 / URL / task id）留在这里，tool 调用时由 `ArtifactResolutionMiddleware` 还原。字段：`handle`、`tool_name`、`tool_call_id`、`call_index`、`artifact_type`、`display_name`、`real_ref`（以上必填）、`mime_type`、`created_at`、`consumed_by`。因为走 reducer 通道，条目**跨 summarization 压缩存活**。`tool_artifact_processed` 记录已处理的结果/消费调用的去重 hash（**空结果也记**），使捕获在 checkpoint 重载、graph 重建、压缩之后仍然幂等——不能被"按当前保留的 handle 推断"替代。
+
+`GoalOutcomeState`（`status` 字面量 `"achieved"`）由 `agents/goal_state.py` 定义：`objective`、`goal_created_at`、`achieved_at`、`continuation_count`、`max_continuations`、`reason`、`relied_on_assumption`、`reply_message_id`。对应的 `GoalEvaluation` 也新增 `relied_on_assumption: NotRequired[bool]`。
 
 ### DelegationEntry 🆕 验收字段（RFC #4651）
 
@@ -250,6 +291,11 @@ class ViewedImageData(TypedDict):
 | `artifacts` | `merge_artifacts` | 合并 + 去重 |
 | `todos` | `merge_todos` | None=保留旧值；非None=覆盖 |
 | `viewed_images` | `merge_viewed_images` | `{}`→清空；非空→合并覆盖 |
-| `delegations` | `merge_delegations` | 🆕 追加，同 ID 最新胜，终态不可降级，上限 50 |
-| `skill_context` | `merge_skill_context` | 🆕 按 path 去重，最近读取的保留，上限 8 |
-| `promoted` | `merge_promoted` | 🆕 catalog-hash 作用域，catalog 变更时全量替换 |
+| `delegations` | `merge_delegations` | 追加，**同 `(run_id, tool-call id)` 最新胜**（v2.2.0 起身份带 run 作用域——provider 的 id 在同 thread 的后续 run 里可能重复）；无 `run_id` 的旧更新仍匹配最近的同 id 条目；终态不被非终态覆盖；上限 50 |
+| `skill_context` | `merge_skill_context` | 按 path 去重，最近读取的保留，上限 8 |
+| `promoted` | `merge_promoted` | v2.2.0 起作用域 = `(catalog_hash, turn_id)`：`catalog_hash` 或显式 `turn_id` 变化 → 全量替换并丢弃陈旧名字；同作用域 → 并集去重保序；缺 `turn_id` 时继承既有作用域（`tool_search` 在 filter 之后的写入就是这个形状）。坏掉的 `names`（非 list-of-str）按空处理而不抛错 |
+| `viewed_images` | `merge_viewed_images` | `{}`→清空；非空→合并覆盖，且**被更新的 key 移到末尾**——注入 middleware 按最新优先接纳并在省略时提示模型重新查看，恢复路径依赖"重看的条目确实变成最新"（#6825/#6829） |
+| `tool_artifacts` | `merge_tool_artifacts` | 🆕 同 handle 最新胜并保首见序；尾部 `{"op": "trim_to", "keep": N}` 指令让配置上限成为滑动窗口；无指令时不淘汰任何条目；**绝对上限 1000**（operator 配置 `tool_artifacts.max_entries`，默认 100、范围 10–1000，由 ArtifactCapture 在发更新时按 agent 执行，故同进程两个 agent 可以有不同上限） |
+| `tool_artifact_processed` | `merge_artifacts` | 🆕 去重合并（与 `artifacts` 共用 reducer） |
+
+`THREAD_STATE_REDUCER_FIELDS`（`thread_state.py:510`）已把 `tool_artifacts` / `tool_artifact_processed` 列入 reducer 字段集——checkpoint 模式归一化要靠这张表。

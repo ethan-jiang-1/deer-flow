@@ -333,7 +333,7 @@ batch_task() → SubagentBatchService.submit()（校验 + create_batch 持久化
 - **取消**：`cancel_batch` 立即 terminalize 所有非终态 item 并清租约，fence 掉 stale worker 完成写入
 - 🆕 **验收清单（#5289）**：`batch_task` 每个 item 可带 `acceptance_criteria`，提交前经 `normalize_acceptance_criteria` 归一（空→null，20 条 × 500 字符）再持久化；migration `0021_batch_acceptance` 给 `subagent_batch_items` 加 `acceptance_criteria`/`acceptance_verdict` 两列（JSON, nullable）。completed item 由 `subagents/batch_acceptance.py` 复用同一 `acceptance_checks` 跑清单——无父 tool runtime，owner-scoped 线程路径 + `authorize_sandbox_execution_async` + `acquire_sandbox_client_lease(owner_prefix="batch-acceptance")` 客户端租约（检查期间续期 item 租约，取消时 blocking reads 先排空再释放）；admission 与检查共享 `parse_file_criterion`（含 file 判定的条件才需要 sandbox）。可空 verdict 独立于执行状态存活于 repository 查询与 JSONL 导出；无标准/检查器报错/legacy 行没有 verdict，**不等于默许通过**；failed 执行不检查，验收从不改自动重试策略
 
-**配置（`config.yaml -> subagent_batches`，startup-only，默认 `enabled: false`）**：`poll_interval_seconds`(1.0)、`lease_seconds`(120)、`max_items_per_batch`(5000)、`default_max_live_items`(100)/`max_live_items_per_batch`(1000)、`default_max_running_items`(3)/`max_running_items_per_batch`(64)、`max_attempts`(3)、`max_result_chars`(100000)、`result_preview_max_chars`(2000)。`enabled: true` 而 SQL 后端缺失会在 Gateway 启动时报错。源码：`deerflow/config/subagent_batches_config.py`、`deerflow/subagents/batch_service.py`、`deerflow/persistence/subagent_batches/{model,sql}.py`、迁移 `0016_subagent_batches.py` + `0021_batch_acceptance.py`。
+**配置（`config.yaml -> subagent_batches`，startup-only，默认 `enabled: false`）**：`poll_interval_seconds`(1.0)、`lease_seconds`(120)、`max_items_per_batch`(5000)、`default_max_live_items`(100)/`max_live_items_per_batch`(1000)、`default_max_running_items`(3)/`max_running_items_per_batch`(64)、`max_attempts`(3)、`max_result_chars`(100000)、`result_preview_max_chars`(2000)。`enabled: true` 而 SQL 后端缺失会在 Gateway 启动时报错。源码：`deerflow/config/subagent_batches_config.py`、`deerflow/subagents/batch_service.py`、`deerflow/persistence/subagent_batches/{model,sql}.py`、迁移 `0016_subagent_batches.py` + `0021_batch_acceptance.py` + 🆕 `0033_batch_result_artifact.py`（给 `subagent_batch_items` 加可空 `result_artifact` JSON 列，保存证据快照）。
 
 ### Gateway REST API（`app/gateway/routers/subagent_batches.py`）
 
@@ -343,16 +343,17 @@ batch_task() → SubagentBatchService.submit()（校验 + create_batch 持久化
 |------|------|
 | `GET ""` | 列出该线程的 batch |
 | `GET /{batch_id}` | 单个 batch + `counts` |
-| `GET /{batch_id}/items` | 分页列出 item（可 `status` 过滤） |
+| `GET /{batch_id}/items` | 分页列出 item（可 `status` 过滤）。🆕 v2.2.0：`list_items` 默认 `defer` 掉 `result`/`result_artifact`/`prompt` 三列（`raiseload=True`），只回预览——工作区在 batch 运行期间每 2 秒轮询这个列表，旧实现整行取回再丢掉，默认 `max_result_chars` 下一页 100 条要 ~34 MB / 阻塞事件循环 ~70 ms（`limit=500` 时 170 MB / 300 ms），现在 <1 MB，响应形状不变（#6781） |
+| 🆕 `GET /{batch_id}/items/{position}` | 按稳定位置读单条 item 证据快照（`read_browser_batch_item`，缺失 404） |
 | `POST /{batch_id}/pause` / `resume` / `cancel` | 控制；cancel 要求 worker 运行（否则 503） |
 | `POST /{batch_id}/items/{item_id}/retry` | 重试单个 failed item（非 failed 返回 409） |
-| `GET /{batch_id}/results.jsonl` | NDJSON 流式导出完整结果 |
+| `GET /{batch_id}/results.jsonl` | NDJSON 流式导出完整结果（🆕 v2.2.0 每页 10 行，见下文导出预算说明） |
 
 `GET /api/features` 暴露 `subagent_batches.{enabled,repository_available,worker_running}`：历史在 worker 未运行时仍可读（repo 与 worker 状态分离）。
 
 ### 仓储层 API 契约（`SubagentBatchRepository`）
 
-`deerflow/persistence/subagent_batches/sql.py:59`（ORM 在 `model.py`；建表 migration `0016_subagent_batches`，验收两列见 `0021_batch_acceptance`）。所有方法各开一个短 session，用 `with_for_update(skip_locked=True)` / `with_for_update()` 把"读-改-写"做成原子操作，**返回字典投影而不是 ORM 对象**。调用方：`deerflow/subagents/batch_service.py`（`claim_items :108`、`renew_item_lease :214/:270/:360`、`mark_item_running :259`、`requeue_item_after_admission_failure :292`、`finalize_item :312/:337`）与路由 `app/gateway/routers/subagent_batches.py:99`（`retry_item`）。
+`deerflow/persistence/subagent_batches/sql.py:59`（ORM 在 `model.py`；建表 migration `0016_subagent_batches`，验收两列见 `0021_batch_acceptance`，证据快照列 `result_artifact` 见 `0033_batch_result_artifact`）。所有方法各开一个短 session，用 `with_for_update(skip_locked=True)` / `with_for_update()` 把"读-改-写"做成原子操作，**返回字典投影而不是 ORM 对象**。调用方：`deerflow/subagents/batch_service.py`（`claim_items :108`、`renew_item_lease :214/:270/:360`、`mark_item_running :259`、`requeue_item_after_admission_failure :292`、`finalize_item :312/:337`）与路由 `app/gateway/routers/subagent_batches.py:99`（`retry_item`）。
 
 **状态常量**（`sql.py:18-21`）：
 
@@ -403,15 +404,41 @@ batch_task() → SubagentBatchService.submit()（校验 + create_batch 持久化
 
 ## 批量专用 Builtin 工具 🆕
 
-`deerflow/tools/builtins/batch_task_tool.py` 定义三个工具，仅当进程内安装了 startup SQL-backed batch submitter 时加入 tools：
+`deerflow/tools/builtins/batch_task_tool.py` 定义四个工具，仅当进程内安装了 startup SQL-backed batch submitter 时加入 tools：
 
 | 工具 | 作用 |
 |------|------|
-| `batch_task` | 显式提交 durable batch（title、items[key+prompt]、subagent_type、可选 max_live_items/max_running_items），立即返回 batch_id |
+| `batch_task` | 显式提交 durable batch（title、items[key+prompt+可选 acceptance_criteria]、subagent_type、可选 max_live_items/max_running_items），立即返回 batch_id |
 | `batch_status` | 紧凑进度快照（batch_id/status/total_items/counts） |
 | `cancel_batch` | 持久取消 batch |
+| 🆕 `read_batch_result` | v2.2.0：以**有界窗口**读单个 batch item 的结果文档 |
 
-约束：item key 必须唯一；subagent_type 必须命中 `allowed_subagents` 作用域（与 `task` 同源）；需 `thread_id`；`submission_key` 幂等。结果永不批量注入 lead 上下文（`"never inserts thousands of results into the lead agent context"`）。`bind_batch_tools()` 为 direct `create_deerflow_agent` 调用者克隆绑定到显式 `SubagentRuntime` 的 submitter，worker stop 后这些工具报告 unavailable 而不回落到其它应用的 process-global submitter。
+约束：item key 必须唯一；subagent_type 必须命中 `allowed_subagents` 作用域（与 `task` 同源）；需 `thread_id`；`submission_key` 幂等。结果永不批量注入 lead 上下文（`"never inserts thousands of results into the lead agent context"`）。`bind_batch_tools()` 为 direct `create_deerflow_agent` 调用者克隆绑定到显式 `SubagentRuntime` 的 submitter，worker stop 后这些工具报告 unavailable 而不回落到其它应用的 process-global submitter（🆕 v2.2.0 克隆时同时替换 `coroutine` 与 `func`，同步调用路径也必须走绑定的 coroutine，否则会掉到 process-global submitter）。
+
+### 🆕 v2.2.0：`read_batch_result` 的窗口协议
+
+```python
+read_batch_result(
+    runtime, batch_id: str,
+    position: int = 0,            # 稳定 0-based 位置，不是按状态过滤后的下标（0 <= position < 100_000）
+    offset: int = 0,              # 序列化结果文档里的字符偏移
+    max_chars: int = 4000,        # 1..8192
+    expected_revision: str | None = None,   # 64 位小写 hex
+)
+```
+
+返回的是一个 **JSON 文档的窗口**（`_batch_result_window`）：
+
+- 文档 = 该 item 的整条记录（报告 + 执行状态 + 验收标准/结论）经 `json.dumps(sort_keys=True, separators=(",",":"))` 序列化；`revision` = 整份文档的 sha256。
+- 返回 `status` ∈ `ok` / `invalid_request` / `not_found` / `unavailable` / `restart_required` / `budget_too_small`；`ok` 时带 `position`、`next_position`、`revision`、`offset`、`next_offset`（文档末尾为 `null`）、`total_chars`、`content`。
+- **偏移续读必须带 `expected_revision`**（`offset != 0` 且缺 revision → `invalid_request`）；revision 不符 → `restart_required`，丢弃已有窗口从 0 重来。
+- 响应里 `<` 被转义成 `\u003c`。窗口大小按**完整转义后的响应**做二分收紧，使其落在宿主的 externalize/fallback 预算内（`_batch_result_response_limit`：默认 10,000，取 `min(10_000, tool_output.tool_overrides["read_batch_result"]|externalize_min_chars, fallback_max_chars)`；`read_batch_result` 在 `exempt_tools` 里或用 10,000）。连一个字符都塞不下 → `budget_too_small`，文档要求操作方提高预算后停止读取。
+- 序列化 + sha256 走 `asyncio.to_thread`，不在流式事件循环上跑（报告可到百万字符级）。
+- `stored result_truncated` 表示 worker 已按 `max_result_chars` 截断，续读也拿不回被截掉的尾巴。
+
+Gateway 侧对应新增 `GET /api/threads/{thread_id}/subagent-batches/{batch_id}/items/{position}`（`subagent_batches.py`，`require_permission("threads","read",owner_check=True)`，经 `get_subagent_batch_service().read_browser_batch_item(...)`，缺失 404），前端按位置点读单条而不再整表拉取。同一改动把批量导出分页从 `limit=500` 降到 `_RESULTS_EXPORT_PAGE_SIZE = 10`——一整行最多 `max_result_chars` 的报告加上同等量级的证据 JSON（配置上限时约 2M 字符），导出会把一页读进内存并在事件循环上解 JSON。
+
+`batch_task` 的执行规格在 v2.2.0 还多带三样：`subagent_config.prompt_overlay`（序列化为 dict）、父 run 的 `metadata.mcp_plugins`、以及 context 里的 thread incarnation / canonical `knowledge_scope`（`execution_scope()`）。
 
 > ⚠️ **与 `background_tasks_tool.py` 的区别**：后者（`list_background_tasks` / `cancel_background_task`）管理的是 **durable MCP 任务**（`deerflow.mcp.tasks.runtime` 的 submitter），不是 subagent batch；其 docstring 写明 "Natural-language management tools for the current thread's MCP tasks"。两者是不同领域、不同 submitter（`get_mcp_task_submitter` vs `get_subagent_batch_submitter`），不要混用。
 
@@ -552,7 +579,13 @@ class SubagentConfig:
     model: str                     # "inherit" | 明确模型名
     max_turns: int                 # 默认 50
     timeout_seconds: int           # 默认 900 (15 分钟)
+    prompt_overlay: PromptOverlay  # 🆕 v2.2.0：{prepend, append}，包在**完整** system message 外层
 ```
+
+🆕 **v2.2.0 的两处语义变化**：
+
+1. **`skills` 不再持有工具权限**：`skills=None` = 全部启用 skill 可发现/激活，`[]` = 该 subagent 没有 skill；但 SKILL.md 的 `allowed-tools` 是**兼容元数据**，永不收窄这个 subagent 的工具集。工具上限由 `tools`/`disallowed_tools` 与授权层决定。
+2. **`prompt_overlay`**：`agents` 段 per-agent 覆盖里的 `prompt_overlay` 只有在 `prepend` 或 `append` 非空时才覆盖（`registry.py:141-145`），否则保留 config 自身的值。executor 在拼完 system parts 后执行 `self.config.prompt_overlay.apply("\n\n".join(system_parts))`——与 lead 的 `lead_prompt_overlay` 同一套 `PromptOverlay` 字面量语义，不做模板展开。
 
 ---
 
@@ -569,7 +602,7 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 **跨语言契约**：`contracts/subagent_status_contract.json`（version 2）是 Python 与 TypeScript 消费方共享的 wire contract fixture——**task 结果文本只是展示内容，不属于该契约**，结构化事实一律走 `ToolMessage.additional_kwargs`：
 
 - `valid_status_values` = `completed` / `failed` / `cancelled` / `timed_out` / `polling_timed_out`（`status_contract.py:83-89`）
-- v2 新增可选 `subagent_stop_reason`（#3875 Phase 2），取值 `token_capped` / `turn_capped` / `loop_capped`；旧消费方只读 `subagent_status`，会忽略该字段（`status_contract.py:14-19`、键常量 `SUBAGENT_STATUS_KEY` `:52`、`SUBAGENT_STOP_REASON_KEY` `:53`，见下节 Stop Reason）
+- v2 新增可选 `subagent_stop_reason`（#3875 Phase 2），v2.2.0 起取值 **四个**：`token_capped` / `turn_capped` / `loop_capped` / `model_length_capped`（`SubagentStopReasonValue`，`status_contract.py:93-99`；人类可读标签 `_STOP_REASON_LABELS` 映射到 "model output length limit"）。旧消费方只读 `subagent_status`，会忽略该字段（`status_contract.py:14-19`、键常量 `SUBAGENT_STATUS_KEY`、`SUBAGENT_STOP_REASON_KEY`，见下节 Stop Reason）
 
 ## Stop Reason：三轴 Guard Cap 🆕
 
@@ -580,8 +613,13 @@ PENDING → RUNNING → COMPLETED  → (cleanup)
 | **Turn** | `recursion_limit` = `max_turns` | 耗尽 turn 预算 | LangGraph 抛 `GraphRecursionError`，`_aexecute` 专门 catch |
 | **Token** | `TokenBudgetMiddleware` | 达到 `subagents.token_budget.max_tokens` | 剥离 tool_calls，强制 `finish_reason="stop"`，自然完成 |
 | **Loop** | `LoopDetectionMiddleware` | 重复相同 tool-call 集合 | 剥离 tool_calls，记录 `loop_capped` |
+| 🆕 **Model length** | `ModelLengthFinishReasonMiddleware` | provider 输出预算耗尽（`finish_reason=length` / `MAX_TOKENS` / `stop_reason=max_tokens`） | 丢弃可能被截断的 tool_calls、补确定性提示、打 `model_length_termination` 标记，记录 `model_length_capped` |
 
 **为什么 additive 而非新 enum**：可选字段被旧版 frontend/ledger reader 忽略，向后兼容。`SubagentResult.stop_reason` 流经 `task_tool` → lead agent 可见 `Task Succeeded (capped: token_capped)`。
+
+🆕 **subagent 侧的 `model_length_capped` 走的是 duck-typed 通道**：lead worker 从 `runtime.context` 读 `stop_reason`，subagent executor 读不到，所以 middleware 每检测到一次 cap 就按 context 的 `run_id`（含 `None`，与 executor 传回的形状一致）记入有界字典，经 `consume_stop_reason()` 暴露——与 `TokenBudgetMiddleware`、`LoopDetectionMiddleware` 用的是同一条通道。被截断的 subagent 因此到 lead 那里是 `completed` + `stop_reason=model_length_capped`，而不是干净的 `completed`。
+
+🆕 **v2.2.0 的 LoopDetection 也进 subagent 链**（#3875 Phase 1）：subagent 同样受 hash 层与 per-tool 频率层限制，`loop_capped` 才有真实触发路径。
 
 ## Delegation Ledger 🆕
 
@@ -695,6 +733,7 @@ Subagent 编译时 `checkpointer=False`——永不继承父 run 的 checkpointe
 | 🆕 收据引用 / 验收 verdict | 建议性证据（`citation_resolved`），非硬门 | `receipt_verification.py` / `acceptance_checks.py` |
 | 🆕 context_mode | `isolated`（默认）/ `snapshot` | `task` 工具参数 |
 | 🆕 Subagent 卡片 | 显示 effective model + token usage | `task_running` event |
+| 🆕 `knowledge_sources` | 最多 100 条，按 source id 去重，只保留最新 100 | `SubagentResult.update_knowledge_sources()`（`executor.py:239`，终态后不再收）经 `deerflow.knowledge.sources_from_messages` 增量收割；`task_tool` 再经 `knowledge.sources.forward_sources(report, sources, max_total_chars=8000)` 把来源并入结果文本与 `ToolMessage.artifact` |
 
 ---
 > **See also:** [Lead Agent factory](../lead-agent/factory-and-threadstate.md) · [Middleware: SubagentLimitMiddleware](../../internals/middleware/03-catalog.md) · [Testing sub-agents](../../testing/04-agent-test-patterns.md)

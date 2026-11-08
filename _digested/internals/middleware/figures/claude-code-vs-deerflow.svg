@@ -116,7 +116,7 @@
 
   <!-- ===== RIGHT: DeerFlow Middleware ===== -->
   <text x="900" y="78" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a2e">DeerFlow Middleware</text>
-  <text x="900" y="96" text-anchor="middle" font-size="10" fill="#888">Python 类 · 代码装配 · 顺序执行 · 6 种 Hook × 37 个中间件</text>
+  <text x="900" y="96" text-anchor="middle" font-size="10" fill="#888">Python 类 · 代码装配 · 顺序执行 · 6 种 Hook × 39 个条目位</text>
 
   <!-- DeerFlow agent loop -->
   <rect x="700" y="110" width="400" height="340" rx="10" fill="none" stroke="#ddd" stroke-width="1" stroke-dasharray="4,2"/>

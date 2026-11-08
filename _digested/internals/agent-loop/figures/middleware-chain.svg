@@ -17,7 +17,7 @@
 
   <rect width="1200" height="1180" rx="12" fill="url(#bg)"/>
 
-  <text x="600" y="36" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="bold">Middleware 链：37 个 Middleware（35 内置类 + 2 通用槽位）× 6 种 Hook 点</text>
+  <text x="600" y="36" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="bold">Middleware 链：39 个条目位（36 内置类 + 2 通用槽位 + 1 条件项）× 6 种 Hook 点</text>
 
   <!-- Legend -->
   <rect x="30" y="52" width="14" height="14" rx="3" fill="#3b82f6"/>
@@ -129,7 +129,7 @@
 
   <!-- ===== RIGHT: middleware catalog ===== -->
   <rect x="60" y="540" width="1080" height="504" rx="8" fill="#1e293b" stroke="#475569" stroke-width="1"/>
-  <text x="600" y="566" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="bold">Middleware 目录（37 条 = 35 内置类 + 2 通用槽位；#1-14 基础层，其余 lead-only；按组装顺序编号）</text>
+  <text x="600" y="566" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="bold">Middleware 目录（39 个条目位 = 36 内置类 + 2 通用槽位 + 1 条件项；前 16 位基础层，其余 lead-only；按组装顺序编号）</text>
   <rect x="78" y="580" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
   <text x="178" y="598" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">1. InputSanitization</text>
   <text x="178" y="613" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call</text>
@@ -199,9 +199,9 @@
   <text x="385" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_tool_call</text>
   <text x="385" y="806" text-anchor="middle" fill="#64748b" font-size="8">promotion 决策持久化</text>
   <rect x="492" y="760" width="200" height="52" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="0.5"/>
-  <text x="592" y="778" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">18. SkillToolPolicy</text>
-  <text x="592" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">wrap_model_call · wrap_tool_call</text>
-  <text x="592" y="806" text-anchor="middle" fill="#64748b" font-size="8">allowed-tools 策略</text>
+  <text x="592" y="778" text-anchor="middle" fill="#fbbf24" font-size="9.5" font-weight="bold">18. ArtifactCapture</text>
+  <text x="592" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_model · wrap_model_call</text>
+  <text x="592" y="806" text-anchor="middle" fill="#64748b" font-size="8">artifact handle 入册</text>
   <rect x="699" y="760" width="200" height="52" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
   <text x="799" y="778" text-anchor="middle" fill="#4ade80" font-size="9.5" font-weight="bold">19. DurableContext</text>
   <text x="799" y="793" text-anchor="middle" fill="#94a3b8" font-size="8.4">before_model · wrap_model_call · after_model</text>
@@ -281,5 +281,5 @@
   <rect x="78" y="1065" width="1045" height="32" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
   <text x="600" y="1085" text-anchor="middle" fill="#94a3b8" font-size="9.5">条件性条目（由 config.yaml 开关或 runtime 决定）: ToolOutputBudget/read_before_write/verification/authorization/guardrails/tool_progress/summarization/token_usage/title 无条件或默认开；Todo=is_plan_mode · SubagentLimit=subagent_enabled · ViewImage=supports_vision · 17/27=tool_search deferred setup</text>
   <rect x="78" y="1105" width="1045" height="32" rx="6" fill="#0f172a" stroke="#334155" stroke-width="0.5"/>
-  <text x="600" y="1125" text-anchor="middle" fill="#64748b" font-size="9.5">Hook 点分布（类自身定义，口径见 internals/middleware/03-catalog.md）: before_agent=9 · before_model=4 · wrap_model_call=18 · after_model=11（反向）· wrap_tool_call=13 · after_agent=6（反向）· 单个 middleware 可注册多个 hook 点</text>
+  <text x="600" y="1125" text-anchor="middle" fill="#64748b" font-size="9.5">Hook 点分布（类自身定义，v2.2.0 口径见 internals/middleware/03-catalog.md）: before_agent=10 · before_model=6 · wrap_model_call=19 · after_model=12（反向）· wrap_tool_call=15 · after_agent=5（反向）· 单个 middleware 可注册多个 hook 点</text>
 </svg>

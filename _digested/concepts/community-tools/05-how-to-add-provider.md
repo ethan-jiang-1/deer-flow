@@ -110,9 +110,91 @@ print(c.chat('用 web_search 搜索 Python 3.13 新特性'))
 "
 ```
 
+### 2.5 复用两个共享所有者（2.2.0 起应做的）
+
+新增 provider 前先看这两个模块，别复制粘贴它们的逻辑：
+
+**`community/search_max_results.py`** —— `max_results` 的归一化单一所有者
+
+```python
+from deerflow.community.search_max_results import coerce_max_results
+
+count = coerce_max_results(
+    max_results, provider="My Provider", logger=logger, default=5,
+)
+```
+
+它替你处理三件容易写错的事：`bool`（`True` 是 `int` 子类，裸 `int()` 会变 1）、非整除 `float`（会被静默截断）、越界 float 的 `OverflowError`。**上限故意不在这里决定**——clamp 策略是 per-provider 的（You.com 在这里拿到值后再自己 `min(..., 100)`）。传自己的 `logger`，别让它用模块级 logger（否则 warning 的 `record.name` 会指向共享模块）。
+
+**`community/provider_credentials.py`** —— 凭证规则的单一所有者
+
+| 函数 | 用途 |
+|------|------|
+| `resolve_api_key(raw)` | 统一「config 优先」的取值与 `.strip()` / 空串判定 |
+| `redact_secret(value, secret)` | 把日志/错误里出现的密钥替换成 `[REDACTED]` |
+| `reject_url_userinfo(value)` | 拒绝 `https://user:pass@host`，错误文本 `URL_USERINFO_ERROR = "base_url must not contain username or password information"` |
+
+`jsonify` / `webz` / `youcom` 等 2.2.0 新 provider 都用它；如果你要写自己的「config 优先、env fallback」，请直接调 `resolve_api_key()` 而不是再抄一遍上面的模式 C。
+
+**另外**：结果 URL 一律过 `community/url_safety.py::safe_public_result_url()`（纯字符串、无 DNS），别把 provider 返回的原始 URL 直接交给模型。
+
 ## 返回格式
 
 虽然格式自由，但大多数 provider 返回 `{query, total_results, results: [{title, url, snippet}]}`。保持与其他 provider 一致有助于 LLM 在切换 provider 时行为可预测。
+
+## 加一个「知识库 provider」（2.2.0 新路径）🆕
+
+知识库检索不再需要写新工具——core 已经提供了三个通用 `StructuredTool`，provider 只需要实现**契约**并注册。完整契约详见 [09-knowledge-abstraction.md](09-knowledge-abstraction.md)，这里是上手清单。
+
+### 1. 实现契约方法（全部必须是 `async`）
+
+```python
+from deerflow.knowledge.contract import KnowledgeCapabilities, RetrievalResult
+
+class MyKnowledgeProvider:
+    capabilities = KnowledgeCapabilities(operations=frozenset({"search", "sources"}))
+
+    async def search(self, query: str) -> RetrievalResult: ...
+    # 需要 selected 作用域时再加：
+    async def search_scoped(self, query: str, *, context) -> RetrievalResult: ...
+    # 需要目录/文档列表时再加：
+    async def catalog(self, *, context, page, page_size, search): ...
+    async def documents(self, dataset_id, *, context, page, page_size, search): ...
+```
+
+**声明即校验**：`validate_provider()` 会用 `inspect.iscoroutinefunction` 逐个检查你声明的方法，同步方法直接 `ValueError`；声明了 `entries_dataset_filter` 却没有 `entries_search` 也会 `ValueError("Filter capability requires its retrieval operation")`。
+
+### 2. 在扩展里注册
+
+```python
+from deerflow.extensions.registry import registry   # 或对应 API
+
+registry.knowledge_provider("myprov", MyKnowledgeProvider(config))
+```
+
+名字必须匹配 `[a-z][a-z0-9_-]{0,63}`，**`ragflow` / `lightrag` 是保留名**，同名重复注册抛 `ValueError`。找不到该注册口时（旧宿主）示例扩展的做法是抛 `RuntimeError("This host does not support knowledge provider registration")`——别静默降级。
+
+### 3. 在 config.yaml 里挂到通用工具
+
+```yaml
+tool_groups:
+  - name: knowledge
+tools:
+  - name: knowledge_search
+    group: knowledge
+    use: deerflow.knowledge.tools:knowledge_search_tool
+    provider: myprov
+```
+
+三个通用工具名与操作的对应：`knowledge_search` → `search`、`knowledge_entries_search` → `entries_search`、`entity_relations_search` → `relations_search`。
+
+### 4. 三条硬性纪律
+
+1. **`ScopedRetrievalProvider` 收窄失败必须整体失败**——「Never retry a constrained request as an unconstrained search.」不可访问的选择抛 `PermissionError`，绝不退化成全库搜。
+2. **证据只放真实的 locator**——标题、URL、页码都是 provider 证据，拿不到就**留空**，不要从 chunk offset 反推页码，也不要编造 URL。
+3. **授权在 provider 里做**——`KnowledgeRequestContext` 只是宿主身份与执行约束，不是授权；每个操作都要自己校验。
+
+参考实现：`community/ragflow/provider.py`（96 行，最小兼容适配器）与 `examples/deerflow-extension-weknora/deerflow_extension_weknora/provider.py`（294 行，含多租户绑定、条目检索与分页）。
 
 ## 测试
 
@@ -142,5 +224,11 @@ def test_empty_query_handled():
 | Sofya 🆕 | `community/sofya/tools.py` | config 优先 + env fallback | `{query, total_results, results: [...]}` |
 | Tencent WSA 🆕 | `community/tencent_wsa/tools.py` | config 优先 + env fallback | `{query, total_results, results: [...], request_id?}` |
 | LightRAG 🆕 | `community/lightrag/tools.py` | `StructuredTool`（async），api_key 可选 | 带引用编号纯文本 |
+| Webz 🆕 | `community/webz/tools.py` | config 优先 + env fallback | `{query, returned_results, results: [...]}`（新闻） |
+| You.com 🆕 | `community/youcom/tools.py` | 可选 key（缺省走免 key 端点） | `[{title, url, snippet}]` |
+| Unbrowse 🆕 | `community/unbrowse/tools.py` | env / config，**MCP JSON-RPC** | `# title\n\nmarkdown` |
+| Jsonify 🆕 | `community/jsonify/tools.py` | dataset serve URL 即凭证 | `StructuredTool`（只读 dataset rows） |
+| RAGFlow provider 🆕 | `community/ragflow/provider.py` | `RAGFLOW_API_KEY` | `RetrievalResult`（新契约） |
+| WeKnora 🆕 | `examples/deerflow-extension-weknora/` | `api_key_env` 指定的 env | `RetrievalResult`（新契约，可安装扩展） |
 
 源码路径：`deerflow/community/{provider}/tools.py`

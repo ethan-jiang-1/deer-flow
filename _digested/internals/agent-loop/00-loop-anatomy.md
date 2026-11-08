@@ -56,7 +56,7 @@ async for chunk in agent.astream(graph_input, config=runnable_config, stream_mod
 
 - 最外层的 middleware 看到原始 request，也最后一个看到 response
 - `wrap_model_call` 可以**修改传给 LLM 的 message list**，也可以**修改 return 的 response**
-- 而且这不是 graph node——是**内联函数调用**。LangGraph 的 graph 只看到一个 "model node"，但 model node 内部已经穿过了 18 层包装
+- 而且这不是 graph node——是**内联函数调用**。LangGraph 的 graph 只看到几个 node，但 `model` node 内部已经穿过了整条 `wrap_model_call` 洋葱（默认配置下 17 个 wrapper，条件全开时 19 个；条目位共 39 个，见[目录](../middleware/03-catalog.md)）
 
 ![Middleware Onion 执行路径](figures/middleware-onion.svg)
 
@@ -70,7 +70,7 @@ async for chunk in agent.astream(graph_input, config=runnable_config, stream_mod
 
 ### before vs after 的正/反向
 
-注意：`before_model` 是正向遍历（链上 1→37），`after_model` 是**反向**遍历（37→1）。这是 LangChain 的约定，原因很直观：
+注意：`before_model` 是正向遍历（按列表顺序），`after_model` 是**反向**遍历。这是 LangChain 的约定，原因很直观：
 
 - before: 外层先准备上下文，内层才能用
 - after: 内层先处理结果，外层做收尾（最内层最接近 LLM 输出）
@@ -126,7 +126,7 @@ if result.cancel_event.is_set():
 | 特点 | 不是什么 |
 |------|---------|
 | loop 本身不自己写 | 它是 LangGraph 的 compiled graph 驱动的 |
-| 18 层 middleware 精确嵌入 loop 的每一个节点 | middleware 不是"请求前后"，是 loop 的结构 |
+| 39 个 middleware 条目位精确嵌入 loop 的每一个节点（默认配置下一条链约 24-30 个实例） | middleware 不是"请求前后"，是 loop 的结构 |
 | wrap 是洋葱嵌套不是顺序调用 | 所以能控制"里面"的行为 |
 | subagent 有独立的完整 loop | 不是子图节点，是有自己 middleware 的独立 agent |
 | cancel 是协作式的不是抢占的 | 只有 astream 迭代边界才能中断 |

@@ -25,7 +25,7 @@ DeerFlow 有两个独立的 middleware 装配入口：
 | 配置源 | `config.yaml` 各 section | `RuntimeFeatures` dataclass |
 | 用户注入 | `extra_middleware` 参数 | `extra_middleware` 参数 |
 
-仅 Lead Agent 装配的生产级 middleware **至少**包括这 5 个（SDK 精简路径都不装，完整差异见 [catalog](../middleware/03-catalog.md)）：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）；此外入站三件套 `InputSanitization`/`ToolOutputBudget`/`ToolResultSanitization`、`ToolReceipt`、`ReadBeforeWrite`、`SkillActivation`/`SkillToolPolicy`、MCP 的 `McpRouting`/`DeferredToolFilter`、`TerminalResponse`/`ModelLengthFinishReason` 等同样只在 lead 链上。
+仅 Lead Agent 装配的生产级 middleware **至少**包括这 5 个（SDK 精简路径都不装，完整差异见 [catalog](../middleware/03-catalog.md)）：`LLMErrorHandling`（熔断器）、`SandboxAudit`（审计）、`DynamicContext`（上下文注入）、`TokenUsage`（token 统计）、`SafetyFinishReason`（安全终止检测）；此外入站三件套 `InputSanitization`/`ToolOutputBudget`/`ToolResultSanitization`、`ToolReceipt`、`ReadBeforeWrite`、`SkillActivation`（v2.2.0 起 `SkillToolPolicyMiddleware` 已删除）、MCP 的 `McpRouting`/`DeferredToolFilter`、`TerminalResponse`/`ModelLengthFinishReason` 等同样只在 lead 链上。
 
 ## 用户挂自己的 middleware 的 3 种方式
 

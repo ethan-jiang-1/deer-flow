@@ -187,3 +187,80 @@ _ALLOWED_IMAGE_VIRTUAL_ROOTS = (
 - `_resolve_thread_id()` 从 runtime context → RunnableConfig → `get_config()` 三级解析 thread_id
 - `_resolve_user_id()` 用 `resolve_runtime_user_id()` 解析用户（与其它工具一致）
 - 返回 dict：`{"files": [...]}`；无 runtime context / 找不到 thread 时返回空列表 + message
+
+---
+
+## inspect_run_status 🆕 2.2
+
+**源码**: `packages/harness/deerflow/tools/builtins/inspect_run_status_tool.py:100-113`（`build_inspect_run_status_tool(*, context_window)` 闭包工厂 + `@tool("inspect_run_status")` 内层函数，装饰器在 `:103`）
+**加载条件**: **每次装配都加**——`get_available_tools()` 末尾无条件 `builtin_tools.append(build_inspect_run_status_tool(context_window=model_config.context_window if model_config else None))`（`tools/tools.py:218`）
+**Tool Name**: `inspect_run_status`
+
+### 用途
+
+让 agent 自查**本次 run 的用量与进度**（token 消耗、上下文填充率、消息/工具调用计数、todo 进度），而不必把对话正文再读一遍。工具是 **只读**的，`snapshot_run_status()` 的 docstring 明写「no message or todo text leaves the tool」——返回体里没有任何消息内容或 todo 文本。
+
+### 参数
+
+无业务参数，只吃注入的 `runtime`（`state` + `context`）。模型可见签名是 `inspect_run_status()`。
+
+### 返回体（`snapshot_run_status`，`inspect_run_status_tool.py:39-98`）
+
+| 字段 | 含义 |
+|------|------|
+| `scope` | `current_run_visible` 或更宽的可见范围（`_current_messages(list, context)` 决定） |
+| `token_usage` | `{input, output, total}`，逐条累加 `AIMessage.usage_metadata` |
+| `usage_missing_messages` | 没有 `usage_metadata` 的 AIMessage 条数（provider 没报用量） |
+| `message_count` | 可见消息数 |
+| `tool_calls_this_run` | 仅当 `scope == "current_run_visible"` 时给数字，否则 `None` |
+| `context_fill` | `{used_input_tokens, limit_tokens, fraction(3 位小数), basis: "last_reported_model_input"}`；**需要** `context_window` 有效且最后一条 AI 消息报了 `input_tokens`，否则整体为 `None` |
+| `has_summary` | `state["summary_text"]` 是否是非空字符串（即上下文已被压缩过） |
+| `todos` | `{pending, in_progress}` 计数（不返回 todo 文本） |
+
+### 契约级细节
+
+- `context_fill` 的 `basis` 刻意写死成 `"last_reported_model_input"`：它不是"当前上下文占用"的精确值，只是**最后一次模型上报的输入 token 数**。装配时绑定的 `context_window` 来自当前 model 配置（`build_inspect_run_status_tool` 的 docstring：「Bind the effective model's configured context size at assembly time」），所以换模型必须重新装配，不能复用旧工具实例。
+- **子代理分发消息会清空 `last_input`**（`inspect_run_status_tool.py:63-66`）：`TokenUsageMiddleware` 会把已完成的子代理用量折叠进那条 dispatch 的 `AIMessage`，此时它的 `input_tokens` 不再是上下文大小的代理量，因此 `last_input = None` → `context_fill = None`。
+- 计数天然可选：docstring 直说「Counts may omit compacted messages or provider-omitted usage」——压缩掉的消息不计入，`usage_missing_messages` 就是后者的计数器。
+
+---
+
+## schedule_task / stop_scheduled_task 🆕 2.2
+
+**源码**: `packages/harness/deerflow/tools/scheduled_tasks.py:34-41`（`schedule_task`）、`:165-166`（`stop_scheduled_task`）
+**加载条件**: `scheduler_tools_enabled(config) and is_scheduler_capability(scheduler_capability)` 时**二选一**注入——`scheduler_capability.mode == "interactive"` → 只加 `schedule_task`，否则（`scheduled`）→ 只加 `stop_scheduled_task`（`tools/tools.py:182-186`）。同时 `tools/tools.py:148` 会把 YAML `tools[]` 里 `deerflow.tools.scheduled_tasks:schedule_task` / `:stop_scheduled_task` 两条**剔掉**：在配置里注册不能扩大 host 授予，也不能改变跑在哪种 mode。
+**Tool Name**: `schedule_task` / `stop_scheduled_task`（同一装配里**永不同时存在**）
+
+### 用途
+
+- `schedule_task`：在**当前交互对话里**替用户增删改查自己的定时任务。`action ∈ {create, update, list, pause, resume, delete, note, trial}`。
+- `stop_scheduled_task`：**在一次计划运行内部**，让它按自己的停止条件把这个 schedule 暂停掉（本次 run 继续跑完，暂停在 run 结束后生效）。docstring 特意点明：「Meeting this run's goal does not by itself mean the stop rule is met」——单次目标达成不结束循环计划。
+
+### 参数（`schedule_task`，全部可选除 `action`/`runtime`）
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `action` | Literal | 见上 |
+| `task_id` | `str \| None` | update/pause/resume/delete/note 的目标 |
+| `title` / `prompt` / `stop_condition` | `str \| None` | 任务本体；docstring 要求 prompt 里**只写每次跑做什么**，不写节奏、停止规则或任何 ID |
+| `schedule_type` | `once \| interval \| cron \| None` | 与 `schedule_spec` 搭配 |
+| `schedule_spec` / `timezone` | `dict` / `str \| None` | 时间规格与时区 |
+| `context_mode` | `fresh_thread_per_run`（默认）/ `reuse_thread` | 只在 `create` 时写进 request |
+| `goal_objective` / `max_runs` / `end_at` | `str` / `int` / `str \| None` | 目标与终止条件 |
+| `note` | `str \| None` | 写备忘 |
+| `clear_fields` | `list["goal_objective" \| "max_runs" \| "end_at" \| "stop_condition"] \| None` | 显式清空字段（而不是靠传 `None`） |
+
+### 运行时授予校验 `_capability(runtime, mode)`（`scheduled_tasks.py:18-31`）
+
+**四道门全部通过才返回 capability**，任一失败返回 `None` → 工具回结构化错误：
+
+1. `runtime.context["is_subagent"]` 为真 → `None`（子代理拿不到）；
+2. `scheduler_tools_enabled(context["app_config"])` 为假 → `None`（总开关）；
+3. `context[SCHEDULER_CAPABILITY_CONTEXT_KEY]` 不是合法 `SchedulerRunCapability`，或其 `mode` 与请求的 mode 不符 → `None`；
+4. `resolve_run_interaction_policy(config)` 抛 `ValueError`，或解析出的 `policy.mode.value` 与 mode 不符 → `None`（交互模式与授予打架时**默认拒绝**）。
+
+`stop_scheduled_task` 的失败返回固定为 `{"error": "Stopping a schedule is unavailable in this run.", "code": "scheduler_tools_disabled", "status_code": 503}`（`scheduled_tasks.py:186-187`）。
+
+### 为什么值得在 builtin 目录里记一笔
+
+这两个工具是 2.2 「**能力由 host 授予，配置不能扩权**」纪律的最干净样本：同一对 `config.yaml` 开关（`scheduler.enabled` **且** `scheduler.tool_enabled`，`scheduler_tools_enabled()` 要求两者皆真，`scheduler/runtime.py:23-26`）在不同运行模式下产出**不同工具集**，而 YAML 里的同名 `use` 会被主动剥离。调度器子系统本身属于 persistence/scheduler 域，此处只钉工具装配面。

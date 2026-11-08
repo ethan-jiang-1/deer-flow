@@ -1,12 +1,18 @@
 ---
 title: "Memory 系统 — 可插拔后端架构"
-description: "DeerFlow 2.1 的 Memory 系统从单体 DeerMem 重构为可插拔后端架构，支持 middleware 和 tool 双模式、5 个可插拔后端（deermem/mem0/noop/openviking/honcho），新增 consolidation、staleness review 和 hybrid fact eviction。"
-topics: [memory, persistence, context-injection, pluggable-backend, consolidation, staleness, honcho, eviction]
+description: "可插拔 Memory 后端架构，支持 middleware 和 tool 双模式、5 个可插拔后端（deermem/mem0/noop/openviking/honcho）。2.1 引入 consolidation、staleness review 和 hybrid fact eviction；2.2 新增 cognitiveStyle 摘要段与 cognitive 事实类别、确定性的词法相关性排序（含 IDF 与 MMR）、以及 prescreen/signal 信号门。"
+topics: [memory, persistence, context-injection, pluggable-backend, consolidation, staleness, honcho, eviction, relevance, cognitive-style]
 ---
 
 # Memory 系统 — 可插拔后端架构
 
 > **2.1.0 里程碑 | Breaking Changes**：Memory 从写死的 DeerMem 单体变成 `MemoryManager` ABC + 可插拔后端。只需改一行 `config.yaml` 即可切换后端，DeerFlow 核心代码无需改动。
+
+> **2.2.0 增量（非破坏性，向后兼容）**：
+> 1. **`cognitiveStyle` 摘要段**——`user` 下新增第四段，「这个用户怎么思考和协作」而不是「他是谁」；注入时渲染成 `Thinking Style: ...`。旧数据无需迁移（`_normalize_memory_summaries` 自动补空段）。
+> 2. **`cognitive` 事实类别**——`CORE_CATEGORIES` 从 6 个扩到 10 个。
+> 3. **确定性词法相关性排序**（#4495）——`query` + `retrieval_relevance_enabled` 同时成立时，fact 先按「词法相关性 × 权重 + confidence × (1-权重)」打分，再进 guaranteed/regular 分区和 token 预算；可选 greedy-MMR 去冗余。
+> 4. **prescreen / signal 信号门**——在 LLM 提取之前用确定性规则挡掉没有记忆价值的轮次（见 `manager-contract-and-backend-clients.md`）。
 
 ## 架构总览
 
@@ -132,7 +138,7 @@ Host 通过 `backend_config` dict 向后端注入：
 
 ### 数据模型（v2：Markdown fact 文件）
 
-**Storage v2 重构**（`storage.py` ~196 → ~1549 行）：fact 不再存在全局 JSON 的 `facts` 字段，改为**每个 fact 一个 Markdown 文件**：
+**Storage v2 重构**（2.2.0 实测 `storage.py` = **2297 行**）：fact 不再存在全局 JSON 的 `facts` 字段，改为**每个 fact 一个 Markdown 文件**：
 
 ```markdown
 ---
@@ -166,16 +172,78 @@ Project uses Python 3.12
 
 默认 agent 用保留名 `__default__` 作为 fact bucket（真实 custom agent 名不在此文法内）。兼容视图：直接读全局 storage 返回 `facts: []`，而 DeerMem Manager/API 读取会返回所选 agent 的 facts。
 
+### 全局 JSON 的 `user` 段：2.2.0 多出 `cognitiveStyle`
+
+`create_empty_memory()`（`storage.py:97-118`）的 `user` 段现在是**四**个 summary section：
+
+```python
+"user": {
+    "workContext":     {"summary": "", "updatedAt": ""},
+    "personalContext": {"summary": "", "updatedAt": ""},
+    "topOfMind":       {"summary": "", "updatedAt": ""},
+    "cognitiveStyle":  {"summary": "", "updatedAt": ""},   # ← 2.2.0 新增（:107）
+},
+```
+
+`history` 段仍是三段（`recentMonths` / `earlierContext` / `longTermBackground`）。归一化器 `_normalize_memory_summaries()`（`storage.py:162-179`）用同一个元组驱动：
+
+```python
+("user", ("workContext", "personalContext", "topOfMind", "cognitiveStyle")),   # :167
+("history", ("recentMonths", "earlierContext", "longTermBackground")),
+```
+
+**向后兼容的做法**：先 `copy.deepcopy(empty[section_name])` 得到完整骨架，再把旧数据里已知的 section 逐个走 `_normalize_context_section()`（保留扩展字段），最后**对四个已知 key 再归一化一遍**（缺失的补空）。所以一份 2.1 时期的 `memory.json` 读进来就有空的 `cognitiveStyle`，不需要迁移脚本；`DOCUMENT_VERSION = "2.0"` 也没变。
+
+**注入侧**（`prompt.py:550-552`）：
+
+```python
+cognitive_style = user_data.get("cognitiveStyle", {})
+if cognitive_style.get("summary"):
+    user_sections.append(f"Thinking Style: {_escape_summary(cognitive_style['summary'])}")
+```
+
+与 `Work:` / `Personal:` / `Current Focus:` 并列，同一个 `_escape_summary` 转义。**空的 `cognitiveStyle` 不产生任何文本**——不会出现空行或占位。
+
+**提取侧**：`memory_update.chat.yaml` 要求模型在四个 section 之间分工（`:42` / `:92` / `:111` 提到 `cognitiveStyle`），并把「稳定的推理方式、回答结构与协作习惯」归到这里；类别枚举与每个 section 的取舍规则以 `memory_update.chat.yaml` 的 prompt 正文为唯一权威（`fact_extraction.yaml` 只负责初始提取；更新路径走 chat 模板）。
+
 ### Fact 类别
+
+`CORE_CATEGORIES`（`storage.py:52`）在 2.2.0 是 **10 个**，不是 6 个：
+
+```python
+CORE_CATEGORIES = frozenset({
+    "preference", "correction", "context", "goal", "behavior",
+    "cognitive", "identity", "constraint", "decision", "other",
+})
+```
 
 | Category | 含义 | 示例 |
 |----------|------|------|
 | `preference` | 用户偏好 | "喜欢中文回复" |
-| `knowledge` | 用户知识 | "熟悉 Python" |
-| `context` | 上下文 | "在字节工作" |
-| `behavior` | 行为模式 | "经常在晚上使用" |
-| `goal` | 目标 | "想学 Rust" |
 | `correction` | 用户纠正（受保护，永不过期） | "我的名字不是张三" |
+| `context` | 上下文（**缺省值**） | "在字节工作" |
+| `goal` | 目标 | "想学 Rust" |
+| `behavior` | 行为模式 | "经常在晚上使用" |
+| `cognitive` 🆕 | 稳定的推理/表达/协作习惯 | "先要结论再要细节" |
+| `identity` 🆕 | 身份事实 | "name: 张三" |
+| `constraint` 🆕 | 硬约束（`expected_valid_days` 常用） | "不能用 GPL 依赖" |
+| `decision` 🆕 | 已做的决定 | "选了 Postgres 而不是 MySQL" |
+| `other` + `categoryExtension` | 非核心标签的旧写法 | `category: other` + `categoryExtension: hobby` |
+
+**`knowledge` 不在这个集合里**——v2.1.0 digest 里列的 `knowledge` 类别早已不存在于 `CORE_CATEGORIES`；用户知识现在落在 `context` 或 `identity`。
+
+类别归一化的两条规则（`_normalize_category`，`storage.py:247-260`）：
+
+1. `raw_category = fact.get("category", "context")`，非字符串抛 `ValueError("fact.category must be a string")`，空串回落 `"context"`；
+2. **`categoryExtension` 只在 `category == "other"` 时保留**，否则丢弃——注释说清了原因：旧构建把非核心标签停在 `other` + extension 里，一旦标签被原生存储（包括一条旧 `other`+extension 被更新成真实类别），残留字段就会与 Gateway 文档语义矛盾。
+
+迁移期还有 `_category_comparison_key()`（`storage.py:262+`）：把 `("other", <label>)` 折叠成 `(<label>, None)` 再比较，这样「Markdown 已提交但旧 JSON 未删除」的中断迁移在重试时仍认得自己的结果；真正不同的标签之间仍然不等。
+
+prompt 模板 `deermem/core/prompts/fact_extraction.yaml` 的类别枚举在 `:12`，`cognitive` 的说明在 `:21`：
+
+> `cognitive: Stable reasoning, response-structure, and collaboration habits`
+
+`_normalize_legacy_import_fact()`（`storage.py:123`）负责把导入的旧 fact 走同一套归一化。
 
 ### Middleware 模式工作流
 
@@ -546,6 +614,79 @@ Memory prompts 已从代码中抽离为 YAML 模板文件，放在 `backends/dee
 
 ---
 
+## 🆕 确定性词法相关性排序（2.2.0）
+
+2.1 的注入顺序**只看 confidence**。2.2 增加了「当前这轮问的是什么」这一维——但仍**不用 embedding、不用网络**：`deermem/core/relevance.py`（259 行）是一套纯词法的打分 / IDF / MMR 排序器。
+
+### 开关与接线
+
+| 层 | 位置 | 作用 |
+|----|------|------|
+| 配置 | `deermem/config.py:117` `retrieval_relevance_enabled`（默认关） | 总开关 |
+| 配置 | `:129` `retrieval_relevance_weight`（默认 0.5） | 相关性在混合分里的权重 |
+| 配置 | `:135` `retrieval_diversity_weight` | greedy-MMR 的重复惩罚权重 |
+| 调用方 | `deer_mem.py:313-356` `get_context(..., query=...)` | 算 `corpus_idf` 并把三个参数传给 formatter |
+| 注入器 | `prompt.py:469-480` `format_memory_for_injection(..., query, relevance_weight, diversity_weight, idf)` | 在 guaranteed/regular 分区**之前**排序 |
+
+`get_context` 只有在 `retrieval_relevance_enabled and query.strip()` 且 `retrieval_relevance_weight > 0` 时才建 IDF——**先取该 user/agent 的 fact 全集**（分区之前）`build_idf([tokenize(content) ...])`，与 `search` 用的是同一个有界分词器。
+
+### `lexical_relevance` 的算法（`relevance.py:117-146`）
+
+```
+containment = query ⊂ content 或 content ⊂ query
+matched_weight = total_weight = 1.0 if containment else 0.0
+for token in dict.fromkeys(query_tokens):        # 同一 token 只算一次
+    weight = idf.get(token, 1.0) ** 2
+    total_weight += weight
+    if token in content_tokens
+       or (len(token) >= 4 and 存在 content_token 使 一方是另一方的前缀):
+        matched_weight += weight
+return sqrt(matched_weight / total_weight)
+```
+
+四个刻意选择：
+
+1. **IDF 平方**——高频词（"的"、"the"）几乎不贡献分数，稀有词主导匹配；
+2. **重复不能冒充覆盖**——`dict.fromkeys` 去重 + 用「匹配权重 / 完整查询权重」的**范数比**，所以不需要再 clip，部分匹配仍能在 blend 里保持竞争力；
+3. **前缀匹配必须 ≥ 4 字符**（`_PREFIX_MATCH_MIN_CHARS = 4`，`:39`）且要求「一个完整 token 是另一个的前缀」——共享 4 个字符只用来缩小候选集，不直接记分（注释：「Sharing four characters only narrows the candidate set.」）；
+4. **token 化对中日韩友好**：`_WORD_RE = r"[a-zA-Z0-9_]+|[\u3400-\u4dbf\u4e00-\u9fff]+"`（`:35`）——CJK 整段当一个 token，所以中文 fact 的匹配是子串级而非单字级。
+
+**有界性**：`_TEXT_CHAR_BUDGET = 4096`（`:43`）截断输入文本、`_SIMILARITY_TOKEN_BUDGET = 128`（`:42`）限制 token 数——注入路径是热路径，不能因为一条超长 fact 拖慢每轮。
+
+### 混合分与排序
+
+`score_facts(facts, query, *, relevance_weight=0.5, idf=None)`（`:159-192`）：
+
+```python
+combined = relevance_weight * relevance + (1.0 - relevance_weight) * confidence
+```
+
+- `relevance_weight <= 0` **短路**成旧的 confidence-only 排序，不算任何相关性；
+- `confidence` 走 `_coerce_confidence()`（`:149-156`）：非有限值 → 0，最后 clamp 到 [0,1]；
+- 返回 `(score, fact)` 列表，**不修改输入**。
+
+`iter_diversify(scored, *, similarity_weight)`（`:219-246`）是**惰性 greedy-MMR**：
+
+- `similarity_weight <= 0` 时原序 yield，零开销；
+- 否则每条 fact 只 tokenize 一次，每次选中后**只更新一次** penalty：`penalty = max(penalty, Jaccard(picked, candidate))`；
+- 调整分 = `score - similarity_weight * penalty`；相等时保留输入序（稳定）；
+- **惰性**的意义写在 docstring 里：「Consumers can stop at their result or token budget without ranking the rest.」——token 预算消费者随时可以停，不必全量排序。
+
+`prompt.py` 侧的对应结构是 `_rank_pool()`（`:614-619`）：`relevance_ordered` 为真时先 `sorted(...)` 再 `iter_diversify(...)`，否则退回 `sorted(pool, key=_confidence_key)`。**两个预算池（guaranteed / regular）各自独立排序**，但共享同一份 `scores` 和 `idf`——所以「被 guarantee 的 fact」和「竞争主预算的 fact」不会用两套尺子。
+
+### 与检索/注入的关系
+
+| 场景 | 是否走相关性排序 |
+|------|-----------------|
+| middleware 注入（有当前 query） | ✅ 排序后再按 token 预算挑选 |
+| tool 模式注入 | ❌ 只注入全局 summary，facts 在 `memory_search` 后面 |
+| 无 query（如后台 consolidation 读取） | ❌ 沿用 confidence 序（`query=None` 即旧行为） |
+| `memory_search` 工具 | 取决于 `retrieval_relevance_enabled`：开 → `_relevance_search`（`deer_mem.py:458-486`，全 scope 竞争 + 自己的 `build_idf`）；关 → `_fts5_search` 失败后退 `_substring_search`（`:388-396`） |
+
+**它是「确定性」的**：同样的 fact 集合 + 同样的 query + 同样的配置，排序结果始终一致——这是与 embedding 检索最重要的区别，也是它能放进热路径的前提。
+
+---
+
 ## 配置速查
 
 ```yaml
@@ -572,6 +713,14 @@ memory:
     eviction_correction_reserved_max: 10
     eviction_audit_max_entries: 200
     max_injection_tokens: 2000
+    # ── Retrieval（2.2.0 🆕）──
+    retrieval_adapter: fts5              # fts5 | ""（关闭）| 点路径工厂（RetrievalPort）
+    retrieval_index_path: ""             # 空 = {storage_path}/.retrieval；多 Gateway 必须指实例本地盘
+    retrieval_relevance_enabled: false   # 开则 search 绕过 adapter，全 scope 词法排序
+    retrieval_relevance_weight: 0.5      # 0.0 = 只看 confidence；1.0 = 只看相关性
+    retrieval_diversity_weight: 0.0      # greedy-MMR 重复惩罚，0 = 不去冗余
+    fact_dedup_enabled: false            # 近重复门（#5252），默认关
+    fact_dedup_similarity_threshold: 0.7 # 仅 fact_dedup_enabled 时生效，范围 [0.5, 1.0]
     # ── Queue ──
     debounce_seconds: 30
     # ── Token Counting ──
@@ -599,6 +748,15 @@ memory:
       base_url: null
       temperature: null
 ```
+
+## 🆕 Retrieval 相关的四个警告
+
+来自 `deermem/config.py` 的字段描述，都是容易踩的坑：
+
+1. **`retrieval_relevance_enabled: true` 会让 `search` 绕过 `retrieval_adapter`**——包括 FTS5 和自定义工厂。索引仍然照常建（`retrieval_index_path` 仍有效），但搜索不再走它。要么用 adapter，要么用 relevance，不要指望两者叠加。
+2. **`retrieval_index_path` 在多 Gateway 共享 `storage_path` 时必须指实例本地盘**——「SQLite WAL is unsupported on network filesystems, and peers would rebuild or delete each other's index.」索引本身是可重建的派生数据。
+3. **`retrieval_adapter: ""` 是「显式关闭」**，与「未配置（默认 fts5）」不同；关闭后搜索退回 `_substring_search`。
+4. **`fact_dedup_*` 是写侧的门，`retrieval_relevance_*` 是读侧的门**，互不依赖。近重复门**不作用于 correction 替换和 proposed removal targets**——那两类被显式排除，否则纠正会被合并掉。
 
 ## API 接口
 

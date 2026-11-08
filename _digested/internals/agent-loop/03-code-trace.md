@@ -167,13 +167,17 @@ async for chunk in agent.astream(graph_input, config=runnable_config, stream_mod
 `create_agent()` 是 LangChain 提供的工厂函数。它接收 middleware 列表，构建一个带 hook 节点的 StateGraph，**然后编译返回**。DeerFlow 调用它：
 
 ```python
-# deerflow/agents/lead_agent/agent.py:482
-return create_agent(
-    model=create_chat_model(...),        # DeerFlow 的模型工厂
-    tools=filtered_tools,                # DeerFlow 的 tool 组装
-    middleware=build_middlewares(...),   # DeerFlow 的 37 个 middleware
-    system_prompt=apply_prompt_template(...),  # DeerFlow 的 prompt
-    state_schema=ThreadState,            # DeerFlow 的 state schema
+# deerflow/agents/lead_agent/agent.py:1405
+middlewares, declared_authorized = narrow_declared_tools(...)   # :1379 中间件声明工具的 Layer-1 收窄
+bound_middlewares = normalize_middleware_state_schemas(middlewares, mode)  # :1403
+verify_declared_tool_view(bound_middlewares, authorized_names=declared_authorized)  # :1404 最终栈复检
+graph = create_agent(
+    model=chat_model,                    # DeerFlow 的模型工厂（create_chat_model）
+    tools=final_tools,                   # DeerFlow 的 tool 组装 + 授权过滤
+    middleware=bound_middlewares,        # DeerFlow 的 39 个 middleware 条目位（含 extensions 合成）
+    system_prompt=system_prompt,         # DeerFlow 渲染后的 prompt（已叠加 lead_prompt_overlay）
+    state_schema=get_thread_state_schema(mode),  # DeerFlow 的 ThreadState（按 checkpoint 模式取 schema）
+    context_schema=dict,
 )
 ```
 
@@ -276,7 +280,7 @@ tool_node = ToolNode(
 )
 ```
 
-**DeerFlow 的贡献**：提供 33 个 `AgentMiddleware` 子类实例，按严格顺序排列。LangChain 负责把它们变成节点和洋葱链。
+**DeerFlow 的贡献**：提供一条按严格顺序排列的 `AgentMiddleware` 实例列表（默认配置约 24 个实例，条目位 39 个），LangChain 负责把它们变成节点和洋葱链。`narrow_declared_tools()` + `verify_declared_tool_view()`（`middlewares/tool_declarations.py`）在交给 `create_agent()` 前后各做一次检查——因为 LangChain 是在宿主工具被过滤**之后**才把 `middleware.tools` 折进绑定集的，声明式工具会绕过 Layer 1 授权。
 
 ---
 
@@ -459,16 +463,16 @@ Superstep 8:  [mN.after_agent] ... [m1.after_agent] (并行，反向)
 
 ## Layer E：Middleware Hook 总览 — DeerFlow 怎么利用 LangChain 的 hook 机制
 
-LangChain 提供 6 种 hook 点 + 2 种 wrap 洋葱。DeerFlow 的 37 个 middleware 全部基于这些 hook：
+LangChain 提供 6 种 hook 点 + 2 种 wrap 洋葱。DeerFlow 的 39 个条目位全部基于这些 hook：
 
 | LangChain Hook | 机制 | DeerFlow 利用者 |
 |---------------|------|----------------|
-| `before_agent` | 独立 graph node（仅一次） | ThreadData、Uploads、LoopDetection（清理）、Todo |
-| `before_model` | 独立 graph node（每圈） | DynamicContext（注入日期/memory）、Summarization、ViewImage（注入图片）、Todo |
-| `wrap_model_call` | 内联洋葱链（每圈） | LLMErrorHandling（异常→错误消息）、DanglingToolCall（修复配对）、Summarization（裁剪消息）、LoopDetection（注入 loop 警告）、DeferredToolFilter |
-| `after_model` | 独立 graph node（每圈，反向） | LoopDetection（检测重复）、SubagentLimit（截断）、SafetyFinishReason（清除 refusals）、TokenUsage、Title、Todo |
-| `wrap_tool_call` | 内联洋葱链（每个 tool） | SandboxAudit（审计日志）、ToolErrorHandling（异常→ToolMessage）、Clarification（拦截 ask_clarification→goto=END）、Guardrail（权限校验） |
-| `after_agent` | 独立 graph node（仅一次，反向） | Memory（队列更新）、LoopDetection（清理待发警告）、Todo |
+| `before_agent` | 独立 graph node（仅一次） | ThreadData、Uploads、KnowledgeScope、ReadBeforeWrite（初始化）、ToolProgress、DynamicContext、LoopDetection（清理）、TokenBudget、Todo |
+| `before_model` | 独立 graph node（每圈） | ArtifactCapture（🆕 抓 tool artifact）、DurableContext（注入账本）、DynamicContext（注入日期/memory）、Summarization、McpRouting、Todo |
+| `wrap_model_call` | 内联洋葱链（每圈） | InputSanitization（转义 + 边界）、KnowledgeScope（作用域投影）、ToolOutputBudget（外部化/elision）、ToolResultSanitization、PiiRedaction、LLMErrorHandling（异常→错误消息）、DanglingToolCall（修复配对）、ToolReceipt、ReadBeforeWrite、ToolProgress、SkillActivation、LoopDetection（注入 loop 警告）、SystemMessageCoalescing、ModelContentCompatibility（🆕 请求视图读时清洗）、DeferredToolFilter |
+| `after_model` | 独立 graph node（每圈，反向） | LoopDetection（检测重复）、SubagentLimit（截断）、TokenBudget（hard-stop）、SafetyFinishReason（清除 refusals）、ModelLengthFinishReason（🆕 长度截断标记）、TerminalResponse（🆕 空响应重试）、TokenUsage/CompletedSubagentUsage、Title、Todo、Clarification |
+| `wrap_tool_call` | 内联洋葱链（每个 tool） | ToolReceipt（最外层收据）、ArtifactResolution（🆕 handle→real_ref）、Guardrail（权限校验，Layer 2）、SandboxAudit（审计日志）、ReadBeforeWrite、ToolProgress、ToolErrorHandling（异常→ToolMessage）、Clarification（拦截 ask_clarification→goto=END） |
+| `after_agent` | 独立 graph node（仅一次，反向） | Sandbox（释放）、Memory（队列更新）、LoopDetection（清理待发警告）、TokenBudget、Todo |
 
 **结论：DeerFlow 100% 利用了 LangChain 的 middleware hook 体系。** 没有自己发明 hook 协议，没有绕过 graph 结构。所有扩展都是标准的 `AgentMiddleware` 子类。
 
@@ -483,7 +487,7 @@ Agent Loop 核心     ✗ (没有)                   ✓ PregelLoop.tick() + ast
 Graph 构建          ✗ (没有)                   ✓ create_agent() → StateGraph
 条件路由            ✗ (没有)                   ✓ _make_model_to_tools_edge
 Middleware 协议     ✗ (没有)                   ✓ AgentMiddleware 基类 + 6 hook
-Middleware 实现     ✓ 33 个 AgentMiddleware 子类  ✗ (没有)
+Middleware 实现     ✓ 39 个条目位 / 36 个内置类型   ✗ (没有)
 Middleware 装配     ✓ build_middlewares()      ✓ _chain_model_call_handlers
 State Schema        ✓ ThreadState              ✓ AgentState (基类)
 模型调用            ✓ create_chat_model()      ✓ model.invoke() in _execute_model_sync
@@ -493,6 +497,6 @@ Run 生命周期        ✓ run_agent() + RunManager ✗ (没有)
 SSE 桥接            ✓ StreamBridge             ✗ (没有)
 ```
 
-**核心洞见**：DeerFlow 的 agent loop 不是自己写的循环，而是 **LangGraph Pregel 的 BSP superstep 机制 + LangChain 的 graph 节点/条件边 + DeerFlow 的 37 个 middleware 实现**。三层叠在一起，形成了完整的 agent 执行系统。
+**核心洞见**：DeerFlow 的 agent loop 不是自己写的循环，而是 **LangGraph Pregel 的 BSP superstep 机制 + LangChain 的 graph 节点/条件边 + DeerFlow 的 39 个 middleware 条目位实现**。三层叠在一起，形成了完整的 agent 执行系统。
 
 下一步：回到 [[00-loop-anatomy]] 看三层循环的架构全貌，[[01-middleware-as-loop]] 深入 middleware 的设计哲学，[[02-extension-points]] 了解怎么往外扩。

@@ -62,7 +62,7 @@ Interactive elements (address them by [ref] number):
 
 ## SSRF 守卫：在浏览器请求边界而非单点 URL
 
-`validate_public_http_url`（`community/url_safety.py`）筛显式导航 URL（`allow_private_addresses` 仅在故意内网目标时 opt-out）。但 **Playwright 会跟随重定向、发 subresource/popup 请求**——单次初始 URL 检查看不到这些。所以 `_install_request_guard()` 在 **context 级别** 挂 `context.route("**/*")`：
+`validate_public_http_url`（`community/url_safety.py:145`）筛显式导航 URL（`allow_private_addresses` 仅在故意内网目标时 opt-out）。但 **Playwright 会跟随重定向、发 subresource/popup 请求**——单次初始 URL 检查看不到这些。所以 `_install_request_guard()` 在 **context 级别** 挂 `context.route("**/*")`：
 
 ```python
 async def _route(route):
@@ -73,6 +73,43 @@ async def _route(route):
 ```
 
 覆盖：顶层导航、每个重定向 hop、popup/新 tab、iframe、subresource fetch——**公开 URL 30x 重定向到 `http://169.254.169.254/...`（云 metadata）会在响应暴露给快照/text 之前被 abort**。跳过 CDP-attached 真 Chrome（它拥有自己的 browsing context）。
+
+实现在 `session.py:497-529`（2.2.0 已改为 `await asyncio.to_thread(guard, url)`——守卫要做 DNS 解析，不能跑在共享的浏览器事件循环上）；拦截日志用 `redact_browser_url(url)` 脱敏；`route.abort("blockedbyclient")` 与 `route.continue_()` 都包在 `contextlib.suppress` 里，避免一条畸形请求炸掉整个 context。
+
+### 但 request guard 只解决了一半：DNS rebinding 🆕
+
+守卫在**筛 URL 时会解析一次主机名**，而 **Chromium 在真正建连时会再解析一次**。一个 rebinding DNS 服务器可以先返回公网地址通过筛选，紧接着返回私网或云 metadata 地址给 Chromium。2.2.0 新增 `browser_automation/egress.py`（206 行）把「解析」这一步从浏览器里拿走：
+
+```
+Chromium ──SOCKS5 CONNECT host:port──▶ BrowserEgressProxy (127.0.0.1:<ephemeral>)
+                                          │
+                                          ├─ 用自己的 resolver 解析**恰好一次**
+                                          │   （resolve_browser_egress → 同一个
+                                          │    allow_private_addresses 策略）
+                                          ├─ 只连 resolver 认可的那些地址
+                                          └─ 之后纯字节转发，永不解析隧道内流量
+```
+
+关键设计（`egress.py` 模块 docstring 与实现）：
+
+| 点 | 说明 |
+|----|------|
+| 只支持无认证 `CONNECT` | 「which is everything Chromium sends for HTTP, HTTPS, and WebSocket traffic」；不支持的 command / 地址类型回 `_REPLY_COMMAND_NOT_SUPPORTED` / `_REPLY_ADDRESS_TYPE_NOT_SUPPORTED` |
+| 三种地址类型都解析成 IP 字符串再交给 resolver | IPv4 / IPv6 / DOMAIN（DOMAIN 必须是纯 ASCII 且非空，否则回 `ADDRESS_TYPE_NOT_SUPPORTED`） |
+| **拒绝与故障可区分** | `ValueError` → `_REPLY_NOT_ALLOWED`（策略拒绝，warn）；解析超时 → `HOST_UNREACHABLE`；其它异常 → `GENERAL_FAILURE` 并 `logger.exception`——「A resolver fault is not a policy refusal; keep the two distinguishable in the log and in the browser's error.」 |
+| **地址共享一个连接预算** | `_open_first()` 用 15s 总 deadline，第 i 个地址只拿 `remaining / (剩下几个)`——「a black-holed first answer cannot strand reachable candidates」 |
+| 超时分层 | 握手 15s、解析 15s、连接 15s、关闭 2s |
+| `close()` 不挂在残留隧道上 | `Server.wait_closed()` 会等所有连接，所以先把 `_client_writers` 里的隧道全 close，再 `wait_for(..., timeout=2)` 吞掉异常——「it must not hold up session close or eviction」 |
+| 关闭后不再建隧道 | `_handle()` 开头 `if self._server is None: writer.close(); return`（抢在 `close()` 之后 accepted 的连接） |
+
+接线（`session.py`）：
+
+- `BrowserSession.__init__` 新增 `egress_resolver` 参数（`:314`），注释就是上面那段 rebinding 论证；
+- `_egress_proxy_settings()`（`:455-462`）：没有 resolver → 返回 `None`（不启用代理）；否则懒建 `BrowserEgressProxy` 并返回 `{"server": "socks5://127.0.0.1:<port>", "bypass": "<-loopback>"}`——注释强调「Playwright already proxies loopback for Chromium unless an environment override disables it; spell it out so **localhost is never exempt**」；
+- `chromium.launch(..., proxy=await self._egress_proxy_settings())`（`:445`），会话关闭时 `await self._egress_proxy.close()`（`:748-752`）；
+- resolver 是 `tools.py:182` 的 `resolve_browser_egress(host, *, tool_name="browser_navigate")`——它读同一个 `allow_private_addresses` 配置，走 `resolve_public_addresses(host, action="browse", ...)`，最后 `dict.fromkeys` 去重保序。
+
+**两层是互补而非冗余**：request guard 让被拒请求**不发出**（快、能拦住 subresource），egress proxy 保证**发出去的连接只能落在被审查过的地址上**（抗 rebinding）。两者都跳过 CDP-attached 真 Chrome。
 
 ## Live Screencast（浏览器实时画面）
 
@@ -113,11 +150,12 @@ cd backend && uv sync --extra browser && uv run playwright install chromium
 |------|------|
 | 私有 loop 线程 | `session.py:_PlaywrightLoopThread`（183-214） |
 | 快照 / `[ref]` | `session.py:SnapshotElement` / `PageSnapshot` / `_snapshot_impl` |
-| 请求级 SSRF | `session.py:_install_request_guard`（424-453） |
+| 请求级 SSRF | `session.py:_install_request_guard`（497-529） |
+| **出网固定（SOCKS5）** 🆕 | `egress.py:BrowserEgressProxy`（`:58`）/ `session.py:_egress_proxy_settings`（455-462）/ `tools.py:resolve_browser_egress`（`:182`） |
 | CDP 附加 | `session.py:__init__` cdp_url 分支 / `_ensure_page` |
 | Live screencast | `session.py:_start_screencast` / `_rebind_screencast` / `_emit_live_frame` |
 | 工具定义 + URL 校验 | `tools.py:validate_browser_url` / 各 tool 函数 |
-| URL 安全 | `community/url_safety.py:validate_public_http_url` / `resolve_host_addresses` |
+| URL 安全 | `community/url_safety.py:validate_public_http_url` / `resolve_host_addresses` / `is_blocked_address` |
 | 测试 | `tests/test_browser_automation.py`（mock + 真 Chromium integration，`importorskip` 守卫） |
 
 ## 相关

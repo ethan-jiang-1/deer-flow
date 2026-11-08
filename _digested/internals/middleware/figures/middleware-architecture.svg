@@ -23,7 +23,7 @@
   <!-- Title -->
   <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
   <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
-  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Agent Middleware 架构：6 种 Hook 点 × 37 个 Middleware（35 内置类 + 2 通用槽位）</text>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Agent Middleware 架构：6 种 Hook 点 × 39 个 Middleware 条目位（36 内置类 + 2 通用槽位 + 1 条件项）</text>
 
   <!-- ===== LEFT: Agent Loop Flow ===== -->
   <text x="60" y="78" font-size="13" font-weight="700" fill="#333">Agent Loop 执行流</text>
@@ -116,7 +116,7 @@
 
   <!-- ===== RIGHT: Middleware Chain Panel ===== -->
   <rect x="60" y="580" width="1080" height="504" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
-  <text x="600" y="604" text-anchor="middle" font-size="12" font-weight="700" fill="#333">Middleware 链全景（37 条 = 35 内置类 + 2 通用槽位，按组装顺序排列；#1-14 基础层，其余 lead-only）</text>
+  <text x="600" y="604" text-anchor="middle" font-size="12" font-weight="700" fill="#333">Middleware 链全景（39 条目位 = 36 内置类 + 2 通用槽位 + 1 条件项，按组装顺序排列；#1-16 基础层，其余 lead-only）</text>
   <rect x="78" y="618" width="200" height="52" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="0.5"/>
   <text x="178" y="636" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">1. InputSanitization</text>
   <text x="178" y="651" text-anchor="middle" font-size="8.4" fill="#555">wrap_model_call</text>
@@ -186,9 +186,9 @@
   <text x="385" y="831" text-anchor="middle" font-size="8.4" fill="#555">wrap_tool_call</text>
   <text x="385" y="844" text-anchor="middle" font-size="8" fill="#888">promotion 决策持久化</text>
   <rect x="492" y="798" width="200" height="52" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="0.5"/>
-  <text x="592" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">18. SkillToolPolicy</text>
-  <text x="592" y="831" text-anchor="middle" font-size="8.4" fill="#555">wrap_model_call · wrap_tool_call</text>
-  <text x="592" y="844" text-anchor="middle" font-size="8" fill="#888">allowed-tools 策略</text>
+  <text x="592" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">18. ArtifactCapture</text>
+  <text x="592" y="831" text-anchor="middle" font-size="8.4" fill="#555">before_model · wrap_model_call</text>
+  <text x="592" y="844" text-anchor="middle" font-size="8" fill="#888">artifact handle 入册</text>
   <rect x="699" y="798" width="200" height="52" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.5"/>
   <text x="799" y="816" text-anchor="middle" font-size="9.5" font-weight="700" fill="#2e7d32">19. DurableContext</text>
   <text x="799" y="831" text-anchor="middle" font-size="8.4" fill="#555">before_model · wrap_model_call · after_model</text>

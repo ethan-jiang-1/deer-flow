@@ -1,6 +1,6 @@
 ---
 title: "沙箱系统"
-description: "DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 7 种实现（Local/AIO/Provisioner/BoxLite/E2B/Tenki/OpenSandbox）。"
+description: "DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 7 种实现（Local/AIO/Provisioner/BoxLite/E2B/Tenki/OpenSandbox）。2.2.0 的关键增量：可重试的 shutdown、bash 硬超时的 124 退出码、AIO 隔离记录（quarantine）、投机式 prewarm、统一下载/读文件契约。"
 topics: [sandbox, isolation, filesystem]
 ---
 
@@ -188,6 +188,33 @@ sandbox:
 
 Segment-boundary regex 保护反向路径翻译和输出脱敏——防止路径中包含目标模式的子串被错误匹配。源码：`deerflow/sandbox/path_patterns.py`
 
+#### 2.2.0：补齐「路径起点」边界（#7582）
+
+2.1 只校验了**路径尾**边界（`_SEGMENT_BOUNDARY = r"(?=/|$|[^\w./-])"`，`path_patterns.py:42`），漏掉了**路径起点**。后果是 base 会在一片别的东西中间被命中：
+
+```text
+.../artifacts/mnt/user-data/outputs/x.html   ← 工件 URL 里的 /mnt/user-data 不该被翻译
+backup/mnt/user-data                          ← 相对路径拼出来的假挂载点
+/var/data                                     ← 挂载点 /data 的假阳性
+```
+
+修法（`path_patterns.py:61-62`）是加一条镜像规则：
+
+```python
+_PATH_START_BLOCKERS = re.compile(r"[\w.~-]")                    # :61
+PATH_START_BOUNDARY  = rf"(?<!{_PATH_START_BLOCKERS.pattern})"    # :62
+```
+
+即「base 必须**开始**一个路径，而不是延续一个路径」。`build_output_mask_pattern`（`:112`）把前缀拼进正则，`replace_output_path_matches`（`:142`）在字符串扫描路径里用**同一个字符类**做前视检查（`match_start > 0 and _PATH_START_BLOCKERS.fullmatch(前一个字符)` → 跳过）——注释强调「The scanner and the regex lookbehind derive from one character class so `replace_output_path_matches` and `build_output_mask_pattern` cannot drift.」
+
+三个刻意的取舍：
+
+| 取舍 | 原因 |
+|------|------|
+| `/` **不**算 blocker | 让 `file:///mnt/user-data` 仍能被翻译 |
+| `.` 和 `~` **算** blocker | 拒绝 `./mnt/...` 与 `~/mnt/...` 这类相对写法 |
+| 已知假阴性：短选项紧贴路径（`curl -o/data/x`、`ssh -i/data/key`、`gcc -I/data/inc`）**不翻译** | 前一个字符是字母。注释说明取舍方向：「Rejecting embedded roots matters more: the alternative rewrites unrelated paths and URLs.」——正确写法是留空格（`-o /data/x`）或用 `=` |
+
 ## 孤儿回收（orphan reconciliation）🆕
 
 Provider 启动时（及 AIO 定期 `_cleanup_idle_resources`）调用 `_reconcile_orphans()`：
@@ -349,6 +376,123 @@ sandbox:
 
 - `sandbox/identity.py`：`sha256(user_id:thread_id)[:16]` 派生逻辑从各 provider 抽出为**单一实现**（此前 AIO/E2B/Tenki/OpenSandbox 各自为政）
 - `sandbox/acquire_serialization.py`：acquire 路径统一串行化，消除多 provider 的并发获取竞态（leases + keyed lock，见 `tests/test_sandbox_leases.py`）
+
+## 🆕 可重试的 shutdown（2.2.0，五个 provider 全部收敛）
+
+2.1 的 `shutdown()` 是「尽力而为」：任何一步失败只 log 或静默吞掉，然后**永久标记 `_shutdown_called = True`**。结果是失败之后再也无法重试——已 detached 的容器变成孤儿、warm-pool 条目失去追踪、后台线程仍在跑。2.2.0 把契约改成：
+
+> **要么全部清理成功并关闭 provider，要么把自己恢复成「未关闭」状态并抛出，让调用方重试。**
+
+各 provider 的落地方式：
+
+| Provider | 位置 | 失败即回滚 + 抛出的情形 |
+|----------|------|------------------------|
+| **AIO** | `aio_sandbox_provider.py:2984-3073` | `_stop_idle_checker()` / `_stop_lease_renewal()` 抛错 → `_shutdown_called = False` 后 re-raise；有任何 sandbox 销毁失败 → `_cleanup_retry_ids` 累积这些 id，`_shutdown_called = False`，抛 `RuntimeError("Failed to destroy N sandbox(es) during AIO shutdown; retry shutdown")`；只有真正成功才 `_ownership.close()` / `discard_sandbox_lease_manager()` / `_acquire_serializer.close()` |
+| **E2B** | `e2b_sandbox_provider.py:3081+` | 维护线程 join 超时 → 置 `_shutdown_cleanup_pending = True` 并抛 `_E2BMaintenanceShutdownTimeout`；下次 `shutdown()` 靠这个 pending 标志**放行重试**（`if self._shutdown_called and not self._shutdown_cleanup_pending: return`） |
+| **BoxLite** | `boxlite/provider.py:697-741` | 关闭 idle checker 或等待 `_pending_acquires == 0` 超时（5s）→ 抛 `RuntimeError("BoxLite in-flight acquisitions did not finish before shutdown timeout")` 并把 `_shutdown_called` 复位；另有 `_loop_cleanup_pending` 让「私有 loop 关不掉」也能重试 |
+| **OpenSandbox** | `opensandbox/provider.py:562-579` | `_stop_idle_checker()` 抛错 → 复位 `_shutdown_called` 后 re-raise |
+| **Local** | `local/local_sandbox_provider.py:603-607` | 无外部资源，直接复用 `reset()`——本来就是幂等的 |
+
+AIO 的实现细节值得单独看：
+
+1. **`_admission_closed = True` 在锁内先置位**——「Closed under the lock that guards every active/warm commit, so no acquire can install a sandbox after the snapshot below.」关闭开始后新的 acquire 立刻被拒，不会再往快照里塞东西。
+2. **先停维护 worker 再 detach**——`_stop_lease_renewal()` 的注释：「Stop renewing before detaching tracked ownership: the destroy paths claim ownership themselves, and a renewal racing teardown can re-publish leases we are about to drop. A bounded join timeout must fail closed so a retry still owns every active and warm entry.」
+3. **`pending` 集合参与快照**——`sandbox_ids = list(set(self._sandboxes) | getattr(self, "_cleanup_retry_ids", set()))`，所以上一轮失败留下的条目这一轮还会被清。
+4. **已知 peer 拥有的条目不算失败**——若 ownership 查询显示 owner 存在且不是自己，走 `_forget_lost_sandbox()` 后从 `failed` 里移除（对端会自己清），只有**未知 owner 或真的停不掉**才留在 `failed` 里。
+5. **失败集持久化**：`self._cleanup_retry_ids = ... | failed` 与 `_shutdown_called = False` 在同一把锁内完成，重试时既不会漏也不会重复。
+
+`_stop_idle_checker()` 本身来自共享 mixin（`community/warm_pool_lifecycle.py:103-109`）：`thread.join(timeout=5)` 之后若线程仍 alive 就抛 `RuntimeError("warm-pool idle checker is still running after stop timeout")`——**有界等待 + 明确失败**，而不是无限 join 或静默返回。
+
+## 🆕 bash 硬超时与 `Exit Code: 124`（2.2.0）
+
+`LocalSandbox.execute_command` 在超时路径上做两件事（`sandbox/local/local_sandbox.py:925-934`）：
+
+```python
+if timed_out:
+    notice = self._format_timeout_notice(timeout)
+    output += f"\n{notice}" if output else notice
+    # A timeout is a failed execution: mark it authoritatively (the
+    # coreutils ``timeout`` convention) so exit-status evidence
+    # consumers cannot read partial output as success.
+    output += "\nExit Code: 124"
+elif returncode != 0:
+    output += f"\nExit Code: {returncode}"
+```
+
+**为什么必须打 124**：超时的进程通常已经产出部分 stdout。若只在末尾追加一段人类可读的 "command timed out" 提示，`Exit Code` 行缺失，"退出码证据"的消费者（agent 的失败判定、`tools.py:2433` 起的失败输出分派）会把这段部分输出当成成功。**124 是 coreutils `timeout` 的约定**，所以本地与远端 provider 用同一个信号，模型一侧的解读也统一。
+
+配套的提示文案（`_format_timeout_notice`，`:401-406`）不是简单的 "timed out"，而是直接给出改法：
+
+> Command timed out after N and was terminated. To run a long-lived process such as a web server, start it in the background and redirect its output, e.g. `your-command > /mnt/user-data/workspace/server.log 2>&1 &`.
+
+这与 `_run_posix_command`（`:1061-1083`）的设计配套：**不能用 `subprocess.communicate()`**——后台常驻进程（`server &`）继承 stdout/stderr 会一直握住管道，`communicate()` 会一直等到超时，即使前台 shell 早就返回了。改用 daemon drain 线程 + 有界 pipe capture（只保留有限输出），前台 shell 一退出就返回；`stdin` 接 `/dev/null`（读 stdin 的命令立刻 EOF）；`start_new_session=True` 让命令自成进程组，超时时能**连同子进程一起**杀掉。
+
+## 🆕 投机式 prewarm（`sandbox/prewarm.py`，232 行）
+
+模型还没调工具时，代码/命令执行往往是可以预判的——但沙箱冷启动（尤其 AIO 的容器创建）是秒级。2.2.0 用 `prewarm.py` 在**模型思考期间**提前 acquire，模型真调工具时直接「认领」：
+
+| 符号 | 位置 | 作用 |
+|------|------|------|
+| `should_prewarm_sandbox(state)` | `:73` | 只看**最后一条 HumanMessage**，先 `_URL_RE.sub("", text)` 去掉 URL（URL 里到处是 `/`，否则 `_PATH_RE` 会误判），再匹配四类信号：代码围栏 / 路径 / 命令行 / traceback |
+| `class SandboxPrewarm` | `:86-192` | 一次投机的完整生命周期 |
+| `start_sandbox_prewarm(state, runtime)` | `:200` | 每个 run 最多起一个 |
+| `claim_sandbox_prewarm(runtime, *, provider)` | `:213` | 工具侧认领 |
+| `close_sandbox_prewarm(runtime)` | `:228` | 收尾 |
+
+**四类信号的实测正则**（`prewarm.py:35-44`）：
+
+- `_CODE_FENCE_RE = re.compile(r"```")`
+- `_PATH_RE`：`~/...`、`/...`、`C:\...`（要求前面是行首或空白/引号/括号）
+- `_COMMAND_RE`：`$ cmd`、`python3 x.py`、`pip install`、`git status/diff/...`、`npm/pnpm run|install|test|build`、`uv run|sync|pip|add`、`pytest`、`make test|check|build`、`docker run|build|compose|ps|logs`、`kubectl get|describe|logs|exec|apply`
+- `_TRACEBACK_RE`：`Traceback (most recent call last)` 或 `  File "...", line N`
+
+**只对 AIO 生效**：`acquire()` 里 `if not getattr(sandbox, "prewarm", False) or not sandbox.use.endswith(":AioSandboxProvider"): return None`。
+
+**安全与预算的四条纪律**：
+
+1. **先做 authz**——`await authorize_sandbox_execution_async(context=self.context, app_config=await safe_app_config_async())`，注释明确「Startup policy is run-scoped, but authorization must be fresh; claiming later does not replace the ordinary tool's fresh gate.」被拒只 debug 一行，**不影响正常工具路径**。
+2. **有界并发预算**（`_take_permit`，`:52-62`）：`_permits: dict[id(provider) → (provider, count)]`，上限 `sandbox.prewarm_max_concurrent`（默认 1）。用 `threading.Lock` 而不是 asyncio semaphore，因为「also covers the isolated subagent loop」；**真实工具获取永不排在这个可选预算后面**（注释：「Real tool acquisitions never queue behind this optional budget.」）。
+3. **任何失败都静默降级**——`except Exception: logger.info("Sandbox prewarm unavailable; normal tool acquisition remains authoritative")`。prewarm 是纯优化，绝不能让 run 失败。
+4. **认领要匹配身份**（`:213-224`）：`owner_id` / `thread_id` / `user_id` 三者都对齐才认领；provider 换了则 `close()` 返回 `None`。
+
+`close()` 的清理路径（`_cleanup`，`:150-176`）刻意做了三件难事：cancel task 后 `await` 它（吞 `CancelledError`，注释「The manager reconciles any provider result before this.」）、对 `AcquireSerializerClosed` **区分「provider 已被 reset/shutdown」与「真的坏了」**（前者 debug 后跳过，因为「raw release here could close a sibling still using the old provider」）、最后 `self.context.clear()` 释放授权/配置快照——「A closed marker prevents repeated speculation in goal continuations without retaining the authorization/config snapshot indefinitely.」
+
+## 🆕 统一的文件契约：`read_file_contract.py` 与 `download.py`
+
+### `read_file_contract.py`（55 行）
+
+`read_file` 的行范围语义散落在「模型看到的文本」「展示层渲染」「远端切片」三处，2.2.0 把它收敛到一个模块：
+
+| 常量 / 函数 | 行 | 含义 |
+|-------------|----|------|
+| `READ_FILE_EMPTY` | `:3` | `(empty)` |
+| `READ_FILE_START_LINE_EXCEEDS` | `:4` | `(start_line exceeds file length)` |
+| `READ_FILE_INVALID_START_LINE` | `:5` | `(start_line must be >= 1)` |
+| `READ_FILE_INVALID_END_LINE` | `:6` | `(end_line must be >= 1)` |
+| `READ_FILE_INVALID_RANGE` | `:7` | `(invalid line range: start_line must be <= end_line)` |
+| `READ_FILE_EMPTY_RANGE` | `:9` | 向后兼容别名 = `READ_FILE_INVALID_RANGE` |
+| `READ_FILE_NO_CONTENT_RESULTS` | `:10-17` | 上面五个的 frozenset——「这些返回值不是内容」 |
+| `READ_FILE_TRUNCATION_PREFIX` | `:18` | `"... [truncated:"` |
+| `count_file_lines(content)` | `:21-36` | `content.count("\n") + (0 if endswith("\n") else 1)` |
+| `split_file_lines(content)` | `:39-55` | 只在 `"\n"` 处切，每行去掉尾部 `"\r"` |
+
+**两条容易踩的差异**，都写在 docstring 里：
+
+- **不用 `splitlines()`**——它会额外在 `\f`、`\v`、`\x1c`-`\x1e`、`\x85`、`\u2028`、`\u2029` 处断行，而 `LocalSandbox.read_file` 的 `newline="\n"` 迭代不会。用 `splitlines()` 会让**行号与模型能回传的 `start_line` 对不上**。
+- **`count_file_lines` 与 `split_file_lines` 必须自洽**——`len(split_file_lines(c)) == count_file_lines(c)`，这是 gate 提示里的「文件共 N 行」与模型实际可读范围一致的前提。
+
+远端 provider 需要切片时用 `split_file_lines`，不要用 `splitlines()`。
+
+### `download.py`（39 行）
+
+| 常量 / 函数 | 行 | 作用 |
+|-------------|----|------|
+| `DEFAULT_DOWNLOAD_LIMIT` | `:7` | 100 MiB |
+| `MAX_IMAGE_BYTES` | `:8` | 20 MiB（vision 路径的图大小上限） |
+| `download_limit(max_bytes, provider_limit)` | `:11-22` | 「A caller may **tighten, but never raise**, the provider's download ceiling」——`min()`；`bool`、负数、非 int 抛 `ValueError` |
+| `read_download_stream(stream, limit, path)` | `:25-45` | 逐块读，**第一次超预算就停**：抛 `OSError(errno.EFBIG, f"File exceeds maximum download size of {limit} bytes", path)`；不保留溢出的那一块、不再消费后续块；`finally` 里关流且吞掉清理异常（「Cleanup must not replace the original failure.」） |
+
+`EFBIG` 而不是通用 `OSError` 消息，是让上层能区分「太大」与「读失败」；`download_limit` 的 min 语义保证 provider 侧的硬上限**无法被调用方绕过**。
 
 ## 其他 v2.1.0-rc0 变更
 

@@ -51,7 +51,7 @@ LangSmith/Langfuse 之外的另外两层可观测性：请求级关联 id（`X-T
 
 `DeferredToolPromotionAuditMiddleware` 观察最终 `tool_search` 返回的 `Command`，把**实际生效**的晋升经 `record_tool_promotion()` 落为 `middleware:tool_promotion` 事件（source / tool_names / count / is_subagent / agent_id）：
 
-- 必须保持在 `SkillToolPolicyMiddleware` **外层**——tool-call 包装按注册反序展开，观察 handler 的最终返回值才能排除被策略拒绝的 schema。
+- 必须保持在 `SkillToolPolicyMiddleware`（v2.2.0 已删除）**外层**——tool-call 包装按注册反序展开，观察 handler 的最终返回值才能排除被策略拒绝的 schema。
 - `claim_tool_promotions()` 按 lead run / subagent execution 原子去重，防止并行 search 重复记账；私有 payload 不进事件。
 - `McpRoutingMiddleware` 的 routing-hint 晋升复用同一 `record_tool_promotion()` 出口（`source=routing_hint`），重复 pass 不重复发事件。
 

@@ -71,34 +71,44 @@ sequenceDiagram
 
 ### 文件索引
 
-| 文件 | 行数（v2.1.0 实测） | 职责 |
+| 文件 | 行数（v2.2.0 实测；括号内为 v2.1.0） | 职责 |
 |------|------|------|
-| `runs/manager.py` | 2424 | RunManager — 运行 CRUD、状态机、多任务策略、SQLite 事务保护、孤儿协调、multi-worker lease |
-| `runs/worker.py` | 3061 | run_agent() — 后台图执行、流式发布、Langfuse 注入、checkpoint 回滚、delivery receipt、workspace 快照 |
-| `journal.py` | 1300 | RunJournal — LangChain 回调处理器、token 累计（按 lead/subagent/middleware 分桶）、消息去重、进度刷盘、delivery receipt |
+| `runs/manager.py` | 3150（2424） | RunManager — 运行 CRUD、状态机、多任务策略、SQLite 事务保护、孤儿协调、multi-worker lease；🆕 终态 ACK 协议、per-run 租约检查、`try_start` 启动栅栏、幂等准入 + execution fence、`reserve_thread_operation`、evidence seal |
+| `runs/worker.py` | 3864（3061） | run_agent() — 后台图执行、流式发布、Langfuse 注入、checkpoint 回滚、delivery receipt、workspace 快照；🆕 独立的 `run-finalization-{run_id}` 收尾任务 + 生产者租约转移 |
+| `journal.py` | 1977（1300） | RunJournal — LangChain 回调处理器、token 累计（按 lead/subagent/middleware + 按 model 分桶）、消息去重、进度刷盘、delivery receipt；🆕 canonical-callback 合并、写入隔离（quarantine）、`close(flush=)`、`finish_evidence()` |
 | `serialization.py` | 148 | serialize() — 规范序列化，支持 values/messages/custom 三种模式 |
 | `converters.py` | 136 | LangChain → OpenAI Chat Completions 格式转换 |
-| `stream_bridge/base.py` | 115 | StreamBridge ABC — publish/subscribe/cleanup 协议、心跳/结束哨兵 |
-| `stream_bridge/memory.py` | 192 | InMemoryStreamBridge — asyncio.Queue 实现 |
-| `stream_bridge/async_provider.py` | 101 | 后端感知工厂（memory/SQLite/Postgres） |
+| `stream_bridge/base.py` | 163（115） | StreamBridge ABC — publish/subscribe/cleanup 协议、心跳/结束哨兵、`ping()`、`StreamProducerLeaseState`、生产者租约 6 个存根 |
+| `stream_bridge/memory.py` | 218（192） | InMemoryStreamBridge — `_RunStream` 保留缓冲 + Condition；🆕 generation 退休、被驱逐 id 记录、id 解析防溢出 |
+| `stream_bridge/async_provider.py` | 108（101） | 后端工厂（memory/redis）；🆕 退出时 `await_drained(bridge.close())` |
 | `user_context.py` | 295 | ContextVar 用户上下文（set/get/require）、effective_user_id 三级解析 |
-| `runs/schemas.py` | 32 | RunStatus、DisconnectMode 枚举 |
+| `runs/schemas.py` | 35（32） | RunStatus、DisconnectMode 枚举 |
 | `runs/naming.py` | 16 | 根运行名解析 |
-| `store/async_provider.py` | 124 | LangGraph async store 工厂（匹配 checkpointer 后端）；sync 孪生见 `store/provider.py`（`get_store()` 单例 / `store_context()`）与 `store/_sqlite_utils.py` |
-| `goal.py` | 569 | Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker |
+| `store/async_provider.py` | 125（124） | LangGraph async store 工厂（匹配 checkpointer 后端）；sync 孪生见 `store/provider.py`（`get_store()` 单例 / `store_context()`）与 `store/_sqlite_utils.py` |
+| `goal.py` | 908（569） | Goal 自动续跑 — evaluator 模型、blocker 类型、no-progress breaker；🆕 工具调用证据、`relied_on_assumption`、`goal_outcome` 通道、`GoalEvaluationFormatError` |
+| `goal_progress.py` | 147（新增） | 🆕 成功操作观测 — `observe_goal_operations()` / `previous_goal_operations()`，只存 `sha256([name, args, output_sha256, output_bytes])` |
 | `goal-continuation.md` | — | 开发者文档：Goal 续跑循环完整说明 |
 | `05-run-ownership-and-rollback.md` | — | Multi-worker ownership / rollback / delivery receipt 完整说明 |
 | `keyed_lock.py` | 147 | 🆕 按键串行化锁表 — `AsyncKeyedLockTable`（asyncio，按 loop 分桶）+ `KeyedLockTable`（线程版），waiter-aware 空闲条目回收 |
 | `events/message_identity.py` | 60 | 🆕 消息稳定身份规则的后端半边 — ToolMessage 按 `tool_call_id`、human 的 `X`/`X__user` 副本折叠为同一身份 |
 | `events/message_seq.py` | 52 | 🆕 REST 读路径（GET state / POST history）批量盖 `deerflow_seq` 章 — 流式 values 帧的 request-scoped 对应物 |
 | `checkpoint_mode.py` | 146 | 🆕 full/delta 双模式的进程冻结、`deerflow_checkpoint_channel_mode` 元数据标记、fail-closed 门（`CheckpointModeMismatchError`）— 见 [../persistence/checkpoint-dual-mode-and-history-cache.md](../persistence/checkpoint-dual-mode-and-history-cache.md) |
-| `checkpoint_state.py` | 209 | 🆕 `CheckpointStateAccessor`（状态读写唯一咽喉）+ `build_state_mutation_graph()`（只做状态变更的 idle 图） |
-| `checkpoint_cache/`（base/memory/provider/redis） | 80/79/101/116 | 🆕 delta 历史缓存契约与 memory/redis 后端、`make_checkpoint_cache()` 工厂、部署身份键前缀 |
-| `checkpointer/cached_saver.py` | 328 | 🆕 `CachedHistorySaver` — 只覆写 delta channel history 的 read-through 包装（递归 compose + 线程级 purge） |
-| `stream_bridge/redis.py` | 384 | 🆕 `RedisStreamBridge` — 每 run 一个 Redis Stream、`StreamGap` 落后检测、TTL/MAXLEN 保留 |
+| `checkpoint_state.py` | 244（209） | `CheckpointStateAccessor`（状态读写唯一咽喉）+ `build_state_mutation_graph()`（只做状态变更的 idle 图）；🆕 `direct_namespace` / `aget_tuple`、delta 模式下目标消失的重试 |
+| `checkpoint_cache/`（base/memory/provider/redis） | 89/87/102/165（80/79/101/116） | delta 历史缓存契约与 memory/redis 后端、`make_checkpoint_cache()` 工厂、部署身份键前缀；🆕 `valid_history_entry` / `write_serialization_failures`、memory 后端锁外 deepcopy |
+| `checkpointer/cached_saver.py` | 364（328） | `CachedHistorySaver` — 只覆写 delta channel history 的 read-through 包装（递归 compose + 线程级 purge）；🆕 `_channel_writes` 按 task_id 排序、`source_saver`、`ainvalidate_history_cache` |
+| `stream_bridge/redis.py` | 1068（384） | `RedisStreamBridge` — 每 run 一个 Redis Stream、`StreamGap` 落后检测、TTL/MAXLEN 保留；🆕 生产者存活租约（token 比对 Lua）、END 原子发布、未来游标/流消失 gap、`ping()` |
 | `stream_modes.py` | 47 | 🆕 对外 stream mode 词表 + `messages-tuple → messages` 映射（`UnsupportedStreamModeError`） |
-| `context_compaction.py` | 224 | 🆕 手动 compaction 工作核心：`ThreadCompactionResult`、`ContextCompactionDisabled`/`Failed`、checkpoint agent binding |
+| `context_compaction.py` | 244（224） | 手动 compaction 工作核心：`ThreadCompactionResult`、`ContextCompactionDisabled`/`Failed`、checkpoint agent binding；🆕 `ContextCompactionPendingWork`（拒绝压缩仍有 `__pregel_tasks` 待发的 thread） |
 | `context_keys.py` | 33 | 🆕 checkpoint 级 server-owned 键（agent binding 元数据） |
+| `events/terminal.py` | 316（新增） | 🆕 终态协议 v1 — `TERMINAL_PROTOCOL_VERSION`、`TERMINAL_STATUSES`、`RecoveryTerminalTarget`/`RecoveryTerminalPublisher`（claim 授权的恢复终态）、`confirm_terminal_event()` |
+| `events/evidence.py` | 13（新增） | 🆕 `JournalSealReceipt` — `finish_evidence()` 返回的耐久证据回执 |
+| `runs/stream_cleanup.py` | 111（新增） | 🆕 恢复 run 的 stream 清理（`recovered_stream_cleanup_delay_seconds`） |
+| `checkpointer/thread_spans.py` | 97（新增） | 🆕 `ThreadSpan` / `list_thread_spans()` — 按 thread 聚合 MIN/MAX 时间跨度（SQL，回退 `_scan_thread_spans`） |
+| `cancellation.py` | 63（新增） | 🆕 `wait_for_task_until()` 等有界等待辅助（截止时间而非超时） |
+| `run_origin.py` | 80（新增） | 🆕 `deerflow_origin` 服务端来源标记解析（schedule / IM / GitHub / extension / MCP），**拒绝客户端提供** |
+| `client_context.py` | 160（新增） | 🆕 请求级 client context 的白名单净化与 prompt 渲染（32 项 / 80 / 200 / 2^53-1 上限） |
+| `assembly_evidence.py` | 63（新增） | 🆕 图执行前的 host-owned 装配证据（`deerflow_assembly_evidence`，keyed HMAC 摘要，8000 字节上限） |
+| `secret_context.py` | — | 请求级 secret 载体（`config.context.secrets` → skill sandbox 环境变量）；🆕 `write_slash_skill_source_paths`、`AGENT_RUNS_CONTEXT_KEY` 进 `REDACTED_CONTEXT_KEYS` |
 | `task-continuity.md` | — | 🆕 任务连续性子系统文档：task notes + compacted history recall（见下方同步 #6） |
 
 ### 本目录文档索引（7 篇）
@@ -106,12 +116,12 @@ sequenceDiagram
 | 文档 | 内容 |
 |------|------|
 | `01-run-manager.md` | RunManager：运行 CRUD、状态机、多任务策略、lease 与孤儿恢复 |
-| `02-stream-bridge.md` | StreamBridge：SSE 发布/订阅、心跳、memory/SQLite/Redis 三后端 |
+| `02-stream-bridge.md` | StreamBridge：SSE 发布/订阅、心跳、gap、memory/Redis 两后端、Redis 生产者租约与 `ping()` |
 | `03-serialization.md` | 序列化层：LangChain 对象 → JSON 规范转换（values/messages/custom 三模式） |
-| `04-journal.md` | RunJournal：LLM 调用日志、token 分桶累计、消息去重、进度刷盘 |
+| `04-journal.md` | RunJournal：LLM 调用日志、token 分桶累计、消息去重、进度刷盘、写入隔离与证据结算 |
 | `05-run-ownership-and-rollback.md` | Multi-worker ownership / rollback / delivery receipt 完整说明 |
-| `goal-continuation.md` | Goal 自动续跑循环完整说明（evaluator、blocker、no-progress breaker） |
-| `task-continuity.md` | 任务连续性：task notes + compacted history recall |
+| `goal-continuation.md` | Goal 自动续跑循环完整说明（evaluator、blocker、no-progress breaker、stand-down 原因、`goal_outcome`） |
+| `task-continuity.md` | 任务连续性：task notes + compacted history recall（🆕 role 过滤、精确摘录偏移、批次容量预留） |
 
 ### 同步 #6（ce635b7d）：线程生命周期、幂等与事件循环卫生
 
@@ -171,6 +181,43 @@ Thread 级 run 创建端点（`POST /{thread_id}/runs`、`/stream`、`/wait`）�
 - **事件存储变更串行域**（#5535）— `put` / `put_batch` / `put_if_absent` / `delete_by_thread` / `delete_by_run` 共享同一临界区：每线程 `asyncio` 锁 +（PostgreSQL）事务级 advisory lock（`DbRunEventStore._acquire_thread_mutation_fence()`）；删除签名统一为 owner-scoped（`user_id` 三态，memory/JSONL 只为接口一致性接受并忽略）。详见 observability digest。
 - **线程删除清理**（#5535）— `RunRepository.delete_by_thread()` 只删 `operation_kind == "run"` 的历史 run（保留保护本次 `DELETE` 的 reservation 行），且**不 bump change clock**；`MemoryRunStore.delete_by_thread()` 同规则。详见 `05-run-ownership-and-rollback.md`。
 - **0025 修复型迁移**（#5517）— 幂等重放被"插队"的 `0023_run_change_seq` 的 DDL，并把 `RunChangeClockRow` / `UserPreferenceRow` 补进 ORM 注册表。详见 persistence digest。
+
+### 🆕 sync #8（v2.1.0..v2.2.0）要点：runtime 域的四个主轴
+
+本域（`runtime/` 运行基础设施）在 2.2.0 里涨了约 45% 的代码量，方向集中在四件事上。细节各自见对应页面。
+
+#### 1. 终态必须是「有凭据的事实」，不能靠读行推断
+
+2.1.0 说完就完：改 `status` → 发 END → 收工。2.2.0 把「终态」拆成三件需要分别证明的事（`01-run-manager.md` / `05-run-ownership-and-rollback.md`）：
+
+- **durable 状态**：`_persist_status()` 必须拿到 `TerminalCommitProof` 的 ACK 才算落地；`terminal_commit_pending` 是显式表示「终态已定、收尾未提交」的一等状态，这期间租约要继续续（`_awaits_terminal_commit`）。
+- **事件证据**：`run.terminal`（协议 v1）+ 零投递 `run.delivery` backfill，由 `events/terminal.py` 的 `confirm_terminal_event()` 发布；孤儿恢复只能从 `claim_for_takeover()` 返回的 `RecoveryTerminalTarget` 发布，不接受事后读到的行。
+- **journal 证据**：`finish_evidence()` → `JournalSealReceipt` → `evidence_state = complete | partial`；未知结果的写入永久隔离、绝不产生回执。
+- **共享基座**：`journal.py` 的写入分道（成功 / 明确未提交可重试 / 结果未知→隔离 / 已放弃），是上面三条都依赖的语义。
+
+#### 2. 多 worker 的每个「活着」信号都要显式化
+
+- run 侧：per-run 续租任务 + 本地 `call_later` 截止守卫（心跳停摆也会 fence）、`allow_interrupted` 只放宽 interrupted 行、fenced cancel 走 `ExecutionFence`（`01-run-manager.md` / `05-...md`）。
+- stream 侧：Redis 生产者存活租约（30s TTL / 10s 续租 / token 比对 Lua），END 与数据写在**同一次原子调用**里判序；`legacy_end_scan_enabled`（默认开）与 `producer_lease_recovery_enabled`（默认关）是两个必须按顺序打开的迁移开关（`02-stream-bridge.md`）。
+- 准入侧：`try_start` 启动栅栏、`reserve_thread_operation` 把 run 之外的 checkpoint 写（goal / compact / state / history 回写）与 run 准入互斥。
+
+#### 3. 「谁写的、为谁写的」变成显式字段
+
+- `evidence_origin` / `evidence_agent_id`（`_validate_evidence_origin`）
+- `run_origin.py` + `runs.origin_kind`（**只接受服务端盖章**，浏览器/PAT/API 客户端提供的一律丢弃）
+- `client_context.py` 把 SDK 兼容的宽 `context` 收敛成白名单子集
+- `secret_context.py` 的 `AGENT_RUNS_CONTEXT_KEY` 进 `REDACTED_CONTEXT_KEYS`
+
+#### 4. Goal 的「有进展」有了工具级证据
+
+`goal_progress.py`（147 行）把「本轮有没有新观测到的成功操作」做成独立判据，与文本签名并存；evaluator 的证据窗口开始包含工具调用/结果摘要；达成时写 `goal_outcome` 通道而不是只清掉 goal（`goal-continuation.md`）。
+
+#### 未纳入本域、需要其他域跟进的部分
+
+- Gateway 侧的租约恢复消费方（`app/gateway/services.py` 的 `_stream_producer_lease_state` / `_cleanup_expired_stream_producer`、`serialize_wait_run_status`、`app/gateway/sse_headers.py`、`app/gateway/run_origin.py`）→ app-layer digest。
+- `runtime/events/{catalog,terminal,evidence}.py` 的生命周期守卫、`events/store/*` 的新事件类型 → observability digest。
+- `checkpoint_cache` / `cached_saver` / `thread_spans` / `checkpoint_state.direct_namespace` → persistence digest（[../persistence/checkpoint-dual-mode-and-history-cache.md](../persistence/checkpoint-dual-mode-and-history-cache.md)）。
+- `runs/store/base.py` 的严格 kwargs 契约、迁移 `0045_completed_run_evidence` → persistence digest。
 
 ### 关键设计决策
 

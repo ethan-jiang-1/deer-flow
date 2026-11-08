@@ -33,9 +33,15 @@ topics: [error-handling, debugging, loop-detection, logging, circuit-breaker]
 
 支持 per-tool 覆盖：`tool_freq_overrides.bash.warn: 150`。
 
+🆕 **v2.2.0 key 派生变化**（`_stable_tool_key`，`loop_detection_middleware.py:180`）：除 `read_file`（按 200 行分桶）之外的调用改用**全参数** JSON 排序哈希，不再只取 `path`/`url`/`query`/`command`/`pattern`/`glob`/`cmd` 这几个"显著字段"。旧做法把"翻页同一个 URL"（`start_index`/`page`/`cursor` 不同）和"改写不同 skill 文件"折叠成同一个 key，第 5 次*不同*调用就被硬停。唯一例外是沙箱工具 `bash`/`ls`/`glob`/`grep` 的 `description`（纯 UI 叙述）被剔除，改写措辞不会让重复调用看起来是新调用（#1905）。`_coerce_line_number`（`:139`）现在也吞 `OverflowError`——模型吐 `1e999` 这类 JSON 数字会解析成 `float('inf')`，`int()` 拒绝，不能让 `after_model` 崩掉。
+
 ### 警告注入机制
 
 警告不在 `after_model` 中直接注入（会破坏 OpenAI tool-call 配对——每次 AIMessage.tool_calls 必须有 ToolMessage 响应）。而是排队到 per-(thread, run) 队列，在下次 `wrap_model_call` 时作为 `HumanMessage(name="loop_warning")` 注入。每条 run 最多 4 条待处理警告。
+
+🆕 **v2.2.0：warn 级消息不再说"立刻停止所有工具"**。旧文案让"任务要求把结果写到文件"的 subagent 连交付用的写文件都停掉，于是以 `completed` 结束但磁盘上什么都没有。新文案（`_WRAP_UP_INSTRUCTIONS`）允许在最终回答前做**有界**的保存/读取/重试（不走循环的那个写入工具、不绕过写前读门），并点名 `present_files`（只被告知"停止调用工具"的 agent 会漏掉已产出文件的呈现，导致交付检查失败）。hard-stop 路径行为不变——照旧剥离 tool_calls。
+
+🆕 **subagent 侧**：`LoopDetectionMiddleware` 在 v2.2.0 也被注册进 `build_subagent_runtime_middlewares()`（#3875 Phase 1，基础层之上），所以 subagent 同样受这两层限制，并通过 `consume_stop_reason()` 把 `loop_capped` 交回 executor。
 
 ---
 
@@ -57,6 +63,12 @@ topics: [error-handling, debugging, loop-detection, logging, circuit-breaker]
 - 默认最多 3 次，base delay 1000ms，指数退避 `delay * 2^(attempt-1)`，上限 8000ms
 - 尊重 `Retry-After` / `retry-after-ms` 响应头
 - `StreamChunkTimeoutError` 预算减半（2 次），并给用户提示拆分工作
+
+🆕 **v2.2.0 的三条补充**（都是 `model_response.py` 抽出共享分类之后的产物）：
+
+1. **真空 stop 的一次重试**：provider 返回 `finish_reason=stop` 但内容完全为空时，`LLMErrorHandlingMiddleware` 在 model boundary 给一次重试，而不是当成功返回。判定用共享的 `has_visible_content()`——它对每个 content block 的 `type` 用**等值**判断而非集合成员（`type: []` / `type: {}` 是合法的 provider JSON，哈希不可哈希值会抛 `TypeError` 冲出 middleware 链）。
+2. **`TerminalResponseMiddleware` 收窄**：v2.1.0 里它自己实现重试 + fallback（含 `_RECOVERY_PROMPT`、`threading`/`BoundedDict` 依赖，~160 行）；v2.2.0 把重试交给 LLMErrorHandlingMiddleware，TerminalResponse 只剩"post-tool 回合仍没有用户可见文本 → 落一条 error fallback"（`_FALLBACK_CONTENT`，不再宣称"包括一次自动重试之后"）。作用域仍是最近一条真实 user message 之后的 ToolMessage 存在时；无 HumanMessage 的 scheduled/internal 调用不走这条。
+3. **`ModelLengthFinishReasonMiddleware` 从"只打标"变成"打标 + 拦截"**（#4271）：provider 长度截断（`finish_reason=length` / `MAX_TOKENS` / `stop_reason=max_tokens`）时，① 给形状正确的可见内容补一段确定性提示；② **丢弃可能被截断的 tool_calls**，不让半截参数去执行（`clone_ai_message_with_tool_calls()`，不是裸改 `tool_calls`——否则适配器会把 `content` 里的旧 tool-call block 重发一遍，strict provider 直接拒）；③ 打 `model_length_termination` 标记，让下游 guard（尤其 `TodoMiddleware`）站开而不是把被截断的回合再拉起来；④ 每个被检测到的 cap 按 context `run_id` 记入有界字典，经 `consume_stop_reason()` 交回 subagent executor，于是被截断的 subagent 到 lead 那里是 `completed` + `stop_reason=model_length_capped`，而不是干净的 `completed`。tool call 被抑制时即使有部分文本也一定附提示。
 
 ### 断路器
 

@@ -76,7 +76,9 @@ async def awrap_model_call(self, request: ModelRequest, handler: Callable) -> Mo
 
 **适合做：** 截断过多的 subagent 调用（SubagentLimitMiddleware）、token 统计（TokenUsageMiddleware）、自动标题（TitleMiddleware）、safety 终止检测（SafetyFinishReasonMiddleware）。
 
-**反向执行的含义：** SafetyFinishReasonMiddleware（位置 18，接近链尾）在 `after_model` 中**最先**执行——它必须第一个看到原始 model 输出，在 LoopDetection 和 SubagentLimit 处理 tool_calls 之前清除被 safety filter 污染的 tool_calls。
+**反向执行的含义：** 注册越靠后的 middleware 在 `after_model` 里越先看到原始 model 输出。v2.2.0 的 lead 链尾是 `... TerminalResponse → ModelLengthFinishReason → SafetyFinishReason(cond) → Clarification`，所以反向执行时 **Clarification 最先**，`SafetyFinishReason` 紧随其后——它必须赶在 LoopDetection/SubagentLimit 读 tool_calls 之前把被 safety filter 污染的 tool_calls 清掉，这个需求成立的依据是"它注册在内层 guard（LoopDetection/SubagentLimit）之后"，而非某个固定序号。`SubagentLimit`/`TokenBudget`/`LoopDetection` 的清理动作则排在更后面。
+
+🆕 v2.2.0 的 `ModelLengthFinishReasonMiddleware` 是同一手法：它排在 `TerminalResponse` 之后注册 → 反向执行时先于 TerminalResponse 看到响应，所以在 TerminalResponse 判定"空响应"前就已把 `stop_reason=model_length_capped` 标好并抑制该响应的 tool_calls。
 
 ```python
 # 签名
@@ -223,7 +225,7 @@ LangGraph 的 `Command(goto=...)` 是 graph 中断的标准方式。`goto="__end
 **没有集中式的 try/except 包裹每个 middleware。** 异常传播取决于 hook 类型：
 
 - **Graph node (before_* / after_*):** 异常直接传播给 LangGraph node runner → agent run 失败。同一阶段的后续 middleware 全部跳过。
-- **wrap_model_call (内联):** 如果 LLMErrorHandlingMiddleware（位置 4，最外层之一）捕获了异常并做了重试/降级，内层 middleware 完全不感知。但如果异常来自内层 middleware 且没有被外层捕获 → 传播到 model_node → agent run 失败。
-- **wrap_tool_call (内联):** ToolErrorHandlingMiddleware（位置 7）作为外层之一，try/except 包裹 handler()。tool 执行异常被它捕获并转换为 error ToolMessage。但如果 ToolErrorHandlingMiddleware **自己**抛了异常（不太可能，但可能），它之后的 middleware（DeferredToolFilter、Clarification）就跳过了。
+- **wrap_model_call (内联):** `LLMErrorHandlingMiddleware` 是最外层的 `wrap_model_call` 之一（紧跟 InputSanitization/KnowledgeScope/ToolOutputBudget/ToolResultSanitization/PiiRedaction 这几层），它捕获 provider 调用异常并做重试/降级，内层 middleware 完全不感知。但如果异常来自内层 middleware 且没有被外层捕获 → 传播到 model_node → agent run 失败。
+- **wrap_tool_call (内联):** `ToolErrorHandlingMiddleware` 是 `tail` 里的外层之一（外层还有 ToolReceipt、ArtifactResolution、Guardrail、SandboxAudit、ReadBeforeWrite、ToolProgress），try/except 包裹 handler()。tool 执行异常被它捕获并转换为 error ToolMessage。但如果 `ToolErrorHandlingMiddleware` **自己**抛了异常（不太可能，但可能），它之后的 middleware（DeferredToolFilter、TerminalResponse 等）就跳过了。
 
 **实际影响：** 一个 third-party middleware 的 bug 可以导致整个 agent run 崩溃。没有 "跳过出错的 middleware 继续执行" 的机制。这是信任模型——框架信任所有 middleware 不会抛未预期的异常。

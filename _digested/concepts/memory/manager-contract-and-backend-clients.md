@@ -1,6 +1,6 @@
 ---
 title: "Memory — Manager 契约面、工具面与后端客户端"
-description: "补齐 extract-queue-persist-pipeline.md 未写的契约：MemoryManager ABC 的分层/不变量/读失败策略/单例工厂与 host hook、get_memory_tools 的 JSON 工具面、summarization 挂钩点，以及 deermem/mem0/honcho/openviking/noop 各 backend 的 client/config 初始化与失败模式。"
+description: "补齐 extract-queue-persist-pipeline.md 未写的契约：MemoryManager ABC 的分层/不变量/读失败策略/单例工厂与 host hook、get_memory_tools 的 5 个 JSON 工具（含 memory_get）、summarization 挂钩点与 locale 对齐，以及 deermem/mem0/honcho/openviking/noop 各 backend 的 client/config 初始化与失败模式。"
 topics: [memory, pluggable-backend, tool-mode, failure-policy, summarization-hook, honcho, mem0, openviking]
 ---
 
@@ -23,7 +23,9 @@ topics: [memory, pluggable-backend, tool-mode, failure-policy, summarization-hoo
 | **tier-3 可选钩子** | `warm()` 三态；`reload_memory` / `create_fact` / `delete_fact` / `update_fact`→raise；`on_pre_compress`→`""`；`on_turn_start`→`None`；`close()`→`None` | `warm()` 返回 `True`=成功/已缓存、`False`=尝试过但失败、`None`=无可预热（host 会打"skipping"而不是误导性的"warmed successfully"） |
 | **async 占位** | `aadd` / `aget_context` / `asearch` | 默认委托同步版（无并发收益，真正的 LLM 调用仍是同步的） |
 
-来源：`manager.py:225-576`（tier-1 230-271、tier-2 273-426、tier-3 428-576、async 511-545）。
+来源（**2.2.0 实测**，`manager.py` 共 **1212 行**）：tier-1 / 不变量在 `:112-256`（错误层次 `:112-126`、`supports_search:194`、`supports_agent_scoped_management:202`、`requires_passive_writes_in_tool_mode:206`、`read_failures_are_fatal_for_config:209`、`_check_invariants` model_validator `:232-256`）；`warm:477`、`refresh_judge:555`、`from_config:605`、`_scan_backends:635`、`_resolve_manager_class:681`、`LangfuseMemoryCallbacks:756`、`get_memory_manager:1124`、`memory_read_failures_are_fatal:1175`、`reset_memory_manager:1202`。
+
+> ⚠️ v2.1.0 时期的行号区间（225-576 / 580-623 / 913-968 等）在 2.2.0 已整体下移或漂移，引用请以符号名为主、行号为辅。
 
 **dead contract**：`delete_memory` 与 `export_memory` 零调用方（`/memory/export` 路由实际走 `get_memory`），保留默认 raise 只为可用性，不要求 backend 实现（`manager.py:130-136,325-333,391-399`）。
 
@@ -32,6 +34,14 @@ topics: [memory, pluggable-backend, tool-mode, failure-policy, summarization-hoo
 - `supports_search`（ClassVar）**必须与"是否真的 override 了 `search()`"一致**，否则构造期 `ValueError`——防止声明与实现漂移（override 了却忘设 flag → tool 模式被误导性拒绝；设了 flag 却没 override → 首次 `memory_search` 才 `NotImplementedError`）（`manager.py:161-172,196-223`）。
 - `mode="tool"` 额外要求 `search()` 被 override（同上校验）。这解释了 noop 为何也把 `supports_search=True`：它把 `search()` override 成返回 `[]`。
 - `requires_passive_writes_in_tool_mode`（ClassVar，默认 `False`）：依赖"整段对话抽取"而非 fact CRUD 的远端后端（mem0 / honcho）设为 `True`，让 tool 模式保留 `MemoryMiddleware → add()` 的被动写入（`manager.py:169-172`）。`backend_requires_passive_writes_in_tool_mode(manager_class)` 只解析类、**不构造实例**——agent 装配不会触发 backend startup 检查或网络 I/O（`manager.py:678-684`）。
+
+### 2.2.0 新增的三个契约钩子
+
+| 钩子 | 位置 | 作用 |
+|------|------|------|
+| `supports_agent_scoped_management`（ClassVar） | `:202` | backend 是否支持按 agent 名管理/隔离 fact；不支持的 backend 在 agent 级操作上被拒 |
+| `refresh_judge()` | `:555` | 让 backend 重建「判断器」（staleness / consolidation 用的 LLM 判定器），在模型或 prompt 配置热更新后调用 |
+| `warm()` 三态 | `:477` | 见上表 tier-3 |
 
 ### 读失败策略（严格读）
 
@@ -75,27 +85,45 @@ Gateway 映射：`MemoryConflictError` → **409** "Memory changed concurrently;
 
 ## 工具面：`tools.py::get_memory_tools`
 
-`get_memory_tools()` 返回恰好 4 个 LangChain tool：`memory_search` / `memory_add` / `memory_update` / `memory_delete`；agent 工厂在 `memory.mode == "tool"` 时注册（`tools.py:240-250`）。
+`get_memory_tools()` 返回恰好 **5 个** LangChain tool（v2.1.0 digest 写的 4 个已过时）：`memory_search` / `memory_get` / `memory_add` / `memory_update` / `memory_delete`；agent 工厂在 `memory.mode == "tool"` 时注册（`get_memory_tools:272`，`tools.py` 共 283 行）。
+
+| 工具函数 | 位置 |
+|----------|------|
+| `memory_search_tool` | `tools.py:49` |
+| `memory_get_tool` 🆕 | `tools.py:87` |
+| `memory_add_tool` | `tools.py:119` |
+| `memory_update_tool` | `tools.py:193` |
+| `memory_delete_tool` | `tools.py:241` |
+
+**为什么要 `memory_get`**：`memory_search` 返回的是**检索结果**（有打分、有 `limit` 截断、可能不含全文），模型在拿到 fact id 后需要**按 id 读一条完整记录**才能安全地改它——否则「看到片段 → 猜全文 → 更新」会把截断内容写回去。`memory_get` 走 `get_memory` 语义按 `fact_id` 精确取，不是检索。
 
 - **scope 解析**：`_resolve_scope(runtime)` 优先 `runtime.context["agent_name"]`，`user_id` 走 `resolve_runtime_user_id(runtime)`——选 runtime context 而非 ContextVar fallback，保证跨 request/task 边界的持久化 scope 正确（`tools.py:31-42`）。
 - **返回契约是 JSON 字符串，且错误不抛异常**（工具永不带崩 run）：
 
 | 工具 | 参数 | 成功 | 失败模式 |
 |------|------|------|----------|
-| `memory_search` | `query`, `category=None`, `limit=10` | `{"results":[…],"count":n}`；fact 字段 id/content/category/confidence/createdAt/source | 任意异常 → `{"error": str(exc)}`；DeerMem 侧是大小写不敏感子串匹配、`category` 精确过滤 |
+| `memory_search` | `query`, `category=None`, `limit=10` | `{"results":[…],"count":n}`；fact 字段 id/content/category/confidence/createdAt/source | 任意异常 → `{"error": str(exc)}`；DeerMem 侧取决于 `retrieval_relevance_enabled`：开 → 全 scope 词法相关性排序；关 → FTS5，失败退大小写不敏感子串匹配（`category` 始终精确过滤） |
+| `memory_get` 🆕 | `fact_id` | 该 fact 的完整记录 | 不存在 → JSON error；backend 未实现 `get_memory` → `NotImplementedError` 转 JSON error |
 | `memory_add` | `content`, `category="context"`, `confidence=0.7` | `{"fact_id":…,"status":"added"}` | 空内容 → `"empty content"`；`strip().casefold()` 快路径命中既有 fact → `"Duplicate fact"`；backend 未实现 `create_fact` → `"memory backend X does not support create_fact"`；`fact_id is None`（被 `max_facts` 容量策略驱逐）→ 专门的容量错误，**绝不返回悬空 id** |
 | `memory_update` | `fact_id`, `content=None`, `category=None`, `confidence=None` | `{"fact_id":…,"status":"updated"}` | 只改提供的字段；未实现 → JSON error；`KeyError` → `"Fact not found: <id>"` |
 | `memory_delete` | `fact_id` | `{"fact_id":…,"status":"deleted"}` | 未实现 → JSON error；`KeyError` → `"Fact not found: <id>"` |
 
-来源：`tools.py:45-237`。`memory_add` 的重复检测只是**快路径**——权威检查在 backend 的 create 临界区（DeerMem 每次 revision-conflict 重试都用新快照复核），所以并发工具调用不会都写入同一内容（`tools.py:121-127`）。
+来源：`tools.py:31-283`（`_resolve_scope:31`、`_memory_content_key:45`）。`memory_content_key()` 是 `_memory_content_key()` 的公开别名——`content` 经 `strip().casefold()` 归一后作为去重键。`memory_add` 的重复检测只是**快路径**——权威检查在 backend 的 create 临界区（DeerMem 每次 revision-conflict 重试都用新快照复核），所以并发工具调用不会都写入同一内容（`tools.py:121-127`）。
 
-- **tool 模式不经过提取安全门**：staleness 的 age/保护类别/per-cycle cap 属于自动 middleware 清理路径；tool 模式的操作者已显式 opt-in 了模型直改/直删，这是配置评审时要注意的差异（`tools.py:155-158`）。
+- **tool 模式不经过提取安全门**：staleness 的 age/保护类别/per-cycle cap 属于自动 middleware 清理路径；tool 模式的操作者已显式 opt-in 了模型直改/直删，这是配置评审时要注意的差异（`tools.py:155-158`）。2.2.0 同时加了 **prescreen / signal 门**（`message_processing.py` 的 `SIGNAL_NAMES:257` + 6 轮窗口 `detect_signals`），它作用在**被动提取路径**上；tool 模式的手动 `memory_add` 不受信号门限制。
 
 ## Summarization 挂钩点：`summarization_hook.py`
 
 - `memory_flush_hook(event: SummarizationEvent)` 是薄入口：门只做 `get_memory_config().enabled` + `event.thread_id`；然后 `user_id = resolve_runtime_user_id(event.runtime)`，调 `get_memory_manager().add_nowait(event.thread_id, list(event.messages_to_summarize), agent_name=event.agent_name, user_id=user_id)`。**过滤、human/AI 校验、correction/reinforcement 检测全在 backend 内**（`summarization_hook.py:11-28`）。
 - 注册条件在 summarization middleware 构建期：`memory.enabled and not skip_memory_flush`。`skip_memory_flush` 由 lead/custom agent 的 agent 级 memory opt-out 与"subagent 内部 turn 不写父 thread 的 durable memory"分别设置（hook 以 `thread_id` 为键，而 subagent 共享 parent `thread_id`，若不跳过会把 Task 消息与中间轮写进父 thread 记忆）（`agents/middlewares/summarization_middleware.py:935-946,1010-1014`）。
 - 语义差异：`add_nowait` 与普通 `add` 不同——它带 `bypass_watermark=True` 并立刻（0 延迟）调度处理，所以 summarization 移除消息前捕获的子集不会让 updater 的 conversation watermark 回退（见下 queue 契约）。
+- **2.2.0 的签名变化**：`memory_flush_hook(event, pii_redaction_config=None)`（`summarization_hook.py`，共 34 行）在调用 manager 之前，把消息包在
+
+  ```python
+  with_memory_locale(redact_queued_messages(...), getattr(event.runtime, "context", None))
+  ```
+
+  里——`locale.py`（18 行）按请求的语言环境给后台提取设置 locale，`redact_queued_messages` 先做 PII 脱敏。**顺序是先脱敏再进队列**，所以进入 durable 队列的文本已经不含 PII。
 
 ## 各 backend 的 client / config 初始化与失败模式
 
@@ -131,10 +159,50 @@ Gateway 映射：`MemoryConflictError` → **409** "Memory changed concurrently;
 
 - 配置校验（构造期 fail fast）：已移除的自定义 HTTP 字段（`connect_timeout_seconds`/`max_connections`/`max_keepalive_connections`/`max_retries`/`pool_timeout_seconds`/`read_timeout_seconds`/`write_timeout_seconds`）与 `auth_mode`/`account`（trusted 模式不再支持，必须 USER API key + `owner_user_id`）直接报错；未知字段统一列出并报错；`owner_user_id` 非空、USER API key 必须能从 `api_key_env` 读到；`default_peer_id` 必须匹配 `^[a-z0-9][a-z0-9_-]{0,63}$` 且**不得以保留前缀 `df-agent-` 开头**；明文 HTTP 仅允许 localhost / `openviking`（除非显式 opt-in）；`timeout_seconds` 有限 >0；`retrieval.top_k ∈ [1,100]`、`score_threshold ∈ [0,1]`、`max_injection_chars ∈ [256,100000]`、`content_mode ∈ {auto,abstract,overview,read}`、`injection_query` 非空；`startup_policy ∈ {fail_fast,warn}`；`failure_policy.read ∈ {fail_open,raise}`、`write ∈ {log_and_drop,raise}`；`max_seen_message_ids ∈ [16,10000]`（`backends/openviking/config.py:49-143`）。
 
+### 各 backend 的代码规模（2.2.0 实测）
+
+| 文件 | 行数 |
+|------|------|
+| `manager.py` | 1212 |
+| `tools.py` | 283 |
+| `summarization_hook.py` | 34 |
+| `locale.py` 🆕 | 18 |
+| `judging.py` 🆕 | 132 |
+| `message_processing.py` | — （`SIGNAL_NAMES:257`） |
+| `backends/deermem/deermem/config.py` | 437 |
+| `backends/deermem/deermem/core/storage.py` | 2297 |
+| `backends/deermem/deermem/core/prompt.py` | 824 |
+| `backends/deermem/deermem/core/relevance.py` 🆕 | 259 |
+| `backends/deermem/deermem/core/retrieval.py` | 707 |
+| `backends/noop/noop_manager.py` | 190 |
+| `backends/mem0/config.py` | 146 |
+| `backends/honcho/config.py` | 163 |
+| `backends/openviking/config.py` | 201 |
+| `config/memory_config.py` | 308 |
+| `agents/memory/AGENTS.md` | 631 |
+
 ### noop：`config.py` / `noop_manager.py`
 
 - 模板后端：`supports_search=True` 且 `search()` override 成返回 `[]`（满足不变量）；`add` / `add_nowait` / `get_context` / `search` 全空实现；`get_memory` 返回最小 `{"facts": []}`（Gateway 用默认值补全 version/lastUpdated/user/history）；`delete_memory` / `export_memory` **继承默认 raise**（dead contract）；`shutdown_flush` 直接 `True`；`from_config` 忽略所有 host hooks（`backends/noop/noop_manager.py:63-189`）。
 - 新 backend 的落地步骤，以及**"整个 backend 目录里唯一允许的 `from deerflow` import 是 ABC 契约行"**的可移植性金律在 `backends/noop/config.py:1-34` 与 `noop_manager.py:13-38`（与 [extract-queue-persist-pipeline.md](extract-queue-persist-pipeline.md) 的后端发现机制互补）。
+
+---
+
+## 🆕 2.2.0 新增的两个内部模块
+
+| 模块 | 行数 | 职责 |
+|------|------|------|
+| `judging.py` | 132 | **prescreen 与 signal 两类判定 hook 的共享层**：同一批文本的 `batch_digest()`、同一份 wire state、同一份答案缓存（`OrderedDict`）。**这里刻意不包含**问题、评分细则、阈值、决策方向、模式与失败策略——那些分别属于 `prescreen/contract.py` 与 `signals/contract.py`（见 `judging.py:1-15` 的 docstring） |
+| `locale.py` | 18 | 从 `runtime.context` 取语言环境，`with_memory_locale(messages, context)` 上下文管理器让**后台提取线程**沿用发起请求的 locale——否则后台线程没有 request context，提取会用错语言 |
+
+**`prescreen/` 与 `signals/` 两个子包**（各含 `contract.py` / `openai_decisions.py` / `typesafe.py`，`signals/` 另有 `coordinator.py`）：
+
+| 包 | 失败时的兜底 | 效果 |
+|----|-------------|------|
+| `prescreen/` | 照常提取 | 文本看起来没有价值时**跳过这一次 LLM 调用**省成本；判定失败绝不误判为无价值——宁可多提取 |
+| `signals/` | 退回确定性信号 | 只**追加提示文本**给提取 prompt；判定失败时退回 `message_processing.detect_signals` 的确定性信号 |
+
+两类判定都走 `deerflow.typesafe.client.Answer`（Jev / TypeSafe 的答案类型），适配器分 OpenAI 原生与 TypeSafe 两条路径。**它们只在被动提取路径上**，tool 模式的手动 CRUD 不经过。
 
 ---
 > **See also:** [extract-queue-persist-pipeline.md](extract-queue-persist-pipeline.md) · [MemoryManager source](../../../backend/packages/harness/deerflow/agents/memory/manager.py) · [memory tools source](../../../backend/packages/harness/deerflow/agents/memory/tools.py) · [summarization hook source](../../../backend/packages/harness/deerflow/agents/memory/summarization_hook.py)

@@ -45,11 +45,13 @@ YAML frontmatter：
 | `name` | 唯一标识 |
 | `description` | 简述，LLM 选择 skill 时依赖此字段 |
 | `license` | 许可证 |
-| `allowed-tools` | 工具白名单（可选）。标量形式支持可移植拼写（`Bash`/`Read`/`Write`/`Edit`/`Glob`/`Grep`/`WebFetch`/`WebSearch` 映射到 `bash`/`read_file`/`write_file`/`str_replace`/`glob`/`grep`/`web_fetch`/`web_search`），未知名保持原样；分词器保留引号与括号模式（含空格/转义括号）内部完整，未闭合引号或括号直接报错（#4984） |
+| `allowed-tools` | ⚠️ 2.2 起**只是兼容元数据**，不再过滤/授予任何工具（见[下文专节](#allowed-tools从工具过滤器降级为兼容元数据--22-重大变更)）。解析本身未变：标量形式支持可移植拼写（`Bash`/`Read`/`Write`/`Edit`/`Glob`/`Grep`/`WebFetch`/`WebSearch` 映射到 `bash`/`read_file`/`write_file`/`str_replace`/`glob`/`grep`/`web_fetch`/`web_search`），未知名保持原样；分词器保留引号与括号模式（含空格/转义括号）内部完整，未闭合引号或括号直接报错（#4984） |
 | `required-secrets` | 🆕 字符串或 `{name, optional}` 列表——skill 需要的请求级密钥 |
 | `secrets-autonomous` | 🆕 `true`（默认）= agent 自主加载时绑定密钥；`false` = 仅显式 `/skill-name` 激活时绑定 |
 
-**白名单全集（11 个键）**：`ALLOWED_FRONTMATTER_PROPERTIES = {name, description, license, allowed-tools, argument-hint, required-secrets, secrets-autonomous, metadata, compatibility, version, author}`（`deerflow/skills/frontmatter.py:15-27`）。上表 6 个之外还有 `argument-hint`、`metadata`、`compatibility`、`version`、`author`——它们能通过安装/写入门校验，但不参与运行时装配。未知键在安装/写入门是**硬失败**（`skills/validation.py:42-44`），在 review core 里只是 warning（`skills/review/analyzer.py:164-175`）。非字符串 YAML 键会被 `str()` 化后当成未知字段，而不是崩溃（`frontmatter.py:58-63`）。
+**白名单全集（11 个键）**：`ALLOWED_FRONTMATTER_PROPERTIES = {name, description, license, allowed-tools, argument-hint, required-secrets, secrets-autonomous, metadata, compatibility, version, author}`（`deerflow/skills/frontmatter.py:14-26`）。上表 6 个之外还有 `argument-hint`、`metadata`、`compatibility`、`version`、`author`——它们能通过安装/写入门校验，但不参与运行时装配。未知键在安装/写入门是**硬失败**（`skills/validation.py:42-44`），在 review core 里只是 warning `structure.unknown-frontmatter-field`（`skills/review/analyzer.py:164-175`）。非字符串 YAML 键会被 `str()` 化后当成未知字段，而不是崩溃（`frontmatter.py:57-62`）。
+
+**frontmatter 定界符边界（2.2 收紧）🆕**：`_FRONTMATTER_RE` 从 `^---\s*\n(.*?)\n---\s*\n?` 改为 `^\ufeff?---[ \t]*\r?\n(.*?)\r?\n---[ \t]*(?:\r?\n|$)`（`frontmatter.py:31`，`re.DOTALL`）。三条硬边界：① 开头可带 **UTF-8 BOM**（Windows Notepad / PowerShell `Set-Content -Encoding UTF8` 会写），匹配时被吃掉，frontmatter 与正文都不再携带它；② 定界符后的空白**只允许空格/制表符，且必须仍在单独一行**——旧写法会把正文的缩进一并吃掉；③ 结尾必须是恰好三个连字符，像 `---suffix` 这样的前缀行**不能**关闭 frontmatter。LF 与 CRLF 都接受；正文空白原样保留。回归见 `tests/test_skill_frontmatter_boundaries.py`（`skills/AGENTS.md`「Frontmatter boundaries」）。运行时解析、安装校验、review 三条路径共用这一个正则。
 
 ## 🔄 加载模式：Legacy vs Deferred Discovery
 
@@ -107,11 +109,12 @@ describe_skill 工具
 
 **deferred 装配契约（`skills/describe.py`，补深）**：
 
-- `build_skill_search_setup(skills, *, enabled, container_base_path=...) -> SkillSearchSetup(describe_skill_tool, skill_names)`：`enabled=False` 或 `skills` 为空 → `SkillSearchSetup(None, frozenset())`，agent **回退到 legacy 全量元数据 prompt**；否则用**过滤后的**列表建 `SkillCatalog`，`skill_names = catalog.names`（`describe.py:36-49,103-125`）。
-- `build_describe_skill_tool(catalog, ...)` 是 `@tool` 闭包：无匹配返回文本 `"No skills matched: {query}"`，命中返回 markdown 块；返回值是 `Command` 包 `ToolMessage(name="describe_skill")`，**不写 graph state**（不同于会提升 deferred tool 的 `tool_search`）（`describe.py:52-100`）。
-- 渲染时 name / description / allowed-tools / 容器路径全部做 HTML entity 转义——frontmatter 是不可信输入，不转义就能伪造框架标签（`describe.py:131-145`）。
-- `get_skill_index_prompt_section(...)` 名字为空返回 `""`；否则按名排序渲染 `<skill_system>…<skill_index>…</skill_index>` 并附容器根路径（`describe.py:151-188`）。
-- **catalog 查询边界**（`skills/catalog.py`）：`select:` 在截断之前解析，无长度/结果上限且保持 catalog 顺序；其它查询先截断到 `MAX_QUERY_CHARS=256` 字符；裸 `+`（无 required token）→ `[]`；单字符 ASCII term 按整词匹配，`a`/`I` 被忽略（其余单字符保留，如 C++/R）；词数上限 16；结果上限 5；同分稳定排序保留 catalog 顺序（`25-32,42-60,63-66,96-116,145-177`）。`SkillCatalog` 是 frozen dataclass 但**不能加 `slots=True`**：`names` / `_search_index` 是 `cached_property`，靠 `__dict__` 缓存（`119-143`）。
+- `build_skill_search_setup(skills, *, enabled, container_base_path=..., skill_authorization=None) -> SkillSearchSetup(describe_skill_tool, skill_names)`：`enabled=False` 或 `skills` 为空 → `SkillSearchSetup(None, frozenset())`，agent **回退到 legacy 全量元数据 prompt**；否则用**过滤后的**列表建 `SkillCatalog`，`skill_names = catalog.names`（`describe.py:156-183`，dataclass 见 `:36-49`）。`skill_authorization` 由 `make_lead_agent()` 从 `deerflow.authz.skill_filter` 解析后透传（`agents/lead_agent/agent.py:1164-1168,1297-1302`）。
+- `build_describe_skill_tool(catalog, *, container_base_path=..., skill_authorization=None)`（`describe.py:52-154`）用 `StructuredTool.from_function(func=describe_skill, coroutine=adescribe_skill, ...)` 同时挂同步与协程：同步调用（`invoke`、测试、同步链）走 provider 的同步 `authorize()`，异步调用（`ainvoke`，即 agent 实际执行路径）在事件循环上 `await aauthorize()`——**loop-affine 的自定义 provider 绝不能看到同步 API**。无匹配返回文本 `"No skills matched: {query}"`，命中返回 markdown 块；返回值是 `Command` 包 `ToolMessage(name="describe_skill")`，**不写 graph state**（不同于会提升 deferred tool 的 `tool_search`）。
+- **`skill:activate` 动作级授权门 🆕（2.2）**：catalog 只装 Layer 1 的**可见性**集合（与动作无关），所以一个带动作感知的 provider 可能列出模型不该加载的 skill。`skill_authorization` 非 `None` 时，命中项还要过 `skill_activation_allowed()` / `skill_activation_allowed_async()`（`authz/skill_filter.py`）；被拒的 skill **从输出里静默剔除**，与"没匹配"不可区分（不泄露原因），失败按 provider 配置的 fail-closed / fail-open 走，只记 `describe_skill: omitted N skill(s) denied by the skill:activate policy`（`describe.py:78-101`）。`None`（授权关闭）时照常描述全部 catalog。
+- 渲染时 name / description / allowed-tools / 容器路径全部做 HTML entity 转义——frontmatter 是不可信输入，不转义就能伪造框架标签（`_render_skill_metadata`，`describe.py:188-207`）。allowed-tools 行的前缀固定是 `Allowed tools (compatibility metadata, not enforced):`，`None` 渲染为 `(not declared)`、显式空声明渲染为 `(empty declaration)`。
+- `get_skill_index_prompt_section(*, skill_names, container_base_path, skill_evolution_section="")` 名字为空返回 `""`；否则按名排序渲染 `<skill_system>…<skill_index>…</skill_index>`，响应里固定写一句「`allowed-tools` 是别的 agent 框架的兼容信息，在 DeerFlow 既不收紧也不授予工具；你的工具由 Agent 配置与授权控制」，并附 `Skills are located at: {container_base_path}`（`describe.py:213-252`）。
+- **catalog 查询边界**（`skills/catalog.py`）：`select:` 在截断之前解析，无长度/结果上限且保持 catalog 顺序；其它查询先截断到 `MAX_QUERY_CHARS=256` 字符（`:26`）；裸 `+`（无 required token）→ `[]`；单字符 ASCII term 按整词匹配，`a`/`I` 被忽略（其余单字符保留，如 C++/R）；词数上限 `MAX_QUERY_TERMS=16`（`:27`）；结果上限 `MAX_RESULTS=5`（`:25`）；同分稳定排序保留 catalog 顺序（`_intent_score` 5 元组 `:77-100`，`_rank_by_intent` `:103-117`，`search` `:144-180`）。`SkillCatalog` 是 frozen dataclass 但**不能加 `slots=True`**：`names` / `_search_index` 是 `cached_property`，靠 `__dict__` 缓存（`:119-143`）。
 
 ## `/skill-name` 斜杠激活
 
@@ -119,13 +122,15 @@ describe_skill 工具
 
 `SkillActivationMiddleware` 检测用户消息中的 `/skill-name task` 语法：
 
-1. `parse_slash_skill_reference()` 解析严格格式
-2. 拒绝保留命令（`/new`、`/help`、`/bootstrap`、`/status`、`/models`、`/memory`、`/goal`、`/agent`——最后者为 🆕）
+1. `parse_slash_skill_reference()` 解析严格格式（`skills/slash.py:39-51`）
+2. 拒绝保留命令（10 个，见下）
 3. 解析到的 skill 必须已启用且在 agent 白名单内
 4. 注入 `SKILL.md` body 为隐藏 HumanMessage（`hide_from_ui: True`），插入到触发消息之前
 5. 记录审计事件 `middleware:skill_activation`（name、category、path、content_hash——不含 body）
 
-**跨语言契约**：保留名单与 skill 名语法由 `contracts/slash_skill_contract.json` 固定，后端解析器 `deerflow/skills/slash.py` 与前端展示解析器 `frontend/src/core/skills/slash.ts` 必须一致——否则 transcript 会为后端根本不会当作激活的文本渲染激活 chip。约定内容：`reserved_slash_skill_names` = `agent` / `bootstrap` / `goal` / `help` / `memory` / `models` / `new` / `status`（8 个保留控制命令）；`skill_name_pattern` = `^/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\s+|$)`。两侧各有一份契约测试（`backend/tests/test_slash_skill_contract.py`、`frontend/tests/unit/core/skills/slash-contract.test.ts`）钉住 fixture。
+**保留命令全集 🆕（2.2 扩容）**：`RESERVED_SLASH_SKILL_NAMES = {agent, bootstrap, context, goal, help, memory, model, models, new, status}`（`skills/slash.py:17`）——2.1 的 8 个之外新增 **`context`** 与 **`model`**。唯一的例外分支：`context` 不是无条件保留——只有当其后文本（去空白、casefold）**不等于** `compact` 时才返回 `None`；即 `/context compact` 会被当成一次**普通 skill 激活引用**放行，其它 `/context …` 继续是控制命令（`_CONTEXT_COMPACT_ARGUMENT = "compact"`，`slash.py:19,44-47`）。这条分支必须与前端的 composer 行为一致，否则 `/context compact` 会在一侧被吞掉。
+
+**跨语言契约**：保留名单与 skill 名语法由 `contracts/slash_skill_contract.json` 固定，后端解析器 `deerflow/skills/slash.py` 与前端展示解析器 `frontend/src/core/skills/slash.ts` 必须一致——否则 transcript 会为后端根本不会当作激活的文本渲染激活 chip。约定内容：`reserved_slash_skill_names` = `agent` / `bootstrap` / `context` / `goal` / `help` / `memory` / `model` / `models` / `new` / `status`（**10 个**保留控制命令）；`skill_name_pattern` = `^/([a-z0-9]+(?:-[a-z0-9]+)*)(?:\s+|$)`。两侧各有一份契约测试（`backend/tests/test_slash_skill_contract.py`、`frontend/tests/unit/core/skills/slash-contract.test.ts`）钉住 fixture。注意 fixture 只固定"名单 + 语法"两件事，`context compact` 这个**参数级例外**不在 fixture 里，两侧各自实现（后端 `slash.py:46`，前端 `frontend/src/core/skills/slash.ts:48`）。
 
 ## Request-Scoped Secrets
 
@@ -161,7 +166,9 @@ LocalSkillStorage.load_skills()          # 同步纯扫描；调用方负责 off
     └── 返回 List[Skill]
 ```
 
-**热加载纠偏 🆕（v2.1.0 源码）**：早前本文写的"`get_or_new_skill_storage()` 检测 `extensions_config.json` 变化后重建 storage"**不成立**——storage 不缓存 catalog，`load_skills()` 每次调用都重新扫描目录并重读 `ExtensionsConfig.from_file()`（`skills/storage/skill_storage.py:296-308`）；进程单例只按当前 `AppConfig` 身份失效/重建（`skills/storage/__init__.py:36-101`）。外部写入后的失效入口是 admin-only `POST /api/skills/reload`（`app/gateway/routers/skills.py:357-362`）→ `refresh_skills_system_prompt_cache_async()`：清的是 prompt 层按 `(config, user_id)` 的启用态缓存（上限 256）与 prompt 段落 LRU，**不重建 storage 单例**（`agents/lead_agent/prompt.py:238,195-213`）；单用户版本 `refresh_user_skills_system_prompt_cache_async(user_id)` 供 `skill_manage` 使用（`prompt.py:264-274`）。
+**热加载纠偏 🆕（v2.1.0 源码）**：早前本文写的"`get_or_new_skill_storage()` 检测 `extensions_config.json` 变化后重建 storage"**不成立**——storage 不缓存 catalog，`load_skills()` 每次调用都重新扫描目录并重读 `ExtensionsConfig.from_file()`（`skills/storage/skill_storage.py:349-375`，注释原话「re-read every call so changes made by another process are picked up immediately」，`:368-369`）；进程单例只按当前 `AppConfig` 身份失效/重建（`skills/storage/__init__.py:36-101`）。外部写入后的失效入口是 admin-only `POST /api/skills/reload`（`app/gateway/routers/skills.py:598-644`，处理函数 `reload_skills` 在 `:607`）→ `refresh_skills_system_prompt_cache_async()`（`agents/lead_agent/prompt.py:347-353`）：它 `_invalidate_enabled_skills_cache()` 拿到刷新句柄后 `await asyncio.to_thread(refresh_handle.wait, _ENABLED_SKILLS_REFRESH_WAIT_TIMEOUT_SECONDS)`（5.0 s，`:44`）**真正等待重建完成**（超时抛 `TimeoutError`，刷新线程报错抛 `RuntimeError`），清掉的是 prompt 层按 `(config, user_id)` 的启用态缓存与 prompt 段落 LRU（`@lru_cache(maxsize=32)`，`:907-908`），**不重建 storage 单例**。单用户版本 `refresh_user_skills_system_prompt_cache_async(user_id)` 供 `skill_manage` 使用（`prompt.py:373-382`，内部只调 `invalidate_user_skill_cache(user_id)`，`prompt.py:360-371`）。
+
+**跨进程失效 🆕（2.2）**：`publish_skills_cache_reset(*, user_id=None)`（`prompt.py:121-160`）把一份 reset 标记写到共享配置目录，同一目录上的其它 Gateway 进程在**下一次缓存查找**时（`_check_shared_skills_cache_reset()`，`prompt.py:80-96`，由 tracker 把文件系统开销限流到**每秒最多一次标记读取**，且不阻塞在并发轮询之后；轮询失败时继续用当前缓存，下次重试）看到新 generation 后走 `_apply_shared_skills_cache_reset(change)`（`prompt.py:97-107`）：`change.user_ids is None` → `_invalidate_enabled_skills_cache()`，否则逐个 `invalidate_user_skill_cache(user_id)`。标记文件名是共享配置旁的点文件 `.<extensions config name>.skills-cache-reset.json`（`prompt.py:64-77` 的模块注释是这套机制的权威说明）。发布方自己通过 `note_own_publication(generation)` 记住 generation，**不会**把刚重建好的缓存再退一遍。返回 `None` 表示解析不到共享配置路径、标记只在进程内生效。失败抛 `SkillCacheResetPublishError`——刻意**不是** `OSError`/`ValueError` 子类，免得被 Gateway 的 404/400 分支误吞（docstring 原话：标记写失败不该借用这两个状态码）。
 
 ## Skill 存储契约（`skills/storage/`）
 
@@ -204,7 +211,7 @@ LocalSkillStorage.load_skills()          # 同步纯扫描；调用方负责 off
 
 ## 共享文件分类与权限助手
 
-- **`package_files.py` 是"哪些是代码 / 哪些字节是可执行"的唯一来源**——installer 的抽取 guard、export 的阻断规则、SkillScan 都 import 它，不得各自再写一份（模块 docstring，`package_files.py:1-5`）。契约：`CODE_SUFFIXES` 12 个后缀（`.bash .cjs .js .mjs .php .pl .ps1 .py .rb .sh .ts .zsh`）；`is_code_path` = 顶层目录为 `scripts/` **或**后缀命中；`is_code_file` 再加"无后缀且以 `#!` 开头"；`is_executable_binary_prefix` 用完整 magic（ELF、`MZ`、8 种 Mach-O，不用共享短前缀以免误判数据文件）（`package_files.py:11-45`）。锚点：`backend/tests/test_skillscan_native.py:382`（与安装器抽取 guard 一致）、`393`（截断 magic 不算可执行）。
+- **`package_files.py` 是"哪些是代码 / 哪些字节是可执行"的唯一来源**——installer 的抽取 guard、export 的阻断规则、SkillScan 都 import 它，不得各自再写一份（模块 docstring，`package_files.py:1-5`）。契约（2.2 现状）：`CODE_SUFFIXES` **21** 个后缀（`.bash .bat .cjs .cmd .hta .js .jse .mjs .php .pl .ps1 .psm1 .py .rb .sct .sh .ts .vbe .vbs .wsf .zsh`）；`is_scripts_member` 单独判"顶层目录是 `scripts/`"；`is_code_path` = `is_scripts_member` **或**后缀命中；`is_code_file` 再加"无后缀且 `head` 以 `#!` 开头"；`is_executable_binary_prefix` 用完整 magic（ELF、`MZ`、8 种 Mach-O，不用共享短前缀以免误判数据文件），并**容忍有限前导填充**——`_EXEC_SNIFF_FILLER`（空白 + NUL）最多跳 63 字节，填满 64 字节即判无 magic；UTF-8 BOM 只能整体跳过一次（它末字节 `\xbf` 也是 Mach-O fat64 LE magic 的首字节，按字节剥会误判）（`package_files.py:12-20,43-62,66-98`）。锚点：`backend/tests/test_skillscan_native.py:382`（与安装器抽取 guard 一致）、`393`（截断 magic 不算可执行）。
 - **`package_paths.py` 是 eval fixture 判定的唯一来源**：路径中出现 `evals` 且其后仍 ≥2 段时，`evals` 的下一段必须是 `fixtures`；`is_eval_fixture_skill_md` 在此基础上加"末段是 `SKILL.md`"（`package_paths.py:12-24`）。review 与 SkillScan 的豁免/收紧都以它为准。
 - **`permissions.py`**：目录 → `0o555`、文件 → `0o444`（去掉 group/other 写位再或上只读位），符号链接直接跳过；`make_skill_tree_sandbox_readable` 递归整棵树（含隐藏路径），`make_skill_written_path_sandbox_readable(skill_root, target)` 只处理"根 → 目标"这一条路径且要求 target 已在 skill_root 内，否则抛 `ValueError`（`permissions.py:7-34`，锚 `backend/tests/test_skill_permissions.py:19,49`）。
 
@@ -212,19 +219,21 @@ LocalSkillStorage.load_skills()          # 同步纯扫描；调用方负责 off
 
 > 共享/线程投影的**行为变化**（enabled-only、按策略隔离）见下文「`/mnt/skills` 收归 managed enabled-only projection」一节；这里列的是它之下调用方必须知道的不变量。
 
-- **常量**：manifest `version=1`、每个 scope 最多重建 `_MAX_REBUILD_ATTEMPTS=2` 次、线程策略版本 `_THREAD_PROJECTION_POLICY_VERSION=1`（`projection.py:35-37`）。清单落在 `<scope_root>/.projection-manifest.json`，含 `source_signature` + `view_signature`，用 mkstemp + `replace` 原子写（`380-409`）。
-- **路径作用域**：全局 public 视图一份；user custom/legacy/integrations 每人一份；线程视图在 `users/{uid}/threads/{tid}/skills_view/{public,custom,legacy,integrations}`。线程投影要求 user-scoped storage，否则 `ValueError`（`50-84`）。`thread_skill_projection_exists()` 只看该线程 scope 根目录是否存在（`87-90`）。
-- **锁**：每个 scope 一把进程内 `RLock` + `<parent>/.<name>.projection.lock` 的 POSIX `flock`（Windows 走 msvcrt）（`99-118`）。稳态新鲜度检查在锁外做；只有 stale/异常才进锁并**二次检查**（`683-721`）。
-- **新鲜度 = 清单双读一致 + 双签名相等**：清单在计算前后必须逐字节一致（否则视为并发改写 → 重建）；`source_signature` 覆盖源目录树元数据 + `extensions_config`（user scope 另加 per-user states），`view_signature` 覆盖视图元数据（`412-424,441-455`）。
-- **源签名只哈希目录元数据**（inode/mode/size/mtime_ns），刻意不读文件内容：换来每次 sandbox acquire 都能 O(files) 检查；代价是"inode+size+mtime 都不变的外部改写"不可见，直到下一次显式重建。代码路径内的写入不受影响——变更路径持锁重建，原子替换一定换 inode（`289-335`）。custom/legacy 类别根下第一层包目录符号链接会被跟随并将其 target 路径计入签名（`305-309,354-365`）。
-- **线程策略重建先撤销再挂新**：清空四个类别 → 逐个填充，fail-closed。并发读者可能短暂看到更少的 skill，但绝不会看到被新策略撤销的 skill；类别根 inode 保持稳定以服务 live bind mount（`549-609`，锚 `tests/test_skill_projection.py:441`）。
-- **零拷贝快路径**：`ensure_thread_skill_projection(storage, thread_id, allowed_skills)` 在 `allowed_skills is None` 且线程 scope 目录不存在时返回 `None`（继续用共享视图）；一旦线程有了 scope，后续无限制 run 也会把同一线程根重建为"全量启用"视图，避免切换 agent 后线程被意外限制（`612-649`，锚 `362,380`）。
-- **谁负责修**：`ensure_skill_projections` 修 stale 的 public/user scope；`ensure_thread_skill_projection` 修线程 scope；启动期 `ensure_public_skill_projection` **只**处理全局 public（否则 readiness 会随租户数增长），失败时清空 public 视图、记 warning 并返回 `False`，等 sandbox acquire 自愈（`683-721,791-815`）。
-- **读锁 `skill_projection_read_lock(storage, *, timeout=5.0, check=None)`**：非变更、有界；超时抛 `TimeoutError`；`check` 在每次等待前被调用（导出用它做取消/预算检查）。它取的正是 user projection 那把锁，非 user storage 退化为 `<skills_root>/custom` scope（`818-865`）。导出在它下面捕获与复核，且导出方**不重建**投影（`export.py:374`，锚 `tests/test_skill_export.py:285`）。
-- **失败即清空**：任何 scope 重建异常都会先清空该 scope 的类别根 + 清单再抛（选择"看到少"而不是"看到旧/越权"）（`497-514,517-546,563-609,786-788`，锚 `tests/test_skill_projection.py:534,551`）。
-- **写隔离靠拷贝**：投影一律 `shutil.copy2`，刻意不用 hardlink——LocalSandbox 的 bash 写会透传 inode，`PathMapping.read_only` 只约束 `write_file`/`update_file`，不约束 `execute_command`（`121-127`，锚 `109`）。
-- **策略作用域符号链接 fail-closed**：绝对链接、解析到包外的相对链接、断链，都在任何 live 视图被改动之前抛错（`130-153`，锚 `262`）。
-- 受管的 integrations 包是**全局安装**的，但其投影类别按用户分离（启用态是 per-user 的）（`517-546`，锚 `220`）。
+- **常量**：manifest `version=1`、每个 scope 最多重建 `_MAX_REBUILD_ATTEMPTS=2` 次、线程策略版本 `_THREAD_PROJECTION_POLICY_VERSION=2`（2.1 是 1；+1 使所有既有线程视图在升级后必然判 stale 并重建一次）（`projection.py:39-41`）。清单落在 `<scope_root>/.projection-manifest.json`，含 `source_signature` + `view_signature`，用 mkstemp + `replace` 原子写；失败清理由 `deerflow.utils.atomic_write.cleanup_failed_atomic_write(temporary, fd)` 统一接管（关闭 fd + unlink，`BaseException` 也走），不再裸 `unlink(missing_ok=True)`（`projection.py:430-449`）。
+- **路径作用域**：全局 public 视图一份；user custom/legacy/integrations 每人一份；线程视图在 `users/{uid}/threads/{tid}/skills_view/{public,custom,legacy,integrations}`。线程投影要求 user-scoped storage，否则 `ValueError`（`projection.py:54-90`）。`thread_skill_projection_exists()` 只看该线程 scope 根目录是否存在（`:91-102`）。
+- **锁 🆕（2.2 重写）**：每个 scope 一把进程内 `RLock` + `<parent>/.<name>.projection.lock` 的 POSIX `flock`（Windows 走 msvcrt）。`_projection_lock(root, *, timeout=None, check=None)` 现在统一服务变更与读锁两条路径：进程内锁以 0.05s 片段轮询并允许传入 deadline；文件锁用非阻塞 `LOCK_EX | LOCK_NB`（Windows `LK_NBLCK`）再经 `deerflow.utils.file_lock.retry_until_locked` 在**只在争用时**重试，死锁/超时消息仍是 `Skill projection lock timeout`。关键新增是**同线程重入共享 fd**：`_held_projection_locks`（`threading.local` 集合）记录已持有的 `lock_path`，嵌套读锁直接复用外层 fd 而不是重开一个再 flock——否则 RLock 可重入、fd 却会自死锁（`projection.py:104-155`）。稳态新鲜度检查仍在锁外做；只有 stale/异常才进锁并**二次检查**。
+- **新鲜度 = 清单双读一致 + 源签名相等 + 视图签名相等**（`_thread_projection_is_fresh` / `_public_projection_is_fresh`，`projection.py:527-543`）。源签名覆盖源目录树 + `extensions_config`（user scope 另加 per-user states）`_source_signature`（`:383-408`）；public/user 的视图签名仍只哈希**视图元数据**（`_view_signature`，`:495-507`）。
+- **线程视图签名改为哈希真实字节 🆕（2.2）**：`_thread_view_signature(paths)`（`projection.py:452-492`）逐文件打开（`O_NOFOLLOW|O_NONBLOCK`）用 `hashlib.file_digest` 算 sha256，值为 `["file", sha256, mode & 0o111]`；符号链接只记 `["link", readlink]` 从不打开，特殊文件只记 `S_IFMT`，目录记 `["dir"]`。动机写在 docstring 里：**inode/size/mtime 这类元数据在 NFS/CSI 上会滞后沉降**，只比元数据会导致"刚重建就被判 stale"或"漏掉沙盒内真实改写"；读字节换来"下一次 acquire 一定修好沙盒越权编辑，而单纯元数据沉降不会触发整视图重拷"。
+- **源签名只哈希目录元数据**（inode/mode/size/mtime_ns），刻意不读文件内容：换来每次 sandbox acquire 都能 O(files) 检查；代价是"inode+size+mtime 都不变的外部改写"不可见，直到下一次显式重建。代码路径内的写入不受影响——变更路径持锁重建，原子替换一定换 inode（`projection.py:340-381`）。custom/legacy 类别根下第一层包目录符号链接会被跟随并将其 target 路径计入签名。
+- **线程策略重建先撤销再挂新**：清空四个类别 → 逐个填充，fail-closed。并发读者可能短暂看到更少的 skill，但绝不会看到被新策略撤销的 skill；类别根 inode 保持稳定以服务 live bind mount（`projection.py:607-697`，锚 `tests/test_skill_projection.py:441`）。
+- **零拷贝快路径**：`ensure_thread_skill_projection(storage, thread_id, allowed_skills)` 在 `allowed_skills is None` 且线程 scope 目录不存在时返回 `None`（继续用共享视图）；一旦线程有了 scope，后续无限制 run 也会把同一线程根重建为"全量启用"视图，避免切换 agent 后线程被意外限制（`projection.py:699-752`）。
+- **谁负责修**：`ensure_skill_projections` 修 stale 的 public/user scope；`ensure_thread_skill_projection` 修线程 scope；启动期 `ensure_public_skill_projection` **只**处理全局 public（否则 readiness 会随租户数增长），失败时清空 public 视图、记 warning 并返回 `False`，等 sandbox acquire 自愈（`projection.py:796-800,918-944`）。
+- **嵌套顺序由 mutation guard 固定 🆕（2.2）**：`ensure_skill_projections` / `ensure_thread_skill_projection` / `rebuild_skill_projections` 三个公开入口都是薄包装，先 `managed_global_read(storage)`（global 投影锁，只有 enrolled owner 才真取）再 `managed_read(storage)`（user 投影读锁 + readiness 屏障）才进原实现——注释写明「Global -> owner -> thread. No fresh-view fast path bypasses recovery」，即 fast path 也不能绕过未决发布的恢复（`projection.py:703-712,757-766,797-804`）。变更侧 `skill_projection_mutation(...)` 新增 `mutation_names: tuple[str, ...]`：外层再加一把**按 skill 名的写栅栏** `managed_name_writes(storage, names)`（锁目录 `<public parent>/.skill-mutation-names/{sha256(name)}`），并在真正 yield 前包 `managed_writer(storage, names)`（`projection.py:846-916`）。
+- **读锁 `skill_projection_read_lock(storage, *, timeout=5.0, check=None)`**：非变更、有界；超时抛 `TimeoutError`；`check` 在每次等待前被调用（导出用它做取消/预算检查）。2.2 起它只是 `_projection_lock(root, timeout=timeout, check=check)` 的一层包装（不再复制一遍加锁逻辑），取的仍是 user projection 那把锁，非 user storage 退化为 `<skills_root>/custom` scope（`projection.py:945-950`）。导出在它下面捕获与复核，且导出方**不重建**投影（`export.py:378-383`，锚 `tests/test_skill_export.py:285`）。
+- **失败即清空**：任何 scope 重建异常都会先清空该 scope 的类别根 + 清单再抛（选择"看到少"而不是"看到旧/越权"）（`projection.py:497-514,517-546,563-609,786-788`，锚 `tests/test_skill_projection.py:534,551`）。
+- **写隔离靠拷贝**：投影一律 `shutil.copy2`，刻意不用 hardlink——LocalSandbox 的 bash 写会透传 inode，`PathMapping.read_only` 只约束 `write_file`/`update_file`，不约束 `execute_command`。
+- **策略作用域符号链接 fail-closed**：绝对链接、解析到包外的相对链接、断链，都在任何 live 视图被改动之前抛错。
+- 受管的 integrations 包是**全局安装**的，但其投影类别按用户分离（启用态是 per-user 的）。
 
 ## ⚠️ Breaking Change：SKILL.md 即 Package Boundary
 
@@ -349,7 +358,7 @@ Custom skill 按用户隔离存储，`SkillStorage` 按 `(app_config, user_id)` 
 ## `allowed-tools`：从「工具过滤器」降级为「兼容元数据」 ⚠️ 2.2 重大变更
 
 > **sync #8 重写**（对应 upstream #6935 `0d73798be`，2.2.0 引入）。这一节在 2.1 时代描述的是
-> 已被删除的 `skills/tool_policy.py` 的工具过滤机制——**该文件和它配套的 `SkillToolPolicyMiddleware`（529 行）
+> 已删除的 `skills/tool_policy.py` 的工具过滤机制——**该文件和它配套的 `SkillToolPolicyMiddleware`（529 行）
 > 在 2.2 已被整体删除**。下面是 2.1 的历史，以及 2.2 的现行语义。
 
 ### 2.1 的行为（历史，仅供理解迁移）
@@ -383,6 +392,193 @@ Custom skill 按用户隔离存储，`SkillStorage` 按 `(app_config, user_id)` 
   要限制工具请走 `disallowed_tools`、`authorization` 或 custom agent 的 `skills`/工具配置。
 - 迁移提示：老 skill 的 `allowed-tools` 字段可以留着（不报错、仍可展示），但**不要再指望它做安全边界**。
 
+## `capabilities/` 能力目录 🆕（2.2 新增包）
+
+`backend/packages/harness/deerflow/capabilities/` 是 2.2 新增的**声明式能力发现**层，模块 docstring 一句话定性：`"""Declarative capability discovery; execution stays with the owning runtime."""`（`capabilities/__init__.py:1`）。它只回答"有哪些能力、装在哪、需不需要凭据"，**不执行任何东西**——MCP server 仍由 MCP 运行时跑，skill 仍是 skill 包，CLI 适配器仍交给已安装的扩展。
+
+### 组成（4 个模块 + 1 份 JSON）
+
+| 文件 | 职责 |
+|------|------|
+| `capabilities/builtin.json` | 内置能力的 **manifest 清单**，纯数据，不含可执行内容 |
+| `capabilities/catalog.py`（51 行） | pydantic `PluginManifest` 模型 + `load_catalog(path=None)` |
+| `capabilities/runtime.py`（38 行） | 运行时身份：`installation_id()` / `ambiguous_installation_ids()` / `filter_mcp_plugins()` |
+| `capabilities/business.py`（178 行） | 内置业务 MCP provider（钉钉 / 企微 / HubSpot）的 stdio 连接与工具实现 |
+
+### manifest 契约（`capabilities/catalog.py`）
+
+`PluginManifest` 是 `extra="forbid"` 的 pydantic 模型（拼错字段直接炸，不会静默忽略）。关键约束：
+
+- `schema_version: Literal[1] = 1`；`id` 正则 `^[a-z0-9][a-z0-9.-]*$` 且 ≤128 字符；`version` 1–80 字符。
+- `category ∈ {office, knowledge, research, business, development, custom}`；`kind ∈ {mcp, cli, native}`。
+- `adapter` 正则 `^[a-z][a-z0-9_-]*$`（决定 Gateway 侧用哪个 `CapabilityAdapter`）。
+- `source` 必须是 `https://` 开头；`icon` 必须以 `/images/plugins/` 开头且不含 `..` / `?` / `#`（防路径穿越与 query 注入）。
+- `auth_methods ∈ {none, api_key, oauth}`；`contributions ∈ {tools, skills}`；`config_schema` 必须是 object；`name` / `description` / `setup` 都是 `dict[str, str]`（即**按 locale 分键**的展示文案）。
+
+`load_catalog(path=None)` 读同目录的 `builtin.json`，对重复 `id` 抛 `ValueError("Duplicate plugin identifiers in catalog")`，**从不 import 或 eval 清单里的任何东西**。
+
+**`builtin.json` 当前规模（2.2.0 实测）**：**15** 条 manifest —— `lark, dingtalk, wecom, tencent-docs, notion, openviking, web-search, web-fetch, exa, firecrawl, database, hubspot, github, atlassian, browser`。按 `category`：research 4 / office 3 / knowledge 3 / development 3 / business 2；按 `kind`：mcp 9 / native 5 / cli 1。
+
+### 运行时身份与 MCP 插件过滤（`capabilities/runtime.py`）
+
+- `installation_id(server_name, server)`：MCP server 配置里带 `capability.id`（Gateway 安装时写进去的）就用它，否则退化为 `uuid5(NAMESPACE_URL, f"deerflow:mcp:{server_name}")`——**名字派生、与进程无关**，所以同一份 `extensions_config.json` 在多个 Gateway 上算出一致的 id。
+- `ambiguous_installation_ids(servers)`：统计被多个 server 声明成同一个 `capability.id` 的条目。歧义 id 必须**从"想要的集合"里剔除**而不是随便挑一个——否则用户勾选"装一个"会连带启用另一个同 id 的 server。
+- `filter_mcp_plugins(tools, selected, config)`：非 MCP 工具原样保留；MCP 工具只有其所属 server 的 id 在 `selected` 里才保留，歧义 id 从 `wanted` 去掉。也就是 **`mcp_plugins` 是纯 deny-by-default 的白名单**，不是优先级提示。
+
+### 内置业务 MCP provider（`capabilities/business.py`）
+
+`dingtalk` / `wecom` / `hubspot` 三个 provider 是**随 harness 打包的 stdio MCP server**：`MODULE = "deerflow.capabilities.business"`，连接配置由 `connection_config(provider, configuration)` 生成——`{"type": "stdio", "command": sys.executable, "args": ["-I", "-m", MODULE, provider], "env": {...}, "enabled": True}`。`-I` 是隔离模式：启动的子解释器不读 `PYTHONPATH` / 用户 site，避免宿主环境污染 MCP server。
+
+- 凭据只从 `CREDENTIALS` 表里取（`dingtalk: access_token/sign_secret`；`wecom: webhook_key`；`hubspot: access_token`），映射到固定环境变量名（`DEERFLOW_DINGTALK_ACCESS_TOKEN`、`DEERFLOW_DINGTALK_SIGN_SECRET`、`DEERFLOW_WECOM_WEBHOOK_KEY`、`DEERFLOW_HUBSPOT_ACCESS_TOKEN`）。
+- 取值正则 `[A-Za-z0-9._~+/=-]{1,4096}`，字段集**必须精确等于**表里那一组，否则 `ValueError("Supply the required credentials only")`——多塞一个字段就拒，防止把任意环境变量捅进子进程。
+- `is_bundled_connection(command, args, env)` 给 MCP 运行时一个**极窄的 allowlist 例外**：只有完全等于内置形状的命令才被认作"内置连接"并放行（普通 MCP server 的 stdio 命令通常需要操作者显式配置）。
+- 客户端用 httpx 流式请求，20 s 超时、2 MiB 上限、**关闭重定向**（避免凭据被带去第三方域名）。
+
+### Gateway 侧适配（`app/gateway/capabilities.py`，249 行）
+
+`CapabilityAdapter` 是个结构化 Protocol（`list_installations` / `install`），registry 里注册了四个：`mcp`、`business`、`lark`、`skills`（`AdapterRegistry` 对重名抛 `ValueError(f"Adapter already registered: {name}")`）。
+
+| adapter | `list_installations` | `install` |
+|---|---|---|
+| `mcp` | 读 `extensions_config.json` 的 MCP server，产出 `CapabilityInstallation`；歧义 id 渲染成 `ambiguous:<id>` + `selectable=False` + `health="ambiguous"` | 复用既有 MCP 创建逻辑，并写入 `capability: {id: uuid4, plugin_id, version}` 三元组 |
+| `business` | 继承 `MCPAdapter`，只列 `plugin_id ∈ CREDENTIALS` 的 | 走 `connection_config()`，凭据校验同上 |
+| `lark` | 飞书专用的展示条目 | 走飞书安装流程 |
+| `skills` | 列当前用户可见的 skill，id 形如 `skill:<category>:<name>` | **故意不支持**：抛 422 `"Use the existing skill archive upload API"` |
+
+**`MCPAdapter` 的两条硬纪律**：① 返回体**永不投影** URL / command / env / OAuth 细节，只给展示字段（`id, plugin_id, adapter, name, description, selectable, installed, enabled, version, scope, auth_status, health, reference, category, icon`）；② `icon` 只接受 `data:image/png;base64,` 开头且 ≤100 000 字符的内联 PNG——不接受远程 URL，避免把用户浏览器变成 SSRF 跳板。
+
+**路由**（`app/gateway/routers/capabilities.py`，前缀 `/api/capabilities`，挂载点 `app/gateway/app.py:1344`）：
+
+- `GET /catalog` —— 在 worker 线程里 `load_catalog()`（读盘），返回 15 条 manifest。
+- `GET /installations/{adapter}?scope=deployment|user|all` —— `all` 只对 `mcp` / `business` 合并 deployment + user 两层；`can_manage = scope == "user" or is_admin_user`。
+- `POST /installations` —— body `InstallRequest{plugin_id, name(≤128，默认空串), configuration, scope: deployment|user="deployment"}`。`deployment` scope 需要 admin（否则 400 `"Admin privileges required to install capabilities."`）；`user` scope **强制把 `user_id` 覆盖成请求里的调用者**（不能替别人装）；`plugin_id` 不存在 → 404 `"Plugin not found"`；user scope 下 adapter 不是 `mcp`/`business` 也需 admin（400 `"Admin privileges required to install this capability."`）。
+- 没有安装适配器的能力（纯 setup 指南）→ 422 `"This capability only has a setup guide; no installation adapter is available"`（`AdapterRegistry.get`）。
+
+> **域外提醒**：personal MCP 的 CRUD 路由在 `app/gateway/routers/personal_mcp.py`（本域未覆盖），但 2.2 把 `mcp_plugins` 的语义从"提示"改成了"白名单"（`capabilities/runtime.filter_mcp_plugins`），跨域断言请以那个函数为准。
+
+## Skill mutation host service 🆕（2.2 新增：`skills/mutations/` + migration 0046）
+
+`backend/packages/harness/deerflow/skills/mutations/`（15 个文件 / 2050 行）给**受信宿主插件**提供一条"受控修改现有用户 custom skill"的通道。它不是给 agent 用的：agent 走 `skill_manage`，宿主插件走这里的九步协议，两者的写路径最终共用同一批锁与闸门（`mutations/guard.py`）。权威叙述在 `docs/skill-evolution-host.md`（224 行）。
+
+### 为什么需要它
+
+插件想改用户的 skill，天然有四个坑：**并发**（用户同时在 Gateway 里编辑）、**所有权**（只能动自己那次安装的、用户自己的 custom skill）、**部分写入**（写一半崩了留下半新半旧的包）、**撤销**（改了之后要能回退）。这套服务把每个坑都做成了显式契约，而不是靠调用方自律。
+
+### 准入条件（四条全满足才可用）
+
+1. **durable DB**：SQLite 或 Postgres，且 `run_events.backend: db`（服务本身要写 `skill_mutation_*` 表；只看文件系统无法表达 PREPARED/APPLIED 状态）。
+2. **单 POSIX 主机 + 本地文件系统**：`os.name == "posix"` 且拓扑是 `single_host_local`，否则 `HostCapabilityError("UNSUPPORTED_TOPOLOGY")`。原因写在 `mutations/topology.py` 里：CAS 发布依赖 `rename`/`mkdir` 的原子性，NFS 上不成立。SQLite 部署还要求**只有一个 Gateway**。
+3. **静态扫描 + 已配置的扫描模型**：`skill_scan.enabled` 且能创建 chat model（`mutations/scanner.py`）。
+4. **显式授权**：`config.yaml → plugins[].host_access.skill_mutations` 声明 `operations`（`stage`/`check`/`commit`/`revert` 的子集）、`trigger_agents`、`target_skills`、`topology`。
+
+授权在 `deerflow/extensions/host_access.py`：`SkillMutationAccess(EvidenceAccess)` 携带上述四个字段，`BoundHostAccess.allows(operation, owner_id, name)` = `operation ∈ operations ∧ owner ∈ owners ∧ name ∈ target_skills`。**三元交集，缺一即拒**，且拒绝统一报 `HostCapabilityError("NOT_FOUND_OR_FORBIDDEN")`——不区分"不存在"和"没权限"，避免探测。
+
+### 协议（`deerflow_extension_api/skill_mutations.py`，161 行）
+
+`SkillMutationService` 是一个 10 方法的 Protocol：`read_skill` → `stage` → `get_proposal` → `read_proposal_bundle` → `check` → `commit` → `discard` / `revert` → `get_operation` / `find_operation`。
+
+- `AssetRevision(incarnation_id, mutation_seq, content_digest)` 是**三要素版本**：光有内容 hash 不够（内容可能改回旧值），光有序列号也不够（换实例后序列号会重用）。
+- `MutationCapabilities` 公布全部上限，探测用 `protocol_version = "skill-mutations-v1"`：`max_main_bytes` 131072、`max_package_bytes` 16777216、`max_package_files` 256、`max_sources` 20、`max_pending_proposals` 20、`max_model_scan_files` 32、`max_model_scan_bytes` 1048576、`max_model_scan_file_bytes` 131072、`max_concurrent_scans` 4、`max_owner_plugin_concurrent_scans` 2、`max_owner_plugin_scans_per_hour` 20、`check_timeout_seconds` 120、`proposal_ttl` 86400、`check_ttl` 900、`rollback_ttl` 2592000、`topology = "posix-single-host-local-filesystem"`。
+- `Operation ∈ {stage, check, commit, discard, revert}`；`Proposal` / `BundleFile` / `ProposalBundle` / `HostCheckResult` / `AssessmentRef` 是不可变 DTO。
+
+### 状态机与恢复
+
+发布是 **CAS（compare-and-swap）**：`mutations/publication.py` 的 `assert_temporary_absent` + `publish_prepared` 先在临时路径准备好完整包，再一次性 `rename` 到目标，中途崩溃只会留下 PREPARED 残留。
+
+- `PREPARED`：临时产物存在，目标未被替换 → 恢复动作是**清掉残留**（`mutations/recovery.py::SkillMutationRecovery`）。
+- `APPLIED`：目标已替换 → 恢复动作是**把 owner 状态推到终态**，不是回滚。
+- `NEEDS_REPAIR`：需要人工/管理员介入；**处于这个状态时不允许降级**（`docs/skill-evolution-host.md` 明确写 no downgrade）。
+- 回滚窗口 `rollback_ttl = 30 天`（2592000 s）。`revert` 把内容退回上一个 revision，但 **`views=ERROR` 不等于可以回滚**——视图错误是投影问题，不是内容问题（文档专门点名这个误区）。
+
+**扫描闸门（`mutations/scanner.py`，111 行）**：`CHECK_POLICY_VERSION = "skill-mutation-check-v1"`，模型文件预算 `MAX_MODEL_FILES=32` / `MAX_MODEL_BYTES=1 MiB` / `CHECK_TIMEOUT_SECONDS=120`。策略哈希 = `sha256(CHECK_POLICY_VERSION, PARSER_VERSION, skill_scan.enabled, moderation_model_name, 全部 model 配置（去掉 api_key）)`——**换了模型或改了扫描策略，旧的 check 结论就作废**（必须重新 check）。失败一律 fail-closed：`config.skill_evolution.security_fail_closed` 被**强制**置 `True`（不继承手动路径的 fail-open 开关），`ScanVerdict(decision, reason_code, policy_version)` 只有 `allow` 能 commit；`SCANNER_DISABLED` / `SCAN_LIMIT_EXCEEDED` / `SCANNER_INCOMPLETE` / `SCANNER_UNAVAILABLE` 全部是 `unavailable`（→ 不能 commit）。`reason_code` 只回代码，**不回模型/provider 内容**（异常路径注释原话：`Error details can include model/provider content. Return codes only.`）。
+
+`ScanResult.available` 这个 2.2 新字段就是为这条链路加的：扫描器"不可用"（模型调用失败、输出不可解析、可执行内容无扫描器）与"明确 block"以前都只是 `block`，宿主服务无法区分"内容有问题"和"扫描器坏了"；现在前者 `available=False` → `SCANNER_UNAVAILABLE`，后者 `available=True` + `block` → `MODEL_SCAN_REJECTED`（`security_scanner.py:24-27,164-181`；消费点 `mutations/scanner.py:102-105`）。
+
+### 关键实现模块
+
+| 模块 | 作用 |
+|---|---|
+| `mutations/service.py`（608 行） | `HostSkillMutationService` 主实现；`capabilities` 属性把 binding 的 `operations` 投影出来；`_authorize` 做三元交集判定 |
+| `mutations/guard.py`（186 行） | **锁与栅栏的唯一来源**：`managed_global_read` / `managed_read` / `managed_global_state_write` / `managed_name_writes(storage, names)` / `managed_writer` / `read_optional_text` / `owner_is_managed`。所有 storage、projection、export 的读写都嵌在这些 context manager 里，锁顺序固定 global → owner → name，避免死锁 |
+| `mutations/enrollment.py`（65 行） | `require_unenrolled` 检查 owner 是否已被本功能接管；DB 用**只读 sqlite URI**（`mode=ro`）+ `NullPool`，**绝不创建库** |
+| `mutations/assets.py`（148 行） | `capture_package` / `MAX_PACKAGE_BYTES`：包快照在内存里冻结 |
+| `mutations/publication.py`（183 行） | 临时目录准备 + 原子发布 |
+| `mutations/repository.py`（127 行） | revision 读写（`incarnation_id` / `mutation_seq` / `content_digest`） |
+| `mutations/scan_budget.py`（38 行） | `reserve_scan` / `release_scan`：并发扫描与每小时配额 |
+| `mutations/workers.py`（67 行） | `MutationWorkers`：把阻塞的扫描/发布 offload 出事件循环，`close()` 会 drain 在途工作 |
+| `mutations/codec.py` / `history.py` / `validation.py` / `topology.py` | 序列化、history、`MAX_MAIN_BYTES` + `validate_candidate`、拓扑判定 |
+
+### 数据模型（migration `0046_skill_mutations`）
+
+`backend/packages/harness/deerflow/persistence/migrations/versions/0046_skill_mutations.py`：`revision = "0046_skill_mutations"`，`down_revision = "0045_completed_run_evidence"`，下一个 revision `0047_mcp_oauth_tokens` 修订它。
+
+- `skill_mutation_assets`：主键 `target_ref`，唯一约束 `uq_skill_asset_owner_name`；列 `incarnation_id / mutation_seq / content_digest / enabled / deleted / mutating / operation_id`。
+- `skill_mutation_operations`：操作流水（含 PREPARED/APPLIED 判定依据）。
+- 还有 owner 状态表、`skill_mutation_proposals` 表、`SkillScanAttemptRow` 表（扫描配额的事实来源）。
+- `_create_table` 能容忍 `create_all` 已经建过的同名表；形态不兼容时抛 `RuntimeError(f"Incompatible preexisting skill mutation table: {name}")`——**不静默复用**。
+
+> 迁移本身的细节属于 persistence 域；这里只钉它解决的问题（三要素 revision 的持久化）与表名，便于交叉引用。
+
+### 管理面路由（`app/gateway/routers/skill_mutations.py`，52 行）
+
+前缀 `/api/skill-mutations`（挂载点 `app/gateway/app.py:1357`），**全部 admin-only**，且 `app.state.skill_mutation_host` / recovery 缺失时统一 503 `UNAVAILABLE`：
+
+- `GET /operations` —— `limit` 1–100（默认 50）、`after_id` 为 32 位 hex；返回 `{items, has_more, next_cursor}`。
+- `GET /operations/{operation_id}` —— id 必须 32 位 hex。
+- `POST /operations/{operation_id}/recover` / `POST /owners/{owner_id}/recover` —— `OwnerId` 正则 `^[A-Za-z0-9_-]+$`、1–128 字符。
+- 错误映射：`NOT_FOUND_OR_FORBIDDEN` / `NOT_FOUND` → 404；`NEEDS_REPAIR` / `REVISION_CONFLICT` → 409；其余 → 503。
+- **没有 force-overwrite 端点**：冲突只能靠重新 `read_skill` 拿新 revision 再 `stage`，或由管理员 `recover`。
+
+### 与 agent 侧 `skill_manage` 的关系
+
+两者写的是**同一批文件、同一把名锁**（`managed_name_writes`），差别在准入：
+
+| 维度 | `skill_manage`（agent） | `HostSkillMutationService`（插件） |
+|---|---|---|
+| 谁能调 | 当前 run 的 user | `plugins[].host_access.skill_mutations` 授权的插件 |
+| 可改范围 | 自己 `custom/` 下的任意 skill（含新建/删文件） | 仅**已启用**的 user custom `SKILL.md` 的 **body + description**（P0） |
+| 闸门 | 静态扫描 + LLM 三态 | 静态扫描 + LLM + policy 哈希 + CAS + check TTL |
+| 撤销 | history + `POST /skills/custom/{name}/rollback` | `revert`（30 天窗口） |
+| 并发 | `_SkillLock`（进程内跨 loop） | DB revision + 文件锁 |
+
+## 自定义 skill 加载诊断 🆕（2.2）
+
+用户写坏 `SKILL.md` 的 YAML 时，日志里的 yaml 异常串既带宿主路径又对用户毫无指导意义。2.2 新增一条**只服务管理面**的诊断通路，明确不进入 agent 的 catalog。
+
+- `skills/diagnostics.py`（35 行）：`SkillLoadDiagnostic(package, path="SKILL.md", code="invalid_frontmatter", hint, line, column)`；`yaml_load_diagnostic(package, exc, source, line_offset)` 把 `yaml.YAMLError` 投影成稳定字段——**不序列化异常对象**（否则宿主路径与内部细节会漏出去）。
+- `hint` 目前只有一个取值 `quote_colon_value`，且**只在** `exc.problem == "mapping values are not allowed here"`、"冒号后的值未加引号/不以块标量符号开头"、"错误列正好落在 `: ` 上"三条同时成立时才给——这就是最典型的 `description: foo: bar` 忘加引号。其它 YAML 错误只给行列号，**不猜**。
+- 只有 `yaml.YAMLError` 会产生诊断；缺 frontmatter、frontmatter 非 mapping、非 UTF-8、读盘失败**都不算**诊断（那些是"文件不是 skill"或"环境问题"，不是用户可修的 YAML 错误）。
+- 采集入口：`SkillStorage.load_custom_skill_diagnostics()`（基类默认 `[]`，`storage/skill_storage.py`）；user-scoped 实现**只扫调用者自己的 custom root**，先核对 `root.resolve()` 精确等于 `users/{uid}/skills/custom`，否则返回 `[]`；途中任何解析后跳出该目录的路径直接剪枝；**符号链接/外部包一律排除**（管理面无法在调用者的 custom root 之外确立所有权）。并发删除/重定向的包被 `except (OSError, RuntimeError): continue` 跳过——"包刚好不见了"不是 YAML 错误。
+- 路由：`GET /api/skills/diagnostics/custom`（`app/gateway/routers/skills.py:672`），admin-only，响应头 `Cache-Control: no-store`（诊断随磁盘即时变化），失败 → 500 `"Failed to load custom skill diagnostics."`（不回传异常细节）。
+
+## 容器路径 ↔ canonical skill 名注册表 🆕（2.2）
+
+`skills/container_registry.py`（40 行）解决一个长期歧义：**skill 目录名和 frontmatter 里声明的 `Skill.name` 是两件独立的事**。沙盒里脚本拿到的是容器路径 `/mnt/skills/{category}/{dir}/SKILL.md`，而授权层、`/skill-name` 激活、`skill_context` 全都说**声明名**。
+
+- `build_container_path_registry(storage)`：用 `load_skills(enabled_only=False)`（含禁用 skill，阻塞式扫描）建一个"归一化容器路径 → skill"的字典。
+- `canonical_skill_name(registry, skill_md_path) -> str | None`：把任意形状的容器路径归一到同一 key 再查声明名。
+- 纪律：**授权层永远说声明名**，容器路径只在边界处转换一次；不要在任何授权判定里直接比较目录名。
+
+## 自定义 skill 存储的 2.2 加固
+
+- **读取一律 `encoding="utf-8-sig"`**，写出一律 `encoding="utf-8"` + `newline=""`：BOM 在读取侧被剥掉，LF 在写出侧不被 Windows 改成 CRLF（`storage/local_skill_storage.py::read_custom_skill` / 写路径）。这与 `AGENTS.md` 的「Skill text encoding」纪律是同一条。
+- **`walk_skill_directories(root)`**（`storage/skill_storage.py:23-45`）统一取代裸 `os.walk`/`rglob`：`os.walk(root, followlinks=True)` 之后用一条**只记当前分支**的 `ancestors` 栈（元素是 `(current_path, resolved)`）剪掉指回祖先目录的环——`dir_names.clear()` 后 `continue`，于是 `a -> ..` 这类自引用不会无限遍历。**故意只记当前分支**：两棵各自独立的外部 skill 树别名必须都能被发现，所以不能全局去重 resolved 路径。解析失败（`OSError`/`RuntimeError`，目录在扫描中被删或链接改了）同样 `dir_names.clear()` 跳过，不炸整次扫描。
+- **`read_text_or_none(path)`**（`storage/skill_storage.py:48-58`）：`read_bytes().decode("utf-8")`，非 UTF-8 返回 `None` 而不是抛 `UnicodeDecodeError`。docstring 交代用途仅限 history 记录：支持文件可以是二进制（installer 只拒可执行二进制，不拒图片等资产），"没有可记录的旧文本"绝不能中断正在记录的那次变更。
+- **`remove_custom_skill_file` 拒绝目录**：传进来的是目录时报错而不是 `rmtree`（`remove_file` 只能删文件）。
+- **原子写失败清理**统一走 `cleanup_failed_atomic_write(tmp_path)`（`deerflow.utils.atomic_write`），不再各写各的 `unlink(missing_ok=True)`。
+- **`_skill_projection_mutation(names=(name,))`**：所有 local storage 的变更只锁**受影响的 skill 名**，不再整 scope 排他，并发编辑不同 skill 不再互斥。
+- **storage 工厂透传 `app_config`**：`_make_storage(skills_config, *, app_config=None, host_path=None, **kwargs)`（`skills/storage/__init__.py:58-68`）只在 `issubclass(cls, LocalSkillStorage)` 时把 `app_config` 塞进 `kwargs`，并且**始终**传 `container_path=skills_config.container_path`（`:66`）。`get_or_new_user_skill_storage` 与 `user_should_see_legacy_skills` 另用 `kwargs.setdefault("container_path", app_config.skills.container_path)`（`skills/storage/__init__.py:133,174`）兜底——容器根路径只有一个来源，不再各调用点硬编码。
+
+## 内置 skill 归档安装的 2.2 变化（skills 侧摘要）
+
+> 完整链路见 [`skill-package-intake.md`](skill-package-intake.md)；这里只列影响 skills 子系统断言的几条。
+
+- `installer._scan_skill_file_or_raise(..., app_config=None)` 现在把 `app_config` **透传**给 `scan_skill_content`，SKILL.md、可执行文件、支持文件三条分支都走同一条。此前安装路径在某些分支上会丢掉 `app_config`，导致 `security_fail_closed` / kill switch 配置被静默忽略。
+- **可执行 magic 嗅探容忍前导填充**：`executable_binary_magic(prefix)` 允许一定长度（<64 字节）的空白/NUL 填充再出现 magic，UTF-8 BOM 作为整体被跳过一次；连续 ≥64 字节填充直接判 `None`（不是可执行）。`EXEC_SNIFF_BYTES = 63 + max(magic len)` 就是按这个边界算出来的。
+- **`CODE_SUFFIXES` 扩到 21 个**：`.bash .bat .cjs .cmd .hta .js .jse .mjs .php .pl .ps1 .psm1 .py .rb .sct .sh .ts .vbe .vbs .wsf .zsh`（2.1 是 12 个，缺 `.bat/.cmd/.hta/.jse/.php/.psm1/.sct/.vbe/.vbs/.wsf` 等 Windows 侧可执行类型）。新增 `is_scripts_member` 明确"成员位于 `scripts/` 下"这一独立判据。
+- **`is_eval_fixture_path` 等价重写**（`skills/package_paths.py`）：语义不变（`evals/<x>/fixtures`），只是实现改写。
+- `security_scanner.ScanResult` 新增 `available: bool = True`，见上文 mutation 一节。
+
 ## Per-Agent Skill 控制
 
 Custom agent 的 `config.yaml`：
@@ -396,24 +592,28 @@ skills: ["deep-research"]   # null=全部, []=禁用, ["a"]=指定
 
 `skill_manage` 工具面（参数、action 枚举、加载条件）见 [builtin-tools/C-agent-lifecycle.md](../builtin-tools/C-agent-lifecycle.md#skill_manage)；这里只钉 skills 子系统这侧的不变量与已发现的文档偏差。
 
-**写入门顺序是固定的三段**（`tools/skill_manage_tool.py:89-108,142-259`）：
+**写入门顺序是固定的三段**（`tools/skill_manage_tool.py:131-215,240-330`）：
 
-1. **静态 SkillScan candidate 扫描**（`enforce_static_scan`，命中 CRITICAL 即 `ValueError`）——发生在任何 LLM 调用**之前**（锚 `backend/tests/test_skill_manage_tool.py:255,296`）。
-2. **LLM 审核** `scan_skill_content`：三态 `allow|warn|block`；`block` 直接拒绝；`executable=True` 的内容必须 `allow`（`skill_manage_tool.py:66-74`）。in-graph 调用固定 `attach_tracing=False`（图根已挂载 tracing）（`69`，锚 `backend/tests/test_skill_manage_tool.py:391`）。
-3. 原子写盘 + 历史 + `refresh_user_skills_system_prompt_cache_async(user_id)`（`142-259`）。
+1. **静态 SkillScan candidate 扫描**（`enforce_static_scan`，命中 CRITICAL 即 `ValueError`）——发生在任何 LLM 调用**之前**（锚 `backend/tests/test_skill_manage_tool.py:255,296`）。候选树在**临时目录**里拼（`_scan_static_candidate_or_raise`），copytree 现有 custom skill 时包在 `managed_read(skill_storage)` 里；候选文件一律 `write_text(..., newline="")` 写——Windows 默认文本模式会把 LF 改写成 CRLF，扫描器看到的就不是实际发布的字节（`skill_manage_tool.py:156-172`）。
+2. **LLM 审核** `scan_skill_content`：三态 `allow|warn|block`；`block` 直接拒绝；`executable=True` 的内容必须 `allow`（`_scan_or_raise`，`skill_manage_tool.py:131-140`）。in-graph 调用固定 `attach_tracing=False`（图根已挂载 tracing），返回 `{"decision", "reason"}` 记进 history（锚 `backend/tests/test_skill_manage_tool.py:391`）。
+3. 原子写盘 + 历史 + 缓存刷新 + **跨进程失效标记**，四件事作为**一个 drained 单元**收敛（`_settle_skill_mutation`，`skill_manage_tool.py:190-215`）：`await_drained` 包住 `persist()` → `refresh_user_skills_system_prompt_cache_async(user_id)` → `publish_skills_cache_reset(user_id=user_id)`。理由写在 docstring 里：取消 `asyncio.to_thread` 只是放弃 await，**worker 仍会写完**，于是被取消的 run 会带着"写已落盘、本进程和同伴进程还在服务旧 skill 列表"的状态退出。标记写入是文件 IO，走 `to_thread`。发布失败抛 `SkillCacheResetPublishError`，消息明确写「变更**已经**生效，只是其它 Gateway 进程没被通知」——避免模型把成功当失败重试。
 
-**candidate 的构成决定"能否绕过"**：`create/edit/patch` 扫的是"临时目录 + 覆盖后的 SKILL.md"；`write_file` 扫的是"**整棵现有 custom skill 树** + 目标文件"，所以新增脚本同样会触发既有文件里的 CRITICAL 规则（`skill_manage_tool.py:89-101`）。扫描在 worker 线程执行（`_to_thread`/`asyncio.to_thread`）。
+**candidate 的构成决定"能否绕过"**：`create/edit/patch` 扫的是"临时目录 + 覆盖后的 SKILL.md"；`write_file` 扫的是"**整棵现有 custom skill 树** + 目标文件"，所以新增脚本同样会触发既有文件里的 CRITICAL 规则。静态扫描在 worker 线程执行（`_to_thread`/`asyncio.to_thread`）。
 
 **其他契约**：
 
-- `patch`：`find` 不存在（0 次命中）→ 报错；给了 `expected_count` 时实际次数必须精确相等，替换次数取 `expected_count`，未给则只替换 **1** 次（`179-203`，锚 `tests/test_skill_manage_tool.py:89`）。
-- 锁粒度 `(user_id, skill_name)`，存在 `WeakValueDictionary` 里——跨用户不互相阻塞（`33-43`）。
+- `patch`：`find` 不存在（0 次命中）→ 报错；给了 `expected_count` 时实际次数必须精确相等，替换次数取 `expected_count`，未给则只替换 **1** 次（`skill_manage_tool.py:279-281`，锚 `tests/test_skill_manage_tool.py:89`）。
+- 锁粒度 `(user_id, skill_name)`，存在 `WeakValueDictionary` 里——跨用户不互相阻塞（`_get_lock`，`skill_manage_tool.py:97-110`）。
 - `write_file` / `remove_file` 的 `path` 必须通过 `ensure_safe_support_path`（只允许 `references/templates/scripts/assets` 顶层目录，锚 `tests/test_skill_manage_tool.py:183`）。
-- `write_file` 的目标路径含 `scripts/` 才算 executable → 才要求 LLM 决策为 allow（`228-230`）。
-- 历史记录字段固定：`action / author="agent" / thread_id / file_path / prev_content / new_content / scanner`；`delete` 与 `remove_file` 记 `scanner={"decision": "allow", "reason": "Deletion requested."}`（`54-63,205-252`）。
-- 最后的分支把"未知 action"和"目标是 public/legacy 只读"统一成 `ValueError`（`254-259`）。
+- `write_file` 的可执行判定走共享的 `package_files.is_code_file(path, content[:8].encode(...))`——不再只看路径里有没有 `scripts/`，同一条规则覆盖 `.bash/.bat/.cmd/.js/.ts/.ps1/...` 等 21 个后缀，以及无后缀但首行 `#!` 的文件；命中才要求 LLM 决策为 allow（`skill_manage_tool.py:22,321`）。
+- 历史记录字段固定：`action / author="agent" / thread_id / file_path / prev_content / new_content / scanner`；`delete` 与 `remove_file` 记 `scanner={"decision": "allow", "reason": "Deletion requested."}`（`_history_record`，`skill_manage_tool.py:114-123,298,339`）。
+- 最后的分支把"未知 action"和"目标是 public/legacy 只读"统一成 `ValueError`。
 
-**本文档早前一处措辞补充**：`skill_manage` 各变更分支调用的是 **per-user** 版本 `refresh_user_skills_system_prompt_cache_async(user_id)`（`tools/skill_manage_tool.py:16,158,176,202,218,238,251`；实现在 `agents/lead_agent/prompt.py:264`），而非无参的全局 `refresh_skills_system_prompt_cache_async()`（`prompt.py:238`）。两者都存在，别写混。
+**跨事件循环锁 🆕（2.2 重写，upstream #5846）**：`_SkillLock`（`skill_manage_tool.py:40-92`）替代了原来的 `asyncio.Lock`。原因是同步包装器 `make_sync_tool_wrapper` 每次 `tool.invoke()` 都起自己的 `asyncio.run` 循环，而 `asyncio.Lock` 绑定到创建它的那个循环——在 A 循环里等 B 循环持有的锁会永远挂住（waiter 卡死）。现在的实现：`threading.Lock` 保护 `_locked` + `deque[(Future, loop)]`，每个 waiter 停在自己的 `Future` 上（`asyncio.wrap_future`），在自己所属的 loop 上被唤醒，**等待期间不占执行器线程**；`_release()` 把锁**直接交给最老的 waiter**（FIFO handoff），后来者不能插队；waiter 被取消时若 `Future.cancel()` 失败（说明锁已交到它手上）必须继续 `_release()`，否则身后的调用者永久等待；已关闭的 loop 上的 waiter 被跳过。
+
+**本文档早前一处措辞补充**：`skill_manage` 各变更分支调用的是 **per-user** 版本 `refresh_user_skills_system_prompt_cache_async(user_id)`（`tools/skill_manage_tool.py:20,203`；实现在 `agents/lead_agent/prompt.py:373`），而非无参的全局 `refresh_skills_system_prompt_cache_async()`（`prompt.py:347`）。两者都存在，别写混；而且 2.2 起**光刷本进程缓存不够**，必须再 `publish_skills_cache_reset(user_id=...)` 通知共享 home 卷上的其它 Gateway 进程。
+
+**共享失效标记 `SharedResetMarker("skills-cache-reset")` 🆕（2.2）**（`agents/lead_agent/prompt.py:76-77,108-160`）：标记文件落在共享 extensions 配置旁边，每个进程各自记录已消费的标记值，看到更新的值就丢自己的 prompt 缓存。`SkillCacheResetPublishError` 是它的专用异常。这条通路与 Gateway 侧 `POST /api/skills/reload` 用的是**同一套机制**：reload 的 `scope` 字段区分 `shared_config`（已发布标记，多进程生效）与 `process`（只清了本进程缓存）（`app/gateway/routers/skills.py:598-644`）。
 
 ---
 

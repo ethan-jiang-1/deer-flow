@@ -57,7 +57,7 @@ severity 词表 `blocker | error | warning | info`（`models.py:15`），全局�
 |------|---------|----------|
 | 结构 | `structure.missing-skill-md`、`structure.skill-md-not-text`、`structure.nested-skill-md` | blocker |
 | 结构（frontmatter） | `structure.invalid-frontmatter`、`structure.missing-name`、`structure.missing-description` | blocker |
-| 结构（frontmatter） | `structure.invalid-name`、`structure.description-too-long`、`structure.empty-body`、`structure.invalid-allowed-tools`、`structure.invalid-required-secrets`、`structure.invalid-secrets-autonomous` | error |
+| 结构（frontmatter） | `structure.invalid-name`、`structure.description-too-long`、`structure.empty-body`、`structure.invalid-allowed-tools`、`structure.invalid-required-secrets`、`structure.invalid-required-secrets-optional` 🆕、`structure.invalid-secrets-autonomous` | error |
 | 结构（frontmatter） | `structure.unknown-frontmatter-field` | warning |
 | 包属性 | `package.symlink`、`package.nested-archive`、`package.hidden-sensitive-file` | warning |
 | 资源图 | `resource.missing`、`resource.escaping-link`、`resource.unreferenced` | warning |
@@ -65,12 +65,14 @@ severity 词表 `blocker | error | warning | info`（`models.py:15`），全局�
 | SkillScan | 继承 SkillScan 的 rule_id（见下） | 映射 |
 | 便携 profile | `agentskills.description-length`（>200 字符）、`agentskills.name-length`（>64） | warning |
 
-来源：`analyzer.py:40-110,149-303`。
+来源：`analyzer.py:40-110,149-303`。**2.2 新增一条规则**：`structure.invalid-required-secrets-optional`（severity=error，`analyzer.py:262-271`，message `"required-secrets[].optional must be a boolean."`）——只要任一 mapping 条目的 `optional` 不是布尔就报。它与安装门的 `validation.py:87-93` 对齐（那边是 400 拒收），也与解析器的 fail-closed 读取（非布尔按 required 处理）对齐：**写坏了不会被静默当成 optional**。
 
 判定细节（都是契约级）：
 
 - `structure.nested-skill-md` 豁免 `evals/fixtures/**/SKILL.md`（`package_paths.is_eval_fixture_skill_md`），其余嵌套 `SKILL.md` 一律 blocker（`analyzer.py:62-71`）。
-- frontmatter 白名单是 `frontmatter.ALLOWED_FRONTMATTER_PROPERTIES`；未知键只是 warning，而不是安装门的硬失败（`analyzer.py:164-175`）。非字符串 YAML 键在 `split_skill_markdown` 里已被 `str()` 化，因此表现为 unknown field 而不是崩溃（`frontmatter.py:58-63`，锚 `backend/tests/test_skill_review_core.py:68`）。
+- frontmatter 白名单是 `frontmatter.ALLOWED_FRONTMATTER_PROPERTIES`；未知键只是 warning（`structure.unknown-frontmatter-field`，`analyzer.py:164-175`），而安装门遇到未知键是**硬失败**（`validation.py:42-44`）。非字符串 YAML 键在 `split_skill_markdown` 里已被 `str()` 化，因此表现为 unknown field 而不是崩溃（`frontmatter.py:57-62`，锚 `backend/tests/test_skill_review_core.py:68`）。
+- frontmatter 的**定界符**与 `parser.py` 共用同一个正则（`frontmatter._FRONTMATTER_RE`，`frontmatter.py:31`）：2.2 收紧了 BOM/尾部空白/`---suffix` 的处理，review 侧因此与加载侧同进同退——同一个文件不会出现"review 说没 frontmatter、加载器说能读"。边界用例锚 `backend/tests/test_skill_frontmatter_boundaries.py`。
+- `allowed-tools` 在 review 里**仍被解析**（`structure.invalid-allowed-tools` 是 error），但 2.2 起它只是兼容元数据：`skills/tool_policy.py` **已删除**，解析结果不再影响任何工具装配。review 报这条错误依然有意义（字段写坏了 frontmatter 会解析失败），但不要据此推断运行时会限制工具。
 - name 必须 `[a-z0-9]+(?:-[a-z0-9]+)*` 且 ≤64（`analyzer.py:370-371`）；description 空白即 blocker，>1024 字符是 error（`analyzer.py:201-221`）。
 - 注意：analyzer 的 1024 检查只看长度；安装/写入门 `skills/validation.py:77-80` 额外拒绝含 `<`/`>` 的描述。两者不是同一条规则，review 不会因为尖括号报错。
 
@@ -171,7 +173,8 @@ reader_errors[], analyzer_errors[]
 
 - 只读：不执行 skill、不安装依赖、不联网；快照字节原样交给 SkillScan，不在 review 内重写。
 - 模型可见载荷由 `tools/builtins/review_skill_package_tool.py` 组装：compact JSON（`stable_json_dumps` 后经 `neutralize_untrusted_tags` 中性化）+ `ToolMessage.artifact` 携带完整 payload（含 en/zh Markdown 渲染），语义 artifacts 上限 `_MAX_SEMANTIC_ARTIFACT_CHARS = 80_000`（`tools/builtins/review_skill_package_tool.py:23,53-80,146-158`）。
-- 工具用 `review_subject_entry`（**不是** `skill_context_entry`）标注结果 → 审查不会激活被审 skill、不绑定其 `required-secrets`、不施加其 `allowed-tools`（`skills/AGENTS.md`，`review_skill_package_tool.py:65-80`）。
+- 工具用 `review_subject_entry`（**不是** `skill_context_entry`）标注结果 → 审查不会激活被审 skill、不绑定其 `required-secrets`（`review_skill_package_tool.py:65-80`）。2.2 起 `allowed-tools` 本身已不施加于任何 skill（`skills/tool_policy.py` **已删除**），这一条只剩前两项有区分意义。
+- **本地路径白名单在 2.2 收紧 🆕**：`_ensure_local_target_allowed(path, *, user_id)`（`review_skill_package_tool.py:122-148`）从 2.1 的 `[cwd, /tmp]` + skills root 改成 **`[paths.user_dir(make_safe_user_id(user_id))]` + 配置的 skills root**。理由写在注释里：每个有文档的部署都把 `DEER_FLOW_HOME` 放在 cwd 下面，所以 cwd 与 `/tmp` 实际是"所有用户的数据"；而 skills root 若覆盖到 `<base_dir>/users`，同样会被**忽略并记 warning**（`users_root.is_relative_to(skills_root)`，`review_skill_package_tool.py:133-139`）。`user_id` 现在在函数入口就解析（`resolve_runtime_user_id(runtime)`，`review_skill_package_tool.py:110`），`skill://` 与本地路径两条分支共用。越界错误文本随之改为 `"Local review targets must be under the caller's user directory or the configured skills root"`。**跨用户审查本地目录不再可能**——只能审自己的 skill 或共享 skills root。
 - 语义/行为验证、mutation、运行时实验不属于 review core（属 `skills/public/skill-reviewer` 与 `skill-creator`）。
 
 ## 测试锚点

@@ -1,6 +1,6 @@
 ---
 title: "序列化层"
-description: "- `runtime/serialization.py` (148 行，v2.1.0 实测) — 规范序列化入口"
+description: "`runtime/serialization.py` 与 `runtime/converters.py` — LangGraph/LangChain 对象到 JSON 的唯一规范序列化入口，以及 OpenAI 线路格式转换"
 topics: [runtime, streaming, checkpointer]
 ---
 
@@ -8,8 +8,10 @@ topics: [runtime, streaming, checkpointer]
 
 ## 文件
 
-- `runtime/serialization.py` (148 行，v2.1.0 实测) — 规范序列化入口
-- `runtime/converters.py` (136 行，v2.1.0 实测) — LangChain → OpenAI 格式转换
+- `runtime/serialization.py` (148 行) — 规范序列化入口
+- `runtime/converters.py` (136 行) — LangChain → OpenAI 格式转换
+
+> **v2.2.0 同步结论**：这两个文件在 v2.1.0 → v2.2.0 之间**没有任何改动**（`git diff` 为空，行数同为 148 / 136）。本页内容逐条对 2.2.0 源码复核通过，因此除了版本标签之外没有事实性变更——这是本域唯一未被 2.2.0 触及的页面。
 
 ## serialization.py — 规范序列化
 

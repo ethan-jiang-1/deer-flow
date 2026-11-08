@@ -30,9 +30,35 @@ task_continuity:
 
 | 工具 | 预算 | 说明 |
 |------|------|------|
-| `task_note` | **8 条 × 750 字符 × 4 个 source ID**（key：40 个 ASCII 字母/数字/`_`/`-`） | 保存/替换/删除（空 content = 删除）命名笔记。满员时拒绝新 key，需先替换/删除既有 key；并行更新合计超容时 reducer 保留最后 8 个 insertion-order key（看下一次注入的 notebook 确认保留项）。source ID 只做可用性检查，不代表语义支持——**所有笔记都是 model report**，不经验证 |
-| `history_search` | **最多 8 条 × 600 字符摘录** | 关键词检索当前消息 + 当前 checkpoint 可达的压缩批次。英文按词、中文按**二字 bigram**；纯 lexical——改述不会被可靠匹配，模型可能需要多次换词搜索 |
-| `history_read` | **4000 字符分页** | 按精确 source ID 读取原文；结果带 `truncated` 标记和 `next_offset`（还有剩余文本时） |
+| `task_note` | **8 条 × 750 字符 × 4 个 source ID**（key：40 个 ASCII 字母/数字/`_`/`-`） | 保存/替换/删除（空 content = 删除）命名笔记。满员时返回 `note_capacity`，需先替换既有 key 或等本批结束（🆕 语义见下"批次预留"）。source ID 只做可用性检查，不代表语义支持——**所有笔记都是 model report**，不经验证 |
+| `history_search` | **最多 8 条 × 600 字符摘录** | 关键词检索当前消息 + 当前 checkpoint 可达的压缩批次。英文按词、中文按**二字 bigram**；纯 lexical——改述不会被可靠匹配，模型可能需要多次换词搜索。🆕 可选 `role=user\|assistant\|tool` |
+| `history_read` | **4000 字符分页** | 按精确 source ID 读取原文；结果带 `truncated` 标记和 `next_offset`（还有剩余文本时）。**没有** role 参数 |
+
+### 🆕 2.2.0：`history_search` 的 role 过滤与精确摘录
+
+**`role`**（`tools.py::_history_search`）：`user` / `assistant` / `tool`，在工具边界映射成存储里的 `human` / `ai` / `tool`；省略或 `null` 搜全部角色。非法值返回 `{"error": "invalid_role"}`。**过滤发生在 8 条上限之前**（归档侧先进 SQL，活动消息侧先进列表），所以过滤是"在这个角色里取前 8 条"，不是"取前 8 条再筛"。返回的 `role` 仍是存储值（`human`/`ai`/`tool`）。`history_read` 刻意不加 role 参数。
+
+**精确摘录**（`archive.py::_search_excerpt`）：2.1.0 是 `text[:600]`——摘录永远是源开头，跟查询词没有关系。2.2.0 改为：
+
+- 返回 `excerpt` + `excerpt_start` / `excerpt_end`，是**可读源文本上的 0 基、半开区间字符偏移**，可与 `history_read(offset=excerpt_start)` 直接对接；
+- 以**最早一个落得下的匹配**为中心开窗（两侧尽量居中），落不下就继续找下一个匹配，包括**重叠**匹配；一个都落不下则退回源开头并置 `excerpt_match = false`；
+- casefold 会把某些字符展开成多个（如 `ß`→`ss`），所以偏移要映射回**原字符**，不能用字节或 casefold 后字符串的下标；
+- 活动源用 **substring** 匹配；归档源用与 FTS 索引同一套 **token span**；同一 ID 两个都有时**活动文本优先**；归档有重复版本（同一 source 在不同长度被归档过）时取**首个 rowid 版本**，与 `history_read` 的取法一致，偏移也必须基于同一份文本。
+
+### 🆕 2.2.0：`task_note` 的批次容量预留
+
+2.1.0 的规则是"下单条时看当前 `len(notes)`"。问题：模型在一个 batch 里并行发出多条 `task_note`，每条都看到同一个旧 `notes` 快照，于是都以为有空位，最后靠 reducer 的"保留最后 8 条 insertion-order"兜底——静默丢笔记。
+
+2.2.0（`tools.py::_has_note_capacity`）：
+
+- 从 `runtime.state["messages"]` 里**最后一条 AIMessage** 取出本 batch 的所有 `task_note` 调用，按 **tool-call 顺序**逐个预留 slot；只有被预留到的 key 才被接受。
+- 兄弟调用里**结构非法**的（key/content/source 形状不合法）直接跳过、不占位，也不在预留阶段做 source 查找。
+- **兄弟删除或运行时拒绝腾出的 slot 不会借给本批**——它们尚未提交，可能被拒；这些空位在**下一批**重算。
+- 直接工具调用（没有模型 batch）退化为原来的单调用容量检查。
+- 预留和执行共用 `_note_shape_error()`，所以"预留能过、执行被拒"这种分歧不会出现。
+- 启用 artifact handle 解析时，预留读的是 `ArtifactResolutionMiddleware` 提供的**调用局部实参视图** `RESOLVED_TOOL_CALL_ARGS_KEY = "__resolved_tool_call_args"`（`state.py`）——它与执行用的是同一个 resolver；该键**只存在于当前 `ToolRuntime.state`**，不进消息、不进 checkpoint。解析关闭或直接工具图下用原始参数。
+
+对应的回归在 `backend/tests/test_task_note_capacity.py`（跑真实图；锁一个快照无法协调并行 Command）。
 
 注意：笔记与检索文本都是**历史数据，不是新指令**，也不是"某操作真的成功了"的证明。source ID 包含内容与消息身份——消息被修改就产生不同版本（`source_id = "r" + sha256(...)[:32]`）。
 
@@ -85,9 +111,12 @@ task_continuity:
 
 | 文件 | 职责 |
 |------|------|
-| `backend/packages/harness/deerflow/agents/task_continuity/archive.py`（254 行） | SQLite 归档 + FTS5 检索：`scope()` / `records()` / `capture()` / `acapture()` / `lookup()`，`digest()` 生成 batch/source ID |
-| `backend/packages/harness/deerflow/agents/task_continuity/state.py`（103 行） | `normalize_task_history` / `normalize_task_notes` / `merge_task_notes` / `TaskNotesChannel`，全部预算常量与 ID 正则 |
-| `backend/packages/harness/deerflow/agents/task_continuity/tools.py`（166 行） | 三个 `StructuredTool`（同步 + 协程双模式，Gateway 异步 / DeerFlowClient 同步图都要）；`append_task_continuity_tools()` 仅在 `enabled=True` 时追加 |
+行数为 v2.2.0 实测。
+
+| `backend/packages/harness/deerflow/agents/task_continuity/archive.py`（254 行，v2.1.0 为 187） | SQLite 归档 + FTS5 检索：`scope()` / `records()` / `capture()` / `acapture()` / `lookup()`，`digest()` 生成 batch/source ID；🆕 `_token_spans()` / `_search_excerpt()` |
+| `backend/packages/harness/deerflow/agents/task_continuity/state.py`（103 行，v2.1.0 为 99） | `normalize_task_history` / `normalize_task_notes` / `merge_task_notes` / `TaskNotesChannel`，全部预算常量与 ID 正则；🆕 `RESOLVED_TOOL_CALL_ARGS_KEY` |
+| `backend/packages/harness/deerflow/agents/task_continuity/tools.py`（166 行，v2.1.0 为 105） | 三个 `StructuredTool`（同步 + 协程双模式，Gateway 异步 / DeerFlowClient 同步图都要）；`append_task_continuity_tools()` 仅在 `enabled=True` 时追加；🆕 `_note_shape_error()` / `_has_note_capacity()` |
+| `backend/packages/harness/deerflow/agents/task_continuity/AGENTS.md`（🆕 2.2.0 新增，39 行） | 预留/摘录两条契约的开发约束 |
 | `backend/packages/harness/deerflow/config/task_continuity_config.py` | `TaskContinuityConfig`（pydantic，含 ge/le 钳制） |
 | `backend/packages/harness/deerflow/agents/middlewares/summarization_middleware.py` | 压缩时调 `capture()`/`acapture()`，把 `task_history` 写入 checkpoint 更新 |
 | `backend/packages/harness/deerflow/agents/thread_state.py` | `task_notes` / `task_history` channel 接线 |
@@ -96,7 +125,7 @@ task_continuity:
 
 上游附带完整公开评测：[docs/experiments/task-continuity-20260912/](../../../docs/experiments/task-continuity-20260912/README.md)（A/B/C/D 协议、脚本、结果、[VALIDATION.md](../../../docs/experiments/task-continuity-20260912/VALIDATION.md)）。**关键结论**：向量检索（Qwen3-Embedding-0.6B + 等权 RRF 混合）叠加在关键词检索之上**未建立稳定净收益**（C vs D：净 −5.0 个百分点，配对 bootstrap 95% 区间 [−15.0, +5.0]，精确 McNemar p=0.625）——因此**生产实现是纯 lexical，无向量依赖**。注意：这些数字描述的是强制压缩下的独立 replay 原型，不是生产实现或完整 DeerFlow 基线的验收率。
 
-`backend/tests/test_task_continuity.py`（1004 行）覆盖：真实图压缩 + checkpoint resume 后的 source 恢复、作用域/回滚隔离、retention、截断、失败行为与工具契约。手动 live 集成检查用生产 middleware + 原生工具 + 合成历史：
+`backend/tests/test_task_continuity.py`（1004 行，v2.1.0 为 607 行；2.2.0 新增 397 行）覆盖：真实图压缩 + checkpoint resume 后的 source 恢复、作用域/回滚隔离、retention、截断、失败行为与工具契约，以及 🆕 role 过滤、摘录偏移（含 casefold 展开与重叠匹配）、批次预留。手动 live 集成检查用生产 middleware + 原生工具 + 合成历史：
 
 ```sh
 cd backend

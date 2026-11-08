@@ -81,7 +81,9 @@ def my_calculator(expression: str) -> str:
 
 然后在 `get_available_tools()` 中注册，或在 `config.yaml` 中声明 tool group。
 
-**对 loop 的影响：** tool 在 tools node 内被调用。middleware 的 `wrap_tool_call` 会包装它（sandbox 路径转换、错误处理等）。如果 tool 抛异常，`ToolErrorHandlingMiddleware` 把它转成 ToolMessage 而不是让整个 run 崩溃。
+**对 loop 的影响：** tool 在 tools node 内被调用。middleware 的 `wrap_tool_call` 会包装它（收据、artifact handle 解析、授权、审计、写前读门、progress、错误处理）。如果 tool 抛异常，`ToolErrorHandlingMiddleware` 把它转成 ToolMessage 而不是让整个 run 崩溃。
+
+🆕 v2.2.0：如果 tool 返回大对象/文件，不要把它整段塞进上下文——让它带 **artifact 引用**。`ArtifactCaptureMiddleware` 会把 tool 结果里的 `art_xxxxxxxx` handle 收进 `ThreadState.tool_artifacts`（`before_model` hook，默认开），下游 tool 调用参数里可以直接写 handle，`ArtifactResolutionMiddleware` 在执行前用 `real_ref` 替换（默认开）。handle 是「(thread_id, ToolMessage.id, tool_call_id, 序号)」派生的标识符，不是所有权凭证。详见 `agents/middlewares/TOOL_ARTIFACTS.md`。
 
 ### 方式 B：MCP Server（进程级集成）
 
@@ -103,27 +105,30 @@ MCP tools 通过 `langchain-mcp-adapters` 自动发现和转换。tool 列表按
 
 **对 loop 的影响：** MCP tool 对 loop 来说跟内置 tool 一样。关键区别是 MCP tool 可能是异步的（stdio/SSE/HTTP transport），在 subagent 的 persistent daemon loop 上也能正常跑。
 
-### 方式 C：Skill（带 prompt 的 tool 集合）
+### 方式 C：Skill（带 prompt 的知识包）
 
-Skill 不是单纯的 tool——它是一组 tool + 一段 system prompt（`SKILL.md`）。当 skill 被激活时，它的 prompt 注入到 agent 的上下文中，它的 allowed-tools 白名单限制模型能调哪些 tools。
+Skill 不是 tool——它是**元数据 + 一段正文**（`SKILL.md`）。v2.2.0 起它的语义被明确收窄：
 
 ```
-skill 加载流程:
+skill 加载流程（v2.2.0）:
   skills/public/my-skill/SKILL.md
     ↓ load_skills() 解析 YAML frontmatter
-    ↓ 提取 name, description, allowed-tools
+    ↓ 提取 name / description / allowed-tools
     ↓
-  agent 创建时:
-    ↓ filter_tools_by_skill_allowed_tools(tools, skills)
-    ↓ 只保留 allowed-tools 交集内的 tool
-    ↓ skill prompt 注入 system prompt
+  build 时:
+    ↓ 只有 name + description 进 system prompt 的 <available_skills>（hashed catalog）
+    ↓ allowed-tools 只进 catalog 指纹，不参与工具过滤
     ↓
-  agent loop 执行时:
-    ↓ skill prompt 作为上下文指导模型行为
-    ↓ 模型只能调用 skill 允许的 tool
+  run 时（SkillActivationMiddleware）:
+    ↓ 用户 `/skill-name task` 触发，或模型读完整 SKILL.md
+    ↓ 整个 SKILL.md 正文以转义后的 HumanMessage 上下文注入（一次）
+    ↓ 绑定 required-secrets、记录 skill usage
+    ↓ 工具集完全不变
 ```
 
-**对 loop 的影响：** Skill 不改变 loop 结构，只是限制可用 tool 集合 + 添加行为引导。这是一种**约束型扩展**——不能做更多事，而是把能做的事控制在某个领域内。
+**关键语义（#6935，v2.2.0）**：enabled/configured skills 是**可发现的元数据，不是对工具集的授权**。`allowed-tools` frontmatter 保留为**兼容元数据**——它仍参与 skill catalog 指纹（`None` / `()` / 非空三种状态可区分，顺序无关），但**永不过滤或授予工具**。工具权限上限由 agent 装配与执行授权（`tool_declarations.py` 的 Layer 1 收窄 + `GuardrailMiddleware` 的 Layer 2 检查）持有。v2.1.0 里做这件事的 `SkillToolPolicyMiddleware` 在 v2.2.0 已删除（`skill_tool_policy_middleware.py` 整文件已删除，配套的 `skills/tool_policy.py` 也已删除）——「已删除」，现行实现不再有任何 tool 过滤路径。
+
+**对 loop 的影响：** Skill 不改变 loop 结构，也不改变可用 tool 集合——它只是在正确时机把领域知识（正文 + 需要的 secret 绑定）放进上下文。这是一种**知识型扩展**，权限边界交给授权层。
 
 ### Subagent 里的 skill 加载
 
@@ -177,7 +182,7 @@ class MyMiddleware(AgentMiddleware):
     ...
 ```
 
-这意味着你的 middleware 会被插入到 `LoopDetectionMiddleware` **之后**；`@Prev` 则插到它之前。机制上装饰器只给类打标记（`cls._next_anchor` / `cls._prev_anchor`，`deerflow/agents/features.py:49-73`），真正的插入发生在装配期：SDK 路径是 `agents/factory.py::_insert_extra_middleware()`（`factory.py:429+`），按锚点算下标后再插进链。
+这意味着你的 middleware 会被插入到 `LoopDetectionMiddleware` **之后**；`@Prev` 则插到它之前。机制上装饰器只给类打标记（`cls._next_anchor` / `cls._prev_anchor`，`deerflow/agents/features.py:49-73`），真正的插入发生在装配期：SDK 路径是 `agents/factory.py::_insert_extra()`（`factory.py:474`），按锚点算下标后再插进链（无锚点的插到 `ClarificationMiddleware` 之前，插完再把 Clarification 弹回尾部）。
 
 ### 第三步：注入到链中
 
@@ -188,8 +193,10 @@ class MyMiddleware(AgentMiddleware):
 
 1. **`wrap_model_call` 的实现要调 `handler(request)`**——不调就是跳过 LLM，调了就是继续洋葱链。忘了调用会导致 LLM 永远不执行。
 2. **`after_model` 是反向执行的**——你的 hook 会在"后面的" middleware 之后执行
-3. **不要在 `after_model` 里插入消息**（除非你确定 tool_calls 配对已经完成）
+3. **不要在 `after_model` 里插入消息**（除非你确定 tool_calls 配对已经完成）——共享助手 `middlewares/model_response.py` 提供 `last_ai_message` / `has_tool_call_intent` / `has_visible_content` / `append_visible_text` / `finish_reason`，判断"这条响应算不算终态"时优先复用它
 4. **middleware 实例是 per-agent 的**——如果同一个进程有多个 agent，每个有自己的 middleware 实例
+5. 🆕 **不要靠 `middleware.tools` 声明工具来授权**。LangChain 在宿主工具被过滤**之后**才把 `middleware.tools` 折进绑定集，声明会绕过 Layer 1。若确实要做，必须走 `middlewares/tool_declarations.py` 的 `layer_one_outcome()` → `narrow_declared_tools()` → `verify_declared_tool_view()` 五步（`authorization.enabled` 为真时才生效）；非 list/tuple 的 `tools` 会抛 `DeclaredToolViewError`
+6. 🆕 **订阅式扩展优先于改核心**：能通过 `extensions.py` 贡献点（middleware / lifecycle observer / router）表达的，就不该直接改 `_build_runtime_middlewares` / `build_middlewares`
 
 ## Level 2.5：加 Subagent 类型
 
@@ -266,7 +273,7 @@ Feishu/Slack/Telegram/DingTalk
 | 我想... | 用哪个 Level | 具体怎么做 |
 |---------|-------------|-----------|
 | agent 能在 new API 上搜索 | Level 1 | 加 Community Tool / MCP Server |
-| agent 在特定领域更专业 | Level 1 | 写一个 Skill (SKILL.md + allowed-tools) |
+| agent 在特定领域更专业 | Level 1 | 写一个 Skill (SKILL.md 正文 + description 触发词)；`allowed-tools` 只是兼容元数据，不再限制工具 |
 | 控制 agent 在 loop 的某一步做什么 | Level 2 | 写 Middleware + @Next/@Prev 定位 |
 | 创建一个专门做某事的子 agent | Level 2.5 | 定义 SubagentConfig + register |
 | 支持新的聊天平台 | Level 3 | 实现 Channel 抽象类 |
@@ -310,6 +317,8 @@ class AuditLoggingMiddleware(AgentMiddleware):
     ...
 ```
 
-传给 `build_middlewares()` 的 `custom_middlewares` 参数即可。
+传给 lead 路径的 `build_middlewares(..., custom_middlewares=[...])`，或用 SDK 路径的 `create_deerflow_agent(..., extra_middleware=[...])`。
+
+⚠️ 上面 `@Next(GuardrailMiddleware)` 的写法在 v2.2.0 里只能进 SDK 路径（`extra_middleware` 走锚点插入）；lead 路径的 `custom_middlewares` 是直接 `extend` 到尾部（`ModelContentCompatibility` 之后、`TerminalResponse` 之前），**不解析锚点**。要在 lead 链里精确定位，走 `extensions` 的 middleware 贡献点或改动装配代码。
 
 这就是 DeerFlow 扩展体系的完整图景：**四层扩展，从改配置到写 middleware，从 tool 到 subagent，每一层都有明确的接口和定位规则**。

@@ -1,6 +1,6 @@
 ---
 title: "LightRAG — 只读知识库检索（knowledge_search 的第二 provider）"
-description: "LightRAG 是 knowledge_search 工具的第二 provider（与 RAGFlow 二选一）：operator 配置自建 LightRAG 服务地址，agent 通过同一个只读 knowledge_search 工具检索，结果格式化成与 RAGFlow 共享形状的带引用编号紧凑文本。"
+description: "LightRAG 是 knowledge_search 工具的第二 provider（与 RAGFlow 二选一）：operator 配置自建 LightRAG 服务地址，agent 通过同一个只读 knowledge_search 工具检索。2.2.0 起它的工具侧改走 knowledge/ 契约（content_and_artifact + 稳定引用），capabilities 只有 search+sources，因此拒绝任何 dataset/document 收窄。"
 topics: [tools, community, knowledge, rag, lightrag, retrieval]
 ---
 
@@ -29,10 +29,12 @@ topics: [tools, community, knowledge, rag, lightrag, retrieval]
 ```
 community/lightrag/
 ├── __init__.py    # 空
-├── client.py      # ~170 行：极简异步 httpx client + 错误层次 + POST /query/data
-├── formatting.py  # ~89 行：检索结果 → 带引用编号的紧凑文本
-└── tools.py       # ~164 行：只读 tool + Pydantic 配置校验
+├── client.py      # 169 行：异步 httpx client + 错误层次 + POST /query/data
+├── formatting.py  # 105 行：CAPABILITIES + normalize_retrieval_result + format_retrieval_result
+└── tools.py       # 199 行：只读 tool + Pydantic 配置校验
 ```
+
+> ⚠️ **行数更正**：v2.1.0 digest 写的是 `client.py ~170` / `formatting.py ~89` / `tools.py ~164`；2.2.0 实测 **169 / 105 / 199**。`formatting.py` 变大是因为加了 `CAPABILITIES` 与 `normalize_retrieval_result`；`tools.py` 变大是因为新增了作用域校验与 `content_and_artifact` 输出路径。
 
 纯 `httpx` 实现，无三方 SDK 依赖（与 RAGFlow 一致，不像 Tenki/E2B 懒加载 SDK）。
 
@@ -59,18 +61,40 @@ community/lightrag/
 
 ## formatting：结果格式化
 
-`format_retrieval_result()`（`formatting.py`）与 RAGFlow 的同名函数**共享输出形状**：
+`formatting.py` 在 2.2.0 里有两个入口，各有各的输出形状：
+
+### `normalize_retrieval_result()`（`formatting.py:14`）——新契约
+
+`/query/data` 的 `chunks` 逐条转成 `RetrievalHit`：
+
+- `title` 取 `chunk["file_path"]`，缺失时用 `references[].reference_id → file_path` 映射补（`_reference_file_paths`，`:32`，`setdefault` 保留第一条）；仍无则 **source 为 None**；
+- **占位标题被显式过滤**：`title.strip().lower()` 命中 `{"unknown", "unknown_source", "unknown document"}` 时同样不给 source——「不确定的标题不写成证据」；
+- `content` strip 后上限 100_000，`title` 上限 500；**不打 url/page**；
+- `RetrievalResult` 里**没有 score**（LightRAG 的 `/query/data` 不返回可比的相似度）；
+- entities / relationships 一律丢弃（docstring：「Use /query/data chunks and joined references, never graph summaries.」）。
+
+### `format_retrieval_result()`（`formatting.py:50`）——纯文本（legacy API）
+
+与 RAGFlow 的同名函数**共享输出形状**：
 
 - chunks 逐个输出 `[N] {file_path}\n{content}`（缺 `file_path` 的 chunk 通过 `references[].reference_id → file_path` 映射补全；仍无则标 `Unknown document`）
 - **内部标识符永不出现在输出里**：`chunk_id` 和响应局部的 `reference_id` 完全不进格式化文本，引用一律用 operator 可读的 `file_path` 标注
-- **entities 和 relationships 被刻意丢弃**：只保留 mode 已排序好的文档 chunk 文本，保持输出紧凑并维持与 RAGFlow 一致的引用形状
+- **entities 和 relationships 被刻意丢弃**：只保留 mode 已排序好的文档 chunk 文本，保持输出紧凑并维持与 RAGFlow 一致的引用形状（消费的字段名对照过 LightRAG **v1.5.7** 源码树）
 - 末尾追加 `Matched documents: {doc} (N chunks), ...` 汇总
 - 截断：每 chunk `max_chars_per_chunk`（默认 800）、整篇 `max_total_chars`（默认 8000），超限加 `… (response truncated)`
 - 空结果 → `"No relevant content found."`
 
 ## tools：配置
 
-`knowledge_search_tool` = `StructuredTool.from_function(coroutine=...)`，`name="knowledge_search"`，工具描述明确 "Internal identifiers are never shown to the model"。配置从 `get_app_config().get_tool_config("knowledge_search")` 的 `model_extra` 读入，经 `_LightRAGRetrievalSettings` Pydantic 校验（`base_url` 同样禁止携带 username/password）：
+`knowledge_search_tool`（`tools.py:192`）= `StructuredTool.from_function(coroutine=_knowledge_search_entrypoint, name="knowledge_search", response_format="content_and_artifact", metadata={"knowledge_capabilities": CAPABILITIES.model_dump(mode="json")})`。
+
+**2.2.0 的三处行为变化**：
+
+1. **`response_format` 从默认改成 `content_and_artifact`**——通用工具链（以及 `sources_from_messages` 的历史重放）靠 artifact 拿到证据；无 artifact 时退回 `source_artifact([])`。
+2. **入口会校验作用域**（`tools.py:174-189`）：从 `runtime.context[KNOWLEDGE_SCOPE_RUNTIME_KEY]` 取 scope，`validate_scope_capabilities(scope, CAPABILITIES)` 失败 → `"Error: LightRAG does not support the selected knowledge scope."`，`mode == "disabled"` → `"Error: Knowledge retrieval is disabled for this turn."`。因为 capabilities 只有 `{search, sources}`，**任何 `selected` 作用域都会被拒**——LightRAG 没有 dataset 目录，无法表达收窄。
+3. **`knowledge_search(query)` 仍是纯文本 legacy 入口**（`tools.py:161`），docstring 原话「Legacy text-only API; graph tool calls additionally carry source artifacts.」——直接调用它拿不到 artifact，只有走 tool 才有。
+
+工具描述明确 "Internal identifiers are never shown to the model"，并追加了共享引用句式：「Cite only returned evidence using the exact `[citation:Title]` links supplied with each chunk; never invent source locators.」配置从 `get_app_config().get_tool_config("knowledge_search")` 的 `model_extra` 读入，经 `_LightRAGRetrievalSettings` Pydantic 校验（`base_url` 同样禁止携带 username/password）：
 
 ```yaml
 tool_groups:
@@ -107,13 +131,18 @@ tools:
 ## 执行流程
 
 ```
-knowledge_search(query)
-  → _settings_or_error()      # 读 tool 配置 + 校验；未配置/校验失败 → 通用错误
-  → _build_client(settings)   # base_url + 可选 api_key + timeout
-  → client.query_data(...)    # POST /query/data（无 LLM 生成，单一 workspace，无 binding 解析）
-  → format_retrieval_result() # 带引用编号紧凑文本（丢弃 entities/relationships）
-  → _redact_api_key()         # 成功路径也强制 API key 脱敏
-  └─ 异常 → _tool_error()     # APIError/ConnectionError/ProtocolError 各给可读消息，均脱敏
+_knowledge_search_entrypoint(query, runtime)        # tool 入口
+  → 读 runtime.context[KNOWLEDGE_SCOPE_RUNTIME_KEY]
+  → validate_scope_capabilities(scope, CAPABILITIES) # selected → 拒；disabled → 拒
+  → _search(query, with_sources=True)                # tools.py:122
+      → _settings_or_error()      # to_thread 里读配置 + 校验；未配置/校验失败 → 通用错误
+      → _build_client(settings)   # base_url + 可选 api_key + timeout
+      → client.query_data(...)    # POST /query/data（无 LLM 生成，单一 workspace，无 binding 解析）
+      ├─ with_sources → normalize_retrieval_result(redact_strings(...)) + format_result()
+      │                 → (content, artifact)          # 新契约
+      └─ 否则         → format_retrieval_result()      # 纯文本
+      → redact_secret(..., api_key)                    # 成功路径也强制 API key 脱敏
+      └─ 异常 → _tool_error()     # APIError/ConnectionError/ProtocolError 各给可读消息，均脱敏
 ```
 
 与 RAGFlow 相比刻意**简化掉**的部分：无 dataset 目录/白名单、无 embedding 分组并行、无 rank 交错合并——LightRAG 部署只有一个索引 workspace，一次请求即可。
@@ -122,10 +151,13 @@ knowledge_search(query)
 
 | 机制 | 位置 |
 |------|------|
-| HTTP client + 错误层次 + 版本探测 | `client.py:LightRAGClient` / `_request` / `query_data` |
-| 结果格式化 + 引用映射 | `formatting.py:format_retrieval_result` / `_reference_file_paths` |
-| 配置校验 | `tools.py:_LightRAGRetrievalSettings` / `_settings_or_error` |
-| tool 定义 | `tools.py:knowledge_search_tool`（`StructuredTool.from_function`） |
+| HTTP client + 错误层次 + 版本探测 | `client.py:30` `LightRAGClient` / `:14-26` `LightRAG*Error` / `query_data` |
+| 能力声明 | `formatting.py:11` `CAPABILITIES` = `{search, sources}` |
+| 新契约归一化 | `formatting.py:14` `normalize_retrieval_result` / `:32` `_reference_file_paths` |
+| 结果格式化 + 引用映射 | `formatting.py:50` `format_retrieval_result` |
+| 配置校验 | `tools.py:30` `_LightRAGRetrievalSettings` / `:83` `_settings_or_error` |
+| 检索 + 作用域 | `tools.py:122` `_search` / `:161` `knowledge_search`（legacy 纯文本） |
+| tool 定义 | `tools.py:174` `_knowledge_search_entrypoint` / `:192` `knowledge_search_tool` |
 | 配置示例 | `config.example.yaml`（tools 段 LightRAG 注释块） |
 | 测试 | `backend/tests/test_lightrag_client.py` / `backend/tests/test_lightrag_tools.py` |
 
@@ -134,3 +166,4 @@ knowledge_search(query)
 - 同一工具的第一 provider（对比表在此）→ [`07-ragflow.md`](07-ragflow.md)
 - 装配 / 集成矩阵 / 选型 → [`00-overview.md`](00-overview.md)
 - 内置 memory 检索 → [`../memory/extract-queue-persist-pipeline.md`](../memory/extract-queue-persist-pipeline.md)
+- **统一 `knowledge/` 契约（capabilities / 证据 / 预算 / 作用域）** → [`09-knowledge-abstraction.md`](09-knowledge-abstraction.md)

@@ -1,12 +1,14 @@
 ---
-title: "Web Fetch：6 种 URL→Markdown 管线"
-description: "所有 6 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markd"
+title: "Web Fetch：7 种 URL→Markdown 管线"
+description: "所有 7 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markd"
 topics: [tools, community, external-integration]
 ---
 
-# Web Fetch：6 种 URL→Markdown 管线
+# Web Fetch：7 种 URL→Markdown 管线
 
-所有 6 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markdown string（截断到 4096 字符）。
+所有 7 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markdown string（绝大多数截断到 4096 字符；Unbrowse 的截断常量是 `_UNBROWSE_FETCH_MAX_CHARS = 4096`，同样值）。
+
+> **2.2.0 变化速览**：新增 Unbrowse（走 MCP `tools/call` 而不是 REST）；Jina AI 的 `web_fetch` 增加了**本地请求准入**（`request_admission`）与响应体上限等 opt-in 选项。
 
 ## Provider 管线对比
 
@@ -34,6 +36,11 @@ topics: [tools, community, external-integration]
 │ Sofya 🆕                                                             │
 │   URL → POST sofya.co/v1/fetch {urls:[url]}                         │
 │       → 服务端 markdown → "# title\n\ncontent" → [:4096]            │
+├─────────────────────────────────────────────────────────────────────┤
+│ Unbrowse 🆕                                                          │
+│   URL → POST unbrowse.ai/api/mcp (JSON-RPC tools/call)              │
+│       invoke "unbrowse.scrape" {url, formats:["markdown"], render}  │
+│       → 结构化 markdown → "# title\n\ncontent" → [:4096]            │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -41,7 +48,7 @@ topics: [tools, community, external-integration]
 
 ### Jina AI（默认）
 
-- **文件：** `community/jina_ai/tools.py:45`
+- **文件：** `community/jina_ai/tools.py:44-45`
 - **签名：** `async def web_fetch_tool(url: str) -> str`
 - **认证：** `JINA_API_KEY` env var → `Authorization: Bearer <key>`（可选——无 key 也能用但有限速）
 - **端点：** `POST https://r.jina.ai/`，header `X-Return-Format: html`
@@ -50,12 +57,14 @@ topics: [tools, community, external-integration]
   2. `ReadabilityExtractor.extract_article()` — 用 `readabilipy` (Mozilla Readability.js) 提取正文
   3. `Article.to_markdown()` — 用 `markdownify` 转 HTML→markdown
   4. 截断到 4096 字符
-- **配置：** `timeout` 从 `config.tool_config("web_fetch").model_extra["timeout"]`，默认 10s
+- **配置：** `timeout`（默认 10）、`proxy`、`trust_env` 从 `config.tool_config("web_fetch").model_extra` 读；2.2.0 还可传 `max_retries` / `retry_budget_seconds` / `max_response_bytes` / `request_admission`（见下）
 - **特点：** 唯一异步 fetch tool。Readability 提取失败时 fallback 到 `use_readability=False`（保留原始 HTML 结构）
+- **配置解析不在事件循环上**：`config = (await asyncio.to_thread(get_app_config)).get_tool_config("web_fetch")`——`get_app_config()` 会 stat/hash 配置文件
+- **2.2.0 新增 `request_admission`（opt-in 本地准入）**：`community/jina_ai/request_admission.py`，三个必填字段 `max_concurrent_requests`（≥1）/ `max_queue_size`（≥0）/ `max_wait_seconds`（有限正数），字段集合必须**恰好**是这三个（多一个少一个都 `ValueError`）。语义是「进程级、跨线程/跨 loop 的尝试准入」：一旦启用就对该进程后续所有 Jina 调用生效且**不可更改直到进程重启**；排队超时抛 `JinaAdmissionError("wait expired")`——文档明确它是 terminal local rejection，**不是** provider 状态也不是可重试 I/O 错误；票证只在短 threading lock 下预占容量，唤醒 future 只由持有它的 loop 触碰；**key 里不含凭证/URL/调用者身份**
 
 ### InfoQuest
 
-- **文件：** `community/infoquest/tools.py:58`
+- **文件：** `community/infoquest/tools.py:104-105`
 - **签名：** `def web_fetch_tool(url: str) -> str`
 - **认证：** `INFOQUEST_API_KEY` env var → `Authorization: Bearer`
 - **端点：** `POST https://reader.infoquest.bytepluses.com`，body `{url, format: "HTML"}`
@@ -65,7 +74,7 @@ topics: [tools, community, external-integration]
 
 ### Tavily
 
-- **文件：** `community/tavily/tools.py:43`
+- **文件：** `community/tavily/tools.py:96-97`
 - **签名：** `def web_fetch_tool(url: str) -> str`
 - **认证：** config `api_key` → `TavilyClient`
 - **管线：** `TavilyClient.extract([url])` → `raw_content` → `f"# {title}\n\n{raw_content[:4096]}"`
@@ -73,7 +82,7 @@ topics: [tools, community, external-integration]
 
 ### Exa
 
-- **文件：** `community/exa/tools.py:57`
+- **文件：** `community/exa/tools.py:134-135`
 - **签名：** `def web_fetch_tool(url: str) -> str`
 - **认证：** config `api_key` → `Exa`
 - **管线：** `Exa.get_contents([url], text={max_characters: 4096})` → `f"# {title}\n\n{text[:4096]}"`
@@ -81,7 +90,7 @@ topics: [tools, community, external-integration]
 
 ### Firecrawl
 
-- **文件：** `community/firecrawl/tools.py:49`
+- **文件：** `community/firecrawl/tools.py:131-132`
 - **签名：** `def web_fetch_tool(url: str) -> str`
 - **认证：** config `api_key` → `FirecrawlApp`
 - **管线：** `FirecrawlApp.scrape(url, formats=["markdown"])` → `result.markdown` → `f"# {title}\n\n{markdown[:4096]}`
@@ -90,7 +99,7 @@ topics: [tools, community, external-integration]
 
 ### Sofya 🆕
 
-- **文件：** `community/sofya/tools.py`（#5239，与 web_search 同一模块）
+- **文件：** `community/sofya/tools.py:200-201`（#5239，与 web_search 同一模块）
 - **签名：** `def web_fetch_tool(url: str) -> str`
 - **认证：** config `model_extra["api_key"]` 或 env `SOFYA_API_KEY`（config 优先）→ `Authorization: Bearer`
 - **端点：** `POST https://sofya.co/v1/fetch`，body `{"urls": [url]}`
@@ -108,20 +117,37 @@ topics: [tools, community, external-integration]
   #   # api_key: $SOFYA_API_KEY
 ```
 
+### Unbrowse 🆕
+
+- **文件：** `community/unbrowse/tools.py:160-161`（`def web_fetch_tool(url: str) -> str`，2.2.0 新增）
+- **认证：** env `UNBROWSE_API_KEY` 或 config `api_key`（config 优先，`_get_api_key`）；缺失 → `Error: UNBROWSE_API_KEY is not configured`，并首次 warn 一次
+- **它不是 REST 抓取器，而是 MCP 客户端**：`POST https://unbrowse.ai/api/mcp`，body 是标准 JSON-RPC
+  ```json
+  {"jsonrpc": "2.0", "id": 1, "method": "tools/call",
+   "params": {"name": "unbrowse.scrape", "arguments": {"url": ..., "formats": ["markdown"], "render": "auto"}}}
+  ```
+  header：`Authorization: Bearer <key>` + `Content-Type: application/json` + `Accept: application/json`；超时 `_UNBROWSE_TIMEOUT = 90`
+- **`render` 三档**：`auto`（默认）/ `never`（只走纯 HTTP）/ `always`（强制云浏览器）；不支持的值 warn 后回落 `auto`（`_resolve_render`）
+- **结果解包的两条路径**：优先 `result.structuredContent` 的 dict；否则把 `result.content[].text` 拼起来再 `json.loads`。任一步不是预期形状 → `Error: Unbrowse returned an unexpected response format`
+- **错误分层**：HTTP 状态错误 → `Unbrowse API error: HTTP <n>`；JSON-RPC `error` 字段 → `Unbrowse error: <message>`（截 500 字符）；`result.isError` → 同样报 `Unbrowse error:`。所有错误日志的文本截 500 字符，不把完整响应打出去
+- **页面级失败但仍有内容**：`metadata.statusCode ∈ [400,599]` 时把 `Warning: target page responded with HTTP <n> (final URL: ...)` 放在正文前；`finalUrl` 会先过 `_strip_url_userinfo()`（剥 `user:pass@`，不可解析则整段丢弃——「Never echo raw credentials when parsing the authority fails.」）
+- **返回：** `# {title}\n\n{markdown}`，`title` 缺省 `"Untitled"`；空内容 → `Error: No content found`
+
 ## 关键差异
 
-| 维度 | Jina AI | InfoQuest | Tavily | Exa | Firecrawl | Sofya 🆕 |
-|------|---------|-----------|--------|-----|-----------|----------|
-| **Async** | 是 | 否 | 否 | 否 | 否 | 否 |
-| **API 返回** | HTML | HTML | text | text | markdown | markdown |
-| **本地管线** | ReadabilityExtractor | ReadabilityExtractor | 无 | 无 | 无 | 无 |
-| **截断位置** | 客户端 [:4096] | 客户端 [:4096] | 客户端 [:4096] | 服务端/客户端 | 客户端 [:4096] | 客户端 [:4096] |
-| **免费层** | 有（有限速） | 否 | 否 | 否 | self-host 可免 | 否 |
-| **文档格式** | HTML 页 | HTML 页 | — | — | — | 含 PDF/DOCX |
+| 维度 | Jina AI | InfoQuest | Tavily | Exa | Firecrawl | Sofya 🆕 | Unbrowse 🆕 |
+|------|---------|-----------|--------|-----|-----------|----------|-------------|
+| **Async** | 是 | 否 | 否 | 否 | 否 | 否 | 否 |
+| **协议** | REST | REST | SDK | SDK | SDK | REST | **MCP JSON-RPC** |
+| **API 返回** | HTML | HTML | text | text | markdown | markdown | markdown |
+| **本地管线** | ReadabilityExtractor | ReadabilityExtractor | 无 | 无 | 无 | 无 | 无 |
+| **截断位置** | 客户端 [:4096] | 客户端 [:4096] | 客户端 [:4096] | 服务端/客户端 | 客户端 [:4096] | 客户端 [:4096] | 客户端 [:4096] |
+| **免费层** | 有（有限速） | 否 | 否 | 否 | self-host 可免 | 否 | 否 |
+| **文档格式** | HTML 页 | HTML 页 | — | — | — | 含 PDF/DOCX | HTML 页（可强制云浏览器渲染） |
 
 ## ReadabilityExtractor（Jina AI & InfoQuest 共用）
 
-`deerflow/utils/readability.py:58` — 共享的可读性提取管线：
+`deerflow/utils/readability.py:197`（`class ReadabilityExtractor`，`extract_article()` 在 `:198`）— 共享的可读性提取管线：
 
 ```python
 # 1. Mozilla Readability.js 提取正文
@@ -133,7 +159,7 @@ if not article:
 markdown = markdownify(article_html)
 ```
 
-返回 `Article(title, html_content)` 对象，带 `to_markdown()` 方法。
+返回 `Article(title, html_content, url=None)` 对象（`:55`），带 `to_markdown(including_title=True)` 方法（`:63`）。传入 `url` 时先做 `_resolve_html_urls(html, url)`（`:109`）把相对链接补成绝对链接。
 
 ## Async→Sync 包装
 
@@ -141,13 +167,9 @@ Jina AI 的 `web_fetch_tool` 是 async coroutine，但 DeerFlow 的 tool 调用�
 
 ```python
 # tools/sync.py:38
-def make_sync_tool_wrapper(async_tool):
-    def sync_wrapper(**kwargs):
-        if is_in_event_loop():
-            return run_in_thread_pool(async_tool(**kwargs))  # 不阻塞 event loop
-        else:
-            return asyncio.run(async_tool(**kwargs))
-    return sync_wrapper
+def make_sync_tool_wrapper(coro: Callable[..., Any], tool_name: str) -> Callable[..., Any]: ...
 ```
+
+它还负责把 `RunnableConfig` 参数注入回 coroutine（`invoke_acp_agent` 这类配置敏感工具依赖这一点），并明确**不伪造动态函数签名**——一个用户可见参数恰好叫 `config` 的异步工具会与 LangChain 注入的 `config` 撞名，此时应改名或扩展这个 helper。
 
 在已有 event loop 的上下文中（agent 运行在 asyncio 中），包装器用线程池执行 `asyncio.run()` 来避免阻塞。

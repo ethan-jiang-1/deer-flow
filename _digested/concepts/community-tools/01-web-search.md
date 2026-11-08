@@ -1,27 +1,30 @@
 ---
-title: "Web Search：9 种 Provider 对比"
-description: "所有 9 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回 "
+title: "Web Search：12 种 Provider 对比"
+description: "所有 12 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回 "
 topics: [tools, community, external-integration]
 ---
 
-# Web Search：9 种 Provider 对比
+# Web Search：12 种 Provider 对比
 
-所有 9 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回 JSON string。差异在可选参数、认证方式和返回格式。
+内置 12 个 search provider 都暴露同名函数 `web_search_tool`，装饰为 `@tool("web_search", parse_docstring=True)`。都接受 `query: str` 参数，返回 JSON string。差异在可选参数、认证方式和返回格式。
+
+> **2.2.0 变化速览**：新增 Webz（新闻检索）与 You.com（免 key 可用）两个 provider；`max_results` 的「什么算非法」抽成 `community/search_max_results.py::coerce_max_results()` 单一所有者；结果 URL 统一过 `url_safety.safe_public_result_url()`（无 DNS 的纯字符串过滤）。
 
 ## Provider 对比
 
 ### DuckDuckGo Search（默认）
 
-- **文件：** `community/ddg_search/tools.py:56`
+- **文件：** `community/ddg_search/tools.py:181-182`（`web_search_tool`）
 - **认证：** 无（使用 `ddgs` 库，免费）
-- **参数：** `query: str, max_results: int = 5`
+- **参数：** `query: str, max_results: int = DEFAULT_MAX_RESULTS, time_range: SearchTimeRange | None = None`
 - **返回格式：** `{query, total_results, results: [{title, url, content}]}`
-- **配置：** `config.tool_config("web_search").model_extra["max_results"]`
+- **配置：** `config.tool_config("web_search").model_extra["max_results"]`，并支持 `region` / `safesearch` / `backend` 覆盖工具默认值
+- **2.2.0：** `max_results` 走共享 `coerce_max_results(max_results, provider="DDG Search", logger=logger)`；每条结果的 `url` 走 `safe_public_result_url(...)`
 - **延迟加载：** `ddgs` 库在 `_search_text()` 内延迟导入，避免非搜索场景的启动开销
 
 ### Serper（Google Search）
 
-- **文件：** `community/serper/tools.py:32`
+- **文件：** `community/serper/tools.py:387-388`（`web_search_tool`）
 - **认证：** `SERPER_API_KEY` env var，或 config `model_extra["api_key"]`
 - **HTTP：** 同步 `httpx.Client.post()` → `https://google.serper.dev/search`
 - **Header：** `X-API-KEY: <key>`（非标准 Bearer）
@@ -50,7 +53,7 @@ topics: [tools, community, external-integration]
 
 ### Sofya 🆕
 
-- **文件：** `community/sofya/tools.py`（#5239）
+- **文件：** `community/sofya/tools.py:141-142`（#5239）
 - **认证：** config `model_extra["api_key"]` 或 env `SOFYA_API_KEY`（config 优先）→ `Authorization: Bearer`；POST `https://sofya.co/v1/search`
 - **最大特点：** 返回**结果页面的内容**而非仅摘要（`search_depth: basic` 读页面 / `snippets` 只给摘要）；每个 agent 也能传 `time_range`（day/week/month/year → Sofya 的 `freshness` 参数，走共享 `SearchTimeRange` 契约）
 - **返回格式：** `{query, total_results, results: [{title, url, content}]}` 包装对象；`content` = 页面内容（读取成功）或搜索摘要（fallback），按 `contents_max_characters`（默认 2000，0 = 不截断）截断，避免正常搜索被写到磁盘
@@ -59,15 +62,15 @@ topics: [tools, community, external-integration]
 
 ### Tavily
 
-- **文件：** `community/tavily/tools.py:18`
+- **文件：** `community/tavily/tools.py:52-53`（`async def web_search_tool`）
 - **认证：** config `tool_config("web_search").model_extra["api_key"]`，传递给 `TavilyClient(api_key=api_key)`
-- **参数：** `query: str`（`max_results` 通过 config 控制，不作为函数参数）
+- **参数：** `query: str, time_range: SearchTimeRange | None = None`（`max_results` 通过 config 控制，不作为函数参数）
 - **返回格式：** `[{title, url, snippet}]` — **裸数组**，不是 `{query, total_results, results}` 包装
 - **注意：** 没有 env var fallback；Tavily 同时提供 `web_fetch_tool`
 
 ### InfoQuest
 
-- **文件：** `community/infoquest/tools.py:46`
+- **文件：** `community/infoquest/tools.py:92-93`（`async def web_search_tool`）
 - **认证：** `INFOQUEST_API_KEY` env var → `Authorization: Bearer <key>`
 - **架构：** 通过 `InfoQuestClient` 类调用（`infoquest_client.py`）
 - **端点：** `POST https://search.infoquest.bytepluses.com`
@@ -78,7 +81,7 @@ topics: [tools, community, external-integration]
 
 ### Exa
 
-- **文件：** `community/exa/tools.py:17`
+- **文件：** `community/exa/tools.py:91-92`（`web_search_tool`）
 - **认证：** config `tool_config("web_search").model_extra["api_key"]` → `Exa(api_key=api_key)`
 - **参数：** `query: str`（所有配置通过 model_extra）
 - **返回格式：** `[{title, url, snippet}]` — 裸数组，`snippet` = `"\n".join(result.highlights)`
@@ -87,7 +90,7 @@ topics: [tools, community, external-integration]
 
 ### Firecrawl
 
-- **文件：** `community/firecrawl/tools.py:17`
+- **文件：** `community/firecrawl/tools.py:95-96`（`async def web_search_tool`）
 - **认证：** config `model_extra["api_key"]` → `FirecrawlApp(api_key=api_key)`
 - **参数：** `query: str`
 - **返回格式：** `[{title, url, snippet}]` — `snippet` = `item.description`
@@ -95,7 +98,61 @@ topics: [tools, community, external-integration]
 - **额外配置：** `max_results`（默认 5），以 `limit` 参数传给 `client.search()`
 - **self-host 🆕：** 配置 `base_url`（如 `http://<host>:3002`）即指向自建 Firecrawl 实例，可完全免云 API key（`FirecrawlApp(api_url=...)`）
 
+### Webz 🆕
+
+- **文件：** `community/webz/tools.py:65-66`（`async def web_search_tool`，2.2.0 新增）
+- **认证：** config `model_extra["api_key"]` 或 env `WEBZ_API_KEY`（config 优先）；缺失 → `{"error": "Webz API key is missing; configure api_key or WEBZ_API_KEY"}`
+- **端点是新闻、不是通用 web**：`POST https://api.webz.io/api/news/context`，`Authorization: Bearer`，body `{query, k}`，`follow_redirects=False`。docstring 明确：「This provider searches news, not the general web. Date filters do not extend the provider's available news coverage.」
+- **参数是 12 个 provider 里最丰富的**：`query`（**1-750 字符且 ≤100 词**，超限直接返回错误）、`max_results`（clamp 1-100，缺省用 config 或 5）、`time_range`、`published_from`/`published_to`（`YYYY-MM-DD`，**`published_from` 优先于 `time_range`**）、`language`、`country`、`source`（映射到 Webz 的 `domain`）、`sentiment`（`positive|negative|neutral`）、`category`
+- **日期校验**：`date.fromisoformat(value).isoformat() != value` 拒绝非规范写法（如 `2025-1-1`）；`published_from > published_to` 拒绝反向区间。`time_range` 只是换算成 `published_from = today - {1,7,30,365}`（UTC）
+- **返回格式：** `{query, returned_results, results: [{title, url, content, published_at, source}]}`；`content` = `chunk.text` 或 `article.summary`；单条畸形结果 warn 后跳过，**有结果但全部畸形**则报 `"Webz returned an unexpected response"`
+- **注意：** 与其它 provider 不同，它**不接受裸数组**——payload 必须是 `{"results": [...]}` 形状
+
+### You.com 🆕
+
+- **文件：** `community/youcom/tools.py:166-167`（`async def web_search_tool`，2.2.0 新增）
+- **双端点、按有没有 key 选**：无 key → `https://api.you.com/v1/agents/search`（无 auth header，免费档 100 次/天）；有 `YDC_API_KEY`（或 config `api_key`）→ `https://api.you.com/v1/search` + `X-API-Key` header。docstring 强调「Endpoint and headers are always chosen together: the keyless endpoint rejects an `X-API-Key` header, so a stale key must never be sent there.」
+- **参数：** `query: str, max_results: int | None = None`（缺省用 config 的 `max_results`，再缺省 5；clamp 1-100）
+- **返回格式：** `[{title, url, snippet}]` 裸数组（与 Tavily/Exa/Firecrawl 同形状）。`snippet` 优先取 `snippets[]` 拼接（web hit），退回 `description`（news hit）；`web` 段在前、`news` 段在后合并后截到 `count`（`count` 是**每段**上限，所以合并后会超）
+- **错误内联化**：HTTP 状态错误映射成 `{"error": "You.com API error: HTTP <n> (<hint>)", "query": ...}`，`401/402/429` 各有可执行提示（`invalid or expired YDC_API_KEY` / `credit balance depleted` / `rate limit reached — set YDC_API_KEY for higher limits`）
+- **为什么是 coroutine**：模块 docstring 写明「A sync client would run the whole tool on the default executor and hold one of that pool's threads for the network round-trip, so several providers queried in parallel queued behind each other.」两处磁盘读取都挪出了事件循环——config 解析走 executor，`User-Agent`（读已安装包元数据）只在**第一次冷调用**走 executor，之后是内存缓存。回归测试：`backend/tests/blocking_io/test_youcom_search_async.py`
+- **`User-Agent`**：`deerflow-harness/<version> youdotcom-integration/bytedance-deer-flow`，**只发给 You.com 主机**
+- **2.2.0 复用**：`max_results` 走共享 `coerce_max_results(value, provider="You.com", ...)` 后再本地 clamp 到 100（注释：「clamping policy is deliberately per-provider」）
+
+## 共享的 `max_results` 归一化 🆕
+
+`community/search_max_results.py`（2.2.0 新增）把「什么算非法 `max_results`」从各 provider 里抽成单一所有者：
+
+```python
+coerce_max_results(value, *, provider: str, logger: logging.Logger, default: int = 5) -> int
+```
+
+- `bool` 一律拒绝（`True` 是 `int` 子类，裸 `int(value)` 会静默变成 1）；
+- 非整除 `float` 拒绝（`int(3.5)` 会静默截断 YAML 里写错的值）；
+- 越界 float（如未加引号的 `max_results: .inf`）触发 `OverflowError`，也在这里兜住；
+- 整除 float（`4.0`）**是合法的**，且**不设上限**——「Deliberately *not* decided here: whether an otherwise-valid value has an upper bound」；
+- `logger` 是**参数而不是模块级**：调用方传自己的 logger，warning 的 `record.name` 才会保留来源模块。
+
+现役使用者：`ddg_search` / `image_search` / `fastcrw` / `firecrawl` / `sofya` / `serply` / `serper` / `tencent_wsa` / `brave` / `groundroute` / `youcom`。**Exa**（自己的整数 helper）、**SearXNG**（内联校验）、**Tavily**（透传配置值）仍各自归一化——`tests/test_search_max_results_single_owner.py` 只跟踪已知的 helper/内联模式，不证明任意 provider 的语义。
+
+## 结果 URL 的 SSRF 过滤（2.2.0 强化）
+
+`community/url_safety.py:14` 的 `safe_public_result_url(value)` 是**纯字符串层面**的过滤，`docstring` 明确它「without doing DNS or network I/O」，且「Downloaders must still check the resolved address at connection time.」
+
+它拦的东西（`:14-50`）：
+
+1. 非 `http`/`https`、无 netloc、无 host → 返回 `""`；
+2. host 先做 IDNA 点号归一化（`\u3002`/`\uff0e`/`\uff61` → `.`，`:11` 的 `_IDNA_DOT_TRANSLATION`）+ 小写 + 去尾点，**防止全角点把 IP 字面量伪装成域名**；
+3. 命中 `_BLOCKED_HOSTNAMES = {"localhost", "metadata.google.internal"}` 或以 `.localhost` 结尾 → `""`；
+4. IPv4 字面量解析前先过 `_decode_result_ipv4()`（`:53`）——**识别十进制/八进制/十六进制**写法（`0x7f.1`、`0177.0.0.1` 之类），然后复用 `is_blocked_address()`；
+5. IPv6 额外拆 embedded IPv4：`ipv4_mapped`、`sixtofour`、`64:ff9b::/96` NAT64 前缀，以及「裸 32 位整数塞在 IPv6 低位」这种写法。
+
+`is_blocked_address()` 在 2.2.0 里补了 `not address.is_global`（`:97-107`）——single flag 漏掉的特殊用途网段（最典型是 `100.64.0.0/10` 共享地址空间）现在也会被拦。
+
+现役使用者（`grep safe_public_result_url`）：`ddg_search` / `serper` / `serply` / `tencent_wsa` / `sofya` / `tavily` / `exa` / `firecrawl` / `fastcrw` / `groundroute` / `brave` / `image_search` / `searxng` / `webz` / `youcom` / `infoquest_client`。
+
 ## 原生 recency filters 🆕
+
 
 同步 #6（#5099）抽出共享契约 `community/search_time_range.py`：
 
@@ -112,20 +169,22 @@ type SearchTimeRange = Literal["day", "week", "month", "year"]
 | SearXNG | `time_range` | 透传 `time_range` |
 | Tavily | `time_range` | 透传 `time_range` |
 | Sofya 🆕 | `time_range` | → `freshness` |
+| Webz 🆕 | `time_range` | 换算成 `published_from = today - 1/7/30/365`；显式 `published_from` 优先 |
 
 Serply / Tencent WSA / Firecrawl 等不支持。docstring 统一措辞："Use only when the request requires recent results"——让模型只在需要新近性时才传。InfoQuest 的 `search_time_range: 10`（int 分钟数配置项）是更早的独立机制，与此契约无关。
 
 ## 返回格式的不一致性
 
-这是 9 个 provider 之间最大的差异——调用方需要注意：
+这是 12 个 provider 之间最大的差异——调用方需要注意：
 
 | 格式 | Provider |
 |------|----------|
 | `{query, total_results, results: [{title, url, content}]}` | DDG, Serper, Serply, Sofya |
-| `[{title, url, snippet}]` | Tavily, Exa, Firecrawl |
+| `{query, returned_results, results: [{title, url, content, published_at, source}]}` | Webz 🆕 |
+| `[{title, url, snippet}]` | Tavily, Exa, Firecrawl, You.com 🆕 |
 | `[{type, title, desc, snippet, url}]` | InfoQuest |
 
-DDG/Serper/Serply/Sofya 返回包装对象（含 metadata），其余 provider 返回裸数组。字段名也不统一：DDG/Serper/Serply/Sofya 用 `content`，Tavily/Exa/Firecrawl 用 `snippet`，InfoQuest 两者都有，Tencent WSA 用 `snippet` 且外层带 `request_id`。
+DDG/Serper/Serply/Sofya/Webz 返回包装对象（含 metadata），其余 provider 返回裸数组。字段名也不统一：DDG/Serper/Serply/Sofya/Webz 用 `content`，Tavily/Exa/Firecrawl/You.com 用 `snippet`，InfoQuest 两者都有，Tencent WSA 用 `snippet` 且外层带 `request_id`。**注意 Webz 的计数键是 `returned_results`**（本页条数），不是 `total_results`。
 
 ## web_search 只能启用一个的原因
 
@@ -144,5 +203,7 @@ DDG/Serper/Serply/Sofya 返回包装对象（含 metadata），其余 provider �
 | InfoQuest | env `INFOQUEST_API_KEY` | `Authorization: Bearer` |
 | Exa | config `api_key` | SDK constructor |
 | Firecrawl | config `api_key`（self-host 可免） | SDK constructor（`api_url` 指向自建实例） |
+| Webz 🆕 | config `api_key` 或 env `WEBZ_API_KEY` | `Authorization: Bearer` |
+| You.com 🆕 | config `api_key` 或 env `YDC_API_KEY`（**可缺省**） | `X-API-Key` header（仅在有 key 时，且只配 keyed 端点） |
 
-🆕 三个新 provider 都采用 **config 优先、env fallback** 的模式，且 key 缺失时首次调用 warn 一次（`_api_key_warned` 集合）后返回结构化 JSON 错误。Tavily/Exa 仍只从 config 读取；InfoQuest 只从环境变量读取。Firecrawl 走 self-host `base_url` 时可以完全不需要 key。
+Serply/Tencent WSA/Sofya/Webz/You.com 都采用 **config 优先、env fallback** 的模式。Serply/Tencent WSA/Sofya 在 key 缺失时首次调用 warn 一次（`_api_key_warned` 集合）后返回结构化 JSON 错误；**Webz 每次都返回错误文本**（不做 warn 去重）；**You.com 缺 key 不是错误**——它降级到免 key 端点。Tavily/Exa 仍只从 config 读取；InfoQuest 只从环境变量读取。Firecrawl 走 self-host `base_url` 时可以完全不需要 key。
