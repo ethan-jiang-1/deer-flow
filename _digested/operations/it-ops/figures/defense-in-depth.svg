@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 700" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <marker id="arrowDown" markerWidth="8" markerHeight="6" refX="4" refY="6" orient="auto">
+      <polygon points="0 0, 8 0, 4 6" fill="#555"/>
+    </marker>
+  </defs>
+
+  <rect width="1100" height="700" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1100" height="44" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="28" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="28" text-anchor="middle" fill="#fff" font-size="15" font-weight="700">Defense-in-Depth：从请求进入到 Tool 执行，14 层防护</text>
+
+  <!-- ===== Layer 1: Nginx/Edge ===== -->
+  <rect x="50" y="58" width="1000" height="36" rx="5" fill="#e3f2fd" stroke="#90caf9" stroke-width="1"/>
+  <text x="80" y="81" font-size="10" font-weight="700" fill="#1565c0">Edge</text>
+  <text x="150" y="81" font-size="9.5" fill="#333">Nginx Reverse Proxy — TLS termination · rate limiting（需配置）· static file serving</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="94" x2="550" y2="112" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 2: Gateway Auth ===== -->
+  <rect x="50" y="114" width="1000" height="36" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="80" y="137" font-size="10" font-weight="700" fill="#2e7d32">Auth</text>
+  <text x="150" y="137" font-size="9.5" fill="#333">JWT (access + refresh) · CSRF token · Internal Gateway Token · login rate limiting</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="150" x2="550" y2="168" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 3: CORS/CSRF ===== -->
+  <rect x="50" y="170" width="1000" height="36" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="80" y="193" font-size="10" font-weight="700" fill="#2e7d32">Origin</text>
+  <text x="150" y="193" font-size="9.5" fill="#333">CORS Middleware (same-origin default) · CSRF Middleware (Origin/Referer check) · GATEWAY_CORS_ORIGINS env</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="206" x2="550" y2="224" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 4: before_agent ===== -->
+  <rect x="50" y="226" width="1000" height="46" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="1"/>
+  <rect x="50" y="226" width="130" height="46" rx="5" fill="#ff9800"/>
+  <rect x="50" y="256" width="130" height="16" fill="#ff9800"/>
+  <text x="115" y="254" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">before_agent</text>
+  <text x="200" y="244" font-size="9.5" fill="#333">ThreadDataMiddleware → per-thread 目录创建 · user_id 解析</text>
+  <text x="200" y="262" font-size="9" fill="#666">UploadsMiddleware → 文件注入 · DynamicContextMiddleware → 日期/memory 上下文注入</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="272" x2="550" y2="290" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 5: SandboxMiddleware ===== -->
+  <rect x="50" y="292" width="1000" height="36" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="1"/>
+  <text x="80" y="315" font-size="10" font-weight="700" fill="#e65100">Sandbox</text>
+  <text x="150" y="315" font-size="9.5" fill="#333">SandboxMiddleware → acquire sandbox (Local LRU / Docker warm pool / K3s Pod) · lazy init · per-thread isolation</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="328" x2="550" y2="346" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 6: LLM Error Handling ===== -->
+  <rect x="50" y="348" width="1000" height="36" rx="5" fill="#fff3e0" stroke="#ffcc80" stroke-width="1"/>
+  <text x="80" y="371" font-size="10" font-weight="700" fill="#e65100">LLM</text>
+  <text x="150" y="371" font-size="9.5" fill="#333">LLMErrorHandlingMiddleware → retry (exponential backoff) · circuit breaker · 异常归一化</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="384" x2="550" y2="402" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layers 7-8: Guardrail + SandboxAudit (highlighted) ===== -->
+  <rect x="50" y="404" width="1000" height="65" rx="5" fill="#ffebee" stroke="#ef9a9a" stroke-width="1.5"/>
+  <text x="80" y="427" font-size="11" font-weight="700" fill="#c62828">★ Pre-Tool Double Gate ★</text>
+
+  <rect x="50" y="436" width="490" height="28" rx="4" fill="#ffcdd2"/>
+  <text x="295" y="455" text-anchor="middle" font-size="10" font-weight="700" fill="#c62828">GuardrailMiddleware — Tool 级授权（可插拔 provider）</text>
+
+  <rect x="555" y="436" width="495" height="28" rx="4" fill="#ffcdd2"/>
+  <text x="802" y="455" text-anchor="middle" font-size="10" font-weight="700" fill="#c62828">SandboxAuditMiddleware — Bash 参数级审计（高危 block · 中危 warn）</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="469" x2="550" y2="487" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 9: Tool Error ===== -->
+  <rect x="50" y="489" width="1000" height="36" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="80" y="512" font-size="10" font-weight="700" fill="#2e7d32">Tool</text>
+  <text x="150" y="512" font-size="9.5" fill="#333">ToolErrorHandlingMiddleware → 把 tool 异常转成 error ToolMessage（不 abort run）· DanglingToolCallMiddleware → 补缺</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="525" x2="550" y2="543" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 10: Virtual Path Translation ===== -->
+  <rect x="50" y="545" width="1000" height="36" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="80" y="568" font-size="10" font-weight="700" fill="#2e7d32">Path</text>
+  <text x="150" y="568" font-size="9.5" fill="#333">虚拟路径 → 物理路径翻译 + CWD 注入（cd workspace &amp;&amp; ...）+ 路径参数校验（拒绝 .. 穿越 + 绝对系统路径）</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="581" x2="550" y2="599" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 11: Sandbox Security ===== -->
+  <rect x="50" y="601" width="1000" height="36" rx="5" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="80" y="624" font-size="10" font-weight="700" fill="#2e7d32">Exec</text>
+  <text x="150" y="624" font-size="9.5" fill="#333">allow_host_bash 开关 · 输出截断 · 错误信息脱敏 · 路径脱敏 · 文件操作并发锁</text>
+
+  <!-- Arrow -->
+  <line x1="550" y1="637" x2="550" y2="655" stroke="#555" stroke-width="1.2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== Layer 12: Post-execution ===== -->
+  <rect x="50" y="657" width="1000" height="36" rx="5" fill="#f3e5f5" stroke="#ce93d8" stroke-width="1"/>
+  <text x="80" y="680" font-size="10" font-weight="700" fill="#6a1b9a">Post</text>
+  <text x="150" y="680" font-size="9.5" fill="#333">LoopDetectionMiddleware · SubagentLimitMiddleware · SafetyFinishReasonMiddleware · TokenUsageMiddleware</text>
+
+</svg>

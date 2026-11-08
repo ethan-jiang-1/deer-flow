@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="640" fill="#fafafa" rx="8"/>
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">DX → AX：读者与约束的演化（Builder.io 七原则的浓缩视角）</text>
+
+  <!-- ===== LEFT: DX ===== -->
+  <text x="310" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a2e">DX（Developer Experience）</text>
+  <text x="310" y="100" text-anchor="middle" font-size="10" fill="#888">读者：疲惫但有背景知识的人类</text>
+
+  <rect x="90" y="118" width="440" height="76" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="110" y="142" font-size="12" font-weight="700" fill="#1565c0">读者 = 人</text>
+  <text x="110" y="160" font-size="10" fill="#333">会跳过迁移指南、有部落知识、</text>
+  <text x="110" y="176" font-size="10" fill="#333">遇到隐式失败会停下调查</text>
+
+  <rect x="90" y="206" width="440" height="76" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.2"/>
+  <text x="110" y="230" font-size="12" font-weight="700" fill="#2e7d32">反馈循环：让危险变难</text>
+  <text x="110" y="248" font-size="10" fill="#333">编译器 / linter / 热重载 / 分支预览</text>
+  <text x="110" y="264" font-size="10" fill="#333">确认框、权限提示</text>
+
+  <rect x="90" y="294" width="440" height="76" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.2"/>
+  <text x="110" y="318" font-size="12" font-weight="700" fill="#e65100">文档：越多越好</text>
+  <text x="110" y="336" font-size="10" fill="#333">Wiki、README、 tribal knowledge</text>
+  <text x="110" y="352" font-size="10" fill="#333">过期段落被人脑自动忽略</text>
+
+  <rect x="90" y="382" width="440" height="76" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.2"/>
+  <text x="110" y="406" font-size="12" font-weight="700" fill="#7b1fa2">质量函数：系统的产物</text>
+  <text x="110" y="424" font-size="10" fill="#333">"software quality is a function</text>
+  <text x="110" y="440" font-size="10" fill="#333">of the systems we build"</text>
+
+  <!-- ===== RIGHT: AX ===== -->
+  <text x="890" y="82" text-anchor="middle" font-size="14" font-weight="700" fill="#1a1a2e">AX（Agent Experience）</text>
+  <text x="890" y="100" text-anchor="middle" font-size="10" fill="#888">读者：无状态、每次从零开始的模型</text>
+
+  <rect x="670" y="118" width="440" height="76" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.2"/>
+  <text x="690" y="142" font-size="12" font-weight="700" fill="#1565c0">读者 = 无状态 agent</text>
+  <text x="690" y="160" font-size="10" fill="#333">"连续五次撞上同一堵架构之墙"，</text>
+  <text x="690" y="176" font-size="10" fill="#333">绕过环境失败、带礼貌 commit 交付猜测</text>
+
+  <rect x="670" y="206" width="440" height="76" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.2"/>
+  <text x="690" y="230" font-size="12" font-weight="700" fill="#2e7d32">反馈循环：让危险不可能</text>
+  <text x="690" y="248" font-size="10" fill="#333">sandbox 是绝对边界 / scoped 凭证 /</text>
+  <text x="690" y="264" font-size="10" fill="#333">hooks + permissions.deny 结构性强制</text>
+
+  <rect x="670" y="294" width="440" height="76" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.2"/>
+  <text x="690" y="318" font-size="12" font-weight="700" fill="#e65100">文档 = token 计价的注意力预算</text>
+  <text x="690" y="336" font-size="10" fill="#333">逐字注入上下文：CLAUDE.md ≤200 行、</text>
+  <text x="690" y="352" font-size="10" fill="#333">Codex 32KiB 截断、context rot 随长度退化</text>
+
+  <rect x="670" y="382" width="440" height="76" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.2"/>
+  <text x="690" y="406" font-size="12" font-weight="700" fill="#7b1fa2">质量函数：同一个</text>
+  <text x="690" y="424" font-size="10" fill="#333">"Agent experience will become a discipline</text>
+  <text x="690" y="440" font-size="10" fill="#333">for the exact same reason"</text>
+
+  <!-- Center arrow -->
+  <line x1="545" y1="290" x2="655" y2="290" stroke="#555" stroke-width="2" marker-end="url(#arrowRight)"/>
+  <text x="600" y="278" text-anchor="middle" font-size="11" font-weight="700" fill="#555">演化</text>
+
+  <!-- Bottom: three new constraints -->
+  <rect x="90" y="490" width="1020" height="110" rx="8" fill="none" stroke="#999" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="600" y="514" text-anchor="middle" font-size="12" font-weight="700" fill="#1a1a2e">AX = DX 的全部要求 + 三个新约束</text>
+  <rect x="120" y="530" width="300" height="52" rx="6" fill="#eceff1" stroke="#90a4ae"/>
+  <text x="270" y="552" text-anchor="middle" font-size="11" font-weight="700" fill="#37474f">① 无状态读者</text>
+  <text x="270" y="570" text-anchor="middle" font-size="9" fill="#555">隐式知识必须落盘且可发现</text>
+  <rect x="450" y="530" width="300" height="52" rx="6" fill="#eceff1" stroke="#90a4ae"/>
+  <text x="600" y="552" text-anchor="middle" font-size="11" font-weight="700" fill="#37474f">② 注意力预算</text>
+  <text x="600" y="570" text-anchor="middle" font-size="9" fill="#555">信息按 token 计价，少而具体胜过多而全</text>
+  <rect x="780" y="530" width="300" height="52" rx="6" fill="#eceff1" stroke="#90a4ae"/>
+  <text x="930" y="552" text-anchor="middle" font-size="11" font-weight="700" fill="#37474f">③ 自主执行体</text>
+  <text x="930" y="570" text-anchor="middle" font-size="9" fill="#555">失败会被绕过 → 确定性命令与安全边界必须结构性存在</text>
+</svg>

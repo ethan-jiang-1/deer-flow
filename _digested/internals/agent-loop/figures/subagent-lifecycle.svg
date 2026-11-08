@@ -1,0 +1,257 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1000" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#14b8a6"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-pink" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ec4899"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="phaseGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#334155"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="1000" rx="12" fill="url(#bg)"/>
+
+  <text x="600" y="32" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="bold">Subagent 完整生命周期 — 从触发到结果返回</text>
+  <text x="600" y="52" text-anchor="middle" fill="#64748b" font-size="11">谁来触发？怎么启动？怎么检查回来？谁管理生命周期？</text>
+
+  <!-- ============================================================ -->
+  <!-- LIFELINE HEADERS -->
+  <!-- ============================================================ -->
+  <!-- Lead Agent LLM -->
+  <rect x="40" y="68" width="130" height="32" rx="6" fill="#2a1a00" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="105" y="84" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="bold">Lead Agent LLM</text>
+  <text x="105" y="96" text-anchor="middle" fill="#64748b" font-size="7">父 Agent 的 model.invoke</text>
+  <line x1="105" y1="100" x2="105" y2="940" stroke="#f59e0b" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+  <!-- SubagentLimitMiddleware -->
+  <rect x="210" y="68" width="150" height="32" rx="6" fill="#0a2a2a" stroke="#14b8a6" stroke-width="1.5"/>
+  <text x="285" y="84" text-anchor="middle" fill="#5eead4" font-size="10" font-weight="bold">SubagentLimitMW</text>
+  <text x="285" y="96" text-anchor="middle" fill="#64748b" font-size="7">after_model</text>
+  <line x1="285" y1="100" x2="285" y2="940" stroke="#14b8a6" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+  <!-- task_tool -->
+  <rect x="400" y="68" width="130" height="32" rx="6" fill="#1a0a14" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="465" y="84" text-anchor="middle" fill="#f9a8d4" font-size="10" font-weight="bold">task_tool</text>
+  <text x="465" y="96" text-anchor="middle" fill="#64748b" font-size="7">async coroutine</text>
+  <line x1="465" y1="100" x2="465" y2="940" stroke="#ec4899" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+  <!-- SubagentExecutor -->
+  <rect x="570" y="68" width="140" height="32" rx="6" fill="#0f172a" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="640" y="84" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">SubagentExecutor</text>
+  <text x="640" y="96" text-anchor="middle" fill="#64748b" font-size="7">fire-and-forget</text>
+  <line x1="640" y1="100" x2="640" y2="940" stroke="#3b82f6" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+  <!-- Scheduler Thread -->
+  <rect x="750" y="68" width="140" height="32" rx="6" fill="#0f172a" stroke="#8b5cf6" stroke-width="1.5"/>
+  <text x="820" y="84" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="bold">Scheduler Thread</text>
+  <text x="820" y="96" text-anchor="middle" fill="#64748b" font-size="7">ThreadPool(3)</text>
+  <line x1="820" y1="100" x2="820" y2="940" stroke="#8b5cf6" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+  <!-- Isolated Event Loop -->
+  <rect x="930" y="68" width="150" height="32" rx="6" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="1005" y="84" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">Isolated Loop</text>
+  <text x="1005" y="96" text-anchor="middle" fill="#64748b" font-size="7">asyncio.run_forever</text>
+  <line x1="1005" y1="100" x2="1005" y2="940" stroke="#3b82f6" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+  <!-- SSE Stream -->
+  <rect x="1105" y="68" width="80" height="32" rx="6" fill="#04332b" stroke="#10b981" stroke-width="1.5"/>
+  <text x="1145" y="84" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="bold">SSE</text>
+  <text x="1145" y="96" text-anchor="middle" fill="#64748b" font-size="7">stream_writer</text>
+  <line x1="1145" y1="100" x2="1145" y2="940" stroke="#10b981" stroke-width="0.8" stroke-dasharray="4,4"/>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 1: TRIGGER -->
+  <!-- ============================================================ -->
+  <rect x="10" y="115" width="1180" height="24" rx="4" fill="url(#phaseGrad)"/>
+  <text x="600" y="132" text-anchor="middle" fill="#f1f5f9" font-size="11" font-weight="bold">Phase 1: 触发 — LLM 决定委派任务</text>
+
+  <!-- 1a: LLM produces tool_call -->
+  <rect x="40" y="148" width="236" height="36" rx="5" fill="#2a1a00" stroke="#b45309" stroke-width="1"/>
+  <text x="158" y="163" text-anchor="middle" fill="#fbbf24" font-size="10">LLM 返回 tool_call:</text>
+  <text x="158" y="178" text-anchor="middle" fill="#94a3b8" font-size="9">name="task", args={subagent_type, prompt}</text>
+  <line x1="276" y1="166" x2="285" y2="166" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-orange)"/>
+
+  <!-- 1b: MW checks concurrency -->
+  <rect x="210" y="148" width="150" height="36" rx="5" fill="#0a2a2a" stroke="#0d9488" stroke-width="1"/>
+  <text x="285" y="163" text-anchor="middle" fill="#5eead4" font-size="10">检查并发数 &lt; 3?</text>
+  <text x="285" y="178" text-anchor="middle" fill="#94a3b8" font-size="9">超过则截断多余 task call</text>
+
+  <!-- Decision diamond -->
+  <polygon points="285,195 325,208 285,221 245,208" fill="#1e293b" stroke="#64748b" stroke-width="0.8"/>
+  <text x="285" y="211" text-anchor="middle" fill="#94a3b8" font-size="8">OK</text>
+  <line x1="285" y1="221" x2="285" y2="240" stroke="#14b8a6" stroke-width="1" marker-end="url(#arrow-teal)"/>
+
+  <!-- 1c: LangGraph routes to task_tool -->
+  <rect x="210" y="242" width="150" height="24" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.5"/>
+  <text x="285" y="258" text-anchor="middle" fill="#94a3b8" font-size="9">→ 路由到 task_tool</text>
+  <line x1="360" y1="254" x2="465" y2="254" stroke="#14b8a6" stroke-width="1.2" marker-end="url(#arrow-teal)"/>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 2: LAUNCH -->
+  <!-- ============================================================ -->
+  <rect x="10" y="280" width="1180" height="24" rx="4" fill="url(#phaseGrad)"/>
+  <text x="600" y="297" text-anchor="middle" fill="#f1f5f9" font-size="11" font-weight="bold">Phase 2: 启动 — task_tool 装配 Subagent 并丢到后台</text>
+
+  <!-- 2a: Resolve config -->
+  <rect x="400" y="310" width="130" height="28" rx="4" fill="#1a0a14" stroke="#be185d" stroke-width="0.8"/>
+  <text x="465" y="329" text-anchor="middle" fill="#f9a8d4" font-size="9">resolve subagent_type</text>
+  <line x1="465" y1="338" x2="465" y2="348" stroke="#ec4899" stroke-width="0.8" marker-end="url(#arrow-pink)"/>
+
+  <!-- 2b: Get tools -->
+  <rect x="400" y="350" width="130" height="28" rx="4" fill="#1a0a14" stroke="#be185d" stroke-width="0.8"/>
+  <text x="465" y="369" text-anchor="middle" fill="#f9a8d4" font-size="9">get_available_tools()</text>
+  <text x="558" y="364" fill="#64748b" font-size="7">subagent_enabled=False</text>
+  <line x1="465" y1="378" x2="465" y2="390" stroke="#ec4899" stroke-width="0.8" marker-end="url(#arrow-pink)"/>
+
+  <!-- 2c: Create Executor -->
+  <rect x="400" y="392" width="190" height="28" rx="4" fill="#1a0a14" stroke="#be185d" stroke-width="0.8"/>
+  <text x="495" y="411" text-anchor="middle" fill="#f9a8d4" font-size="9">创建 SubagentExecutor</text>
+  <line x1="590" y1="406" x2="640" y2="406" stroke="#ec4899" stroke-width="1" marker-end="url(#arrow-pink)"/>
+
+  <!-- 2d: execute_async -->
+  <rect x="570" y="392" width="140" height="28" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="640" y="411" text-anchor="middle" fill="#60a5fa" font-size="9">execute_async()</text>
+  <line x1="640" y1="420" x2="640" y2="440" stroke="#3b82f6" stroke-width="0.8" marker-end="url(#arrow-blue)"/>
+
+  <!-- 2e: Create SubagentResult(PENDING) -->
+  <rect x="570" y="442" width="250" height="24" rx="4" fill="#0f2744" stroke="#2563eb" stroke-width="0.8"/>
+  <text x="695" y="458" text-anchor="middle" fill="#60a5fa" font-size="9">SubagentResult(PENDING) → _background_tasks</text>
+
+  <!-- 2f: Submit to scheduler pool -->
+  <rect x="570" y="475" width="140" height="28" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="640" y="494" text-anchor="middle" fill="#60a5fa" font-size="9">_scheduler_pool.submit</text>
+  <line x1="710" y1="489" x2="820" y2="489" stroke="#3b82f6" stroke-width="1.2" marker-end="url(#arrow-blue)"/>
+
+  <!-- 2g: Return task_id immediately -->
+  <rect x="570" y="512" width="140" height="24" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.5"/>
+  <text x="640" y="528" text-anchor="middle" fill="#94a3b8" font-size="9">返回 task_id 立即</text>
+  <line x1="570" y1="524" x2="465" y2="524" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arrow-blue)"/>
+
+  <!-- Note: task_tool enters polling loop -->
+  <text x="425" y="548" fill="#f9a8d4" font-size="8">进入 polling loop →</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 3: EXECUTE (in background thread) -->
+  <!-- ============================================================ -->
+  <rect x="10" y="560" width="1180" height="24" rx="4" fill="url(#phaseGrad)"/>
+  <text x="600" y="577" text-anchor="middle" fill="#f1f5f9" font-size="11" font-weight="bold">Phase 3: 执行 — 后台线程 + 隔离 event loop 运行 subagent graph</text>
+
+  <!-- 3a: Scheduler runs run_task() -->
+  <rect x="750" y="590" width="140" height="28" rx="4" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="820" y="609" text-anchor="middle" fill="#a5b4fc" font-size="9">Scheduler: run_task()</text>
+  <line x1="820" y1="618" x2="820" y2="634" stroke="#8b5cf6" stroke-width="0.8" marker-end="url(#arrow)"/>
+
+  <!-- 3b: Set RUNNING status -->
+  <rect x="750" y="636" width="180" height="24" rx="4" fill="#1a0a2e" stroke="#7c3aed" stroke-width="0.8"/>
+  <text x="840" y="652" text-anchor="middle" fill="#a5b4fc" font-size="9">SubagentResult(RUNNING)</text>
+
+  <!-- 3c: Submit to isolated loop -->
+  <rect x="750" y="669" width="210" height="28" rx="4" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="855" y="688" text-anchor="middle" fill="#a5b4fc" font-size="9">asyncio.run_coroutine_threadsafe</text>
+  <line x1="960" y1="683" x2="1005" y2="683" stroke="#8b5cf6" stroke-width="1.2" marker-end="url(#arrow-purple)"/>
+
+  <!-- 3d: Isolated loop runs _aexecute -->
+  <rect x="930" y="669" width="150" height="56" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="1005" y="688" text-anchor="middle" fill="#60a5fa" font-size="9">_aexecute(task)</text>
+  <text x="1005" y="703" text-anchor="middle" fill="#94a3b8" font-size="8">_build_initial_state()</text>
+  <text x="1005" y="718" text-anchor="middle" fill="#94a3b8" font-size="8">_create_agent()</text>
+
+  <!-- 3e: agent.astream() -->
+  <rect x="930" y="734" width="230" height="56" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="1.2"/>
+  <text x="1045" y="753" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">agent.astream(state)</text>
+  <text x="1045" y="770" text-anchor="middle" fill="#94a3b8" font-size="9">Subagent 的 LangGraph graph</text>
+  <text x="1045" y="785" text-anchor="middle" fill="#64748b" font-size="8">thinking=False, max_turns=N, 独立 tools</text>
+
+  <!-- 3f: Collect AI messages -->
+  <text x="1060" y="805" fill="#64748b" font-size="8">每个 chunk: 收集 AIMessage → result.ai_messages</text>
+  <text x="1060" y="818" fill="#64748b" font-size="8">检查 cancel_event: 若置位则 CANCELLED</text>
+
+  <!-- 3g: Scheduler blocks on future.result(timeout) -->
+  <rect x="750" y="805" width="220" height="24" rx="4" fill="#450a0a" stroke="#ef4444" stroke-width="0.8"/>
+  <text x="860" y="821" text-anchor="middle" fill="#fca5a5" font-size="9">future.result(timeout=900s)</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 4: POLLING -->
+  <!-- ============================================================ -->
+  <rect x="10" y="840" width="1180" height="24" rx="4" fill="url(#phaseGrad)"/>
+  <text x="600" y="857" text-anchor="middle" fill="#f1f5f9" font-size="11" font-weight="bold">Phase 4: 轮询 — task_tool 每 5 秒检查 _background_tasks, 流式推送进度</text>
+
+  <!-- 4a: Poll loop -->
+  <rect x="400" y="870" width="160" height="56" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="1.2"/>
+  <text x="480" y="889" text-anchor="middle" fill="#f9a8d4" font-size="10" font-weight="bold">polling loop</text>
+  <text x="480" y="905" text-anchor="middle" fill="#94a3b8" font-size="9">get_background_task_result()</text>
+  <text x="480" y="920" text-anchor="middle" fill="#64748b" font-size="8">await asyncio.sleep(5)</text>
+
+  <!-- Arrow: task_tool reads from _background_tasks -->
+  <line x1="560" y1="896" x2="640" y2="896" stroke="#ec4899" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-pink)"/>
+  <text x="600" y="890" text-anchor="middle" fill="#ec4899" font-size="7">read state</text>
+
+  <!-- 4b: SSE events -->
+  <line x1="560" y1="905" x2="1145" y2="905" stroke="#10b981" stroke-width="1.2" marker-end="url(#arrow-green)"/>
+  <text x="850" y="898" fill="#4ade80" font-size="8">task_started → task_running (每有新消息) → task_completed / task_failed</text>
+
+  <!-- ============================================================ -->
+  <!-- PHASE 5: COMPLETE -->
+  <!-- ============================================================ -->
+  <rect x="10" y="935" width="1180" height="24" rx="4" fill="url(#phaseGrad)"/>
+  <text x="600" y="952" text-anchor="middle" fill="#f1f5f9" font-size="11" font-weight="bold">Phase 5: 完成 — 结果回到 Lead Agent</text>
+
+  <!-- Terminal state -->
+  <text x="600" y="980" text-anchor="middle" fill="#94a3b8" font-size="10">COMPLETED → 返回 "Task Succeeded. Result: {text}" → Lead Agent 继续 · FAILED/CANCELLED/TIMED_OUT → 返回错误信息</text>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT: Key facts sidebar -->
+  <!-- ============================================================ -->
+  <rect x="10" y="995" width="1180" height="120" rx="8" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+
+  <text x="30" y="1020" fill="#f1f5f9" font-size="12" font-weight="bold">关键数字</text>
+
+  <rect x="30" y="1032" width="170" height="36" rx="5" fill="#0a2a2a" stroke="#14b8a6" stroke-width="0.6"/>
+  <text x="115" y="1049" text-anchor="middle" fill="#5eead4" font-size="10" font-weight="bold">max_concurrent = 3</text>
+  <text x="115" y="1063" text-anchor="middle" fill="#94a3b8" font-size="8">超过截断 (after_model)</text>
+
+  <rect x="215" y="1032" width="170" height="36" rx="5" fill="#1a0a14" stroke="#ec4899" stroke-width="0.6"/>
+  <text x="300" y="1049" text-anchor="middle" fill="#f9a8d4" font-size="10" font-weight="bold">poll_interval = 5s</text>
+  <text x="300" y="1063" text-anchor="middle" fill="#94a3b8" font-size="8">task_tool 轮询频率</text>
+
+  <rect x="400" y="1032" width="170" height="36" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.6"/>
+  <text x="485" y="1049" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="bold">timeout = 900s</text>
+  <text x="485" y="1063" text-anchor="middle" fill="#94a3b8" font-size="8">future.result(timeout)</text>
+
+  <rect x="585" y="1032" width="170" height="36" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.6"/>
+  <text x="670" y="1049" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">scheduler_pool = 3</text>
+  <text x="670" y="1063" text-anchor="middle" fill="#94a3b8" font-size="8">ThreadPoolExecutor workers</text>
+
+  <rect x="770" y="1032" width="190" height="36" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.6"/>
+  <text x="865" y="1049" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">isolated_loop = 1 (shared)</text>
+  <text x="865" y="1063" text-anchor="middle" fill="#94a3b8" font-size="8">asyncio.run_forever daemon</text>
+
+  <rect x="975" y="1032" width="200" height="36" rx="5" fill="#04332b" stroke="#10b981" stroke-width="0.6"/>
+  <text x="1075" y="1049" text-anchor="middle" fill="#4ade80" font-size="10" font-weight="bold">token 合入父 agent</text>
+  <text x="1075" y="1063" text-anchor="middle" fill="#94a3b8" font-size="8">TokenUsageMiddleware 合并</text>
+
+  <text x="30" y="1100" fill="#64748b" font-size="9">三个核心问题的答案：① LLM 产出 task tool_call 即触发 ② task_tool 每 5s 轮询 _background_tasks + 流式推 SSE ③ Subagent 生命周期由双线程池管理 (scheduler pool 管理 timeout + status，isolated loop 执行 agent.astream)</text>
+
+</svg>

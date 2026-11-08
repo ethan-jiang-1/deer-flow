@@ -1,0 +1,168 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 950" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+    <filter id="shadow" x="-2%" y="-2%" width="104%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="950" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1100" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Tool Call 流水线：从 LLM 产出到安全执行</text>
+
+  <!-- ===== STEP 0: LLM ===== -->
+  <rect x="60" y="64" width="200" height="42" rx="8" fill="#1a1a2e" stroke="#333" stroke-width="1.5"/>
+  <text x="160" y="82" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">LLM</text>
+  <text x="160" y="98" text-anchor="middle" fill="#aaa" font-size="10">产出 tool_call</text>
+
+  <line x1="160" y1="106" x2="160" y2="128" stroke="#555" stroke-width="2" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== STEP 1: GuardrailMiddleware ===== -->
+  <rect x="60" y="132" width="800" height="120" rx="8" fill="#f3e5f5" stroke="#ab47bc" stroke-width="1.5"/>
+  <rect x="60" y="132" width="240" height="30" rx="8" fill="#7b1fa2"/>
+  <rect x="60" y="148" width="240" height="14" fill="#7b1fa2"/>
+  <text x="180" y="152" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">① GuardrailMiddleware</text>
+  <text x="320" y="152" font-size="10" fill="#888">middleware 链第 6 位 · guardrails/middleware.py:55</text>
+
+  <rect x="80" y="172" width="350" height="64" rx="5" fill="#fff" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="95" y="192" font-size="10.5" fill="#555">provider.evaluate(GuardrailRequest)</text>
+  <text x="95" y="210" font-size="10.5" fill="#555">├─ tool_name + tool_input(LLM原始args)</text>
+  <text x="95" y="228" font-size="10.5" fill="#555">└─ agent_id · thread_id · is_subagent</text>
+
+  <!-- Branch -->
+  <rect x="450" y="172" width="140" height="64" rx="5" fill="#c8e6c9" stroke="#81c784" stroke-width="1"/>
+  <text x="520" y="198" text-anchor="middle" font-size="10.5" fill="#2e7d32">allow → 继续</text>
+
+  <rect x="610" y="172" width="140" height="64" rx="5" fill="#ffcdd2" stroke="#e57373" stroke-width="1"/>
+  <text x="680" y="198" text-anchor="middle" font-size="10.5" fill="#c62828">deny → 错误 ToolMessage</text>
+
+  <rect x="770" y="172" width="80" height="64" rx="5" fill="#fff9c4" stroke="#ffd54f" stroke-width="1"/>
+  <text x="810" y="196" text-anchor="middle" font-size="10" fill="#f57f17">异常</text>
+  <text x="810" y="212" text-anchor="middle" font-size="10" fill="#f57f17">fail-closed(默认deny)</text>
+  <text x="810" y="226" text-anchor="middle" font-size="10" fill="#f57f17">fail-open(放行)</text>
+
+  <line x1="160" y1="252" x2="160" y2="274" stroke="#7b1fa2" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== STEP 2: SandboxAuditMiddleware ===== -->
+  <rect x="60" y="278" width="800" height="120" rx="8" fill="#ffccbc" stroke="#ff7043" stroke-width="1.5"/>
+  <rect x="60" y="278" width="260" height="30" rx="8" fill="#d84315"/>
+  <rect x="60" y="294" width="260" height="14" fill="#d84315"/>
+  <text x="190" y="298" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">② SandboxAuditMiddleware</text>
+  <text x="340" y="298" font-size="10" fill="#888">middleware 链第 7 位 · sandbox_audit_middleware.py</text>
+
+  <rect x="80" y="318" width="350" height="64" rx="5" fill="#fff" stroke="#ffab91" stroke-width="0.5"/>
+  <text x="95" y="338" font-size="10.5" fill="#555">regex 全命令扫描 (_HIGH_RISK_PATTERNS)</text>
+  <text x="95" y="356" font-size="10.5" fill="#555">+ 子命令切分(&amp;&amp; || ;) 再扫描</text>
+  <text x="95" y="374" font-size="10.5" fill="#555">⚠ 只覆盖 bash，不审计 file tool</text>
+
+  <rect x="450" y="318" width="100" height="64" rx="5" fill="#c8e6c9" stroke="#81c784" stroke-width="1"/>
+  <text x="500" y="354" text-anchor="middle" font-size="10.5" fill="#2e7d32">pass</text>
+
+  <rect x="570" y="318" width="100" height="64" rx="5" fill="#fff9c4" stroke="#ffd54f" stroke-width="1"/>
+  <text x="620" y="354" text-anchor="middle" font-size="10.5" fill="#f57f17">warn</text>
+
+  <rect x="690" y="318" width="100" height="64" rx="5" fill="#ffcdd2" stroke="#e57373" stroke-width="1"/>
+  <text x="740" y="354" text-anchor="middle" font-size="10.5" fill="#c62828">block</text>
+
+  <line x1="160" y1="398" x2="160" y2="420" stroke="#d84315" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== STEP 3: Tool Validation ===== -->
+  <rect x="60" y="424" width="800" height="120" rx="8" fill="#fff9c4" stroke="#ffd54f" stroke-width="1.5"/>
+  <rect x="60" y="424" width="280" height="30" rx="8" fill="#f57f17"/>
+  <rect x="60" y="440" width="280" height="14" fill="#f57f17"/>
+  <text x="200" y="444" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">③ Tool 参数校验 + 路径防穿越</text>
+  <text x="360" y="444" font-size="10" fill="#888">tools.py:615-678 · local_sandbox.py:127</text>
+
+  <rect x="80" y="464" width="760" height="64" rx="5" fill="#fff" stroke="#ffe082" stroke-width="0.5"/>
+  <text x="95" y="484" font-size="10.5" fill="#555">6 层路径检查:  ..拒绝 → virtual path family → mount read_only → resolved containment → sandbox containment → symlink过滤</text>
+  <text x="95" y="502" font-size="10.5" fill="#555">allow_host_bash=false → bash 直接拒绝 · validate_local_bash_command_paths → 前缀白名单(非安全边界)</text>
+  <text x="95" y="520" font-size="10.5" fill="#555">_apply_cwd_prefix → cd workspace &amp;&amp; (防CWD) · 文件操作锁 (sandbox_id, path) 粒度</text>
+
+  <line x1="160" y1="544" x2="160" y2="566" stroke="#f57f17" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== STEP 4: Sandbox Acquire + Execute ===== -->
+  <rect x="60" y="570" width="800" height="165" rx="8" fill="#e8f5e9" stroke="#66bb6a" stroke-width="1.5"/>
+  <rect x="60" y="570" width="300" height="30" rx="8" fill="#2e7d32"/>
+  <rect x="60" y="586" width="300" height="14" fill="#2e7d32"/>
+  <text x="210" y="590" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">④ ensure_sandbox_initialized + 执行</text>
+  <text x="380" y="590" font-size="10" fill="#888">tools.py:1094 · lazy init</text>
+
+  <!-- State cache -->
+  <rect x="80" y="612" width="240" height="48" rx="5" fill="#fff" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="200" y="632" text-anchor="middle" font-size="10" fill="#2e7d32">state 有 sandbox_id?</text>
+  <text x="200" y="650" text-anchor="middle" font-size="10" fill="#555">→ provider.get() 直接复用</text>
+
+  <text x="335" y="640" font-size="16" fill="#666">→</text>
+
+  <rect x="355" y="612" width="240" height="48" rx="5" fill="#fff" stroke="#a5d6a7" stroke-width="0.5"/>
+  <text x="475" y="632" text-anchor="middle" font-size="10" fill="#2e7d32">无 → provider.acquire(thread_id)</text>
+  <text x="475" y="650" text-anchor="middle" font-size="10" fill="#555">→ 存 runtime.state["sandbox"]</text>
+
+  <text x="610" y="640" font-size="16" fill="#666">→</text>
+
+  <!-- Three branches -->
+  <rect x="630" y="604" width="72" height="28" rx="3" fill="#c8e6c9" stroke="#66bb6a" stroke-width="0.5"/>
+  <text x="666" y="623" text-anchor="middle" font-size="9" fill="#2e7d32">Local</text>
+  <rect x="708" y="604" width="72" height="28" rx="3" fill="#c8e6c9" stroke="#66bb6a" stroke-width="0.5"/>
+  <text x="744" y="623" text-anchor="middle" font-size="9" fill="#2e7d32">Docker</text>
+  <rect x="786" y="604" width="64" height="28" rx="3" fill="#c8e6c9" stroke="#66bb6a" stroke-width="0.5"/>
+  <text x="818" y="623" text-anchor="middle" font-size="9" fill="#2e7d32">K3s</text>
+
+  <!-- Execute -->
+  <rect x="80" y="670" width="760" height="50" rx="5" fill="#c8e6c9" stroke="#66bb6a" stroke-width="1"/>
+  <text x="460" y="692" text-anchor="middle" font-size="10.5" fill="#2e7d32">sandbox.execute_command(command) → Local: subprocess.run() · Docker: HTTP API · K3s: HTTP API</text>
+  <text x="460" y="710" text-anchor="middle" font-size="10.5" fill="#555">每轮 step 的后续 tool call: ensure_sandbox_initialized 发现 state 已有 sandbox_id → provider.get() 直接返回（跳过 acquire）</text>
+
+  <line x1="160" y1="735" x2="160" y2="757" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== STEP 5: Output ===== -->
+  <rect x="60" y="761" width="800" height="80" rx="8" fill="#e3f2fd" stroke="#42a5f5" stroke-width="1.5"/>
+  <rect x="60" y="761" width="200" height="30" rx="8" fill="#1565c0"/>
+  <rect x="60" y="777" width="200" height="14" fill="#1565c0"/>
+  <text x="160" y="781" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">⑤ 输出处理</text>
+  <text x="280" y="781" font-size="10" fill="#888">tools.py:425-612</text>
+
+  <rect x="80" y="801" width="240" height="28" rx="4" fill="#fff" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="200" y="820" text-anchor="middle" font-size="10" fill="#555">mask_local_paths → 脱敏host路径</text>
+
+  <rect x="340" y="801" width="240" height="28" rx="4" fill="#fff" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="460" y="820" text-anchor="middle" font-size="10" fill="#555">truncate: bash(20k) read(50k) ls(20k)</text>
+
+  <rect x="600" y="801" width="250" height="28" rx="4" fill="#fff" stroke="#90caf9" stroke-width="0.5"/>
+  <text x="725" y="820" text-anchor="middle" font-size="10" fill="#555">error 脱敏 → 返回 ToolMessage to Agent</text>
+
+  <!-- ===== RIGHT: Config column ===== -->
+  <rect x="880" y="64" width="200" height="145" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="980" y="84" text-anchor="middle" font-size="10" font-weight="700" fill="#555">配置入口</text>
+
+  <rect x="892" y="96" width="176" height="52" rx="4" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="980" y="114" text-anchor="middle" font-size="9.5" fill="#7b1fa2">config.yaml</text>
+  <text x="980" y="130" text-anchor="middle" font-size="9" fill="#555">guardrails.enabled</text>
+  <text x="980" y="144" text-anchor="middle" font-size="9" fill="#555">guardrails.fail_closed</text>
+
+  <rect x="892" y="154" width="176" height="38" rx="4" fill="#f3e5f5" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="980" y="170" text-anchor="middle" font-size="9" fill="#555">provider.use: "AllowlistProvider"</text>
+  <text x="980" y="186" text-anchor="middle" font-size="9" fill="#555">provider.config: {allowed_tools: [...]}</text>
+
+  <rect x="892" y="198" width="176" height="14" rx="3" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="0.3"/>
+  <text x="980" y="209" text-anchor="middle" font-size="8" fill="#2e7d32">sandbox.use (选provider)</text>
+
+  <!-- Bottom summary bar -->
+  <rect x="60" y="862" width="800" height="70" rx="6" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="460" y="884" text-anchor="middle" font-size="10" font-weight="700" fill="#333">每次 tool_call 都经过这 5 个阶段</text>
+  <text x="460" y="904" text-anchor="middle" font-size="10" fill="#555">Guardrail(每次) → Audit(仅bash) → Validation(每次) → Acquire(首调用lazy init, 后续复用state缓存) → Output(每次)</text>
+  <text x="460" y="922" text-anchor="middle" font-size="10" fill="#888">不在流水线内但相关: SandboxMiddleware.after_agent → provider.release(thread_id) · Docker warm pool · K3s pod 生命周期</text>
+
+</svg>

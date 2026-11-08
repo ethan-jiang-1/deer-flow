@@ -1,0 +1,151 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 880" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#64748b"/>
+    </marker>
+    <marker id="arrowDownPink" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#ec4899"/>
+    </marker>
+    <marker id="arrowDownBlue" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="880" rx="12" fill="url(#bg)"/>
+  <text x="550" y="34" text-anchor="middle" fill="#f1f5f9" font-size="19" font-weight="bold">Subagent Loop：独立线程上的完整 Agent 循环</text>
+
+  <!-- ============================================================ -->
+  <!-- LEFT: Main Agent Loop (simplified) -->
+  <!-- ============================================================ -->
+  <rect x="15" y="50" width="340" height="810" rx="8" fill="none" stroke="#3b82f6" stroke-width="1.5"/>
+  <rect x="15" y="50" width="200" height="24" rx="8" fill="#3b82f6" opacity="0.15"/>
+  <text x="33" y="67" fill="#60a5fa" font-size="10" font-weight="bold">主 Agent Loop（asyncio event loop）</text>
+
+  <!-- Main loop steps -->
+  <rect x="35" y="90" width="295" height="36" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="182" y="106" text-anchor="middle" fill="#cbd5e1" font-size="8">model 推理 → 输出 tool_calls</text>
+  <text x="182" y="120" text-anchor="middle" fill="#94a3b8" font-size="7">其中包含 task(subagent_type="general-purpose", ...)</text>
+  <line x1="182" y1="126" x2="182" y2="142" stroke="#64748b" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <rect x="35" y="146" width="295" height="36" rx="5" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.8"/>
+  <text x="182" y="162" text-anchor="middle" fill="#4ade80" font-size="8" font-weight="bold">tools node 执行 task() tool</text>
+  <text x="182" y="176" text-anchor="middle" fill="#94a3b8" font-size="7">同步调用 SubagentExecutor.execute()</text>
+  <line x1="182" y1="182" x2="182" y2="198" stroke="#64748b" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <!-- Main loop BLOCKS here -->
+  <rect x="35" y="200" width="295" height="80" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="5,2"/>
+  <text x="182" y="222" text-anchor="middle" fill="#fbbf24" font-size="8" font-weight="bold">⏸ 主 agent 阻塞等待</text>
+  <text x="182" y="238" text-anchor="middle" fill="#94a3b8" font-size="7">SubagentExecutor 在后台线程执行</text>
+  <text x="182" y="252" text-anchor="middle" fill="#94a3b8" font-size="7">主 event loop 被占用 → 走 isolated path</text>
+  <text x="182" y="266" text-anchor="middle" fill="#94a3b8" font-size="7">future.result(timeout=15min)</text>
+
+  <rect x="35" y="290" width="295" height="36" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="182" y="306" text-anchor="middle" fill="#cbd5e1" font-size="8">task tool 返回 final_result</text>
+  <text x="182" y="320" text-anchor="middle" fill="#94a3b8" font-size="7">→ 作为 ToolMessage 注入主 loop</text>
+  <line x1="182" y1="326" x2="182" y2="342" stroke="#64748b" stroke-width="1" marker-end="url(#arrowDown)"/>
+
+  <rect x="35" y="346" width="295" height="36" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="182" y="362" text-anchor="middle" fill="#cbd5e1" font-size="8">主 agent 继续下一圈 model 推理</text>
+  <text x="182" y="376" text-anchor="middle" fill="#94a3b8" font-size="7">综合 subagent 结果</text>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT: Subagent Execution Flow -->
+  <!-- ============================================================ -->
+  <rect x="385" y="50" width="700" height="810" rx="8" fill="none" stroke="#ec4899" stroke-width="1.5"/>
+  <rect x="385" y="50" width="250" height="24" rx="8" fill="#ec4899" opacity="0.1"/>
+  <rect x="385" y="62" width="250" height="12" fill="#ec4899" opacity="0.1"/>
+  <text x="403" y="67" fill="#f472b6" font-size="10" font-weight="bold">Subagent 独立执行路径（daemon 线程）</text>
+
+  <!-- Step 1: detect loop -->
+  <rect x="405" y="88" width="655" height="38" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="425" y="104" fill="#cbd5e1" font-size="8" font-weight="bold">1. 检测父 event loop → 走 isolated path</text>
+  <text x="425" y="118" fill="#94a3b8" font-size="7">execute() → asyncio.get_running_loop() → loop.is_running()? → _execute_in_isolated_loop()</text>
+  <line x1="732" y1="126" x2="732" y2="142" stroke="#ec4899" stroke-width="1" marker-end="url(#arrowDownPink)"/>
+
+  <!-- Step 2: context copy + submit -->
+  <rect x="405" y="146" width="655" height="38" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="425" y="162" fill="#cbd5e1" font-size="8" font-weight="bold">2. 复制 ContextVar 上下文 + 提交到 persistent daemon loop</text>
+  <text x="425" y="176" fill="#94a3b8" font-size="7">copy_context() → asyncio.run_coroutine_threadsafe(coro, _isolated_subagent_loop) · thread: "subagent-persistent-loop"</text>
+  <line x1="732" y1="184" x2="732" y2="200" stroke="#ec4899" stroke-width="1" marker-end="url(#arrowDownPink)"/>
+
+  <!-- Step 3: _aexecute -->
+  <rect x="405" y="204" width="655" height="38" rx="5" fill="#ec4899" opacity="0.08" stroke="#ec4899" stroke-width="0.8"/>
+  <text x="425" y="220" fill="#f472b6" font-size="8" font-weight="bold">3. _aexecute(task, result_holder)</text>
+  <text x="425" y="234" fill="#94a3b8" font-size="7">Subagent 的主执行协程 — 下面展开</text>
+
+  <!-- Sub-steps of _aexecute -->
+  <!-- 3a: build initial state -->
+  <rect x="430" y="252" width="610" height="80" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.6"/>
+  <text x="445" y="268" fill="#cbd5e1" font-size="7" font-weight="bold">3a. _build_initial_state(task)</text>
+  <text x="445" y="283" fill="#94a3b8" font-size="6">_load_skills() → 从磁盘扫描 SKILL.md · 按 config.skills whitelist 过滤</text>
+  <text x="445" y="297" fill="#94a3b8" font-size="6">_apply_skill_allowed_tools() → tool 白名单交叉过滤</text>
+  <text x="445" y="311" fill="#94a3b8" font-size="6">_load_skill_messages() → 每个 skill 作为独立的 SystemMessage 注入（Codex 模式）</text>
+  <text x="445" y="325" fill="#94a3b8" font-size="6">构建：SystemMessage(system_prompt + skills) + HumanMessage(task)</text>
+
+  <!-- 3b: create agent -->
+  <rect x="430" y="340" width="610" height="38" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.6"/>
+  <text x="445" y="356" fill="#cbd5e1" font-size="7" font-weight="bold">3b. _create_agent(filtered_tools)</text>
+  <text x="445" y="370" fill="#94a3b8" font-size="6">resolve model_name → create_chat_model() → build_subagent_runtime_middlewares() (6-7 个基础 middleware)</text>
+
+  <!-- 3c: agent.astream -->
+  <rect x="430" y="386" width="610" height="200" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="1.2"/>
+  <text x="445" y="402" fill="#60a5fa" font-size="7" font-weight="bold">3c. agent.astream(state, config, stream_mode="values")</text>
+
+  <!-- Mini loop inside -->
+  <rect x="450" y="414" width="570" height="30" rx="3" fill="#3b82f6" opacity="0.08" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="465" y="427" fill="#94a3b8" font-size="7">第 N 圈 → 每圈检查 result.cancel_event.is_set() → 协作式中断</text>
+
+  <rect x="450" y="450" width="570" height="30" rx="3" fill="#3b82f6" opacity="0.08" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="465" y="463" fill="#94a3b8" font-size="7">提取 AIMessage → 按 message.id 去重 → 追加到 ai_messages 列表</text>
+
+  <rect x="450" y="486" width="570" height="30" rx="3" fill="#3b82f6" opacity="0.08" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="465" y="499" fill="#94a3b8" font-size="7">model 不再产生 tool_calls 或达到 max_turns → loop 结束</text>
+
+  <rect x="450" y="522" width="570" height="30" rx="3" fill="#1e293b" stroke="#475569" stroke-width="0.5"/>
+  <text x="465" y="535" fill="#4ade80" font-size="7">提取最后一个 AIMessage.content → 作为 final_result</text>
+  <text x="465" y="549" fill="#94a3b8" font-size="6">支持 str/list 两种 content 格式的归一化处理</text>
+
+  <rect x="450" y="558" width="570" height="24" rx="3" fill="#ec4899" opacity="0.08" stroke="#ec4899" stroke-width="0.5"/>
+  <text x="465" y="574" fill="#f472b6" font-size="7">SubagentTokenCollector: 收集子 agent 所有 LLM 调用的 token 用量</text>
+
+  <!-- Step 4: terminal transition -->
+  <rect x="405" y="596" width="655" height="38" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="425" y="612" fill="#cbd5e1" font-size="8" font-weight="bold">4. try_set_terminal(COMPLETED/FAILED/CANCELLED/TIMED_OUT)</text>
+  <text x="425" y="626" fill="#94a3b8" font-size="7">线程安全的一次性状态转换 — timeout / cancel / 正常完成竞态，第一个到达的生效</text>
+
+  <!-- Step 5: return to parent -->
+  <path d="M 732 634 L 732 690 L 182 690 L 182 200" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,4"/>
+  <text x="440" y="680" fill="#fbbf24" font-size="7" font-weight="bold">future.result() 返回 → 主 agent 拿到 SubagentResult → 继续执行</text>
+
+  <!-- ============================================================ -->
+  <!-- BOTTOM: Design decisions panel -->
+  <!-- ============================================================ -->
+  <rect x="35" y="480" width="295" height="170" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="50" y="498" fill="#94a3b8" font-size="8" font-weight="bold">关键设计决策</text>
+  <text x="50" y="516" fill="#cbd5e1" font-size="7">1. 为什么不在主 loop 的</text>
+  <text x="55" y="530" fill="#cbd5e1" font-size="7">子 graph node 里跑？</text>
+  <text x="55" y="548" fill="#94a3b8" font-size="6">→ subagent 是完整独立 agent，</text>
+  <text x="55" y="562" fill="#94a3b8" font-size="6">有自己的 skills/middleware/loop，</text>
+  <text x="55" y="576" fill="#94a3b8" font-size="6">需要独立线程避免阻塞主循环</text>
+  <text x="50" y="598" fill="#cbd5e1" font-size="7">2. 为什么是 persistent</text>
+  <text x="55" y="612" fill="#cbd5e1" font-size="7">daemon event loop？</text>
+  <text x="55" y="630" fill="#94a3b8" font-size="6">→ 避免每次 subagent 创建/销毁</text>
+  <text x="55" y="644" fill="#94a3b8" font-size="6">event loop（资源泄漏风险）</text>
+
+  <!-- ============================================================ -->
+  <!-- Concurrency model -->
+  <!-- ============================================================ -->
+  <rect x="405" y="680" width="655" height="50" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="425" y="698" fill="#94a3b8" font-size="8" font-weight="bold">并发模型</text>
+  <text x="425" y="716" fill="#cbd5e1" font-size="7">SubagentLimitMiddleware: 每圈最多 MAX_CONCURRENT_SUBAGENTS=3 个并行 task · 超限截断 | ThreadPoolExecutor(max_workers=3) for scheduling</text>
+</svg>

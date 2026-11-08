@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="440" viewBox="0 0 920 440" role="img" aria-labelledby="t d">
+  <title id="t">四件不同的事与三层证据：每一层由什么证明，不能证明什么</title>
+  <desc id="d">四级阶梯对应总览页的四件不同的事：能 import 只证明入口点可解析，不是行为证据；包测试绿（契约级包测试，不 import 宿主）证明契约用法与包内逻辑；扩展装上了（安装验证）证明 extension manager 事务与重启后装载；宿主侧行为被观察到证明贡献真的在宿主里工作。后三件构成 v2.1.0 的三层证据链；跨级跳层声明（如"包测试绿即已验收"）是最常见的过度声明。依据 bytedance/deer-flow v2.1.0 一手证据绘制。</desc>
+  <defs>
+    <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#d97706"/>
+    </marker>
+  </defs>
+  <rect width="920" height="440" fill="#ffffff"/>
+
+  <line x1="135" y1="278" x2="805" y2="88" stroke="#d97706" stroke-width="1.5" stroke-dasharray="7 5" marker-end="url(#arr3)"/>
+  <text x="460" y="46" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#d97706">跳层声明（"包测试绿 ⇒ 已验收"）＝ 最常见的过度声明</text>
+
+  <rect x="30" y="280" width="210" height="100" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.5"/>
+  <text x="135" y="306" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">① 能 import</text>
+  <text x="135" y="330" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#059669">证明：入口点可解析</text>
+  <text x="135" y="350" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">不是行为证据</text>
+  <text x="135" y="370" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#b91c1c">不证明：宿主里的任何行为</text>
+
+  <rect x="255" y="215" width="210" height="100" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="360" y="241" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">② 包测试绿</text>
+  <text x="360" y="265" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#059669">证明：契约用法与包内逻辑</text>
+  <text x="360" y="283" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">（契约级包测试，不 import 宿主）</text>
+  <text x="360" y="303" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#b91c1c">不证明：宿主组合成立</text>
+
+  <rect x="480" y="150" width="210" height="100" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="585" y="176" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">③ 扩展装上了</text>
+  <text x="585" y="200" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#059669">证明：分发物可安装、装载链成立</text>
+  <text x="585" y="218" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">（快照→依赖组→lock→plugins＋重启）</text>
+  <text x="585" y="238" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#b91c1c">不证明：贡献产生了预期行为</text>
+
+  <rect x="705" y="85" width="210" height="100" rx="8" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+  <text x="810" y="111" text-anchor="middle" font-family="sans-serif" font-size="15" font-weight="bold" fill="#111827">④ 宿主侧行为被观察到</text>
+  <text x="810" y="135" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#059669">证明：贡献真的在宿主里工作</text>
+  <text x="810" y="153" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">（如 curl 扩展路由）</text>
+  <text x="810" y="173" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#b91c1c">不证明：所有路径与边界条件</text>
+
+  <text x="135" y="410" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">装完必须重启（startup-only）</text>
+  <text x="585" y="410" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">enabled ≠ loaded</text>
+  <text x="460" y="435" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">v2.1.0 的三层证据链＝②包测试绿 → ③扩展装上了 → ④宿主侧行为被观察到 · 详见 03-delivery-and-acceptance.md</text>
+</svg>

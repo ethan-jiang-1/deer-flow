@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="560" fill="#fafafa" rx="8"/>
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Agent-Friendly 仓库审计框架：五个维度与关键检查点</text>
+
+  <!-- center hub -->
+  <circle cx="600" cy="290" r="88" fill="#1a1a2e"/>
+  <text x="600" y="278" text-anchor="middle" fill="#fff" font-size="14" font-weight="700">Agent-Friendly</text>
+  <text x="600" y="300" text-anchor="middle" fill="#b0bec5" font-size="10">五维审计框架</text>
+  <text x="600" y="318" text-anchor="middle" fill="#b0bec5" font-size="10">（07 篇逐条打分）</text>
+
+  <!-- dim 1 top-left -->
+  <line x1="530" y1="230" x2="330" y2="150" stroke="#999" stroke-width="1.2"/>
+  <rect x="60" y="80" width="330" height="130" rx="8" fill="#e3f2fd" stroke="#1565c0" stroke-width="1.4"/>
+  <text x="78" y="106" font-size="13" font-weight="700" fill="#1565c0">① 上下文供给 / 可发现性</text>
+  <text x="78" y="128" font-size="9.5" fill="#333">· 规范指令入口 + 分层就近（根=地图，模块=深度）</text>
+  <text x="78" y="146" font-size="9.5" fill="#333">· 少而具体、可验证；≤200 行 / 32KiB 预算内</text>
+  <text x="78" y="164" font-size="9.5" fill="#333">· scoped rules（paths/globs）· 可 grep 的命名</text>
+  <text x="78" y="182" font-size="9.5" fill="#333">· 无矛盾、无复述 agent 可推导的内容</text>
+
+  <!-- dim 2 top-right -->
+  <line x1="670" y1="230" x2="870" y2="150" stroke="#999" stroke-width="1.2"/>
+  <rect x="810" y="80" width="330" height="130" rx="8" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1.4"/>
+  <text x="828" y="106" font-size="13" font-weight="700" fill="#2e7d32">② 可验证性（反馈闭环）</text>
+  <text x="828" y="128" font-size="9.5" fill="#333">· 确定性 build/test/lint 命令文档化</text>
+  <text x="828" y="146" font-size="9.5" fill="#333">· 快速测试子集 + 单测 pattern 入口</text>
+  <text x="828" y="164" font-size="9.5" fill="#333">· 本地与 CI 同一门禁；格式检查交 CI</text>
+  <text x="828" y="182" font-size="9.5" fill="#333">· 测试无网络/共享状态等隐式依赖</text>
+
+  <!-- dim 3 bottom-left -->
+  <line x1="530" y1="350" x2="330" y2="430" stroke="#999" stroke-width="1.2"/>
+  <rect x="60" y="380" width="330" height="130" rx="8" fill="#fff3e0" stroke="#e65100" stroke-width="1.4"/>
+  <text x="78" y="406" font-size="13" font-weight="700" fill="#e65100">③ 可执行环境</text>
+  <text x="78" y="428" font-size="9.5" fill="#333">· setup 顺序显式（config→install→dev）</text>
+  <text x="78" y="446" font-size="9.5" fill="#333">· example 模板 + gitignore 真实配置</text>
+  <text x="78" y="464" font-size="9.5" fill="#333">· 健康检查真实报错，不谎报就绪</text>
+  <text x="78" y="482" font-size="9.5" fill="#333">· 无隐式全局状态 / 一次性脚本前置</text>
+
+  <!-- dim 4 bottom-right -->
+  <line x1="670" y1="350" x2="870" y2="430" stroke="#999" stroke-width="1.2"/>
+  <rect x="810" y="380" width="330" height="130" rx="8" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1.4"/>
+  <text x="828" y="406" font-size="13" font-weight="700" fill="#7b1fa2">④ 可修改性 / 局部性</text>
+  <text x="828" y="428" font-size="9.5" fill="#333">· 深模块薄接口；改一处涟漪范围可枚举</text>
+  <text x="828" y="446" font-size="9.5" fill="#333">· 命名空间消歧；无语义近似 distractor</text>
+  <text x="828" y="464" font-size="9.5" fill="#333">· 跨组件契约显式（contracts/ 版本 lockstep）</text>
+  <text x="828" y="482" font-size="9.5" fill="#333">· 生成物标注隔离（dist/ 勿手改）</text>
+
+  <!-- dim 5 top-center -->
+  <line x1="600" y1="200" x2="600" y2="140" stroke="#999" stroke-width="1.2"/>
+  <rect x="440" y="60" width="320" height="80" rx="8" fill="#fce4ec" stroke="#c62828" stroke-width="1.4"/>
+  <text x="458" y="86" font-size="13" font-weight="700" fill="#c62828">⑤ 安全护栏</text>
+  <text x="458" y="106" font-size="9.5" fill="#333">· 软指令（md）≠ 硬约束（hooks/permissions/sandbox）</text>
+  <text x="458" y="122" font-size="9.5" fill="#333">· 指令文件攻击面受控（外部 import 审批、symlink 拒绝）· 破坏性操作就近显式禁令</text>
+
+  <!-- bottom process note -->
+  <text x="600" y="536" text-anchor="middle" font-size="10" fill="#888">评估对象是"系统"，不是"提示词"：software quality is a function of the systems we build（builder.io AX）· 每维含判断标准 / 反模式 / 出处，见 01 与 07 篇</text>
+</svg>

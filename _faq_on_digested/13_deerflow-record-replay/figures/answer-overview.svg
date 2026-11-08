@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" font-family="system-ui, -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif" font-size="12">
+  <title>DeerFlow 有没有 DSH 的录制会话快照思想：一页看懂</title>
+  <desc>三列并排。左列（蓝）思想同源：DeerFlow 测试策略明写移植自 DSH，第⑤级台阶「组装转录」对应快照层，录制端 record_gateway、回放端 ReplayChatModel、两层消费 SSE golden + 真前端、发布包 deerflow.testing 四个零件全在。中列（绿）形状相反：DSH 用 trajectory 夹具、位置绑定、pin 住 request/header、一份文件两用；DeerFlow 用 hash-by-input、顺序无关、把 system prompt 排除出匹配键、回放输入与独立提交的 SSE golden 期望分离。右列（琥珀与红）生产侧不对等与三个缺口：生产落盘只有 checkpoint（graph state）与 run_events（UI 事件面），都不含模型请求面，于是没有 run→fixture 导出器（bug 复现断头）、没有 override 等价物（四类失败）、没有调用数对账（少了调用无感知）。底部条是一句话记法：思想同源，形状相反；多层证据各管一面，生产落盘缺 model-visible。</desc>
+  <defs>
+    <marker id="ov-a" viewBox="0 0 9 7" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L9,3.5 L0,7 Z" fill="#64748b"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1200" height="640" fill="#f8fafc"/>
+  <text x="600" y="34" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">DeerFlow 有没有 DSH 的「录制会话快照」思想？——同源 · 异形 · 三缺口</text>
+
+  <rect x="30" y="58" width="368" height="470" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="214" y="86" text-anchor="middle" font-size="15" font-weight="700" fill="#1d4ed8">① 思想同源（机制层面）</text>
+  <text x="46" y="114" font-size="12.5" fill="#1e3a8a" font-weight="600">移植是明牌：</text>
+  <text x="46" y="132" font-size="11.5" fill="#1e3a8a">docs/testing/README.md L3「移植自 DeepSeek</text>
+  <text x="46" y="149" font-size="11.5" fill="#1e3a8a">Harness」；第⑤级台阶＝组装转录（L37）</text>
+  <text x="46" y="177" font-size="12.5" fill="#1e3a8a" font-weight="600">四个零件全在：</text>
+  <text x="46" y="199" font-size="11.5" fill="#1e3a8a">录制 · record_gateway.py（Playwright 驱真前端，</text>
+  <text x="46" y="215" font-size="11.5" fill="#1e3a8a">夹具＝真实产物）</text>
+  <text x="46" y="237" font-size="11.5" fill="#1e3a8a">回放 · ReplayChatModel（无 key，miss 即 raise）</text>
+  <text x="46" y="259" font-size="11.5" fill="#1e3a8a">消费 · Layer 1 SSE golden ＋ Layer 2 真前端渲染</text>
+  <text x="46" y="281" font-size="11.5" fill="#1e3a8a">发布 · deerflow.testing 随 harness wheel</text>
+  <text x="46" y="309" font-size="12.5" fill="#1e3a8a" font-weight="600">经验也跟着移植了：</text>
+  <text x="46" y="331" font-size="11.5" fill="#1e3a8a">机制发布成包 ／ 静默失效要 fail loud（_replay_misses）</text>
+  <text x="46" y="353" font-size="11.5" fill="#1e3a8a">／ 录制配置要 hermetic（共享 builder，只换 use 块）</text>
+  <rect x="46" y="375" width="336" height="70" rx="6" fill="#dbeafe"/>
+  <text x="60" y="397" font-size="11.5" fill="#1e3a8a" font-weight="600">已拿到的回报：#3352</text>
+  <text x="60" y="415" font-size="11" fill="#1e3a8a">两侧单测全绿，只有真前端 × 真后端抓到</text>
+  <text x="60" y="431" font-size="11" fill="#1e3a8a">压缩后刷新乱序——DeerFlow 版的 ACP 事故</text>
+  <text x="46" y="472" font-size="11" fill="#1e40af" font-style="italic">机制细节 → _digested/testing/07-record-replay.md</text>
+  <text x="46" y="490" font-size="11" fill="#1e40af" font-style="italic">本 FAQ 只做 digest 没做的跨仓对照</text>
+  <text x="214" y="516" text-anchor="middle" font-size="11.5" fill="#1d4ed8" font-weight="700">判定：有，且在用</text>
+
+  <rect x="416" y="58" width="368" height="470" rx="10" fill="#f0fdf4" stroke="#22c55e" stroke-width="1.5"/>
+  <text x="600" y="86" text-anchor="middle" font-size="15" font-weight="700" fill="#15803d">② 形状相反（哲学层面）</text>
+  <text x="432" y="112" font-size="12" fill="#14532d" font-weight="700">共同目标：模型实际收到什么，必须有可 diff 的固定形态</text>
+  <rect x="432" y="124" width="168" height="286" rx="6" fill="#dcfce7"/>
+  <text x="516" y="144" text-anchor="middle" font-size="12" font-weight="700" fill="#166534">DSH</text>
+  <text x="444" y="168" font-size="11" fill="#14532d">trajectory 夹具 session.jsonl</text>
+  <text x="444" y="188" font-size="11" fill="#14532d">位置绑定（first-call 序）</text>
+  <text x="444" y="208" font-size="11" fill="#14532d">pin request/header（含 prompt）</text>
+  <text x="444" y="228" font-size="11" fill="#14532d">一份文件两用（输入＝期望）</text>
+  <text x="444" y="248" font-size="11" fill="#14532d">typed token 保关系去噪声</text>
+  <text x="444" y="268" font-size="10" fill="#14532d">不变量：model-visible ⟺ logged</text>
+  <text x="444" y="296" font-size="10.5" fill="#3f6212" font-style="italic">持久化即轨迹 →</text>
+  <text x="444" y="312" font-size="10.5" fill="#3f6212" font-style="italic">从日志反推回放脚本免费</text>
+  <text x="444" y="336" font-size="10.5" fill="#3f6212" font-style="italic">残余风险：两用会一致</text>
+  <text x="444" y="352" font-size="10.5" fill="#3f6212" font-style="italic">复现坏脚本</text>
+  <rect x="600" y="124" width="168" height="286" rx="6" fill="#dcfce7"/>
+  <text x="684" y="144" text-anchor="middle" font-size="12" font-weight="700" fill="#166534">DeerFlow</text>
+  <text x="612" y="168" font-size="11" fill="#14532d">fixture JSON：caller+hash+output</text>
+  <text x="612" y="188" font-size="11" fill="#14532d">hash-by-input（顺序无关）</text>
+  <text x="612" y="208" font-size="11" fill="#14532d">system prompt 排除出匹配键</text>
+  <text x="612" y="228" font-size="11" fill="#14532d">输入与期望分离（SSE golden）</text>
+  <text x="612" y="248" font-size="11" fill="#14532d">正则归一化抹掉挥发字段</text>
+  <text x="612" y="268" font-size="11" fill="#14532d">不变量未声明 → 分层证据</text>
+  <text x="612" y="296" font-size="10.5" fill="#3f6212" font-style="italic">多 caller 交错 →</text>
+  <text x="612" y="312" font-size="10.5" fill="#3f6212" font-style="italic">位置绑定不成立</text>
+  <text x="612" y="336" font-size="10.5" fill="#3f6212" font-style="italic">代价：全车道不抓</text>
+  <text x="612" y="352" font-size="10.5" fill="#3f6212" font-style="italic">prompt 漂移（keyless 层管）</text>
+  <text x="600" y="436" text-anchor="middle" font-size="11.5" fill="#166534" font-weight="700">两边都把理由写在源码注释里——都是有意取舍</text>
+  <text x="600" y="460" text-anchor="middle" font-size="11" fill="#166534">DSH：夹具会红（pin）　DeerFlow：夹具活得久（排除）</text>
+  <text x="600" y="512" text-anchor="middle" font-size="11.5" fill="#15803d" font-weight="700">判定：形状相反，各自成立</text>
+
+  <rect x="802" y="58" width="368" height="470" rx="10" fill="#fffbeb" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="986" y="86" text-anchor="middle" font-size="15" font-weight="700" fill="#b45309">③ 生产落盘不对等（最初判断对的那半）</text>
+  <text x="818" y="114" font-size="12.5" fill="#78350f" font-weight="600">生产落了什么：</text>
+  <text x="818" y="136" font-size="11.5" fill="#78350f">checkpoint（graph state：messages 转录）</text>
+  <text x="818" y="158" font-size="11.5" fill="#78350f">run_events（UI 事件面：ai.response / tool.result）</text>
+  <text x="818" y="180" font-size="11.5" fill="#78350f">工作区（文件产物 + workspace.changes）</text>
+  <rect x="818" y="196" width="336" height="44" rx="6" fill="#fef3c7"/>
+  <text x="832" y="215" font-size="11.5" fill="#92400e" font-weight="700">没有一样记「模型收到了什么」</text>
+  <text x="832" y="232" font-size="10.5" fill="#92400e">request/header 落盘即消失；不变量未被声明</text>
+  <text x="818" y="266" font-size="12.5" fill="#78350f" font-weight="600">于是三个缺口：</text>
+  <rect x="818" y="278" width="336" height="64" rx="6" fill="#ffedd5" stroke="#f97316"/>
+  <text x="832" y="298" font-size="11.5" fill="#9a3412" font-weight="700">1. run→fixture 导出器（最值得补）</text>
+  <text x="832" y="316" font-size="10.5" fill="#9a3412">bug 复现路线断头；补的是复现，不是钉住</text>
+  <text x="832" y="331" font-size="10.5" fill="#9a3412">哈希口径已共享（hash_messages 双方同用）</text>
+  <rect x="818" y="350" width="336" height="52" rx="6" fill="#ffedd5" stroke="#f97316"/>
+  <text x="832" y="370" font-size="11.5" fill="#9a3412" font-weight="700">2. 调用数对账（最便宜）</text>
+  <text x="832" y="388" font-size="10.5" fill="#9a3412">多了会炸（miss），少了无感知——无 assertConsumed</text>
+  <rect x="818" y="410" width="336" height="52" rx="6" fill="#ffedd5" stroke="#f97316"/>
+  <text x="832" y="430" font-size="11.5" fill="#9a3412" font-weight="700">3. override 等价物（按事故触发）</text>
+  <text x="832" y="448" font-size="10.5" fill="#9a3412">四类失败表达不了；错误被中间件吞掉的面更敏感</text>
+  <rect x="818" y="470" width="336" height="40" rx="6" fill="#fee2e2"/>
+  <text x="832" y="488" font-size="11" fill="#991b1b" font-weight="700">反方向提醒：不要把 prompt 塞回回放哈希</text>
+  <text x="832" y="503" font-size="10.5" fill="#991b1b">要报警走 keyless 断言或 opt-in prompt-golden</text>
+  <text x="986" y="522" text-anchor="middle" font-size="11.5" fill="#b45309" font-weight="700">判定：机制在，生产原料断</text>
+
+  <path d="M398 293 L416 293" stroke="#64748b" stroke-width="1.5" marker-end="url(#ov-a)"/>
+  <path d="M784 293 L802 293" stroke="#64748b" stroke-width="1.5" marker-end="url(#ov-a)"/>
+
+  <rect x="30" y="548" width="1140" height="66" rx="10" fill="#0f172a"/>
+  <text x="600" y="575" text-anchor="middle" font-size="14.5" font-weight="700" fill="#f8fafc">思想同源，形状相反；多层证据各管一面，生产落盘缺 model-visible</text>
+  <text x="600" y="598" text-anchor="middle" font-size="11" fill="#cbd5e1">L0–L1 已在（车道＋keyless 切片）· L2 语料 1 个场景 · L3 导出器最值得补 · L4 按事故触发</text>
+</svg>

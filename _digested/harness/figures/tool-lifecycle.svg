@@ -1,0 +1,116 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 620" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowLeft" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="620" fill="#fafafa" rx="8"/>
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">一次工具调用的生命周期 × 设计原则（Anthropic / OpenAI / MCP）</text>
+
+  <!-- main pipeline -->
+  <rect x="60" y="90" width="200" height="70" rx="8" fill="#1565c0"/>
+  <text x="160" y="118" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">① 模型读到工具定义</text>
+  <text x="160" y="136" text-anchor="middle" fill="#bbdefb" font-size="9">description 注入系统提示，计入输入 token</text>
+
+  <line x1="260" y1="125" x2="300" y2="125" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <rect x="305" y="90" width="200" height="70" rx="8" fill="#2e7d32"/>
+  <text x="405" y="118" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">② 选择与传参</text>
+  <text x="405" y="136" text-anchor="middle" fill="#c8e6c9" font-size="9">参数名无歧义、enum 防非法状态</text>
+
+  <line x1="505" y1="125" x2="545" y2="125" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <rect x="550" y="90" width="200" height="70" rx="8" fill="#e65100"/>
+  <text x="650" y="118" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">③ 执行</text>
+  <text x="650" y="136" text-anchor="middle" fill="#ffe0b2" font-size="9">幂等 / 副作用声明（MCP annotations）</text>
+
+  <line x1="750" y1="125" x2="790" y2="125" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <rect x="795" y="90" width="200" height="70" rx="8" fill="#7b1fa2"/>
+  <text x="895" y="118" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">④ 返回结果</text>
+  <text x="895" y="136" text-anchor="middle" fill="#e1bee7" font-size="9">回到模型上下文 → 回到 ①</text>
+
+  <!-- annotations per stage -->
+  <!-- stage 1 -->
+  <rect x="40" y="200" width="240" height="150" rx="6" fill="#e3f2fd" stroke="#1565c0" stroke-width="1"/>
+  <text x="52" y="222" font-size="11" font-weight="700" fill="#1565c0">定义层原则</text>
+  <text x="52" y="244" font-size="9.5" fill="#333">· 清晰详细的名字与参数描述</text>
+  <text x="52" y="262" font-size="9.5" fill="#333">· 少而重叠少：&lt;20 个常驻工具</text>
+  <text x="52" y="280" font-size="9.5" fill="#333">· 命名空间划边界：asana_search /</text>
+  <text x="52" y="296" font-size="9.5" fill="#333">  jira_search（前缀 vs 后缀影响评测）</text>
+  <text x="52" y="314" font-size="9.5" fill="#333">· 大工具面用 deferred / tool search</text>
+  <text x="52" y="332" font-size="9.5" fill="#333">  按需加载（OpenAI tool_search）</text>
+
+  <!-- stage 2 -->
+  <rect x="300" y="200" width="240" height="150" rx="6" fill="#e8f5e9" stroke="#2e7d32" stroke-width="1"/>
+  <text x="312" y="222" font-size="11" font-weight="700" fill="#2e7d32">参数层原则</text>
+  <text x="312" y="244" font-size="9.5" fill="#333">· user_id 而非 user（无歧义命名）</text>
+  <text x="312" y="262" font-size="9.5" fill="#333">· 用 enum / 对象结构阻止非法状态</text>
+  <text x="312" y="280" font-size="9.5" fill="#333">  （反例：toggle(on, off)）</text>
+  <text x="312" y="298" font-size="9.5" fill="#333">· 别让模型填已知的参数——</text>
+  <text x="312" y="314" font-size="9.5" fill="#333">  已有 order_id 就不要收它</text>
+  <text x="312" y="332" font-size="9.5" fill="#333">· "实习生测试"：只凭描述能会用吗</text>
+
+  <!-- stage 3 -->
+  <rect x="560" y="200" width="240" height="150" rx="6" fill="#fff3e0" stroke="#e65100" stroke-width="1"/>
+  <text x="572" y="222" font-size="11" font-weight="700" fill="#e65100">执行层原则</text>
+  <text x="572" y="244" font-size="9.5" fill="#333">· 聚合高频链式操作：</text>
+  <text x="572" y="260" font-size="9.5" fill="#333">  schedule_event 取代 list+create 三连</text>
+  <text x="572" y="278" font-size="9.5" fill="#333">· search 而非 list：把暴力遍历</text>
+  <text x="572" y="294" font-size="9.5" fill="#333">  从上下文移回代码</text>
+  <text x="572" y="312" font-size="9.5" fill="#333">· 破坏性操作用 MCP tool annotations</text>
+  <text x="572" y="328" font-size="9.5" fill="#333">  披露（destructive / open-world）</text>
+  <text x="572" y="346" font-size="9.5" fill="#333">· 失败要可重试、不埋全局状态</text>
+
+  <!-- stage 4 -->
+  <rect x="820" y="200" width="340" height="150" rx="6" fill="#f3e5f5" stroke="#7b1fa2" stroke-width="1"/>
+  <text x="832" y="222" font-size="11" font-weight="700" fill="#7b1fa2">返回值层原则</text>
+  <text x="832" y="244" font-size="9.5" fill="#333">· 只回高信号：name/file_type 优先于</text>
+  <text x="832" y="260" font-size="9.5" fill="#333">  uuid/mime_type；自然语言名 &gt; 神秘 ID</text>
+  <text x="832" y="278" font-size="9.5" fill="#333">· token 预算：分页 / 范围选择 / 过滤 /</text>
+  <text x="832" y="294" font-size="9.5" fill="#333">  截断（Claude Code 工具响应 ≤25k tokens）</text>
+  <text x="832" y="312" font-size="9.5" fill="#333">· concise/detailed 可选输出（省 2/3 token）</text>
+  <text x="832" y="330" font-size="9.5" fill="#333">· 错误信息 = 具体可行动的改进指引，</text>
+  <text x="832" y="346" font-size="9.5" fill="#333">  不是 opaque code / traceback</text>
+
+  <!-- loop-back arrow -->
+  <path d="M 895 160 L 895 178 L 160 178 L 160 160" fill="none" stroke="#555" stroke-width="1.2" stroke-dasharray="5,3" marker-end="url(#arrowLeft)"/>
+  <text x="528" y="172" text-anchor="middle" font-size="9" fill="#888">结果回注上下文：返回值是下一个推理的输入，也是下一次调用的教材</text>
+
+  <!-- bottom principle bar -->
+  <rect x="60" y="380" width="1100" height="200" rx="8" fill="none" stroke="#999" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="610" y="406" text-anchor="middle" font-size="12" font-weight="700" fill="#1a1a2e">贯穿全程的三条总纲</text>
+  <rect x="90" y="424" width="330" height="130" rx="6" fill="#eceff1" stroke="#90a4ae"/>
+  <text x="105" y="448" font-size="11" font-weight="700" fill="#37474f">评估驱动</text>
+  <text x="105" y="470" font-size="9.5" fill="#333">工具是"确定性系统与非确定性 agent</text>
+  <text x="105" y="486" font-size="9.5" fill="#333">之间的新契约"——必须像测软件一样</text>
+  <text x="105" y="502" font-size="9.5" fill="#333">建 eval：真实任务、可验证结果、</text>
+  <text x="105" y="518" font-size="9.5" fill="#333">held-out 测试集防过拟合；</text>
+  <text x="105" y="534" font-size="9.5" fill="#333">连工具描述微调都要用准确率验证</text>
+  <rect x="445" y="424" width="330" height="130" rx="6" fill="#eceff1" stroke="#90a4ae"/>
+  <text x="460" y="448" font-size="11" font-weight="700" fill="#37474f">上下文即预算</text>
+  <text x="460" y="470" font-size="9.5" fill="#333">把 agentic 计算从模型上下文移回</text>
+  <text x="460" y="486" font-size="9.5" fill="#333">工具调用本身（工具内搜索/聚合）；</text>
+  <text x="460" y="502" font-size="9.5" fill="#333">工具过多或重叠会让 agent 分心——</text>
+  <text x="460" y="518" font-size="9.5" fill="#333">"如果人类工程师说不出该用哪个工具，</text>
+  <text x="460" y="534" font-size="9.5" fill="#333">别指望 agent 做得更好"</text>
+  <rect x="800" y="424" width="330" height="130" rx="6" fill="#eceff1" stroke="#90a4ae"/>
+  <text x="815" y="448" font-size="11" font-weight="700" fill="#37474f">让 agent 像新人同事</text>
+  <text x="815" y="470" font-size="9.5" fill="#333">描述工具时想象在给新 hire 写说明：</text>
+  <text x="815" y="486" font-size="9.5" fill="#333">把隐式的查询格式、术语、资源关系</text>
+  <text x="815" y="502" font-size="9.5" fill="#333">显式写出来；用严格数据模型</text>
+  <text x="815" y="518" font-size="9.5" fill="#333">约束输入输出；小描述修正即可带来</text>
+  <text x="815" y="534" font-size="9.5" fill="#333">评测指标的显著提升（SWE-bench 案例）</text>
+
+  <text x="610" y="602" text-anchor="middle" font-size="9" fill="#999">来源：anthropic.com/engineering/writing-tools-for-agents · developers.openai.com/api/docs/guides/function-calling · modelcontextprotocol.io（tool annotations）</text>
+</svg>

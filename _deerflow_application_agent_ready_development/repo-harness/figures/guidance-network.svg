@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="410" viewBox="0 0 920 410" role="img" aria-labelledby="t d">
+  <title id="t">DeerFlow 指南网络：分层、最近文件规则与预算治理</title>
+  <desc id="d">树形图：根 AGENTS.md 只做定位（仓库地图与跨模块约定，预算 16/20 KiB）；模块层共三份——backend、frontend、scripts 的 AGENTS.md 承接各自深度（28/32 KiB）；子系统各有自己的 AGENTS.md（共 24 份，40/48 KiB，祖先链累计不超过 80/96 KiB）。规则是改哪个目录就读离它最近的指南；CLAUDE.md 只含 @AGENTS.md 的单一事实源导入，另有 Copilot 专属指南 copilot-instructions.md（与 AGENTS 网络互不引用）；尺寸预算由 check_agent_guidance.py 在 CI 执行。依据 bytedance/deer-flow v2.1.0 绘制。</desc>
+  <defs>
+    <marker id="arr5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb"/>
+    </marker>
+  </defs>
+  <rect width="920" height="410" fill="#ffffff"/>
+
+  <rect x="110" y="24" width="300" height="70" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="260" y="52" text-anchor="middle" font-family="sans-serif" font-size="14" font-weight="bold" fill="#111827">AGENTS.md（根 · 定位层）</text>
+  <text x="260" y="74" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">仓库地图 + 跨模块约定 · 预算 16/20 KiB</text>
+
+  <rect x="620" y="24" width="290" height="84" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1"/>
+  <text x="765" y="46" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">CLAUDE.md 只含一行 @AGENTS.md 导入</text>
+  <text x="765" y="66" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">——跨工具共享的单一事实源；</text>
+  <text x="765" y="86" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#111827">另有 Copilot 专属指南 copilot-instructions.md</text>
+
+  <rect x="15" y="160" width="290" height="64" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="160" y="186" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#111827">backend/AGENTS.md（模块层）</text>
+  <text x="160" y="208" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">harness/app 分层、中间件链、测试 · 28/32 KiB</text>
+
+  <rect x="315" y="160" width="290" height="64" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="460" y="186" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#111827">frontend/AGENTS.md（模块层）</text>
+  <text x="460" y="208" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">App Router、线程/流式数据流 · 28/32 KiB</text>
+
+  <rect x="615" y="160" width="290" height="64" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+  <text x="760" y="186" text-anchor="middle" font-family="sans-serif" font-size="13" font-weight="bold" fill="#111827">scripts/AGENTS.md（模块层）</text>
+  <text x="760" y="208" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">根编排脚本契约 · 28/32 KiB</text>
+
+  <rect x="110" y="286" width="700" height="60" rx="8" fill="#f3f4f6" stroke="#6b7280" stroke-width="1.2"/>
+  <text x="460" y="310" text-anchor="middle" font-family="sans-serif" font-size="13" fill="#111827">子系统 AGENTS.md ×24（memory、subagents、skills、mcp、sandbox、tools、gateway …）</text>
+  <text x="460" y="332" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">子系统层 40/48 KiB · 祖先链累计不超过 80/96 KiB</text>
+
+  <line x1="170" y1="94" x2="160" y2="156" stroke="#2563eb" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="260" y1="94" x2="460" y2="156" stroke="#2563eb" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="350" y1="94" x2="760" y2="156" stroke="#2563eb" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="160" y1="224" x2="240" y2="282" stroke="#2563eb" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="460" y1="224" x2="460" y2="282" stroke="#2563eb" stroke-width="2" marker-end="url(#arr5)"/>
+  <line x1="760" y1="224" x2="680" y2="282" stroke="#2563eb" stroke-width="2" marker-end="url(#arr5)"/>
+
+  <text x="430" y="132" text-anchor="middle" font-family="sans-serif" font-size="12" font-weight="bold" fill="#d97706">最近文件规则：改哪个目录，就读离它最近的那份指南</text>
+  <text x="460" y="378" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#374151">尺寸预算由 scripts/check_agent_guidance.py 在 CI 执行（软/硬两档，只咬本次 diff 触及的文件）</text>
+  <text x="460" y="400" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">依据 bytedance/deer-flow v2.1.0 绘制 · 详见 repo-harness/01 与 02</text>
+</svg>

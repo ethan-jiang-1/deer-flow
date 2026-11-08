@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 520" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/></marker>
+  </defs>
+
+  <text x="425" y="22" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">Sandbox 虚拟路径系统</text>
+  <text x="425" y="38" text-anchor="middle" font-size="10" fill="#78909C">Agent 看到的虚拟路径 vs 宿主机实际路径 · 多层安全防护</text>
+
+  <!-- Left column: Virtual -->
+  <rect x="30" y="52" width="380" height="38" rx="4" fill="#E3F2FD" stroke="#1E88E5" stroke-width="2"/>
+  <text x="220" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#0D47A1">Agent 看到的 (虚拟路径)</text>
+
+  <!-- Right column: Physical -->
+  <rect x="440" y="52" width="380" height="38" rx="4" fill="#E8F5E9" stroke="#43A047" stroke-width="2"/>
+  <text x="630" y="76" text-anchor="middle" font-size="13" font-weight="700" fill="#1B5E20">宿主机实际路径</text>
+
+  <!-- Path mappings -->
+  <rect x="30" y="102" width="380" height="40" rx="4" fill="#BBDEFB"/>
+  <text x="220" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#1565C0">/mnt/user-data/workspace/</text>
+  <text x="220" y="134" text-anchor="middle" font-size="9" fill="#1976D2">Agent 的工作目录 (读写)</text>
+  <rect x="440" y="102" width="380" height="40" rx="4" fill="#C8E6C9"/>
+  <text x="630" y="118" text-anchor="middle" font-size="10" fill="#2E7D32">{base}/users/{uid}/threads/{tid}/user-data/workspace/</text>
+  <text x="630" y="134" text-anchor="middle" font-size="8" fill="#388E3C">{base} = DEER_FLOW_HOME 或 backend/.deer-flow/</text>
+
+  <rect x="30" y="150" width="380" height="40" rx="4" fill="#BBDEFB"/>
+  <text x="220" y="166" text-anchor="middle" font-size="12" font-weight="600" fill="#1565C0">/mnt/user-data/uploads/</text>
+  <text x="220" y="182" text-anchor="middle" font-size="9" fill="#1976D2">用户上传文件 (读写)</text>
+  <rect x="440" y="150" width="380" height="40" rx="4" fill="#C8E6C9"/>
+  <text x="630" y="166" text-anchor="middle" font-size="10" fill="#2E7D32">{base}/users/{uid}/threads/{tid}/user-data/uploads/</text>
+  <text x="630" y="182" text-anchor="middle" font-size="8" fill="#388E3C">支持 PDF/PPT/Excel/Word 自动转换</text>
+
+  <rect x="30" y="198" width="380" height="40" rx="4" fill="#BBDEFB"/>
+  <text x="220" y="214" text-anchor="middle" font-size="12" font-weight="600" fill="#1565C0">/mnt/user-data/outputs/</text>
+  <text x="220" y="230" text-anchor="middle" font-size="9" fill="#1976D2">Agent 输出文件 (读写, present_files)</text>
+  <rect x="440" y="198" width="380" height="40" rx="4" fill="#C8E6C9"/>
+  <text x="630" y="214" text-anchor="middle" font-size="10" fill="#2E7D32">{base}/users/{uid}/threads/{tid}/user-data/outputs/</text>
+  <text x="630" y="230" text-anchor="middle" font-size="8" fill="#388E3C">outputs/ 中的文件可通过 artifacts API 下载</text>
+
+  <rect x="30" y="246" width="380" height="40" rx="4" fill="#BBDEFB"/>
+  <text x="220" y="262" text-anchor="middle" font-size="12" font-weight="600" fill="#1565C0">/mnt/skills/ (只读)</text>
+  <text x="220" y="278" text-anchor="middle" font-size="9" fill="#1976D2">Skills 目录 · Agent 可按需 read_file</text>
+  <rect x="440" y="246" width="380" height="40" rx="4" fill="#C8E6C9"/>
+  <text x="630" y="262" text-anchor="middle" font-size="10" fill="#2E7D32">{project}/skills/{public,custom}/</text>
+  <text x="630" y="278" text-anchor="middle" font-size="8" fill="#388E3C">public/: 23 内置 skills (git) · custom/: 用户 skills (gitignore)</text>
+
+  <rect x="30" y="294" width="380" height="40" rx="4" fill="#BBDEFB"/>
+  <text x="220" y="310" text-anchor="middle" font-size="12" font-weight="600" fill="#1565C0">自定义 mounts</text>
+  <text x="220" y="326" text-anchor="middle" font-size="9" fill="#1976D2">config.yaml sandbox.mounts 配置</text>
+  <rect x="440" y="294" width="380" height="40" rx="4" fill="#C8E6C9"/>
+  <text x="630" y="310" text-anchor="middle" font-size="10" fill="#2E7D32">宿主机任意目录 (读写/只读)</text>
+  <text x="630" y="326" text-anchor="middle" font-size="8" fill="#388E3C">sandbox.mounts: [{host_path, container_path, read_only}]</text>
+
+  <!-- Security layers -->
+  <rect x="30" y="350" width="790" height="160" rx="8" fill="#FFEBEE" stroke="#EF5350" stroke-width="2"/>
+  <text x="425" y="374" text-anchor="middle" font-size="13" font-weight="700" fill="#B71C1C">多层安全防护 (deerflow/sandbox/tools.py + security.py)</text>
+
+  <rect x="48" y="390" width="230" height="50" rx="5" fill="#FFCDD2"/>
+  <text x="163" y="411" text-anchor="middle" font-size="10" font-weight="700" fill="#C62828">validate_local_tool_path()</text>
+  <text x="163" y="428" text-anchor="middle" font-size="8" fill="#D32F2F">路径白名单 — 仅允许 4 个前缀</text>
+  <text x="163" y="440" text-anchor="middle" font-size="7" fill="#E57373">/mnt/user-data · /mnt/skills · /mnt/acp-workspace · custom</text>
+
+  <rect x="295" y="390" width="230" height="50" rx="5" fill="#FFCDD2"/>
+  <text x="410" y="411" text-anchor="middle" font-size="10" font-weight="700" fill="#C62828">_reject_path_traversal()</text>
+  <text x="410" y="428" text-anchor="middle" font-size="8" fill="#D32F2F">拒绝 .. 路径遍历</text>
+  <text x="410" y="440" text-anchor="middle" font-size="7" fill="#E57373">任何包含 .. 的路径直接 PermissionError</text>
+
+  <rect x="542" y="390" width="260" height="50" rx="5" fill="#FFCDD2"/>
+  <text x="672" y="411" text-anchor="middle" font-size="10" font-weight="700" fill="#C62828">mask_local_paths_in_output()</text>
+  <text x="672" y="428" text-anchor="middle" font-size="8" fill="#D32F2F">输出脱敏 — 替换宿主机真实路径</text>
+  <text x="672" y="440" text-anchor="middle" font-size="7" fill="#E57373">Agent 永远看不到 /Users/bowhead/... 真实路径</text>
+
+  <rect x="48" y="450" width="370" height="47" rx="5" fill="#FFCDD2"/>
+  <text x="233" y="470" text-anchor="middle" font-size="10" font-weight="700" fill="#C62828">validate_local_bash_command_paths() + is_host_bash_allowed()</text>
+  <text x="233" y="486" text-anchor="middle" font-size="8" fill="#D32F2F">Bash 安全 — 默认禁用 · 开启后路径白名单扫描 · 系统路径前缀 allowlist</text>
+  <text x="233" y="498" text-anchor="middle" font-size="7" fill="#E57373">阻止 file:// URLs · cd/pushd 命令替换 · $() 包装 · (仅允许 /bin/ · /usr/bin/ · /opt/homebrew/bin/)</text>
+
+  <rect x="435" y="450" width="367" height="47" rx="5" fill="#FFCDD2"/>
+  <text x="618" y="470" text-anchor="middle" font-size="10" font-weight="700" fill="#C62828">LocalSandbox._resolve_path_with_mapping() + read_only 标记</text>
+  <text x="618" y="486" text-anchor="middle" font-size="8" fill="#D32F2F">二次 escape 校验 · 自定义 mount read_only 执行 (OSError: EROFS)</text>
+  <text x="618" y="498" text-anchor="middle" font-size="7" fill="#E57373">skills/ 目录始终只读 · _resolve_and_validate_user_data_path() 兜底</text>
+</svg>

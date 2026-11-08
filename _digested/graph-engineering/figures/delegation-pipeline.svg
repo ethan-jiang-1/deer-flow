@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 840" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1100" height="840" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">委派机器端到端 — 一条 task 与一条 batch 的生命周期</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 05-delegation-mechanics.md · 双泳道汇流于同一执行器，回写共用一条信封链</text>
+
+  <defs>
+    <marker id="dn" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto"><polygon points="0 0, 10 7, 5 7, 5 0" fill="#64748b"/></marker>
+    <marker id="dng" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto"><polygon points="0 0, 10 7, 5 7, 5 0" fill="#059669"/></marker>
+  </defs>
+
+  <!-- top: routing decision -->
+  <rect x="24" y="72" width="1052" height="52" rx="8" fill="#eef2ff" stroke="#6366f1" stroke-width="1.5"/>
+  <text x="550" y="94" font-size="13.5" font-weight="700" fill="#3730a3" text-anchor="middle">Lead Agent · benefit-based 路由决策</text>
+  <text x="550" y="112" font-size="11.5" fill="#4338ca" text-anchor="middle">默认直接执行 · 收益测试（并行延迟/专家/上下文隔离 vs 启动/重复发现/综合/状态冲突/副作用）· 输出依赖/状态重叠 = 硬否决</text>
+
+  <!-- lane headers -->
+  <rect x="24" y="140" width="500" height="26" rx="5" fill="#ecfdf5"/>
+  <text x="274" y="158" font-size="13" font-weight="700" fill="#065f46" text-anchor="middle">task（即时委派）</text>
+  <rect x="576" y="140" width="500" height="26" rx="5" fill="#eff6ff"/>
+  <text x="826" y="158" font-size="13" font-weight="700" fill="#1e40af" text-anchor="middle">batch_task（durable 批）</text>
+
+  <!-- left lane (task) -->
+  <g font-size="11.5" fill="#334155">
+    <rect x="40" y="178" width="468" height="64" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="198" font-size="12.5" font-weight="700" fill="#065f46">① task tool · 派发契约</text>
+    <text x="56" y="216">验收标准 20×500 逐条中性化（system 通道只放框架指针）</text>
+    <text x="56" y="234">ParentContextSnapshot + 上传边界深拷贝（fail-closed）</text>
+    <line x1="274" y1="242" x2="274" y2="256" stroke="#64748b" stroke-width="2" marker-end="url(#dn)"/>
+
+    <rect x="40" y="260" width="468" height="64" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="280" font-size="12.5" font-weight="700" fill="#065f46">② SubagentExecutor · 执行容量</text>
+    <text x="56" y="298">持久隔离事件环 · FIFO 准入（默认 3）· ContextVar 边界</text>
+    <text x="56" y="316">SubagentLimitMiddleware：并发上限 + 总量（delegations 按 run 划界）</text>
+    <line x1="274" y1="324" x2="274" y2="338" stroke="#64748b" stroke-width="2" marker-end="url(#dn)"/>
+
+    <rect x="40" y="342" width="468" height="64" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="362" font-size="12.5" font-weight="700" fill="#065f46">③ 子代理一次性图</text>
+    <text x="56" y="380">checkpointer=False（永不 resume，执行状态不进 checkpoint）</text>
+    <text x="56" y="398">7-8 编译节点 · turn_budget 把 max_turns 按链深翻译成 recursion_limit</text>
+    <line x1="274" y1="406" x2="274" y2="420" stroke="#64748b" stroke-width="2" marker-end="url(#dn)"/>
+
+    <rect x="40" y="424" width="468" height="70" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="444" font-size="12.5" font-weight="700" fill="#065f46">④ 三护栏轴（L1 自愈）</text>
+    <text x="56" y="462">turn（GraphRecursionError 捕获）· token（1M-2M，0.7 预警/1.0 硬停）</text>
+    <text x="56" y="480">loop（重复 tool-call 集检测）— 硬停 = 剥 tool_calls 强制收尾，不崩溃</text>
+    <text x="56" y="488" fill="#ffffff"> </text>
+    <line x1="274" y1="494" x2="274" y2="508" stroke="#64748b" stroke-width="2" marker-end="url(#dn)"/>
+
+    <rect x="40" y="512" width="468" height="64" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="532" font-size="12.5" font-weight="700" fill="#065f46">⑤ 共享线程沙箱（#5128）</text>
+    <text x="56" y="550">子代理共享 lead 线程沙箱 · lease：兄弟在跑不关闭，最终持有者释放</text>
+    <text x="56" y="568">AIO：每子代理独立持久 shell session（文件系统仍共享）</text>
+  </g>
+
+  <!-- right lane (batch) -->
+  <g font-size="11.5" fill="#334155">
+    <rect x="592" y="178" width="468" height="64" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="608" y="198" font-size="12.5" font-weight="700" fill="#1e40af">① batch_task · 提交</text>
+    <text x="608" y="216">items（key+prompt+可选验收标准）· batch 级 live/running 上限</text>
+    <text x="608" y="234">提交经 process-local submitter 桥 → Gateway batch 服务</text>
+    <line x1="826" y1="242" x2="826" y2="256" stroke="#64748b" stroke-width="2" marker-end="url(#dn)"/>
+
+    <rect x="592" y="260" width="468" height="64" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="608" y="280" font-size="12.5" font-weight="700" fill="#1e40af">② 持久 batch/item 行 + 租约</text>
+    <text x="608" y="298">DB 为真相源 · max_attempts 重试预算 · durable 取消（跨 worker 生效）</text>
+    <text x="608" y="316">提示词注入幂等键：side effects must be idempotent（item key 为身份）</text>
+    <line x1="826" y1="324" x2="826" y2="338" stroke="#64748b" stroke-width="2" marker-end="url(#dn)"/>
+
+    <rect x="592" y="342" width="468" height="70" rx="6" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="608" y="362" font-size="12.5" font-weight="700" fill="#1e40af">③ batch_service · 轮询认领执行</text>
+    <text x="608" y="380">按可用容量认领 · lease/3 续期，续租失败即刻取消执行</text>
+    <text x="608" y="398">admission 失败（执行前）→ 重排队不耗尝试；真实失败/租约过期才耗</text>
+    <text x="608" y="416">worker 崩溃 → 租约到期 → 他机认领同一稳定 item key 重跑</text>
+
+    <!-- merge arrow to left executor -->
+    <path d="M 592 377 C 540 377 520 300 508 292" stroke="#2563eb" stroke-width="2" fill="none" marker-end="url(#dn)"/>
+    <text x="556" y="356" font-size="11" fill="#2563eb">同一 SubagentExecutor / 进程槽</text>
+  </g>
+
+  <!-- bottom: write-back chain (full width) -->
+  <line x1="550" y1="576" x2="550" y2="596" stroke="#059669" stroke-width="2.5" marker-end="url(#dng)"/>
+
+  <g font-size="11.5" fill="#334155">
+    <rect x="24" y="600" width="340" height="110" rx="6" fill="#fffbeb" stroke="#d97706"/>
+    <text x="40" y="622" font-size="12.5" font-weight="700" fill="#92400e">⑥ 状态信封回写（结构化）</text>
+    <text x="40" y="640">ToolMessage.additional_kwargs：</text>
+    <text x="40" y="656">status×5 · stop_reason×3 · result_brief+sha256</text>
+    <text x="40" y="672">token_usage · model_name · tool_receipts</text>
+    <text x="40" y="688">receipt_verdict（引用核验）· acceptance_verdict</text>
+    <text x="40" y="704" fill="#92400e">缺的只有：error_class 分类学 + 建议动作（09 §门层）</text>
+
+    <rect x="384" y="600" width="340" height="110" rx="6" fill="#fffbeb" stroke="#d97706"/>
+    <text x="400" y="622" font-size="12.5" font-weight="700" fill="#92400e">⑦ 验收三层（RFC #4651）</text>
+    <text x="400" y="640">L1 报告契约：动作声明必须带 [rN tool] 引用</text>
+    <text x="400" y="656">L2 收据核验：引用是否落在真实工具收据上</text>
+    <text x="400" y="672">L3 确定性清单：file: / tests_passed:</text>
+    <text x="400" y="688">对抗性 shell 匹配 · 不可证明 = UNVERIFIED</text>
+    <text x="400" y="704" fill="#92400e">verdict 回流后无代码消费它（Gate 缺口）</text>
+
+    <rect x="744" y="600" width="332" height="110" rx="6" fill="#fffbeb" stroke="#d97706"/>
+    <text x="760" y="622" font-size="12.5" font-weight="700" fill="#92400e">⑧ 台账与模型可见面</text>
+    <text x="760" y="640">delegations：append · 同 id latest-wins</text>
+    <text x="760" y="656">终态永不降级 · 50 条封顶（按 run 划界）</text>
+    <text x="760" y="672">模型可见文本："Task Succeeded (capped: …)"</text>
+    <text x="760" y="688">step 事件（start/step/end）持久化可分页</text>
+    <text x="760" y="704" fill="#92400e">台账 = 记录，不是计划（无依赖声明）</text>
+  </g>
+
+  <!-- footer -->
+  <rect x="24" y="726" width="1052" height="92" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="550" y="752" font-size="13.5" font-weight="700" fill="#0f172a" text-anchor="middle">判读：带验证的「任务队列机器」，不是「工作流图机器」</text>
+  <text x="550" y="774" font-size="12" fill="#334155" text-anchor="middle">能表达：独立并行、串行链、带验收的交付、护栏内自治、崩溃可恢复的批量。不能表达：依赖边、汇聚 Gate、失败后的拓扑级响应。</text>
+  <text x="550" y="794" font-size="12" fill="#334155" text-anchor="middle">每条「不能」都对应 01 地图的 ◐/❌ 行 —— 不是没做，是用别的层（策略否决/信封/确定性验收/durable 队列）去近似。</text>
+</svg>

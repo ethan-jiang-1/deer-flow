@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 780" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1120" height="780" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">五个生长点 — 现有资产 → 补齐物 → 研究层概念</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 04-extension-path.md v2 · 每个缺口都有比预期更近的现有资产；详细设计见 09-task-dag-injection-design.md</text>
+
+  <!-- column headers -->
+  <text x="40" y="92" font-size="13" font-weight="700" fill="#065f46">现有资产（已在源码里）</text>
+  <text x="480" y="92" font-size="13" font-weight="700" fill="#92400e">补齐物（要写的部分）</text>
+  <text x="900" y="92" font-size="13" font-weight="700" fill="#5b21b6">研究层概念</text>
+
+  <g font-size="11.5">
+    <!-- row 1 -->
+    <rect x="40" y="104" width="360" height="92" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="128" font-size="12.5" font-weight="700" fill="#065f46">merge_delegations 台账 reducer</text>
+    <text x="56" y="148" fill="#334155">append · 同 id latest-wins</text>
+    <text x="56" y="166" fill="#334155">终态永不降级 = 议题 07「冻结」的现成代码形态</text>
+    <text x="56" y="184" fill="#059669">thread_state.py</text>
+    <path d="M 404 150 L 468 150" stroke="#d97706" stroke-width="2" marker-end="url(#am)"/>
+    <defs><marker id="am" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#d97706"/></marker></defs>
+    <rect x="476" y="104" width="380" height="92" rx="6" fill="#fffbeb" stroke="#d97706" stroke-dasharray="6 4"/>
+    <text x="492" y="128" font-size="12.5" font-weight="700" fill="#92400e">节点/依赖边/状态 schema</text>
+    <text x="492" y="148" fill="#334155">TypedDict 形态（过 checkpoint serde）</text>
+    <text x="492" y="166" fill="#334155">reducer 照抄台账的终态保护语义</text>
+    <text x="492" y="184" fill="#92400e">middleware state_schema 贡献通道</text>
+    <path d="M 860 150 L 894 150" stroke="#7c3aed" stroke-width="2" marker-end="url(#av)"/>
+    <defs><marker id="av" markerWidth="10" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/></marker></defs>
+    <rect x="900" y="118" width="196" height="64" rx="6" fill="#f5f3ff" stroke="#7c3aed"/>
+    <text x="998" y="146" font-size="12.5" font-weight="700" fill="#5b21b6" text-anchor="middle">task_dag 状态通道</text>
+    <text x="998" y="166" font-size="11.5" fill="#6d28d9" text-anchor="middle">议题 09 · State.task_dag</text>
+
+    <!-- row 2 -->
+    <rect x="40" y="208" width="360" height="92" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="232" font-size="12.5" font-weight="700" fill="#065f46">durable batch 引擎</text>
+    <text x="56" y="252" fill="#334155">lease/3 续期 · 重试预算 · 幂等键 · 崩溃认领</text>
+    <text x="56" y="270" fill="#334155">pause/resume/retry/导出 API 全套</text>
+    <text x="56" y="288" fill="#059669">batch_service.py + subagent_batches 路由</text>
+    <path d="M 404 254 L 468 254" stroke="#d97706" stroke-width="2" marker-end="url(#am)"/>
+    <rect x="476" y="208" width="380" height="92" rx="6" fill="#fffbeb" stroke="#d97706" stroke-dasharray="6 4"/>
+    <text x="492" y="232" font-size="12.5" font-weight="700" fill="#92400e">就绪集派发（Kahn 入度=0）</text>
+    <text x="492" y="252" fill="#334155">＋ per-node worktree（唯一新物理需求）</text>
+    <text x="492" y="270" fill="#334155">写文件节点默认否决并行</text>
+    <text x="492" y="288" fill="#92400e">dag_dispatch 工具读依赖边分流</text>
+    <path d="M 860 254 L 894 254" stroke="#7c3aed" stroke-width="2" marker-end="url(#av)"/>
+    <rect x="900" y="222" width="196" height="64" rx="6" fill="#f5f3ff" stroke="#7c3aed"/>
+    <text x="998" y="250" font-size="12.5" font-weight="700" fill="#5b21b6" text-anchor="middle">拓扑 Dispatcher</text>
+    <text x="998" y="270" font-size="11.5" fill="#6d28d9" text-anchor="middle">议题 08 · Fan-out 调度</text>
+
+    <!-- row 3 -->
+    <rect x="40" y="312" width="360" height="92" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="336" font-size="12.5" font-weight="700" fill="#065f46">acceptance_checks 确定性验收</text>
+    <text x="56" y="356" fill="#334155">file: / file_written: / tests_passed:</text>
+    <text x="56" y="374" fill="#334155">对抗性 shell 匹配 · UNVERIFIED fail-closed</text>
+    <text x="56" y="392" fill="#059669">acceptance_checks.py（batch 复用同一检查器）</text>
+    <path d="M 404 358 L 468 358" stroke="#d97706" stroke-width="2" marker-end="url(#am)"/>
+    <rect x="476" y="312" width="380" height="92" rx="6" fill="#fffbeb" stroke="#d97706" stroke-dasharray="6 4"/>
+    <text x="492" y="336" font-size="12.5" font-weight="700" fill="#92400e">verdict 消费者（首个真 Gate）</text>
+    <text x="492" y="356" fill="#334155">「就绪集空 ∧ 全 SUCCESS ∧ 验收通过 → 汇聚」</text>
+    <text x="492" y="374" fill="#334155">今天 verdict 回流后没有任何代码据它做分支</text>
+    <text x="492" y="392" fill="#92400e">FAILED → 进 L2（行 4）</text>
+    <path d="M 860 358 L 894 358" stroke="#7c3aed" stroke-width="2" marker-end="url(#av)"/>
+    <rect x="900" y="326" width="196" height="64" rx="6" fill="#f5f3ff" stroke="#7c3aed"/>
+    <text x="998" y="354" font-size="12.5" font-weight="700" fill="#5b21b6" text-anchor="middle">Fan-in Gate</text>
+    <text x="998" y="374" font-size="11.5" fill="#6d28d9" text-anchor="middle">蓝图 §9 集成门禁</text>
+
+    <!-- row 4 -->
+    <rect x="40" y="416" width="360" height="92" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="440" font-size="12.5" font-weight="700" fill="#065f46">status_contract 状态信封</text>
+    <text x="56" y="460" fill="#334155">5 状态 + 3 停机原因 + 结果摘要 SHA-256</text>
+    <text x="56" y="478" fill="#334155">receipt / acceptance verdicts 全套</text>
+    <text x="56" y="496" fill="#059669">status_contract.py · 共享夹具钉死前后端</text>
+    <path d="M 404 462 L 468 462" stroke="#d97706" stroke-width="2" marker-end="url(#am)"/>
+    <rect x="476" y="416" width="380" height="92" rx="6" fill="#fffbeb" stroke="#d97706" stroke-dasharray="6 4"/>
+    <text x="492" y="440" font-size="12.5" font-weight="700" fill="#92400e">error_class 映射 + 建议动作</text>
+    <text x="492" y="460" fill="#334155">stop_reason + 验收叶子 → LOCAL_RETRY /</text>
+    <text x="492" y="478" fill="#334155">SPLIT / INJECT_PRE —— 消费者侧映射，不新造信封</text>
+    <text x="492" y="496" fill="#92400e">＋ 全局重规划预算 ≤2（单写者）</text>
+    <path d="M 860 462 L 894 462" stroke="#7c3aed" stroke-width="2" marker-end="url(#av)"/>
+    <rect x="900" y="430" width="196" height="64" rx="6" fill="#f5f3ff" stroke="#7c3aed"/>
+    <text x="998" y="458" font-size="12.5" font-weight="700" fill="#5b21b6" text-anchor="middle">Failure Envelope</text>
+    <text x="998" y="478" font-size="11.5" fill="#6d28d9" text-anchor="middle">议题 07 · L2 自愈</text>
+
+    <!-- row 5 -->
+    <rect x="40" y="520" width="360" height="92" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="56" y="544" font-size="12.5" font-weight="700" fill="#065f46">interrupt_before/after + Command(resume)</text>
+    <text x="56" y="564" fill="#334155">Gateway API 字段（支持 ["*"]）→ agent 节点级暂停</text>
+    <text x="56" y="582" fill="#334155">resume 在 run 请求路径（services.py:1571）</text>
+    <text x="56" y="600" fill="#059669">run_models.py · worker.py:1229</text>
+    <path d="M 404 566 L 468 566" stroke="#d97706" stroke-width="2" marker-end="url(#am)"/>
+    <rect x="476" y="520" width="380" height="92" rx="6" fill="#fffbeb" stroke="#d97706" stroke-dasharray="6 4"/>
+    <text x="492" y="544" font-size="12.5" font-weight="700" fill="#92400e">gate 语义的产品级消费者</text>
+    <text x="492" y="564" fill="#334155">谁设中断点 · resume 停在哪个任务位置</text>
+    <text x="492" y="582" fill="#334155">预算耗尽 → 挂起等审批 → resume 原位续</text>
+    <text x="492" y="600" fill="#92400e">interrupt() 节点内原语仍零处（可选升级）</text>
+    <path d="M 860 566 L 894 566" stroke="#7c3aed" stroke-width="2" marker-end="url(#av)"/>
+    <rect x="900" y="534" width="196" height="64" rx="6" fill="#f5f3ff" stroke="#7c3aed"/>
+    <text x="998" y="562" font-size="12.5" font-weight="700" fill="#5b21b6" text-anchor="middle">HITL Gate</text>
+    <text x="998" y="582" font-size="11.5" fill="#6d28d9" text-anchor="middle">蓝图 §9 人机审批门禁</text>
+  </g>
+
+  <!-- red lines strip -->
+  <rect x="40" y="632" width="1056" height="118" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+  <text x="56" y="658" font-size="13.5" font-weight="700" fill="#991b1b">三条红线（违反任何一条 = 走进议题 09 陷阱，立即回退）</text>
+  <g font-size="12" fill="#7f1d1d">
+    <text x="56" y="680">① 不现场编译新图 — 元图保持两节点 + 钩子；变异图保持单 no-op 节点</text>
+    <text x="56" y="700">② 任务图只进状态不进拓扑 — task_dag 是通道数据；改图 = 状态手术（对未完成节点）</text>
+    <text x="56" y="720">③ 不全量重排 — 冻结已成功节点（reducer 终态不降级）；全局重规划预算 ≤2，耗尽熔断转 HITL</text>
+  </g>
+  <text x="56" y="742" font-size="12" fill="#991b1b">验收：01 地图对应行升级为 ✅；元图铁律（两节点 + 单节点变异图）全程不破；共享沙箱防线不拆（worktree 是唯一合规并行写路径）</text>
+</svg>

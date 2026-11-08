@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 800" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1100" height="800" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">扩展点地图 — 六个入口按侵入深度排列</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 08-orchestration-extension-points.md · 深度换能力也换部署面；task_dag 注入推荐 ③+④ 组合或 ⑥ 混合形态</text>
+
+  <!-- depth axis -->
+  <line x1="60" y1="80" x2="60" y2="640" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="46" y="360" font-size="12" font-weight="700" fill="#94a3b8" transform="rotate(-90 46 360)" text-anchor="middle">侵入深度 →（软约束 → 硬代码 → 自有运行时 → 完全外部）</text>
+
+  <g font-size="11" fill="#334155">
+    <!-- ① -->
+    <circle cx="60" cy="100" r="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+    <rect x="90" y="76" width="330" height="64" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="104" y="98" font-size="13" font-weight="700" fill="#065f46">① Prompt / Skills</text>
+    <text x="104" y="116">教 lead 按流程走（skill 流程指令、验收措辞）</text>
+    <text x="104" y="132" fill="#059669">零代码 · 纯软约束，无机器保证</text>
+
+    <!-- ② -->
+    <circle cx="60" cy="180" r="10" fill="#ecfdf5" stroke="#059669" stroke-width="2"/>
+    <rect x="90" y="156" width="330" height="64" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="104" y="178" font-size="13" font-weight="700" fill="#065f46">② Custom Agents（YAML）</text>
+    <text x="104" y="196">config.yaml custom_agents：提示/工具白名单/skills/</text>
+    <text x="104" y="212">模型/预算；解析链 built-in → custom → 托管 → 覆盖</text>
+
+    <!-- ③ -->
+    <circle cx="60" cy="268" r="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/>
+    <rect x="90" y="236" width="330" height="86" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+    <text x="104" y="260" font-size="13" font-weight="700" fill="#1e40af">③ Middleware（最核心编排注入点）</text>
+    <text x="104" y="278">LangChain AgentMiddleware 基类 · 6 个 hook 点</text>
+    <text x="104" y="296">before/after agent·model + wrap_model/tool_call 洋葱</text>
+    <text x="104" y="314">state_schema 通道贡献（进图/进 checkpoint/API 可写）</text>
+    <text x="104" y="318" fill="#ffffff"> </text>
+
+    <!-- ④ -->
+    <circle cx="60" cy="378" r="10" fill="#eef2ff" stroke="#7c3aed" stroke-width="2"/>
+    <rect x="90" y="344" width="330" height="86" rx="6" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="104" y="368" font-size="13" font-weight="700" fill="#5b21b6">④ Extension 包（带部署面）</text>
+    <text x="104" y="386">PEP 621 + install(registry, config) · plugins: 列表</text>
+    <text x="104" y="404">7 个注册面（middleware/task_lifecycle/观察者×3/</text>
+    <text x="104" y="422">service/routers）· uv 事务分发 · required 语义</text>
+
+    <!-- ⑤ -->
+    <circle cx="60" cy="488" r="10" fill="#fffbeb" stroke="#d97706" stroke-width="2"/>
+    <rect x="90" y="454" width="330" height="86" rx="6" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+    <text x="104" y="478" font-size="13" font-weight="700" fill="#92400e">⑤ SDK 直连（进程内嵌）</text>
+    <text x="104" y="496">create_deerflow_agent(subagent_runtime=SubagentRuntime)</text>
+    <text x="104" y="514">自有执行容量 + durable batch 提交器</text>
+    <text x="104" y="532">middleware 全替换或 features 组装；无 Gateway HTTP/UI</text>
+
+    <!-- ⑥ -->
+    <circle cx="60" cy="598" r="10" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+    <rect x="90" y="564" width="330" height="86" rx="6" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="104" y="588" font-size="13" font-weight="700" fill="#991b1b">⑥ 外部状态机（零侵入）</text>
+    <text x="104" y="606">Gateway API 驱动：runs + state 手术 + interrupt/resume</text>
+    <text x="104" y="624">+ multitask 策略 — 议题 03 outside-in 的 DeerFlow 形态</text>
+    <text x="104" y="642">约束 = 07 §5 陷阱清单（delta 线性化/共享沙箱…）</text>
+  </g>
+
+  <!-- right: middleware detail + decision tree -->
+  <rect x="446" y="236" width="630" height="186" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="462" y="262" font-size="13" font-weight="700" fill="#1e40af">③ 的三条插入路径与关键能力</text>
+  <g font-size="11.5" fill="#334155">
+    <text x="462" y="286">路径：extra_middleware（SDK/@Next/@Prev 锚定）· RuntimeFeatures 实例替换 · extension 贡献（MiddlewarePlacement）</text>
+    <text x="462" y="310">通道可写性：middleware 贡献的通道经 threads state API 可写（Overwrite 替换式）；</text>
+    <text x="462" y="330">回滚/压缩保留通道（测试钉死）；写未知通道静默丢弃 → 必须用线程有效 schema</text>
+    <text x="462" y="354">逃生口：jump_to（EphemeralValue 读一次即逝）· 澄清中间件永远最后（不变量）</text>
+    <text x="462" y="378" fill="#b45309">上游限制：wrap_model_call 内不支持 Command goto（langchain factory:201）</text>
+    <text x="462" y="402" fill="#2563eb">→ 这是注入 task_dag 通道的合法机制（09 §状态层）</text>
+  </g>
+
+  <rect x="446" y="440" width="630" height="210" rx="8" fill="#fafaf9" stroke="#a8a29e"/>
+  <text x="462" y="466" font-size="13" font-weight="700" fill="#0f172a">选型决策树（08 §6）</text>
+  <g font-size="11.5" fill="#334155">
+    <text x="462" y="492">只要观察（事件/用量/装配）？── 是 → ④ task_lifecycle / 观察者注册面，或 ⑥ 轮询 events</text>
+    <text x="462" y="516">要改 lead 每个 step 的行为 / 注入状态通道？── 是 → ③ middleware</text>
+    <text x="474" y="540">└ 要打包发布 + 多实例治理？→ ④ extension 包（内含 ③）</text>
+    <text x="462" y="564">只要新 worker 角色？── 是 → ② custom_agents（流程纪律配 ① skill）</text>
+    <text x="462" y="588">要自有执行容量 / 进程内嵌？── 是 → ⑤ SDK 直连</text>
+    <text x="462" y="612">不想动 DeerFlow 一行？── 是 → ⑥ 外部状态机（全部经 API）</text>
+    <text x="462" y="638" fill="#7c3aed">task_dag 注入 = ③ 通道 + ④ 交付 + ⑥ 可选混合 → 09 §交付形态</text>
+  </g>
+
+  <!-- bottom -->
+  <rect x="24" y="668" width="1052" height="108" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="550" y="694" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">④ 的七个注册面（ExtensionRegistry 协议 · extension-api/contracts.py:183）</text>
+  <g font-size="11.5" fill="#334155" text-anchor="middle">
+    <text x="180" y="722">middlewares（带 placement）</text>
+    <text x="180" y="742" fill="#7c3aed">task_dag middleware 交付通道</text>
+    <text x="380" y="722">task_lifecycle</text>
+    <text x="380" y="742" fill="#7c3aed">每子代理任务实时观察</text>
+    <text x="550" y="722">system_model / assembly /</text>
+    <text x="550" y="742">compaction 观察者 ×3</text>
+    <text x="740" y="722">service</text>
+    <text x="740" y="742" fill="#7c3aed">Gateway 生命周期后台服务</text>
+    <text x="920" y="722">routers</text>
+    <text x="920" y="742" fill="#7c3aed">挂 FastAPI 控制面 API</text>
+  </g>
+</svg>

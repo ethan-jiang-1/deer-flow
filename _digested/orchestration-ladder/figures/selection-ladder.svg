@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 560" font-family="PingFang SC, sans-serif">
+  <defs>
+    <marker id="arr3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker>
+  </defs>
+  <text x="490" y="30" text-anchor="middle" font-size="20" font-weight="700" fill="#0f172a">DeerFlow 编排升级阶梯与选择权分界（orchestration-ladder/11）</text>
+  <text x="490" y="52" text-anchor="middle" font-size="12" fill="#475569">纵轴：从直接执行向上升级；上半段属于模型的选择集，顶端两级属于宿主——模型不可自提长程与定时</text>
+
+  <!-- 左侧 ownership brackets -->
+  <rect x="40" y="96" width="20" height="252" rx="6" fill="#dcfce7"/>
+  <text x="50" y="230" text-anchor="middle" font-size="11" font-weight="700" fill="#14532d" transform="rotate(-90 50 230)">模型选择集</text>
+  <rect x="40" y="368" width="20" height="150" rx="6" fill="#f3e8ff"/>
+  <text x="50" y="443" text-anchor="middle" font-size="11" font-weight="700" fill="#6b21a8" transform="rotate(-90 50 443)">宿主决策面</text>
+
+  <!-- rung 5 top: scheduler -->
+  <rect x="90" y="368" width="560" height="58" rx="8" fill="#f3e8ff" stroke="#9333ea"/>
+  <text x="110" y="392" font-size="13" font-weight="700" fill="#581c87">scheduler（定时触发）</text>
+  <text x="110" y="410" font-size="10.5" fill="#6b21a8">无模型工具 · 纯 API/页面 · non_interactive 剥离 ask_clarification（内部认证门）</text>
+  <!-- rung 4: goal -->
+  <rect x="90" y="434" width="560" height="58" rx="8" fill="#f3e8ff" stroke="#9333ea"/>
+  <text x="110" y="458" font-size="13" font-weight="700" fill="#581c87">goal（跨 run 长目标）</text>
+  <text x="110" y="476" font-size="10.5" fill="#6b21a8">无模型工具 · client API + worker 独立评估器裁决 · 模型只收隐藏续轮消息</text>
+
+  <!-- divider -->
+  <line x1="70" y1="360" x2="940" y2="360" stroke="#9333ea" stroke-width="2" stroke-dasharray="8 5"/>
+  <text x="936" y="352" text-anchor="end" font-size="11" font-weight="700" fill="#6b21a8">选择权分界：以下模型在推理中选层 · 以上宿主设定，模型只被通知/被改环境</text>
+
+  <!-- rung 3: batch_task -->
+  <rect x="90" y="296" width="560" height="56" rx="8" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="110" y="318" font-size="13" font-weight="700" fill="#713f12">batch_task（durable 批处理）</text>
+  <text x="110" y="336" font-size="10.5" fill="#854d0e">"independent, idempotent or read-only" · Never infer batch mode from item count</text>
+  <!-- rung 2: task -->
+  <rect x="90" y="232" width="560" height="56" rx="8" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="110" y="254" font-size="13" font-weight="700" fill="#14532d">task（即时委派）</text>
+  <text x="110" y="272" font-size="10.5" fill="#166534">"Delegate only when expected benefit clearly exceeds delegation overhead" + 负面清单</text>
+  <!-- rung 1: write_todos -->
+  <rect x="90" y="168" width="560" height="56" rx="8" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="110" y="190" font-size="13" font-weight="700" fill="#0c4a6e">write_todos（上下文内计划）</text>
+  <text x="110" y="208" font-size="10.5" fill="#075985">"Only use this tool for complex tasks (3+ steps). For simple requests, just do the work directly."</text>
+  <!-- rung 0: direct -->
+  <rect x="90" y="104" width="560" height="56" rx="8" fill="#f8fafc" stroke="#94a3b8"/>
+  <text x="110" y="126" font-size="13" font-weight="700" fill="#0f172a">直接执行（默认）</text>
+  <text x="110" y="144" font-size="10.5" fill="#475569">委派是优化不是默认响应复杂度（benefit-based routing policy）</text>
+
+  <!-- 右侧注释 -->
+  <g font-size="10.5" fill="#475569">
+    <text x="676" y="130">路由语义三处对齐并被测试钉住：</text>
+    <text x="676" y="146">task docstring + lead prompt + role descriptions</text>
+    <text x="676" y="162">（test_subagent_routing_prompt 等三钉）</text>
+    <text x="676" y="196">重原语必须显式选择：</text>
+    <text x="676" y="212">"Never infer batch mode from item count</text>
+    <text x="676" y="228">and never emulate it by repeatedly calling task"</text>
+    <text x="676" y="262">结果语义独立成节：</text>
+    <text x="676" y="278">SELF-REPORTS · receipts · UNVERIFIED 语义 ·</text>
+    <text x="676" y="294">completed = execution ended, not acceptance</text>
+    <text x="676" y="400" fill="#6b21a8">空白登记（5 条）见 11 篇：goal/scheduler 的</text>
+    <text x="676" y="416" fill="#6b21a8">"建议通道"缺失、硬上限位置、拼接描述、</text>
+    <text x="676" y="432" fill="#6b21a8">snapshot 与 fork 的语义差、todos 启用耦合</text>
+  </g>
+
+  <!-- bottom axis -->
+  <line x1="90" y1="512" x2="930" y2="512" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#arr3)"/>
+  <text x="930" y="532" text-anchor="end" font-size="12" fill="#475569">升级方向（重原语显式，轻原语默认）</text>
+</svg>

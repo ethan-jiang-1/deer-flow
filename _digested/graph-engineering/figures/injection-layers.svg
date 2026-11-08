@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 840" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1120" height="840" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">task_dag 注入设计 — 分层架构 · 交付形态 · MVP 切片</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 09-task-dag-injection-design.md · 全部在现有契约内：不编译新图、图数据进状态、不全量重排、不拆沙箱防线、单写者纪律</text>
+
+  <defs>
+    <marker id="il" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto"><polygon points="0 0, 10 7, 5 7, 5 0" fill="#64748b"/></marker>
+  </defs>
+
+  <!-- left: five layers -->
+  <text x="40" y="92" font-size="14" font-weight="700" fill="#0f172a">五层架构（每层复用什么 / 新写什么）</text>
+  <g font-size="11.5" fill="#334155">
+    <rect x="40" y="106" width="520" height="96" rx="8" fill="#f5f3ff" stroke="#7c3aed" stroke-width="1.5"/>
+    <text x="56" y="130" font-size="13" font-weight="700" fill="#5b21b6">状态层 — TaskDagState 通道</text>
+    <text x="56" y="150">TypedDict 节点（id/dependencies/status/retry/error_class）· middleware state_schema 贡献</text>
+    <text x="56" y="168">reducer 照抄 merge_delegations：append · 同 id latest-wins · 终态永不降级 = 冻结规则</text>
+    <text x="56" y="186" fill="#7c3aed">自动进图/进 checkpoint/经 state API 可读写 · 回滚压缩保留（既有语义）</text>
+    <line x1="300" y1="202" x2="300" y2="216" stroke="#64748b" stroke-width="2" marker-end="url(#il)"/>
+
+    <rect x="40" y="220" width="520" height="86" rx="8" fill="#eff6ff" stroke="#2563eb" stroke-width="1.5"/>
+    <text x="56" y="244" font-size="13" font-weight="700" fill="#1e40af">决策层 — TaskDagMiddleware + dag_dispatch 工具</text>
+    <text x="56" y="264">before_model：注入 DAG 紧凑投影（只投影待决信息，不灌全图）</text>
+    <text x="56" y="282">after_model：观察结果信封 → 更新节点状态；wrap task 或专用工具派发</text>
+    <text x="56" y="300" fill="#2563eb">不新造执行引擎 — 只读就绪集、分流</text>
+    <line x1="300" y1="306" x2="300" y2="320" stroke="#64748b" stroke-width="2" marker-end="url(#il)"/>
+
+    <rect x="40" y="324" width="520" height="76" rx="8" fill="#f0fdf4" stroke="#059669" stroke-width="1.5"/>
+    <text x="56" y="348" font-size="13" font-weight="700" fill="#065f46">执行层 — 全复用现有机器</text>
+    <text x="56" y="368">durable/可并行 → batch submitter（lease/重试/幂等键全套）</text>
+    <text x="56" y="386">即时/顺序 → bound task tool · FIFO 准入 · SubagentLimit 照算</text>
+    <line x1="300" y1="400" x2="300" y2="414" stroke="#64748b" stroke-width="2" marker-end="url(#il)"/>
+
+    <rect x="40" y="418" width="520" height="96" rx="8" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+    <text x="56" y="442" font-size="13" font-weight="700" fill="#92400e">门层 — 首个真正的 Gate</text>
+    <text x="56" y="462">「就绪集空 ∧ 全 SUCCESS ∧ acceptance 通过 → 汇聚」；FAILED → 进 L2</text>
+    <text x="56" y="480">error_class 映射（消费者侧推导，不新造信封）：token/turn/loop → LOCAL_RETRY</text>
+    <text x="56" y="498">tests_failed → SPLIT · file/依赖缺失 → INJECT_PRE</text>
+    <text x="56" y="510" fill="#d97706">HITL：预算耗尽 → jump_to 挂起，或 interrupt_before + Command(resume) 原位续</text>
+    <line x1="300" y1="514" x2="300" y2="528" stroke="#64748b" stroke-width="2" marker-end="url(#il)"/>
+
+    <rect x="40" y="532" width="520" height="66" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="56" y="556" font-size="13" font-weight="700" fill="#991b1b">预算层 — L2 约束（单写者）</text>
+    <text x="56" y="576">全局重规划计数 ≤2（只由 Gate/L2 钩子写）· 每次改图前 Kahn 无环校验（失败拒绝）</text>
+    <text x="56" y="592" fill="#dc2626">同类错误连续两次 → 熔断转 HITL（议题 07 单调收敛）</text>
+  </g>
+
+  <!-- right top: delivery forms -->
+  <text x="600" y="92" font-size="14" font-weight="700" fill="#0f172a">交付形态（三选，可组合）</text>
+  <g font-size="11" fill="#334155">
+    <rect x="600" y="106" width="496" height="92" rx="8" fill="#f5f3ff" stroke="#7c3aed"/>
+    <text x="616" y="130" font-size="12.5" font-weight="700" fill="#5b21b6">A · Extension 包（推荐）</text>
+    <text x="616" y="150">middlewares（@Prev(ClarificationMiddleware) 定位）</text>
+    <text x="616" y="168">+ routers（DAG 控制面 API）+ task_lifecycle（观察者）</text>
+    <text x="616" y="186" fill="#7c3aed">多实例治理 · 发布升级 · 不动仓库</text>
+
+    <rect x="600" y="210" width="496" height="72" rx="8" fill="#eff6ff" stroke="#2563eb"/>
+    <text x="616" y="234" font-size="12.5" font-weight="700" fill="#1e40af">B · extra_middleware（SDK 原型）</text>
+    <text x="616" y="254">create_deerflow_agent(extra_middleware=[...]) 直接注入</text>
+    <text x="616" y="272" fill="#2563eb">快速验证 · 单进程嵌入</text>
+
+    <rect x="600" y="294" width="496" height="92" rx="8" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="616" y="318" font-size="12.5" font-weight="700" fill="#991b1b">C · 混合（⑥ 外部状态机）</text>
+    <text x="616" y="338">通道贡献留在 ③；DAG 维护/派发/门决策由外部编排器</text>
+    <text x="616" y="356">经 state API（Overwrite 写通道）+ runs API 驱动</text>
+    <text x="616" y="374" fill="#dc2626">议题 03 outside-in 终局形态：DeerFlow 保持纯执行器</text>
+  </g>
+
+  <!-- right bottom: MVP slices -->
+  <text x="600" y="418" font-size="14" font-weight="700" fill="#0f172a">MVP 切片（按序交付，每片独立可用）</text>
+  <g font-size="11" fill="#334155">
+    <rect x="600" y="432" width="496" height="56" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="616" y="452" font-weight="700" fill="#065f46">S1 通道 + 台账联动</text>
+    <text x="616" y="470">delegations 信封同步成 DAG 节点（只读镜像）→ 可视化 + checkpoint 审计 · 地图 #6→◐✓</text>
+    <rect x="600" y="496" width="496" height="56" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="616" y="516" font-weight="700" fill="#065f46">S2 就绪集 + 派发</text>
+    <text x="616" y="534">依赖边派发（batch 优先）；写文件节点默认否决 → 依赖拓扑生效 · #6/#7→✅</text>
+    <rect x="600" y="560" width="496" height="56" rx="6" fill="#f0fdf4" stroke="#059669"/>
+    <text x="616" y="580" font-weight="700" fill="#065f46">S3 门 + 验收消费</text>
+    <text x="616" y="598">汇聚判定 + acceptance verdict 分支（FAILED → L2）· #8→✅</text>
+    <rect x="600" y="624" width="496" height="56" rx="6" fill="#fffbeb" stroke="#d97706"/>
+    <text x="616" y="644" font-weight="700" fill="#92400e">S4 L2 切片 + 预算</text>
+    <text x="616" y="662">三原子操作 + Kahn 校验 + 预算熔断 → HITL（先 jump_to 后 interrupt/resume）· #11→◐✓</text>
+    <rect x="600" y="688" width="496" height="56" rx="6" fill="#fef2f2" stroke="#dc2626"/>
+    <text x="616" y="708" font-weight="700" fill="#991b1b">S5 worktree 隔离</text>
+    <text x="616" y="726">并行写节点的物理隔离 — 唯一动沙箱层的一片（唯一新物理需求）</text>
+  </g>
+
+  <!-- bottom: compatibility summary -->
+  <rect x="40" y="616" width="520" height="128" rx="8" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="300" y="642" font-size="12.5" font-weight="700" fill="#0f172a" text-anchor="middle">兼容矩阵摘要（09 §6 全表）</text>
+  <g font-size="11" fill="#334155">
+    <text x="56" y="666">✅ delta/full 双模式（通道经 schema 适配链；手术在 head 线性替换内）</text>
+    <text x="56" y="686">✅ 回滚/取消回滚/压缩（RollbackPoint 全量物化含通道）· 流式/台账/验收全复用</text>
+    <text x="56" y="706">✅ 审计：改图 = 通道写 → checkpoint 历史 = DAG 版本史（重规划可审计的实现）</text>
+    <text x="56" y="726" fill="#b45309">◐ 前端 DAG 视图需消费（自定义或 extension router 提供）</text>
+    <text x="56" y="746" fill="#dc2626">⚠ 共享沙箱 = 唯一硬约束：并行写节点必须 worktree（或否决）</text>
+  </g>
+
+  <text x="24" y="778" font-size="12" fill="#64748b">红线（违反任何一条 = 走进议题 09 陷阱，立即回退）：① 不现场编译新图 ② 任务图只进状态不进拓扑 ③ 不全量重排（预算≤2 熔断转 HITL）</text>
+  <text x="24" y="800" font-size="12" fill="#64748b">验收：01 地图行逐片升级；元图铁律（两节点 + 单节点变异图）全程不破；共享沙箱防线不拆。与研究层 03 注入方案的关系：方向保留，五处细节已按 04 批判性判读重构。</text>
+</svg>

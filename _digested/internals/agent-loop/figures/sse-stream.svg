@@ -1,0 +1,147 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1050 520" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowRight" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrowRightBlue" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrowRightGreen" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#22c55e"/>
+    </marker>
+    <marker id="arrowRightOrange" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+
+  <rect width="1050" height="520" rx="12" fill="url(#bg)"/>
+  <text x="525" y="34" text-anchor="middle" fill="#f1f5f9" font-size="19" font-weight="bold">前后端 SSE Stream 管线：agent.astream() → bridge → HTTP → 前端消费</text>
+
+  <!-- ============================================================ -->
+  <!-- BACKEND SIDE -->
+  <!-- ============================================================ -->
+  <rect x="15" y="52" width="620" height="450" rx="8" fill="none" stroke="#3b82f6" stroke-width="1.2"/>
+  <rect x="15" y="52" width="180" height="22" rx="8" fill="#3b82f6" opacity="0.15"/>
+  <text x="33" y="67" fill="#60a5fa" font-size="9" font-weight="bold">Backend: agent.astream() 内部</text>
+
+  <!-- agent.astream produces chunk -->
+  <rect x="40" y="84" width="200" height="36" rx="6" fill="#0f2744" stroke="#3b82f6" stroke-width="1" filter="url(#shadow)"/>
+  <text x="140" y="108" text-anchor="middle" fill="#60a5fa" font-size="10" font-weight="bold">agent.astream()</text>
+  <text x="140" y="130" text-anchor="middle" fill="#94a3b8" font-size="7">stream_mode=["values","messages"]</text>
+  <text x="145" y="146" text-anchor="middle" fill="#94a3b8" font-size="6">每圈产 chunk</text>
+
+  <!-- Chunk types -->
+  <rect x="270" y="84" width="345" height="80" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+
+  <!-- values chunk -->
+  <rect x="285" y="94" width="155" height="28" rx="3" fill="#2a0010" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="362" y="113" text-anchor="middle" fill="#fca5a5" font-size="8" font-weight="bold">values 模式</text>
+  <text x="285" y="137" fill="#94a3b8" font-size="6">→ 全量 State 快照</text>
+  <text x="285" y="151" fill="#94a3b8" font-size="6">→ title, messages, artifacts, todos</text>
+
+  <!-- messages chunk -->
+  <rect x="450" y="94" width="155" height="28" rx="3" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.5"/>
+  <text x="527" y="113" text-anchor="middle" fill="#4ade80" font-size="8" font-weight="bold">messages 模式</text>
+  <text x="450" y="137" fill="#94a3b8" font-size="6">→ AIMessageChunk (增量 delta)</text>
+  <text x="450" y="151" fill="#94a3b8" font-size="6">→ 按 message.id 拼接</text>
+
+  <!-- Serialize step -->
+  <rect x="40" y="184" width="575" height="30" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="327" y="204" text-anchor="middle" fill="#cbd5e1" font-size="8">serialize(chunk, mode=...)  →  转为 JSON-safe dict  →  bridge.publish(run_id, sse_event_name, data)</text>
+
+  <!-- SSE event mapping -->
+  <rect x="40" y="226" width="575" height="130" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+
+  <text x="60" y="246" fill="#cbd5e1" font-size="9" font-weight="bold">SSE event name = LangGraph stream_mode（1:1 映射）</text>
+
+  <rect x="60" y="256" width="245" height="42" rx="4" fill="#3b82f6" opacity="0.08" stroke="#3b82f6" stroke-width="0.6"/>
+  <text x="75" y="272" fill="#60a5fa" font-size="7" font-weight="bold">event: "metadata"</text>
+  <text x="75" y="286" fill="#94a3b8" font-size="6">run_id + thread_id → 前端建立 stream 关联</text>
+  <text x="75" y="296" fill="#94a3b8" font-size="6">每个 run 仅发一次，在 astream 开始前</text>
+
+  <rect x="315" y="256" width="140" height="42" rx="4" fill="#ef4444" opacity="0.08" stroke="#ef4444" stroke-width="0.6"/>
+  <text x="330" y="272" fill="#fca5a5" font-size="7" font-weight="bold">event: "values"</text>
+  <text x="330" y="286" fill="#94a3b8" font-size="6">全量状态快照</text>
+  <text x="330" y="296" fill="#94a3b8" font-size="6">替换前端 state</text>
+
+  <rect x="465" y="256" width="140" height="42" rx="4" fill="#22c55e" opacity="0.08" stroke="#22c55e" stroke-width="0.6"/>
+  <text x="480" y="272" fill="#4ade80" font-size="7" font-weight="bold">event: "messages"</text>
+  <text x="480" y="286" fill="#94a3b8" font-size="6">增量文本 delta</text>
+  <text x="480" y="296" fill="#94a3b8" font-size="6">按 id 拼接成完整 AI 消息</text>
+
+  <rect x="60" y="306" width="245" height="42" rx="4" fill="#1e293b" stroke="#475569" stroke-width="0.5"/>
+  <text x="75" y="322" fill="#94a3b8" font-size="7" font-weight="bold">event: "updates" / "custom" / ...</text>
+  <text x="75" y="336" fill="#94a3b8" font-size="6">其他 stream_mode 按 1:1 产生对应 SSE event</text>
+  <text x="75" y="346" fill="#94a3b8" font-size="6">"messages-tuple" 请求 → 内部转为 "messages" mode</text>
+
+  <rect x="315" y="306" width="290" height="42" rx="4" fill="#ef4444" opacity="0.06" stroke="#ef4444" stroke-width="0.6"/>
+  <text x="330" y="322" fill="#fca5a5" font-size="7" font-weight="bold">event: "end"</text>
+  <text x="330" y="336" fill="#94a3b8" font-size="6">stream 结束信号 · 携带累计 token 用量</text>
+  <text x="330" y="346" fill="#94a3b8" font-size="6">bridge.publish_end(run_id)</text>
+
+  <!-- Exception path -->
+  <rect x="60" y="366" width="555" height="28" rx="4" fill="#2a0010" stroke="#ef4444" stroke-width="0.8" stroke-dasharray="3,2"/>
+  <text x="80" y="385" fill="#fca5a5" font-size="7">异常: bridge.publish(run_id, "error", {"message": .., "name": ..})  →  always followed by "end" event (finally block)</text>
+
+  <!-- ============================================================ -->
+  <!-- NETWORK -->
+  <!-- ============================================================ -->
+  <text x="650" y="130" fill="#94a3b8" font-size="12" font-weight="bold">SSE</text>
+  <text x="650" y="148" fill="#64748b" font-size="8">EventSource /</text>
+  <text x="650" y="162" fill="#64748b" font-size="8">fetch with</text>
+  <text x="650" y="176" fill="#64748b" font-size="8">stream reader</text>
+  <line x1="640" y1="140" x2="680" y2="140" stroke="#3b82f6" stroke-width="1.2" marker-end="url(#arrowRightBlue)"/>
+  <line x1="680" y1="180" x2="720" y2="180" stroke="#3b82f6" stroke-width="1.2" marker-end="url(#arrowRightBlue)"/>
+
+  <!-- ============================================================ -->
+  <!-- FRONTEND SIDE -->
+  <!-- ============================================================ -->
+  <rect x="735" y="52" width="300" height="450" rx="8" fill="none" stroke="#22c55e" stroke-width="1.2"/>
+  <rect x="735" y="52" width="260" height="22" rx="8" fill="#22c55e" opacity="0.1"/>
+  <text x="755" y="67" fill="#4ade80" font-size="9" font-weight="bold">Frontend: React Hooks 消费</text>
+
+  <!-- useStream hook -->
+  <rect x="755" y="84" width="260" height="80" rx="6" fill="#0a1a0a" stroke="#22c55e" stroke-width="0.8" filter="url(#shadow)"/>
+  <text x="885" y="104" text-anchor="middle" fill="#4ade80" font-size="10" font-weight="bold">useStream() hook</text>
+  <text x="885" y="122" text-anchor="middle" fill="#94a3b8" font-size="7">@langchain/langgraph-sdk</text>
+  <text x="885" y="138" text-anchor="middle" fill="#94a3b8" font-size="7">client.runs.stream(thread_id,</text>
+  <text x="885" y="154" text-anchor="middle" fill="#94a3b8" font-size="7">  stream_mode=["values","messages-tuple"])</text>
+
+  <!-- Dispatch per event name -->
+  <rect x="755" y="178" width="260" height="130" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+
+  <rect x="770" y="190" width="230" height="24" rx="3" fill="#ef4444" opacity="0.08" stroke="#ef4444" stroke-width="0.5"/>
+  <text x="785" y="207" fill="#fca5a5" font-size="7">event "metadata" → 存 run_id / thread_id</text>
+
+  <rect x="770" y="220" width="230" height="24" rx="3" fill="#3b82f6" opacity="0.08" stroke="#3b82f6" stroke-width="0.5"/>
+  <text x="785" y="237" fill="#60a5fa" font-size="7">event "values" → 全量替换 React state</text>
+  <text x="785" y="251" fill="#94a3b8" font-size="6">（AI 文本走 messages 模式，values 不再重复合成）</text>
+
+  <rect x="770" y="264" width="230" height="24" rx="3" fill="#22c55e" opacity="0.08" stroke="#22c55e" stroke-width="0.5"/>
+  <text x="785" y="281" fill="#4ade80" font-size="7">event "messages" → 增量 delta</text>
+  <text x="785" y="295" fill="#94a3b8" font-size="6">按 message.id 拼回完整文本 → 逐字渲染</text>
+
+  <!-- Message dedup -->
+  <rect x="755" y="322" width="260" height="50" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="775" y="340" fill="#94a3b8" font-size="7" font-weight="bold">消息去重 + loop_warning 识别</text>
+  <text x="775" y="354" fill="#94a3b8" font-size="6">messages/utils.ts: 按 message.id 去重</text>
+  <text x="775" y="366" fill="#94a3b8" font-size="6">loop_warning 特殊处理 → UI 显示警告横幅</text>
+
+  <!-- Cleanup on end -->
+  <rect x="755" y="384" width="260" height="36" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="775" y="400" fill="#fca5a5" font-size="7">event "end" → 清理 stream 状态</text>
+  <text x="775" y="414" fill="#94a3b8" font-size="6">累计 token 用量 → 显示在 UI</text>
+
+  <!-- ============================================================ -->
+  <!-- BOTTOM: Design principle -->
+  <!-- ============================================================ -->
+  <rect x="15" y="514" width="1020" height="36" rx="6" fill="#1e293b" stroke="#475569" stroke-width="0.6"/>
+  <text x="525" y="537" text-anchor="middle" fill="#94a3b8" font-size="8">核心原则：SSE event name 与 LangGraph stream_mode 是 1:1 映射 · 没有任何中间转换层 · 前端按 event name dispatch 到不同的 state reducer</text>
+</svg>

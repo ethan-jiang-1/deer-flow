@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 750" font-family="system-ui, -apple-system, sans-serif">
+  <rect width="1060" height="750" fill="#ffffff"/>
+
+  <text x="24" y="34" font-size="20" font-weight="700" fill="#0f172a">四处「部分支持」— 各撑到哪儿，边界外是什么</text>
+  <text x="24" y="56" font-size="12" fill="#64748b">对应 02-partial-boundaries.md v2 · 左侧 = 已有的机器（绿），红色边界墙 = 支撑停止处，右侧（虚线）= 缺的下一步</text>
+
+  <!-- Lane template: title bar / left box / wall / right dashed box -->
+
+  <!-- Lane 1 -->
+  <rect x="24" y="76" width="1012" height="26" rx="5" fill="#eef2ff"/>
+  <text x="36" y="94" font-size="13" font-weight="700" fill="#3730a3">任务分解（地图 #6）— 撑到「模型自觉」为止</text>
+  <rect x="24" y="108" width="430" height="96" rx="6" fill="#f0fdf4" stroke="#059669"/>
+  <text x="36" y="128" font-size="12" font-weight="700" fill="#065f46">撑到哪儿</text>
+  <text x="36" y="146" font-size="11.5" fill="#334155">涌现式 task 调用流 · 路由硬否决（输出依赖/状态重叠 → 禁并行）</text>
+  <text x="36" y="162" font-size="11.5" fill="#334155">有依赖的顺序链并入单个子代理 · 台账终态不降级</text>
+  <text x="36" y="178" font-size="11.5" fill="#334155">政策三处文案对齐 + 回归测试钉死</text>
+  <text x="36" y="194" font-size="11.5" fill="#059669">依赖管理真实形态 = prompt 政策，不是数据结构</text>
+  <rect x="464" y="108" width="10" height="96" fill="#dc2626"/>
+  <text x="469" y="160" font-size="11" font-weight="700" fill="#dc2626" text-anchor="middle" transform="rotate(-90 469 160)">边界</text>
+  <rect x="486" y="108" width="550" height="96" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+  <text x="498" y="128" font-size="12" font-weight="700" fill="#475569">缺的下一步</text>
+  <text x="498" y="146" font-size="11.5" fill="#334155">task_dag 状态通道 · 依赖边 · 静态校验（环检测）</text>
+  <text x="498" y="162" font-size="11.5" fill="#334155">越界表现：模型忽略政策并行派发有依赖的任务，系统层面无物可拦</text>
+  <text x="498" y="178" font-size="11.5" fill="#334155">没有静态校验器能拦住环状依赖 — 因为根本没有边</text>
+
+  <!-- Lane 2 -->
+  <rect x="24" y="218" width="1012" height="26" rx="5" fill="#eef2ff"/>
+  <text x="36" y="236" font-size="13" font-weight="700" fill="#3730a3">Fan-out 并发（地图 #7）— 撑到「工具层」为止</text>
+  <rect x="24" y="250" width="430" height="96" rx="6" fill="#f0fdf4" stroke="#059669"/>
+  <text x="36" y="270" font-size="12" font-weight="700" fill="#065f46">撑到哪儿</text>
+  <text x="36" y="288" font-size="11.5" fill="#334155">后台执行 + registry · FIFO 准入（3）· durable batch</text>
+  <text x="36" y="304" font-size="11.5" fill="#334155">lease / 重试预算 / 取消栅栏全套（05 §7）</text>
+  <text x="36" y="320" font-size="11.5" fill="#334155">共享线程沙箱（#5128）· AIO 每子代理独立 shell</text>
+  <text x="36" y="336" font-size="11.5" fill="#059669">隔离单位 = thread，写冲突防线 = 路由否决</text>
+  <rect x="464" y="250" width="10" height="96" fill="#dc2626"/>
+  <text x="469" y="302" font-size="11" font-weight="700" fill="#dc2626" text-anchor="middle" transform="rotate(-90 469 302)">边界</text>
+  <rect x="486" y="250" width="550" height="96" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+  <text x="498" y="270" font-size="12" font-weight="700" fill="#475569">缺的下一步</text>
+  <text x="498" y="288" font-size="11.5" fill="#334155">拓扑派发（就绪集）· Fan-in Gate · per-node worktree</text>
+  <text x="498" y="304" font-size="11.5" fill="#334155">越界表现：acceptance_verdict 回流后没有任何代码据它做分支</text>
+  <text x="498" y="320" font-size="11.5" fill="#334155">汇聚没有 Fan-in 节点 — 合并靠 lead 读 ToolMessage 自己综合</text>
+
+  <!-- Lane 3 -->
+  <rect x="24" y="360" width="1012" height="26" rx="5" fill="#eef2ff"/>
+  <text x="36" y="378" font-size="13" font-weight="700" fill="#3730a3">Session 外状态机（地图 #9）— 撑到「run 生命周期」为止</text>
+  <rect x="24" y="392" width="430" height="96" rx="6" fill="#f0fdf4" stroke="#059669"/>
+  <text x="36" y="412" font-size="12" font-weight="700" fill="#065f46">撑到哪儿</text>
+  <text x="36" y="430" font-size="11.5" fill="#334155">run 事务：RollbackPoint 捕获 → 取消回滚 / 编辑重放恢复</text>
+  <text x="36" y="446" font-size="11.5" fill="#334155">delta 禁 fork → worker 线性化续跑（#4458）</text>
+  <text x="36" y="462" font-size="11.5" fill="#334155">scheduler / MCP / batch durable（lease fencing + 恢复）</text>
+  <text x="36" y="478" font-size="11.5" fill="#059669">run 是真正的事务单元：提交或整体回滚</text>
+  <rect x="464" y="392" width="10" height="96" fill="#dc2626"/>
+  <text x="469" y="444" font-size="11" font-weight="700" fill="#dc2626" text-anchor="middle" transform="rotate(-90 469 444)">边界</text>
+  <rect x="486" y="392" width="550" height="96" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+  <text x="498" y="412" font-size="12" font-weight="700" fill="#475569">缺的下一步</text>
+  <text x="498" y="430" font-size="11.5" fill="#334155">任务图执行位的持久化（哪些完成 / 冻结 / 待重试）</text>
+  <text x="498" y="446" font-size="11.5" fill="#334155">越界表现：恢复一个 run = 恢复一段对话，不等于恢复执行位</text>
+  <text x="498" y="462" font-size="11.5" fill="#334155">— 那些状态不存在，因为 task_dag 不存在</text>
+
+  <!-- Lane 4 -->
+  <rect x="24" y="502" width="1012" height="26" rx="5" fill="#eef2ff"/>
+  <text x="36" y="520" font-size="13" font-weight="700" fill="#3730a3">HITL 门禁（地图 #10）— 原语撑满，产品语义为零</text>
+  <rect x="24" y="534" width="430" height="96" rx="6" fill="#f0fdf4" stroke="#059669"/>
+  <text x="36" y="554" font-size="12" font-weight="700" fill="#065f46">撑到哪儿</text>
+  <text x="36" y="572" font-size="11.5" fill="#334155">interrupt_before/after = Gateway 字段（支持 ["*"] 全节点）</text>
+  <text x="36" y="588" font-size="11.5" fill="#334155">Command(resume=) 已在 run 请求路径（services.py:1571）</text>
+  <text x="36" y="604" font-size="11.5" fill="#334155">产品级：ask_clarification → Command(goto=END) + artifact</text>
+  <text x="36" y="620" font-size="11.5" fill="#059669">LangGraph Platform 式 HITL 原语对端到端可达</text>
+  <rect x="464" y="534" width="10" height="96" fill="#dc2626"/>
+  <text x="469" y="586" font-size="11" font-weight="700" fill="#dc2626" text-anchor="middle" transform="rotate(-90 469 586)">边界</text>
+  <rect x="486" y="534" width="550" height="96" rx="6" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="6 4"/>
+  <text x="498" y="554" font-size="12" font-weight="700" fill="#475569">缺的下一步</text>
+  <text x="498" y="572" font-size="11.5" fill="#334155">gate 语义的消费者：谁设中断点、resume 停在哪个任务位置</text>
+  <text x="498" y="588" font-size="11.5" fill="#334155">越界表现：resume 重新进入 model↔tools 循环，不是任务位置</text>
+  <text x="498" y="604" font-size="11.5" fill="#334155">interrupt() 函数原语（节点内动态中断）零处使用</text>
+
+  <!-- footer -->
+  <rect x="24" y="648" width="1012" height="76" rx="6" fill="#f1f5f9" stroke="#94a3b8"/>
+  <text x="40" y="674" font-size="13" font-weight="700" fill="#0f172a">共同边界：一切动态都撑到「模型自觉」为止</text>
+  <text x="40" y="694" font-size="12" fill="#334155">依赖正确性取决于 prompt 政策的遵守，没有机器校验；重规划发生在对话里，不可审计、无预算、无熔断结构。</text>
+  <text x="40" y="712" font-size="12" fill="#334155">但每个「缺的下一步」都有比预期更近的现有资产 — 见 04-extension-path.md 的资产桥图。</text>
+</svg>

@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 780" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1100" height="780" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1100" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">阻断能力对比：当 Hook/Middleware 说 "不" —— 三种级别，两套机制</text>
+
+  <!-- Column headers -->
+  <rect x="60" y="62" width="480" height="30" rx="6" fill="#1a1a2e"/>
+  <text x="300" y="82" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">Claude Code Hooks</text>
+
+  <rect x="560" y="62" width="480" height="30" rx="6" fill="#1a1a2e"/>
+  <text x="800" y="82" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">DeerFlow Middleware</text>
+
+  <!-- ===== ROW 1: SOFT BLOCK (tool 级) ===== -->
+  <rect x="60" y="100" width="980" height="165" rx="8" fill="#fff8e1" stroke="#ffb300" stroke-width="1.5"/>
+  <rect x="60" y="100" width="220" height="28" rx="8" fill="#ff8f00"/>
+  <rect x="60" y="114" width="220" height="14" fill="#ff8f00"/>
+  <text x="170" y="119" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Level 1: Soft Block（tool 级）</text>
+  <text x="300" y="119" font-size="10" fill="#e65100">阻止单个 tool，agent 循环继续，model 自行找替代方案</text>
+
+  <!-- Left: Claude Code -->
+  <rect x="80" y="138" width="440" height="118" rx="5" fill="#fff" stroke="#ffe082" stroke-width="0.5"/>
+
+  <rect x="92" y="148" width="416" height="22" rx="3" fill="#fff3e0"/>
+  <text x="300" y="164" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">permissionDecision: "deny"  /  exit code 2</text>
+
+  <text x="100" y="190" font-size="9.5" fill="#555">触发点: PreToolUse (tool 执行前)</text>
+  <text x="100" y="208" font-size="9.5" fill="#555">返回: JSON {permissionDecision: "deny", reason: "..."} 或 exit 2 + stderr</text>
+  <text x="100" y="226" font-size="9.5" fill="#555">效果: tool 不执行 → model 看到拒绝理由 → model 自行找替代方案</text>
+  <text x="100" y="244" font-size="9" fill="#c62828">⚠ 已知 bug: exit code 2 在 Opus 4.6 下可能导致 model 完全停止 (issue #24327)</text>
+
+  <!-- Divider -->
+  <line x1="530" y1="138" x2="530" y2="256" stroke="#ddd" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Right: DeerFlow -->
+  <rect x="580" y="138" width="440" height="118" rx="5" fill="#fff" stroke="#ffe082" stroke-width="0.5"/>
+
+  <rect x="592" y="148" width="416" height="22" rx="3" fill="#fff3e0"/>
+  <text x="800" y="164" text-anchor="middle" font-size="9.5" font-weight="700" fill="#e65100">返回 error ToolMessage(status="error")</text>
+
+  <text x="600" y="190" font-size="9.5" fill="#555">触发点: wrap_tool_call (不调 handler, 直接返回 ToolMessage)</text>
+  <text x="600" y="208" font-size="9.5" fill="#555">使用者: GuardrailMiddleware · SandboxAuditMiddleware · ToolErrorHandlingMiddleware</text>
+  <text x="600" y="226" font-size="9.5" fill="#555">效果: tool 不执行 → ToolMessage 附加到 state → model 看到错误 → 自行找替代方案</text>
+  <text x="600" y="244" font-size="9" fill="#2e7d32">✓ 可靠——ToolMessage 是 LangGraph 的标准消息类型，无意外行为</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="265" x2="550" y2="290" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== ROW 2: HARD STOP (agent 级) ===== -->
+  <rect x="60" y="294" width="980" height="165" rx="8" fill="#ffebee" stroke="#e53935" stroke-width="1.5"/>
+  <rect x="60" y="294" width="220" height="28" rx="8" fill="#c62828"/>
+  <rect x="60" y="308" width="220" height="14" fill="#c62828"/>
+  <text x="170" y="313" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Level 2: Hard Stop（agent 级）</text>
+  <text x="300" y="313" font-size="10" fill="#b71c1c">强制终止 agent graph，不再循环，caller 收到最终状态</text>
+
+  <!-- Left: Claude Code -->
+  <rect x="80" y="332" width="440" height="118" rx="5" fill="#fff" stroke="#ffcdd2" stroke-width="0.5"/>
+
+  <rect x="92" y="342" width="416" height="22" rx="3" fill="#ffcdd2"/>
+  <text x="300" y="358" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">decision: "block" on Stop event（反义词：阻止结束）</text>
+
+  <text x="100" y="384" font-size="9.5" fill="#555">触发点: Stop (Claude 准备结束回复时)</text>
+  <text x="100" y="402" font-size="9.5" fill="#555">返回: JSON {decision: "block", reason: "Task incomplete"}</text>
+  <text x="100" y="420" font-size="9.5" fill="#555">效果: Claude 被迫继续工作，不能结束 turn</text>
+  <text x="100" y="438" font-size="9" fill="#888">没有 "强制终止" 的语义 — 只有 "强制继续"（方向相反）。无法在 tool 层面终止整个 agent。</text>
+
+  <!-- Divider -->
+  <line x1="530" y1="332" x2="530" y2="450" stroke="#ddd" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Right: DeerFlow -->
+  <rect x="580" y="332" width="440" height="118" rx="5" fill="#fff" stroke="#ffcdd2" stroke-width="0.5"/>
+
+  <rect x="592" y="342" width="416" height="22" rx="3" fill="#ffcdd2"/>
+  <text x="800" y="358" text-anchor="middle" font-size="9.5" font-weight="700" fill="#c62828">机制 A: Command(goto=END)  /  机制 B: 清除 tool_calls</text>
+
+  <text x="600" y="384" font-size="9.5" fill="#555">A: wrap_tool_call 返回 Command(update={...}, goto=END) → graph 立即终止</text>
+  <text x="600" y="400" font-size="9.5" fill="#555">   使用者: ClarificationMiddleware（用户需回复后才 resume）</text>
+  <text x="600" y="418" font-size="9.5" fill="#555">B: after_model 返回 {"messages": [AIMessage(tool_calls=[])]} → should_continue→END</text>
+  <text x="600" y="434" font-size="9.5" fill="#555">   使用者: LoopDetectionMiddleware hard-stop · LLMErrorHandlingMiddleware 熔断</text>
+  <text x="600" y="450" font-size="9" fill="#2e7d32">✓ 两种机制都可靠：A 是 LangGraph 显式 API，B 利用了 should_continue 路由逻辑</text>
+
+  <!-- Arrow down -->
+  <line x1="550" y1="459" x2="550" y2="484" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== ROW 3: HUMAN PAUSE ===== -->
+  <rect x="60" y="488" width="980" height="165" rx="8" fill="#e3f2fd" stroke="#1e88e5" stroke-width="1.5"/>
+  <rect x="60" y="488" width="240" height="28" rx="8" fill="#1565c0"/>
+  <rect x="60" y="502" width="240" height="14" fill="#1565c0"/>
+  <text x="180" y="507" text-anchor="middle" fill="#fff" font-size="11" font-weight="700">Level 3: Human Pause（人机交互）</text>
+  <text x="320" y="507" font-size="10" fill="#0d47a1">暂停 agent，等待人来决策或回复，然后继续</text>
+
+  <!-- Left: Claude Code -->
+  <rect x="80" y="526" width="440" height="118" rx="5" fill="#fff" stroke="#bbdefb" stroke-width="0.5"/>
+
+  <rect x="92" y="536" width="416" height="22" rx="3" fill="#bbdefb"/>
+  <text x="300" y="552" text-anchor="middle" font-size="9.5" font-weight="700" fill="#0d47a1">permissionDecision: "ask"</text>
+
+  <text x="100" y="578" font-size="9.5" fill="#555">触发点: PreToolUse (tool 执行前)</text>
+  <text x="100" y="596" font-size="9.5" fill="#555">返回: JSON {permissionDecision: "ask", reason: "这是敏感操作"}</text>
+  <text x="100" y="614" font-size="9.5" fill="#555">效果: tool 暂停 → 弹出用户权限对话框 → 人点 allow/deny → tool 执行或拒绝</text>
+  <text x="100" y="632" font-size="9" fill="#2e7d32">✓ 独特的交互模式——把决策权交给人，不是 model，不是规则。DeerFlow 无等价物。</text>
+
+  <!-- Divider -->
+  <line x1="530" y1="526" x2="530" y2="644" stroke="#ddd" stroke-width="1" stroke-dasharray="4,3"/>
+
+  <!-- Right: DeerFlow -->
+  <rect x="580" y="526" width="440" height="118" rx="5" fill="#fff" stroke="#bbdefb" stroke-width="0.5"/>
+
+  <rect x="592" y="536" width="416" height="22" rx="3" fill="#bbdefb"/>
+  <text x="800" y="552" text-anchor="middle" font-size="9.5" font-weight="700" fill="#0d47a1">Command(goto=END) + 用户回复后 resume</text>
+
+  <text x="600" y="578" font-size="9.5" fill="#555">触发点: wrap_tool_call (ClarificationMiddleware)</text>
+  <text x="600" y="596" font-size="9.5" fill="#555">返回: Command(update={messages: [clarification_question]}, goto=END)</text>
+  <text x="600" y="614" font-size="9.5" fill="#555">效果: graph 终止 → 用户看到问题 → 用户回复 → 新 invocation 从合并后的 state resume</text>
+  <text x="600" y="632" font-size="9" fill="#e65100">⚠ 不是 "ask" 那种弹出框——是 "agent 问问题, 人等回答, agent 继续" 的对话模式</text>
+
+  <!-- ===== Bottom: Key Difference Summary ===== -->
+  <rect x="60" y="670" width="980" height="90" rx="8" fill="#f5f5f5" stroke="#ddd" stroke-width="1"/>
+  <text x="550" y="694" text-anchor="middle" font-size="11" font-weight="700" fill="#1a1a2e">核心差异：谁来决定 "不" 之后怎么办？</text>
+
+  <rect x="80" y="708" width="300" height="40" rx="5" fill="#fff8e1" stroke="#ffb300" stroke-width="0.5"/>
+  <text x="230" y="724" text-anchor="middle" font-size="9.5" fill="#e65100">Soft Block: 两者都是 model 自己决定替代方案</text>
+  <text x="230" y="740" text-anchor="middle" font-size="9" fill="#555">deny → model 读错误 → 换个方法</text>
+
+  <rect x="400" y="708" width="300" height="40" rx="5" fill="#ffebee" stroke="#e53935" stroke-width="0.5"/>
+  <text x="550" y="724" text-anchor="middle" font-size="9.5" fill="#c62828">Hard Stop: DeerFlow 有框架级强制终止, Claude Code 没有</text>
+  <text x="550" y="740" text-anchor="middle" font-size="9" fill="#555">Command(goto=END) 比 exit code 2 更可靠</text>
+
+  <rect x="720" y="708" width="300" height="40" rx="5" fill="#e3f2fd" stroke="#1e88e5" stroke-width="0.5"/>
+  <text x="870" y="724" text-anchor="middle" font-size="9.5" fill="#0d47a1">Human Pause: Claude Code 有 ask 对话框, DeerFlow 用对话模式</text>
+  <text x="870" y="740" text-anchor="middle" font-size="9" fill="#555">一个是权限决策, 一个是澄清问题</text>
+
+</svg>

@@ -1,0 +1,287 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 960" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow-in" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <filter id="glow">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#f59e0b" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="960" rx="12" fill="url(#bg)"/>
+
+  <text x="600" y="34" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="bold">Agent Runtime 分层架构 — 中心引擎 · 层层外扩</text>
+
+  <!-- ============================================================ -->
+  <!-- LEFT HALF: Concentric Ring Diagram (center 360, 320) -->
+  <!-- ============================================================ -->
+
+  <!-- Ring 4 (outermost): External Access — r=260 stroke -->
+  <circle cx="360" cy="340" r="260" fill="none" stroke="#22c55e" stroke-width="38" opacity="0.25"/>
+  <circle cx="360" cy="340" r="260" fill="none" stroke="#22c55e" stroke-width="2"/>
+  <circle cx="360" cy="340" r="241" fill="none" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,6"/>
+
+  <!-- Ring 3: Gateway — r=210 stroke -->
+  <circle cx="360" cy="340" r="210" fill="none" stroke="#8b5cf6" stroke-width="38" opacity="0.25"/>
+  <circle cx="360" cy="340" r="210" fill="none" stroke="#8b5cf6" stroke-width="2"/>
+  <circle cx="360" cy="340" r="191" fill="none" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="4,6"/>
+
+  <!-- Ring 2: Harness — r=160 stroke -->
+  <circle cx="360" cy="340" r="160" fill="none" stroke="#3b82f6" stroke-width="38" opacity="0.3"/>
+  <circle cx="360" cy="340" r="160" fill="none" stroke="#3b82f6" stroke-width="2"/>
+  <circle cx="360" cy="340" r="141" fill="none" stroke="#3b82f6" stroke-width="1" stroke-dasharray="4,6"/>
+
+  <!-- Ring 1: Core Services — r=110 stroke -->
+  <circle cx="360" cy="340" r="110" fill="none" stroke="#f59e0b" stroke-width="38" opacity="0.3"/>
+  <circle cx="360" cy="340" r="110" fill="none" stroke="#f59e0b" stroke-width="2"/>
+  <circle cx="360" cy="340" r="91" fill="none" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,6"/>
+
+  <!-- Center: Agent Loop — r=55 -->
+  <circle cx="360" cy="340" r="55" fill="#1a0f00" stroke="#d97706" stroke-width="3" filter="url(#glow)"/>
+  <text x="360" y="333" text-anchor="middle" fill="#fbbf24" font-size="14" font-weight="bold">Agent</text>
+  <text x="360" y="352" text-anchor="middle" fill="#f59e0b" font-size="12" font-weight="bold">Loop</text>
+
+  <!-- Ring Labels -->
+  <text x="360" y="72" text-anchor="middle" fill="#4ade80" font-size="13" font-weight="bold">External Access</text>
+  <text x="360" y="122" text-anchor="middle" fill="#c4b5fd" font-size="13" font-weight="bold">app.gateway</text>
+  <text x="360" y="172" text-anchor="middle" fill="#60a5fa" font-size="13" font-weight="bold">deerflow.harness</text>
+  <text x="360" y="222" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="bold">Core Services</text>
+
+  <!-- Items in each ring (placed around the ring mid-radius) -->
+  <!-- Ring 4 items (radius ~260) -->
+  <circle cx="120" cy="340" r="14" fill="#0a2e0a" stroke="#22c55e" stroke-width="1"/>
+  <text x="120" y="344" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="bold">HTTP</text>
+
+  <circle cx="260" cy="110" r="14" fill="#0a2e0a" stroke="#22c55e" stroke-width="1"/>
+  <text x="260" y="114" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="bold">SSE</text>
+
+  <circle cx="550" cy="200" r="14" fill="#0a2e0a" stroke="#22c55e" stroke-width="1"/>
+  <text x="550" y="204" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="bold">SDK</text>
+
+  <circle cx="600" cy="380" r="14" fill="#0a2e0a" stroke="#22c55e" stroke-width="1"/>
+  <text x="600" y="384" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="bold">IM</text>
+
+  <circle cx="460" cy="570" r="14" fill="#0a2e0a" stroke="#22c55e" stroke-width="1"/>
+  <text x="460" y="574" text-anchor="middle" fill="#4ade80" font-size="9" font-weight="bold">FE</text>
+
+  <!-- Ring 3 items (radius ~210) -->
+  <rect x="170" y="160" width="100" height="22" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="220" y="175" text-anchor="middle" fill="#c4b5fd" font-size="9">FastAPI Routers</text>
+
+  <rect x="400" y="160" width="90" height="22" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="445" y="175" text-anchor="middle" fill="#c4b5fd" font-size="9">Auth · CSRF</text>
+
+  <rect x="430" y="440" width="100" height="22" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="480" y="455" text-anchor="middle" fill="#c4b5fd" font-size="9">IM Channels ×7</text>
+
+  <rect x="130" y="440" width="90" height="22" rx="5" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="175" y="455" text-anchor="middle" fill="#c4b5fd" font-size="9">Config · Deps</text>
+
+  <!-- Ring 2 items (radius ~160) -->
+  <rect x="210" y="210" width="100" height="22" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="260" y="225" text-anchor="middle" fill="#60a5fa" font-size="9">RunManager</text>
+
+  <rect x="370" y="210" width="110" height="22" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="425" y="225" text-anchor="middle" fill="#60a5fa" font-size="9">make_lead_agent</text>
+
+  <rect x="400" y="400" width="110" height="22" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="455" y="415" text-anchor="middle" fill="#60a5fa" font-size="9">StreamBridge</text>
+
+  <rect x="200" y="400" width="110" height="22" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="255" y="415" text-anchor="middle" fill="#60a5fa" font-size="9">Model Factory</text>
+
+  <rect x="300" y="500" width="120" height="22" rx="5" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="360" y="515" text-anchor="middle" fill="#60a5fa" font-size="9">Tracing · Guardrails</text>
+
+  <!-- Ring 1 items (radius ~110) -->
+  <circle cx="280" cy="260" r="14" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="280" y="264" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">SB</text>
+
+  <circle cx="380" cy="260" r="14" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="380" y="264" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">TL</text>
+
+  <circle cx="450" cy="300" r="14" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="450" y="304" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">Sub</text>
+
+  <circle cx="440" cy="380" r="14" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="440" y="384" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">Mem</text>
+
+  <circle cx="370" cy="430" r="14" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="370" y="434" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">Sk</text>
+
+  <circle cx="280" cy="420" r="14" fill="#2a1a00" stroke="#f59e0b" stroke-width="1"/>
+  <text x="280" y="424" text-anchor="middle" fill="#fbbf24" font-size="9" font-weight="bold">Ck</text>
+
+  <!-- Legend for abbreviations -->
+  <text x="130" y="620" fill="#64748b" font-size="8">SB=Sandbox TL=Tools Sub=Subagents</text>
+  <text x="130" y="632" fill="#64748b" font-size="8">Mem=Memory Sk=Skills Ck=Checkpointer</text>
+  <text x="130" y="644" fill="#64748b" font-size="8">FE=Frontend</text>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT HALF: Per-Layer Breakdown Cards -->
+  <!-- ============================================================ -->
+
+  <!-- Card title -->
+  <text x="840" y="75" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="bold">每层拆解 — 里面有什么 · 如何挂入核心</text>
+
+  <!-- === LAYER 0: Agent Loop === -->
+  <rect x="670" y="90" width="340" height="170" rx="8" fill="#1a0f00" stroke="#f59e0b" stroke-width="1.5"/>
+  <rect x="670" y="90" width="340" height="26" rx="8" fill="#d97706"/>
+  <rect x="670" y="106" width="340" height="10" fill="#d97706"/>
+  <text x="840" y="108" text-anchor="middle" fill="#0f172a" font-size="12" font-weight="bold">Center: Agent Loop (LangGraph 状态机)</text>
+
+  <!-- Mini loop diagram -->
+  <rect x="682" y="125" width="140" height="28" rx="4" fill="#2a1a00" stroke="#b45309" stroke-width="0.8"/>
+  <text x="752" y="144" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">LLM (model.invoke)</text>
+
+  <line x1="752" y1="153" x2="752" y2="160" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-in)"/>
+
+  <rect x="682" y="162" width="140" height="28" rx="4" fill="#2a1a00" stroke="#b45309" stroke-width="0.8"/>
+  <text x="752" y="181" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="bold">Tool Calls? Text?</text>
+
+  <!-- branch -->
+  <text x="640" y="195" fill="#10b981" font-size="8">tool</text>
+  <line x1="752" y1="190" x2="752" y2="196" stroke="#f59e0b" stroke-width="1"/>
+  <line x1="752" y1="196" x2="752" y2="205" stroke="#10b981" stroke-width="1" marker-end="url(#arrow-green)"/>
+
+  <rect x="682" y="207" width="140" height="28" rx="4" fill="#04332b" stroke="#10b981" stroke-width="0.8"/>
+  <text x="752" y="226" text-anchor="middle" fill="#34d399" font-size="10" font-weight="bold">Tool Execute</text>
+
+  <!-- loop back arrow -->
+  <line x1="822" y1="221" x2="848" y2="221" stroke="#10b981" stroke-width="0.8"/>
+  <line x1="848" y1="221" x2="848" y2="139" stroke="#f59e0b" stroke-width="0.8" stroke-dasharray="4,3"/>
+  <line x1="848" y1="139" x2="822" y2="139" stroke="#f59e0b" stroke-width="0.8" marker-end="url(#arrow-in)"/>
+
+  <!-- text branch -->
+  <text x="690" y="202" fill="#ef4444" font-size="8">text →</text>
+  <rect x="728" y="193" width="28" height="12" rx="3" fill="#450a0a"/>
+  <text x="742" y="202" text-anchor="middle" fill="#fca5a5" font-size="7">done</text>
+
+  <!-- MW trigger points callout -->
+  <rect x="860" y="125" width="138" height="110" rx="5" fill="#0f172a" stroke="#334155" stroke-width="0.8"/>
+  <text x="929" y="143" text-anchor="middle" fill="#94a3b8" font-size="9" font-weight="bold">MW 钩子点</text>
+  <rect x="868" y="151" width="122" height="18" rx="3" fill="#1a1a2e"/>
+  <text x="929" y="164" text-anchor="middle" fill="#a5b4fc" font-size="8">before_model ×6</text>
+  <rect x="868" y="174" width="122" height="18" rx="3" fill="#1a1a2e"/>
+  <text x="929" y="187" text-anchor="middle" fill="#a5b4fc" font-size="8">after_model ×4</text>
+  <rect x="868" y="197" width="122" height="18" rx="3" fill="#04332b"/>
+  <text x="929" y="210" text-anchor="middle" fill="#34d399" font-size="8">after_tool ×2</text>
+  <rect x="868" y="220" width="122" height="18" rx="3" fill="#450a0a"/>
+  <text x="929" y="233" text-anchor="middle" fill="#fca5a5" font-size="8">after_step ×2</text>
+
+  <text x="682" y="254" fill="#64748b" font-size="8">ThreadState: messages / sandbox / artifacts / todos</text>
+
+  <!-- === LAYER 1: Core Services === -->
+  <rect x="670" y="270" width="340" height="130" rx="8" fill="#1a1200" stroke="#f59e0b" stroke-width="1.2"/>
+  <rect x="670" y="270" width="340" height="26" rx="8" fill="#b45309"/>
+  <rect x="670" y="286" width="340" height="10" fill="#b45309"/>
+  <text x="840" y="288" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">Ring 1: Core Services</text>
+  <text x="935" y="288" text-anchor="end" fill="#fed7aa" font-size="9">挂入方式: 直接调用</text>
+
+  <rect x="682" y="306" width="100" height="26" rx="4" fill="#2a1a00" stroke="#d97706" stroke-width="0.8"/>
+  <text x="732" y="324" text-anchor="middle" fill="#fbbf24" font-size="9">Sandbox</text>
+  <rect x="790" y="306" width="100" height="26" rx="4" fill="#2a1a00" stroke="#d97706" stroke-width="0.8"/>
+  <text x="840" y="324" text-anchor="middle" fill="#fbbf24" font-size="9">Tools</text>
+  <rect x="898" y="306" width="100" height="26" rx="4" fill="#2a1a00" stroke="#d97706" stroke-width="0.8"/>
+  <text x="948" y="324" text-anchor="middle" fill="#fbbf24" font-size="9">Subagents</text>
+
+  <rect x="682" y="338" width="100" height="26" rx="4" fill="#2a1a00" stroke="#d97706" stroke-width="0.8"/>
+  <text x="732" y="356" text-anchor="middle" fill="#fbbf24" font-size="9">Memory</text>
+  <rect x="790" y="338" width="100" height="26" rx="4" fill="#2a1a00" stroke="#d97706" stroke-width="0.8"/>
+  <text x="840" y="356" text-anchor="middle" fill="#fbbf24" font-size="9">Skills</text>
+  <rect x="898" y="338" width="100" height="26" rx="4" fill="#2a1a00" stroke="#d97706" stroke-width="0.8"/>
+  <text x="948" y="356" text-anchor="middle" fill="#fbbf24" font-size="9">Checkpointer</text>
+
+  <text x="840" y="392" text-anchor="middle" fill="#64748b" font-size="8">Agent Loop 每一步都直接 await 这些服务，没有中间层</text>
+
+  <!-- === LAYER 2: Harness === -->
+  <rect x="670" y="410" width="340" height="130" rx="8" fill="#0a1628" stroke="#3b82f6" stroke-width="1.2"/>
+  <rect x="670" y="410" width="340" height="26" rx="8" fill="#1d4ed8"/>
+  <rect x="670" y="426" width="340" height="10" fill="#1d4ed8"/>
+  <text x="840" y="428" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">Ring 2: deerflow.harness</text>
+  <text x="935" y="428" text-anchor="end" fill="#bfdbfe" font-size="9">挂入方式: 工厂 + 管理器</text>
+
+  <rect x="682" y="446" width="155" height="26" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="759" y="464" text-anchor="middle" fill="#60a5fa" font-size="9">RunManager</text>
+  <rect x="845" y="446" width="153" height="26" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="921" y="464" text-anchor="middle" fill="#60a5fa" font-size="9">make_lead_agent()</text>
+
+  <rect x="682" y="478" width="155" height="26" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="759" y="496" text-anchor="middle" fill="#60a5fa" font-size="9">StreamBridge</text>
+  <rect x="845" y="478" width="153" height="26" rx="4" fill="#0f2744" stroke="#3b82f6" stroke-width="0.8"/>
+  <text x="921" y="496" text-anchor="middle" fill="#60a5fa" font-size="9">Model Factory</text>
+
+  <text x="840" y="532" text-anchor="middle" fill="#64748b" font-size="8">通过 make_lead_agent(config) 装配 Agent Loop 的 model + tools + prompt + middleware</text>
+
+  <!-- === LAYER 3: Gateway === -->
+  <rect x="670" y="550" width="340" height="95" rx="8" fill="#0f0520" stroke="#8b5cf6" stroke-width="1.2"/>
+  <rect x="670" y="550" width="340" height="26" rx="8" fill="#7c3aed"/>
+  <rect x="670" y="566" width="340" height="10" fill="#7c3aed"/>
+  <text x="840" y="568" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">Ring 3: app.gateway</text>
+  <text x="935" y="568" text-anchor="end" fill="#ddd6fe" font-size="9">挂入方式: HTTP → RunManager</text>
+
+  <rect x="682" y="586" width="100" height="22" rx="4" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="732" y="601" text-anchor="middle" fill="#c4b5fd" font-size="9">FastAPI :8001</text>
+  <rect x="790" y="586" width="100" height="22" rx="4" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="840" y="601" text-anchor="middle" fill="#c4b5fd" font-size="9">15 Routers</text>
+  <rect x="898" y="586" width="100" height="22" rx="4" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="0.8"/>
+  <text x="948" y="601" text-anchor="middle" fill="#c4b5fd" font-size="9">Auth · CSRF</text>
+
+  <text x="840" y="636" text-anchor="middle" fill="#64748b" font-size="8">POST /threads/{id}/runs/stream → Router → RunManager.create_or_reject()</text>
+
+  <!-- === LAYER 4: External === -->
+  <rect x="670" y="655" width="340" height="95" rx="8" fill="#0a150a" stroke="#22c55e" stroke-width="1.2"/>
+  <rect x="670" y="655" width="340" height="26" rx="8" fill="#15803d"/>
+  <rect x="670" y="671" width="340" height="10" fill="#15803d"/>
+  <text x="840" y="673" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">Ring 4: External Access</text>
+  <text x="935" y="673" text-anchor="end" fill="#bbf7d0" font-size="9">挂入方式: HTTP · SSE · SDK import</text>
+
+  <rect x="682" y="691" width="75" height="22" rx="4" fill="#04332b" stroke="#22c55e" stroke-width="0.8"/>
+  <text x="719" y="706" text-anchor="middle" fill="#4ade80" font-size="9">Browser</text>
+  <rect x="764" y="691" width="75" height="22" rx="4" fill="#04332b" stroke="#22c55e" stroke-width="0.8"/>
+  <text x="801" y="706" text-anchor="middle" fill="#4ade80" font-size="9">HTTP API</text>
+  <rect x="846" y="691" width="75" height="22" rx="4" fill="#04332b" stroke="#22c55e" stroke-width="0.8"/>
+  <text x="883" y="706" text-anchor="middle" fill="#4ade80" font-size="9">Python SDK</text>
+  <rect x="928" y="691" width="70" height="22" rx="4" fill="#04332b" stroke="#22c55e" stroke-width="0.8"/>
+  <text x="963" y="706" text-anchor="middle" fill="#4ade80" font-size="9">IM ×7</text>
+
+  <text x="840" y="740" text-anchor="middle" fill="#64748b" font-size="8">SDK 走虚线直入 Harness，绕开 HTTP 和 Gateway</text>
+
+  <!-- ============================================================ -->
+  <!-- BOTTOM: Key Constraints -->
+  <!-- ============================================================ -->
+  <rect x="670" y="765" width="340" height="60" rx="8" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="840" y="788" text-anchor="middle" fill="#f1f5f9" font-size="10" font-weight="bold">约束规则</text>
+  <text x="840" y="805" text-anchor="middle" fill="#94a3b8" font-size="9">外层 import 内层 ✓ · 内层 import 外层 ✗ · CI 强制检查 · Harness 可独立 pip 发布</text>
+  <text x="840" y="818" text-anchor="middle" fill="#94a3b8" font-size="9">LangGraph 不独立部署 — Gateway 内嵌 Runtime 进程</text>
+
+  <!-- Arrows between cards showing inward dependency -->
+  <line x1="840" y1="260" x2="840" y2="270" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-in)"/>
+  <line x1="840" y1="400" x2="840" y2="410" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-in)"/>
+  <line x1="840" y1="540" x2="840" y2="550" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-in)"/>
+  <line x1="840" y1="645" x2="840" y2="655" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-in)"/>
+
+  <!-- SDK bypass arrow -->
+  <line x1="883" y1="713" x2="883" y2="765" stroke="#10b981" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="893" y="745" fill="#10b981" font-size="8">SDK 可直入</text>
+
+  <!-- Inward arrows on left diagram -->
+  <text x="95" y="290" fill="#64748b" font-size="8">请求流 →</text>
+  <line x1="110" y1="298" x2="110" y2="370" stroke="#64748b" stroke-width="1"/>
+  <line x1="110" y1="370" x2="230" y2="370" stroke="#f59e0b" stroke-width="1" marker-end="url(#arrow-in)"/>
+  <line x1="230" y1="375" x2="305" y2="350" stroke="#f59e0b" stroke-width="1" marker-end="url(#arrow-in)"/>
+
+</svg>

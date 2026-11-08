@@ -1,0 +1,206 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 980" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#1565c0"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#c62828"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1100" height="980" fill="#fafafa" rx="8"/>
+
+  <!-- Title -->
+  <rect x="0" y="0" width="1100" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1100" height="16" fill="url(#headerBg)"/>
+  <text x="550" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Middleware 执行顺序：正向 Setup · 反向 Teardown · 洋葱组合</text>
+
+  <!-- Legend -->
+  <rect x="60" y="60" width="18" height="14" rx="2" fill="#1565c0"/>
+  <text x="84" y="72" font-size="9" fill="#555">正向执行 (0→N)</text>
+  <rect x="190" y="60" width="18" height="14" rx="2" fill="#c62828"/>
+  <text x="214" y="72" font-size="9" fill="#555">反向执行 (N→0)</text>
+  <rect x="320" y="60" width="18" height="14" rx="2" fill="#ff9800"/>
+  <text x="344" y="72" font-size="9" fill="#555">内联洋葱（嵌套 callable）</text>
+  <rect x="500" y="60" width="18" height="14" rx="2" fill="#1a1a2e"/>
+  <text x="524" y="72" font-size="9" fill="#555">核心节点</text>
+
+  <!-- ===== START ===== -->
+  <rect x="440" y="88" width="120" height="32" rx="16" fill="#1a1a2e"/>
+  <text x="500" y="109" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">START</text>
+  <line x1="500" y1="120" x2="500" y2="148" stroke="#1565c0" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- ===== SECTION: before_agent (forward) ===== -->
+  <rect x="60" y="152" width="880" height="100" rx="8" fill="#e3f2fd" stroke="#90caf9" stroke-width="1"/>
+  <text x="80" y="172" font-size="11" font-weight="700" fill="#1565c0">before_agent 正向链 (0→1→2→...→N)</text>
+  <text x="280" y="172" font-size="9" fill="#888">独立 Graph Node，用 edge 串联。返回 dict 被 LangGraph reducer 合并。</text>
+
+  <!-- before_agent boxes -->
+  <rect x="80" y="186" width="120" height="50" rx="5" fill="#bbdefb" stroke="#64b5f6" stroke-width="0.5"/>
+  <text x="140" y="208" text-anchor="middle" font-size="9" font-weight="600" fill="#0d47a1">[0] ThreadData</text>
+  <text x="140" y="224" text-anchor="middle" font-size="8" fill="#555">路径映射</text>
+
+  <line x1="200" y1="211" x2="220" y2="211" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowBlue)"/>
+
+  <rect x="224" y="186" width="120" height="50" rx="5" fill="#bbdefb" stroke="#64b5f6" stroke-width="0.5"/>
+  <text x="284" y="208" text-anchor="middle" font-size="9" font-weight="600" fill="#0d47a1">[1] Uploads</text>
+  <text x="284" y="224" text-anchor="middle" font-size="8" fill="#555">文件检测</text>
+
+  <line x1="344" y1="211" x2="364" y2="211" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowBlue)"/>
+
+  <rect x="368" y="186" width="120" height="50" rx="5" fill="#bbdefb" stroke="#64b5f6" stroke-width="0.5"/>
+  <text x="428" y="208" text-anchor="middle" font-size="9" font-weight="600" fill="#0d47a1">[2] Sandbox</text>
+  <text x="428" y="224" text-anchor="middle" font-size="8" fill="#555">acquire(懒)</text>
+
+  <line x1="488" y1="211" x2="508" y2="211" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowBlue)"/>
+
+  <rect x="512" y="186" width="120" height="50" rx="5" fill="#bbdefb" stroke="#64b5f6" stroke-width="0.5"/>
+  <text x="572" y="208" text-anchor="middle" font-size="9" font-weight="600" fill="#0d47a1">[8] DynamicCtx</text>
+  <text x="572" y="224" text-anchor="middle" font-size="8" fill="#555">上下文注入</text>
+
+  <line x1="632" y1="211" x2="652" y2="211" stroke="#1565c0" stroke-width="1" marker-end="url(#arrowBlue)"/>
+
+  <rect x="656" y="186" width="120" height="50" rx="5" fill="#bbdefb" stroke="#64b5f6" stroke-width="0.5"/>
+  <text x="716" y="208" text-anchor="middle" font-size="9" font-weight="600" fill="#0d47a1">[17] LoopDetect</text>
+  <text x="716" y="224" text-anchor="middle" font-size="8" fill="#555">清理状态</text>
+
+  <text x="800" y="226" font-size="10" fill="#1565c0">... →</text>
+
+  <!-- Arrow down -->
+  <line x1="500" y1="252" x2="500" y2="280" stroke="#1565c0" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+  <!-- ===== SECTION: before_model (forward) ===== -->
+  <rect x="60" y="284" width="880" height="72" rx="8" fill="#e8f5e9" stroke="#a5d6a7" stroke-width="1"/>
+  <text x="80" y="304" font-size="11" font-weight="700" fill="#2e7d32">before_model 正向链 (0→1→2→...→N)</text>
+  <text x="280" y="304" font-size="9" fill="#888">独立 Graph Node。注入消息、触发总结。</text>
+
+  <rect x="80" y="316" width="150" height="28" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="155" y="334" text-anchor="middle" font-size="9" font-weight="600" fill="#1b5e20">[9] Summarization</text>
+
+  <rect x="245" y="316" width="150" height="28" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="320" y="334" text-anchor="middle" font-size="9" font-weight="600" fill="#1b5e20">[10] Todo</text>
+
+  <rect x="410" y="316" width="150" height="28" rx="4" fill="#c8e6c9" stroke="#81c784" stroke-width="0.5"/>
+  <text x="485" y="334" text-anchor="middle" font-size="9" font-weight="600" fill="#1b5e20">[14] ViewImage</text>
+
+  <text x="580" y="334" font-size="10" fill="#2e7d32">正向执行完毕 →</text>
+
+  <!-- Arrow down -->
+  <line x1="500" y1="356" x2="500" y2="384" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== SECTION: wrap_model_call ONION ===== -->
+  <rect x="60" y="388" width="880" height="95" rx="8" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="80" y="408" font-size="11" font-weight="700" fill="#e65100">wrap_model_call 洋葱组合（内联，非 Graph Node）</text>
+  <text x="330" y="408" font-size="9" fill="#888">在 model_node 内部同步执行。外层先执行 → 调 handler() → 进入内层 → ... → 最内层是 _execute_model_sync</text>
+
+  <!-- Onion layers -->
+  <rect x="80" y="422" width="850" height="50" rx="4" fill="#ffe0b2" stroke="#ff9800" stroke-width="0.5"/>
+  <text x="505" y="438" text-anchor="middle" font-size="9" fill="#e65100">外层 [3] DanglingToolCall → handler() → [4] LLMErrorHandling(重试/熔断) → handler() → [15] DeferredToolFilter → handler() →</text>
+  <text x="505" y="456" text-anchor="middle" font-size="9" fill="#e65100">→ [10] Todo(完成提醒) → handler() → [17] LoopDetect(排出警告) → handler() → 内层: _execute_model_sync(model.invoke)</text>
+
+  <!-- Arrow down -->
+  <line x1="500" y1="483" x2="500" y2="510" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== MODEL NODE ===== -->
+  <rect x="370" y="514" width="260" height="48" rx="8" fill="#1a1a2e"/>
+  <text x="500" y="535" text-anchor="middle" fill="#fff" font-size="13" font-weight="700">LLM Call (model.invoke)</text>
+  <text x="500" y="553" text-anchor="middle" fill="#aaa" font-size="10">产出 AIMessage (含 tool_calls)</text>
+
+  <!-- Arrow down -->
+  <line x1="500" y1="562" x2="500" y2="590" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+
+  <!-- ===== SECTION: after_model (REVERSE) ===== -->
+  <rect x="60" y="594" width="880" height="72" rx="8" fill="#fce4ec" stroke="#f48fb1" stroke-width="1"/>
+  <text x="80" y="614" font-size="11" font-weight="700" fill="#c62828">after_model 反向链 (N→N-1→...→0)</text>
+  <text x="280" y="614" font-size="9" fill="#888">独立 Graph Node。最后注册的 middleware 先执行——Safety 必须第一个看到原始输出。</text>
+
+  <rect x="80" y="626" width="150" height="28" rx="4" fill="#f8bbd0" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="155" y="644" text-anchor="middle" font-size="9" font-weight="600" fill="#880e4f">[18] Safety ← 最先</text>
+
+  <rect x="245" y="626" width="150" height="28" rx="4" fill="#f8bbd0" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="320" y="644" text-anchor="middle" font-size="9" font-weight="600" fill="#880e4f">[17] LoopDetect</text>
+
+  <rect x="410" y="626" width="150" height="28" rx="4" fill="#f8bbd0" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="485" y="644" text-anchor="middle" font-size="9" font-weight="600" fill="#880e4f">[16] SubagentLimit</text>
+
+  <rect x="575" y="626" width="150" height="28" rx="4" fill="#f8bbd0" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="650" y="644" text-anchor="middle" font-size="9" font-weight="600" fill="#880e4f">[11] TokenUsage</text>
+
+  <rect x="740" y="626" width="150" height="28" rx="4" fill="#f8bbd0" stroke="#f48fb1" stroke-width="0.5"/>
+  <text x="815" y="644" text-anchor="middle" font-size="9" font-weight="600" fill="#880e4f">[10] Todo → 最后</text>
+
+  <!-- Arrow down -->
+  <line x1="500" y1="666" x2="500" y2="694" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <!-- ===== CONDITIONAL ===== -->
+  <rect x="420" y="698" width="160" height="30" rx="6" fill="#f5f5f5" stroke="#999" stroke-width="1"/>
+  <text x="500" y="718" text-anchor="middle" fill="#555" font-size="10" font-weight="600">has tool_calls ?</text>
+
+  <!-- YES branch: wrap_tool_call -->
+  <line x1="580" y1="713" x2="630" y2="713" stroke="#2e7d32" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+  <text x="600" y="708" font-size="9" fill="#2e7d32">yes</text>
+
+  <!-- ===== SECTION: wrap_tool_call ONION ===== -->
+  <rect x="635" y="700" width="400" height="120" rx="8" fill="#fff3e0" stroke="#ff9800" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <text x="655" y="720" font-size="11" font-weight="700" fill="#e65100">wrap_tool_call 洋葱组合</text>
+  <text x="655" y="736" font-size="9" fill="#888">在 ToolNode 内部执行。外层先执行 → 可短路不调 handler()</text>
+
+  <rect x="655" y="748" width="365" height="62" rx="4" fill="#ffe0b2" stroke="#ff9800" stroke-width="0.5"/>
+  <text x="835" y="766" text-anchor="middle" font-size="9" fill="#e65100">[5] Guardrail → handler() → [6] SandboxAudit → handler() →</text>
+  <text x="835" y="784" text-anchor="middle" font-size="9" fill="#e65100">[7] ToolErrorHandling → handler() → [15] DeferredToolFilter →</text>
+  <text x="835" y="802" text-anchor="middle" font-size="9" fill="#e65100">handler() → [19] Clarification(永远最后) → 真正执行 tool</text>
+
+  <!-- Arrow down to Tool Exec -->
+  <line x1="835" y1="824" x2="835" y2="850" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="755" y="854" width="160" height="36" rx="6" fill="#1a1a2e"/>
+  <text x="835" y="877" text-anchor="middle" fill="#fff" font-size="10" font-weight="700">Tool Execute</text>
+
+  <!-- Loop back -->
+  <line x1="755" y1="872" x2="60" y2="872" stroke="#2e7d32" stroke-width="1" stroke-dasharray="5,3"/>
+  <line x1="60" y1="872" x2="60" y2="318" stroke="#2e7d32" stroke-width="1" stroke-dasharray="5,3"/>
+  <line x1="60" y1="318" x2="155" y2="318" stroke="#2e7d32" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arrowDown)"/>
+  <text x="330" y="866" text-anchor="middle" font-size="9" fill="#2e7d32">循环回到 before_model（同一个 sandbox 实例复用）</text>
+
+  <!-- NO branch: after_agent -->
+  <line x1="420" y1="713" x2="390" y2="713" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+  <text x="400" y="708" font-size="9" fill="#c62828">no</text>
+  <line x1="390" y1="713" x2="390" y2="738" stroke="#c62828" stroke-width="1.5"/>
+  <line x1="390" y1="738" x2="500" y2="738" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <line x1="500" y1="738" x2="500" y2="760" stroke="#c62828" stroke-width="1.5" marker-end="url(#arrowRed)"/>
+
+  <!-- ===== SECTION: after_agent (REVERSE) ===== -->
+  <rect x="60" y="764" width="880" height="72" rx="8" fill="#f3e5f5" stroke="#ce93d8" stroke-width="1"/>
+  <text x="80" y="784" font-size="11" font-weight="700" fill="#7b1fa2">after_agent 反向链 (N→N-1→...→0)</text>
+  <text x="280" y="784" font-size="9" fill="#888">独立 Graph Node。最后注册的 middleware 先执行。资源释放（Sandbox release）在最后。</text>
+
+  <rect x="80" y="796" width="180" height="28" rx="4" fill="#e1bee7" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="170" y="814" text-anchor="middle" font-size="9" font-weight="600" fill="#4a148c">[13] Memory ← 最先</text>
+
+  <rect x="275" y="796" width="180" height="28" rx="4" fill="#e1bee7" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="365" y="814" text-anchor="middle" font-size="9" font-weight="600" fill="#4a148c">[17] LoopDetect(清理)</text>
+
+  <rect x="470" y="796" width="180" height="28" rx="4" fill="#e1bee7" stroke="#ce93d8" stroke-width="0.5"/>
+  <text x="560" y="814" text-anchor="middle" font-size="9" font-weight="600" fill="#4a148c">[2] Sandbox release</text>
+
+  <text x="670" y="814" font-size="9" fill="#7b1fa2">← 最后释放 sandbox</text>
+
+  <!-- Arrow to END -->
+  <line x1="500" y1="836" x2="500" y2="864" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="440" y="868" width="120" height="32" rx="16" fill="#1a1a2e"/>
+  <text x="500" y="889" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">END</text>
+
+  <!-- Summary bar -->
+  <rect x="60" y="920" width="980" height="42" rx="6" fill="#f5f5f5" stroke="#e0e0e0" stroke-width="1"/>
+  <text x="550" y="940" text-anchor="middle" font-size="10" fill="#333">before_* hooks 正向: 先注册先执行（setup 顺序）</text>
+  <text x="550" y="956" text-anchor="middle" font-size="10" fill="#333">after_* hooks 反向: 先注册后执行（teardown 顺序，保证对称）  |  wrap_* 内联洋葱: 外层先执行，内层是真正的 model/tool</text>
+
+</svg>

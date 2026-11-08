@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrowDown" markerWidth="10" markerHeight="7" refX="5" refY="7" orient="auto">
+      <polygon points="0 0, 10 7, 5 7, 5 0" fill="#555"/>
+    </marker>
+    <marker id="arrowLeft" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
+      <polygon points="10 0, 0 3.5, 10 7" fill="#555"/>
+    </marker>
+    <linearGradient id="headerBg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#16213e"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="600" fill="#fafafa" rx="8"/>
+  <rect x="0" y="0" width="1200" height="48" fill="url(#headerBg)" rx="8"/>
+  <rect x="0" y="32" width="1200" height="16" fill="url(#headerBg)"/>
+  <text x="600" y="31" text-anchor="middle" fill="#fff" font-size="16" font-weight="700">Agent 验证闭环：从改代码到 CI 对齐</text>
+
+  <!-- main loop boxes -->
+  <rect x="70" y="100" width="190" height="72" rx="8" fill="#1565c0"/>
+  <text x="165" y="128" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">① 修改代码</text>
+  <text x="165" y="146" text-anchor="middle" fill="#bbdefb" font-size="9">改什么由 AGENTS.md / 任务定义</text>
+
+  <line x1="165" y1="172" x2="165" y2="200" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="70" y="205" width="190" height="72" rx="8" fill="#2e7d32"/>
+  <text x="165" y="233" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">② 定位测试子集</text>
+  <text x="165" y="251" text-anchor="middle" fill="#c8e6c9" font-size="9">pytest test.py::test_func -q / vitest -t</text>
+
+  <line x1="262" y1="241" x2="300" y2="241" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <rect x="305" y="205" width="190" height="72" rx="8" fill="#e65100"/>
+  <text x="400" y="233" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">③ 运行（确定性）</text>
+  <text x="400" y="251" text-anchor="middle" fill="#ffe0b2" font-size="9">无网络依赖、无共享状态、秒~分钟级</text>
+
+  <line x1="400" y1="282" x2="400" y2="310" stroke="#555" stroke-width="1.5" marker-end="url(#arrowDown)"/>
+
+  <rect x="305" y="315" width="190" height="72" rx="8" fill="#7b1fa2"/>
+  <text x="400" y="343" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">④ 读失败 → 修复</text>
+  <text x="400" y="361" text-anchor="middle" fill="#e1bee7" font-size="9">错误信息可行动：指出下一步</text>
+
+  <line x1="305" y1="351" x2="267" y2="351" stroke="#555" stroke-width="1.5" marker-end="url(#arrowLeft)"/>
+  <text x="286" y="342" text-anchor="middle" font-size="9" fill="#888">循环直到绿</text>
+
+  <line x1="497" y1="351" x2="535" y2="351" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <rect x="540" y="315" width="190" height="72" rx="8" fill="#00695c"/>
+  <text x="635" y="343" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">⑤ 扩大验证面</text>
+  <text x="635" y="361" text-anchor="middle" fill="#b2dfdb" font-size="9">lint / typecheck / 相关包全量测试</text>
+
+  <line x1="732" y1="351" x2="770" y2="351" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <rect x="775" y="315" width="190" height="72" rx="8" fill="#4527a0"/>
+  <text x="870" y="343" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">⑥ 交付带证据</text>
+  <text x="870" y="361" text-anchor="middle" fill="#d1c4e9" font-size="9">跑了什么、截图、日志（"spend tokens,</text>
+  <text x="870" y="375" text-anchor="middle" fill="#d1c4e9" font-size="9">not reviewer attention"）</text>
+
+  <line x1="967" y1="351" x2="1005" y2="351" stroke="#555" stroke-width="1.5" marker-end="url(#arrowRight)"/>
+
+  <rect x="1010" y="315" width="150" height="72" rx="8" fill="#5d4037"/>
+  <text x="1085" y="343" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">⑦ CI 对齐</text>
+  <text x="1085" y="361" text-anchor="middle" fill="#d7ccc8" font-size="9">本地与 CI 同一门禁，</text>
+  <text x="1085" y="375" text-anchor="middle" fill="#d7ccc8" font-size="9">无隐蔽差异</text>
+
+  <!-- why local closed loop matters -->
+  <rect x="70" y="430" width="1090" height="130" rx="8" fill="none" stroke="#999" stroke-width="1" stroke-dasharray="5,3"/>
+  <text x="615" y="456" text-anchor="middle" font-size="12" font-weight="700" fill="#1a1a2e">闭环断裂的三种典型方式（= 反模式）</text>
+  <rect x="100" y="472" width="320" height="72" rx="6" fill="#ffebee" stroke="#c62828"/>
+  <text x="115" y="494" font-size="10.5" font-weight="700" fill="#c62828">无法本地运行</text>
+  <text x="115" y="512" font-size="9" fill="#555">"本地跑不了测试，但应该没问题" ——</text>
+  <text x="115" y="528" font-size="9" fill="#555">agent 会绕过失败、交付猜测</text>
+  <rect x="450" y="472" width="320" height="72" rx="6" fill="#ffebee" stroke="#c62828"/>
+  <text x="465" y="494" font-size="10.5" font-weight="700" fill="#c62828">只有全量、没有子集</text>
+  <text x="465" y="512" font-size="9" fill="#555">全量极慢 → agent 跳过验证或超时；</text>
+  <text x="465" y="528" font-size="9" fill="#555">需要"单测 pattern"级别的入口</text>
+  <rect x="800" y="472" width="330" height="72" rx="6" fill="#ffebee" stroke="#c62828"/>
+  <text x="815" y="494" font-size="10.5" font-weight="700" fill="#c62828">本地绿、CI 红的隐蔽门禁</text>
+  <text x="815" y="512" font-size="9" fill="#555">agent 无法闭环；格式类检查应交给</text>
+  <text x="815" y="528" font-size="9" fill="#555">CI/pre-commit，行为规则留给指令</text>
+
+  <text x="615" y="586" text-anchor="middle" font-size="9" fill="#999">依据：agents.md（agent 会执行列出的检查并修复失败）· builder.io/blog/agent-experience（验证闭环原则 3）· learn.chatgpt.com Codex review 规则（格式留给 CI）</text>
+</svg>

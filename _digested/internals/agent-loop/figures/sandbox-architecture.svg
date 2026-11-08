@@ -1,0 +1,218 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 720" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <linearGradient id="sandboxGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <rect width="1100" height="720" rx="12" fill="url(#bg)"/>
+
+  <text x="550" y="36" text-anchor="middle" fill="#f1f5f9" font-size="20" font-weight="bold">Sandbox 架构 — 抽象层 · 三种实现 · 虚拟路径映射</text>
+
+  <!-- ====== LEFT: Abstract Interface ====== -->
+  <rect x="30" y="60" width="320" height="280" rx="10" fill="#1a0a2e" stroke="#8b5cf6" stroke-width="2" filter="url(#shadow)"/>
+  <rect x="30" y="60" width="320" height="36" rx="10" fill="url(#sandboxGrad)"/>
+  <rect x="30" y="86" width="320" height="10" fill="url(#sandboxGrad)"/>
+  <text x="190" y="84" text-anchor="middle" fill="#fff" font-size="14" font-weight="bold">Sandbox (ABC)</text>
+
+  <!-- Methods -->
+  <rect x="50" y="108" width="280" height="32" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="190" y="129" text-anchor="middle" fill="#c4b5fd" font-size="11">async setup(thread_id: str) → None</text>
+
+  <rect x="50" y="148" width="280" height="32" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="190" y="169" text-anchor="middle" fill="#c4b5fd" font-size="11">async teardown(thread_id: str) → None</text>
+
+  <rect x="50" y="188" width="280" height="32" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="190" y="209" text-anchor="middle" fill="#c4b5fd" font-size="11">async execute(cmd: str, *, cwd, env, timeout) → Result</text>
+
+  <rect x="50" y="228" width="280" height="32" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="190" y="249" text-anchor="middle" fill="#c4b5fd" font-size="11">async read_file(path: str) → str</text>
+
+  <rect x="50" y="268" width="280" height="32" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="190" y="289" text-anchor="middle" fill="#c4b5fd" font-size="11">async write_file(path, content) → None</text>
+
+  <rect x="50" y="308" width="280" height="32" rx="5" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+  <text x="190" y="329" text-anchor="middle" fill="#64748b" font-size="11">ls · glob · grep · str_replace · ...</text>
+
+  <!-- ====== MIDDLE: Three Implementations ====== -->
+
+  <!-- 1. Local -->
+  <rect x="400" y="60" width="320" height="175" rx="10" fill="#04332b" stroke="#10b981" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="400" y="60" width="320" height="32" rx="10" fill="#10b981"/>
+  <rect x="400" y="82" width="320" height="10" fill="#10b981"/>
+  <text x="560" y="82" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">LocalSandboxProvider</text>
+
+  <text x="420" y="112" fill="#34d399" font-size="10" font-weight="bold">实现方式</text>
+  <text x="420" y="130" fill="#94a3b8" font-size="10">直接操作本地文件系统</text>
+
+  <text x="420" y="152" fill="#34d399" font-size="10" font-weight="bold">适用场景</text>
+  <text x="420" y="170" fill="#94a3b8" font-size="10">开发环境 · 单机部署 · SDK 嵌入模式</text>
+
+  <text x="420" y="192" fill="#34d399" font-size="10" font-weight="bold">隔离级别</text>
+  <rect x="420" y="200" width="80" height="18" rx="3" fill="#713f12"/>
+  <text x="460" y="213" text-anchor="middle" fill="#fbbf24" font-size="10">低 (进程级)</text>
+
+  <text x="520" y="192" fill="#34d399" font-size="10" font-weight="bold">性能</text>
+  <rect x="520" y="200" width="60" height="18" rx="3" fill="#14532d"/>
+  <text x="550" y="213" text-anchor="middle" fill="#22c55e" font-size="10">高</text>
+
+  <text x="600" y="192" fill="#34d399" font-size="10" font-weight="bold">默认</text>
+  <rect x="600" y="200" width="50" height="18" rx="3" fill="#14532d"/>
+  <text x="625" y="213" text-anchor="middle" fill="#22c55e" font-size="10">✓</text>
+
+  <!-- 2. Aio / Docker -->
+  <rect x="400" y="250" width="320" height="175" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="400" y="250" width="320" height="32" rx="10" fill="#3b82f6"/>
+  <rect x="400" y="272" width="320" height="10" fill="#3b82f6"/>
+  <text x="560" y="272" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">AioSandboxProvider</text>
+
+  <text x="420" y="302" fill="#60a5fa" font-size="10" font-weight="bold">实现方式</text>
+  <text x="420" y="320" fill="#94a3b8" font-size="10">每个 run_id 起独立 Docker 容器</text>
+
+  <text x="420" y="342" fill="#60a5fa" font-size="10" font-weight="bold">适用场景</text>
+  <text x="420" y="360" fill="#94a3b8" font-size="10">生产环境 · 多租户 · 需真正隔离</text>
+
+  <text x="420" y="382" fill="#60a5fa" font-size="10" font-weight="bold">隔离级别</text>
+  <rect x="420" y="390" width="80" height="18" rx="3" fill="#14532d"/>
+  <text x="460" y="403" text-anchor="middle" fill="#22c55e" font-size="10">高 (容器级)</text>
+
+  <text x="520" y="382" fill="#60a5fa" font-size="10" font-weight="bold">性能</text>
+  <rect x="520" y="390" width="60" height="18" rx="3" fill="#713f12"/>
+  <text x="550" y="403" text-anchor="middle" fill="#fbbf24" font-size="10">中</text>
+
+  <text x="600" y="382" fill="#60a5fa" font-size="10" font-weight="bold">DooD</text>
+  <rect x="600" y="390" width="50" height="18" rx="3" fill="#14532d"/>
+  <text x="625" y="403" text-anchor="middle" fill="#22c55e" font-size="10">✓</text>
+
+  <!-- 3. Provisioner / K3s -->
+  <rect x="400" y="440" width="320" height="175" rx="10" fill="#450a0a" stroke="#ef4444" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="400" y="440" width="320" height="32" rx="10" fill="#ef4444"/>
+  <rect x="400" y="462" width="320" height="10" fill="#ef4444"/>
+  <text x="560" y="462" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">ProvisionerSandboxProvider</text>
+
+  <text x="420" y="492" fill="#fca5a5" font-size="10" font-weight="bold">实现方式</text>
+  <text x="420" y="510" fill="#94a3b8" font-size="10">K3s 集群动态分配 Pod</text>
+
+  <text x="420" y="532" fill="#fca5a5" font-size="10" font-weight="bold">适用场景</text>
+  <text x="420" y="550" fill="#94a3b8" font-size="10">大规模 · 多节点 · 高并发</text>
+
+  <text x="420" y="572" fill="#fca5a5" font-size="10" font-weight="bold">隔离级别</text>
+  <rect x="420" y="580" width="80" height="18" rx="3" fill="#14532d"/>
+  <text x="460" y="593" text-anchor="middle" fill="#22c55e" font-size="10">最高 (Pod 级)</text>
+
+  <text x="520" y="572" fill="#fca5a5" font-size="10" font-weight="bold">性能</text>
+  <rect x="520" y="580" width="60" height="18" rx="3" fill="#7f1d1d"/>
+  <text x="550" y="593" text-anchor="middle" fill="#ef4444" font-size="10">低 (启动慢)</text>
+
+  <text x="600" y="572" fill="#fca5a5" font-size="10" font-weight="bold">扩展</text>
+  <rect x="600" y="580" width="50" height="18" rx="3" fill="#14532d"/>
+  <text x="625" y="593" text-anchor="middle" fill="#22c55e" font-size="10">✓</text>
+
+  <!-- Arrows from ABC to implementations -->
+  <line x1="350" y1="140" x2="400" y2="105" stroke="#10b981" stroke-width="1.2" marker-end="url(#arrow-green)"/>
+  <line x1="350" y1="200" x2="400" y2="290" stroke="#3b82f6" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <line x1="350" y1="260" x2="400" y2="480" stroke="#ef4444" stroke-width="1.2" marker-end="url(#arrow)"/>
+  <text x="378" y="88" fill="#10b981" font-size="8">implements</text>
+  <text x="378" y="280" fill="#3b82f6" font-size="8">implements</text>
+  <text x="378" y="475" fill="#ef4444" font-size="8">implements</text>
+
+  <!-- ====== RIGHT: Virtual Path Mapping ====== -->
+  <rect x="760" y="60" width="310" height="280" rx="10" fill="#1e293b" stroke="#475569" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <text x="915" y="90" text-anchor="middle" fill="#f1f5f9" font-size="13" font-weight="bold">虚拟路径映射</text>
+  <line x1="780" y1="100" x2="1050" y2="100" stroke="#475569" stroke-width="1"/>
+
+  <text x="780" y="125" fill="#94a3b8" font-size="10">Agent 看到的路径 (虚拟):</text>
+  <rect x="780" y="135" width="270" height="28" rx="5" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="915" y="154" text-anchor="middle" fill="#c4b5fd" font-size="11">/mnt/user-data/project/src/</text>
+
+  <text x="915" y="195" text-anchor="middle" fill="#64748b" font-size="18">↕ 映射</text>
+
+  <text x="780" y="220" fill="#94a3b8" font-size="10">宿主机真实路径:</text>
+  <rect x="780" y="230" width="270" height="28" rx="5" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="915" y="249" text-anchor="middle" fill="#34d399" font-size="11">/home/user/projects/myapp/src/</text>
+
+  <line x1="780" y1="268" x2="1050" y2="268" stroke="#475569" stroke-width="1"/>
+
+  <text x="780" y="290" fill="#94a3b8" font-size="10">路径映射规则:</text>
+  <text x="790" y="310" fill="#64748b" font-size="9">• sandbox.mounts 配置白名单</text>
+  <text x="790" y="328" fill="#64748b" font-size="9">• 虚拟根: /mnt/user-data/</text>
+  <text x="790" y="346" fill="#64748b" font-size="9">• 支持多个 mount point</text>
+
+  <text x="780" y="370" fill="#34d399" font-size="10" font-weight="bold">安全保证:</text>
+  <text x="790" y="390" fill="#64748b" font-size="9">• Agent 只能访问白名单路径</text>
+  <text x="790" y="408" fill="#64748b" font-size="9">• 禁止访问系统目录</text>
+  <text x="790" y="426" fill="#64748b" font-size="9">• Local: 进程级限制</text>
+  <text x="790" y="444" fill="#64748b" font-size="9">• Aio/Provisioner: 容器隔离</text>
+
+  <!-- ====== BOTTOM: Tool ↔ Sandbox Interaction ====== -->
+  <rect x="30" y="370" width="320" height="240" rx="10" fill="#0f2744" stroke="#3b82f6" stroke-width="1" filter="url(#shadow)"/>
+
+  <text x="190" y="398" text-anchor="middle" fill="#60a5fa" font-size="13" font-weight="bold">Sandbox Tools</text>
+  <line x1="50" y1="408" x2="330" y2="408" stroke="#1e3a5f" stroke-width="1"/>
+
+  <!-- Tool list -->
+  <rect x="50" y="418" width="280" height="24" rx="4" fill="#1e293b"/>
+  <text x="190" y="435" text-anchor="middle" fill="#94a3b8" font-size="10">bash        — 执行 shell 命令</text>
+
+  <rect x="50" y="448" width="280" height="24" rx="4" fill="#1e293b"/>
+  <text x="190" y="465" text-anchor="middle" fill="#94a3b8" font-size="10">ls           — 列出目录内容</text>
+
+  <rect x="50" y="478" width="280" height="24" rx="4" fill="#1e293b"/>
+  <text x="190" y="495" text-anchor="middle" fill="#94a3b8" font-size="10">read_file  — 读取文件内容</text>
+
+  <rect x="50" y="508" width="280" height="24" rx="4" fill="#1e293b"/>
+  <text x="190" y="525" text-anchor="middle" fill="#94a3b8" font-size="10">write_file  — 写入文件</text>
+
+  <rect x="50" y="538" width="280" height="24" rx="4" fill="#1e293b"/>
+  <text x="190" y="555" text-anchor="middle" fill="#94a3b8" font-size="10">str_replace — 字符串替换编辑</text>
+
+  <rect x="50" y="568" width="280" height="24" rx="4" fill="#1e293b"/>
+  <text x="190" y="585" text-anchor="middle" fill="#94a3b8" font-size="10">glob         — 文件名模式匹配</text>
+
+  <rect x="50" y="598" width="280" height="24" rx="4" fill="#1e293b"/>
+  <text x="190" y="615" text-anchor="middle" fill="#94a3b8" font-size="10">grep         — 文件内容搜索</text>
+
+  <!-- Arrow from Sandbox ABC to Tools -->
+  <line x1="350" y1="180" x2="350" y2="490" stroke="#8b5cf6" stroke-width="1.2" stroke-dasharray="5,3"/>
+  <text x="360" y="340" fill="#8b5cf6" font-size="8" transform="rotate(90, 360, 340)">provides backend for</text>
+
+  <!-- ====== BOTTOM-RIGHT: SandboxManager / Lifecycle ====== -->
+  <rect x="760" y="370" width="310" height="240" rx="10" fill="#2a1a00" stroke="#f59e0b" stroke-width="1.5" filter="url(#shadow)"/>
+
+  <text x="915" y="398" text-anchor="middle" fill="#fbbf24" font-size="13" font-weight="bold">SandboxManager 生命周期</text>
+  <line x1="780" y1="408" x2="1050" y2="408" stroke="#78350f" stroke-width="1"/>
+
+  <text x="780" y="433" fill="#fbbf24" font-size="10" font-weight="bold">创建时机</text>
+  <text x="790" y="451" fill="#94a3b8" font-size="9">SandboxMiddleware.ctx (per run_id)</text>
+  <text x="790" y="467" fill="#64748b" font-size="8">每个 run 创建一个 sandbox 实例</text>
+
+  <text x="780" y="493" fill="#fbbf24" font-size="10" font-weight="bold">Provider 选择</text>
+  <rect x="780" y="502" width="270" height="28" rx="5" fill="#0f172a" stroke="#334155" stroke-width="1"/>
+  <text x="915" y="521" text-anchor="middle" fill="#94a3b8" font-size="10">config.yaml → sandbox.provider</text>
+
+  <text x="780" y="553" fill="#fbbf24" font-size="10" font-weight="bold">DooD (Docker-out-of-Docker)</text>
+  <text x="790" y="571" fill="#94a3b8" font-size="9">挂载 /var/run/docker.sock</text>
+  <text x="790" y="587" fill="#64748b" font-size="8">Aio 容器内可启动子容器</text>
+
+  <text x="780" y="610" fill="#fbbf24" font-size="10" font-weight="bold">Path Mappings 配置</text>
+  <text x="790" y="628" fill="#64748b" font-size="8">sandbox.mounts: [{host, virtual}]</text>
+  <text x="790" y="644" fill="#64748b" font-size="8">自动双向映射 host ↔ virtual</text>
+</svg>

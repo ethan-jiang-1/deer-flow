@@ -1,0 +1,346 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 880" font-family="system-ui, -apple-system, sans-serif">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+    </marker>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-pink" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ec4899"/>
+    </marker>
+    <marker id="arrow-teal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#14b8a6"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#f59e0b"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8b5cf6"/>
+    </marker>
+    <!-- Background gradient -->
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0f172a"/>
+      <stop offset="100%" style="stop-color:#1e293b"/>
+    </linearGradient>
+    <!-- Header gradients -->
+    <linearGradient id="skillsGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#2563eb"/>
+    </linearGradient>
+    <linearGradient id="toolsGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10b981"/>
+      <stop offset="100%" style="stop-color:#059669"/>
+    </linearGradient>
+    <linearGradient id="memoryGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#ec4899"/>
+      <stop offset="100%" style="stop-color:#db2777"/>
+    </linearGradient>
+    <linearGradient id="subagentsGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#14b8a6"/>
+      <stop offset="100%" style="stop-color:#0d9488"/>
+    </linearGradient>
+    <linearGradient id="sandboxGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#d97706"/>
+    </linearGradient>
+    <linearGradient id="checkpointerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#8b5cf6"/>
+      <stop offset="100%" style="stop-color:#7c3aed"/>
+    </linearGradient>
+    <filter id="shadow">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="880" rx="12" fill="url(#bg)"/>
+
+  <!-- Title -->
+  <text x="600" y="32" text-anchor="middle" fill="#f1f5f9" font-size="18" font-weight="bold">Core Services Hook Points — 6 个核心服务如何挂入 Agent Loop</text>
+  <text x="600" y="52" text-anchor="middle" fill="#64748b" font-size="11">左: 图构建时组装 · 中: Agent Loop 流程 · 右: Loop 运行时钩子 · 所有运行时钩子均为 async</text>
+
+  <!-- Zone labels -->
+  <text x="192" y="68" text-anchor="middle" fill="#64748b" font-size="9" font-weight="bold">Graph Construction Time</text>
+  <text x="600" y="68" text-anchor="middle" fill="#64748b" font-size="9" font-weight="bold">Agent Loop</text>
+  <text x="1005" y="68" text-anchor="middle" fill="#64748b" font-size="9" font-weight="bold">Runtime Hooks (async)</text>
+
+  <!-- ============================================================ -->
+  <!-- LEFT: Skills -->
+  <!-- ============================================================ -->
+  <rect x="20" y="75" width="345" height="175" rx="8" fill="#0f172a" stroke="#3b82f6" stroke-width="1.2" filter="url(#shadow)"/>
+  <rect x="20" y="75" width="345" height="28" rx="8" fill="url(#skillsGrad)"/>
+  <rect x="20" y="93" width="345" height="10" fill="url(#skillsGrad)"/>
+  <text x="192" y="94" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">Skills</text>
+  <rect x="240" y="80" width="112" height="16" rx="3" fill="#0a1628" opacity="0.5"/>
+  <text x="296" y="92" text-anchor="middle" fill="#93c5fd" font-size="8">Graph Construction</text>
+
+  <text x="35" y="118" fill="#93c5fd" font-size="10" font-weight="bold">Hook: Graph Construction Time</text>
+  <text x="35" y="138" fill="#94a3b8" font-size="9">get_skills_prompt_section()</text>
+  <text x="45" y="153" fill="#64748b" font-size="8">→ Builds &lt;available_skills&gt; XML block</text>
+  <text x="35" y="170" fill="#94a3b8" font-size="9">filter_tools_by_skill_allowed_tools()</text>
+  <text x="45" y="185" fill="#64748b" font-size="8">→ Filters tool list per matched skill</text>
+  <text x="35" y="202" fill="#94a3b8" font-size="9">Loaded from skills/{public,custom}/</text>
+  <text x="45" y="217" fill="#64748b" font-size="8">→ skill_storage.load_skills()</text>
+  <text x="35" y="238" fill="#64748b" font-size="8">Also: per-subagent _load_skills() on launch</text>
+
+  <!-- ============================================================ -->
+  <!-- LEFT: Tools -->
+  <!-- ============================================================ -->
+  <rect x="20" y="270" width="345" height="195" rx="8" fill="#0f172a" stroke="#10b981" stroke-width="1.2" filter="url(#shadow)"/>
+  <rect x="20" y="270" width="345" height="28" rx="8" fill="url(#toolsGrad)"/>
+  <rect x="20" y="288" width="345" height="10" fill="url(#toolsGrad)"/>
+  <text x="192" y="289" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">Tools</text>
+  <rect x="240" y="275" width="112" height="16" rx="3" fill="#0a1628" opacity="0.5"/>
+  <text x="296" y="287" text-anchor="middle" fill="#6ee7b7" font-size="8">Compile + Runtime</text>
+
+  <text x="35" y="313" fill="#6ee7b7" font-size="10" font-weight="bold">Hook 1: Graph Construction Time</text>
+  <text x="35" y="333" fill="#94a3b8" font-size="9">get_available_tools()  — synchronous</text>
+  <text x="45" y="348" fill="#64748b" font-size="8">→ Called in _make_lead_agent()</text>
+  <text x="45" y="363" fill="#64748b" font-size="8">→ create_agent(tools=[...]) binds to model</text>
+  <text x="35" y="382" fill="#94a3b8" font-size="9">Assembly: config → MCP → builtins → ACP</text>
+  <text x="45" y="397" fill="#64748b" font-size="8">→ Deduplicate by name (config wins)</text>
+  <text x="35" y="416" fill="#6ee7b7" font-size="10" font-weight="bold">Hook 2: Runtime (per tool call)</text>
+  <text x="35" y="436" fill="#94a3b8" font-size="9">ToolErrorHandlingMiddleware</text>
+  <text x="45" y="451" fill="#64748b" font-size="8">→ wrap_tool_call / awrap_tool_call (async)</text>
+
+  <!-- ============================================================ -->
+  <!-- CENTER: Agent Loop (x=400..800, y=75..520) -->
+  <!-- ============================================================ -->
+  <rect x="400" y="75" width="400" height="445" rx="10" fill="#0a1628" opacity="0.3" stroke="#334155" stroke-width="0.8"/>
+
+  <!-- Node 1: User Input -->
+  <rect x="500" y="88" width="200" height="28" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="600" y="107" text-anchor="middle" fill="#94a3b8" font-size="10">User Input / Config</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="600" y1="116" x2="600" y2="130" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+
+  <!-- Node 2: before_agent (Hook 1) -->
+  <rect x="495" y="132" width="210" height="30" rx="5" fill="#2d1527" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="600" y="152" text-anchor="middle" fill="#f9a8d4" font-size="11" font-weight="bold">Hook 1: before_agent</text>
+  <text x="600" y="170" text-anchor="middle" fill="#ec4899" font-size="7">Memory injects context · Sandbox lifecycle</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="600" y1="162" x2="600" y2="186" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+
+  <!-- Node 3: LLM Call -->
+  <rect x="510" y="188" width="180" height="28" rx="5" fill="#1e293b" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="600" y="207" text-anchor="middle" fill="#e2e8f0" font-size="10">LLM Call (model.invoke)</text>
+  <text x="695" y="207" text-anchor="start" fill="#c4b5fd" font-size="7">ckpt</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="600" y1="216" x2="600" y2="240" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+
+  <!-- Node 4: after_model (Hook 2) -->
+  <rect x="495" y="242" width="210" height="30" rx="5" fill="#0a2a2a" stroke="#14b8a6" stroke-width="1.5"/>
+  <text x="600" y="262" text-anchor="middle" fill="#5eead4" font-size="11" font-weight="bold">Hook 2: after_model</text>
+  <text x="600" y="280" text-anchor="middle" fill="#14b8a6" font-size="7">SubagentLimit truncates · Guardrail checks</text>
+
+  <!-- Arrow 4→5 -->
+  <line x1="600" y1="272" x2="600" y2="296" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+
+  <!-- Node 5: Decision -->
+  <rect x="480" y="298" width="240" height="28" rx="5" fill="#1e293b" stroke="#f59e0b" stroke-width="1"/>
+  <text x="600" y="317" text-anchor="middle" fill="#e2e8f0" font-size="10">Decision: text or tool_calls?</text>
+
+  <!-- Decision: text branch (left, exit) -->
+  <line x1="480" y1="312" x2="440" y2="312" stroke="#ef4444" stroke-width="1"/>
+  <line x1="440" y1="312" x2="440" y2="340" stroke="#ef4444" stroke-width="1" marker-end="url(#arrow-gray)"/>
+  <rect x="400" y="340" width="80" height="24" rx="5" fill="#450a0a" stroke="#ef4444" stroke-width="1"/>
+  <text x="440" y="356" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">Done (exit)</text>
+  <text x="452" y="304" fill="#ef4444" font-size="8">text</text>
+
+  <!-- Decision: tools branch (down) -->
+  <line x1="600" y1="326" x2="600" y2="352" stroke="#14b8a6" stroke-width="1.2" marker-end="url(#arrow-teal)"/>
+  <text x="612" y="344" fill="#14b8a6" font-size="8">tool_calls</text>
+
+  <!-- Node 6: Tool Execute (Hook 3) -->
+  <rect x="495" y="354" width="210" height="30" rx="5" fill="#2a1a00" stroke="#f59e0b" stroke-width="1.5"/>
+  <text x="600" y="374" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="bold">Hook 3: Tool Execute</text>
+  <text x="600" y="392" text-anchor="middle" fill="#f59e0b" font-size="7">Sandbox ensures init · Subagent task_tool runs</text>
+
+  <!-- Arrow 6→7 -->
+  <line x1="600" y1="384" x2="600" y2="408" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+
+  <!-- Node 7: after_step (Hook 4) -->
+  <rect x="495" y="410" width="210" height="30" rx="5" fill="#2d1527" stroke="#ec4899" stroke-width="1.5"/>
+  <text x="600" y="430" text-anchor="middle" fill="#f9a8d4" font-size="11" font-weight="bold">Hook 4: after_step / after_agent</text>
+  <text x="600" y="448" text-anchor="middle" fill="#ec4899" font-size="7">Memory queues extraction · Title generated</text>
+
+  <!-- Arrow 7→8 -->
+  <line x1="600" y1="440" x2="600" y2="464" stroke="#64748b" stroke-width="1.2" marker-end="url(#arrow-gray)"/>
+
+  <!-- Node 8: Loop/Continue -->
+  <rect x="510" y="466" width="180" height="28" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+  <text x="600" y="485" text-anchor="middle" fill="#94a3b8" font-size="10">Loop / Continue</text>
+
+  <!-- Loop-back path (left side of loop box) -->
+  <line x1="510" y1="480" x2="420" y2="480" stroke="#64748b" stroke-width="1"/>
+  <line x1="420" y1="480" x2="420" y2="202" stroke="#64748b" stroke-width="1.2" stroke-dasharray="6,4"/>
+  <line x1="420" y1="202" x2="510" y2="202" stroke="#64748b" stroke-width="1" marker-end="url(#arrow-gray)"/>
+  <text x="412" y="345" fill="#64748b" font-size="8" transform="rotate(-90, 412, 345)">loop: ToolMessages → LLM</text>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT: Memory -->
+  <!-- ============================================================ -->
+  <rect x="830" y="75" width="350" height="185" rx="8" fill="#1a0a14" stroke="#ec4899" stroke-width="1.2" filter="url(#shadow)"/>
+  <rect x="830" y="75" width="350" height="28" rx="8" fill="url(#memoryGrad)"/>
+  <rect x="830" y="93" width="350" height="10" fill="url(#memoryGrad)"/>
+  <text x="1005" y="94" text-anchor="middle" fill="#fff" font-size="12" font-weight="bold">Memory</text>
+  <rect x="1060" y="80" width="105" height="16" rx="3" fill="#0a1628" opacity="0.5"/>
+  <text x="1112" y="92" text-anchor="middle" fill="#f9a8d4" font-size="8">Runtime (async)</text>
+
+  <text x="845" y="118" fill="#f9a8d4" font-size="10" font-weight="bold">Hook 1: before_agent</text>
+  <text x="855" y="138" fill="#94a3b8" font-size="9">DynamicContextMiddleware</text>
+  <text x="865" y="153" fill="#64748b" font-size="8">→ abefore_agent (async)</text>
+  <text x="865" y="168" fill="#64748b" font-size="8">→ Injects &lt;system-reminder&gt;</text>
+  <text x="865" y="183" fill="#64748b" font-size="8">→ Contains &lt;memory&gt; + &lt;current_date&gt;</text>
+  <text x="845" y="203" fill="#f9a8d4" font-size="10" font-weight="bold">Hook 2: after_agent</text>
+  <text x="855" y="223" fill="#94a3b8" font-size="9">MemoryMiddleware.after_agent()</text>
+  <text x="865" y="238" fill="#64748b" font-size="8">→ Filters messages → MemoryQueue.add()</text>
+  <text x="865" y="253" fill="#64748b" font-size="8">→ Background Timer: LLM fact extraction</text>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT: Subagents -->
+  <!-- ============================================================ -->
+  <rect x="830" y="280" width="350" height="185" rx="8" fill="#0a1a1a" stroke="#14b8a6" stroke-width="1.2" filter="url(#shadow)"/>
+  <rect x="830" y="280" width="350" height="28" rx="8" fill="url(#subagentsGrad)"/>
+  <rect x="830" y="298" width="350" height="10" fill="url(#subagentsGrad)"/>
+  <text x="1005" y="299" text-anchor="middle" fill="#0f172a" font-size="12" font-weight="bold">Subagents</text>
+  <rect x="1060" y="285" width="105" height="16" rx="3" fill="#0a1628" opacity="0.5"/>
+  <text x="1112" y="297" text-anchor="middle" fill="#5eead4" font-size="8">Runtime (async)</text>
+
+  <text x="845" y="323" fill="#5eead4" font-size="10" font-weight="bold">Hook 1: after_model</text>
+  <text x="855" y="343" fill="#94a3b8" font-size="9">SubagentLimitMiddleware</text>
+  <text x="865" y="358" fill="#64748b" font-size="8">→ aafter_model (async)</text>
+  <text x="865" y="373" fill="#64748b" font-size="8">→ Truncates task calls > max_concurrent(3)</text>
+  <text x="845" y="396" fill="#5eead4" font-size="10" font-weight="bold">Hook 2: Tool Execute</text>
+  <text x="855" y="416" fill="#94a3b8" font-size="9">task_tool() — async coroutine</text>
+  <text x="865" y="431" fill="#64748b" font-size="8">→ Creates SubagentExecutor</text>
+  <text x="865" y="446" fill="#64748b" font-size="8">→ Thread pool dispatch + 5s async polling</text>
+  <text x="865" y="461" fill="#64748b" font-size="8">→ SSE progress via get_stream_writer()</text>
+
+  <!-- ============================================================ -->
+  <!-- RIGHT: Sandbox -->
+  <!-- ============================================================ -->
+  <rect x="830" y="485" width="350" height="175" rx="8" fill="#1a1200" stroke="#f59e0b" stroke-width="1.2" filter="url(#shadow)"/>
+  <rect x="830" y="485" width="350" height="28" rx="8" fill="url(#sandboxGrad)"/>
+  <rect x="830" y="503" width="350" height="10" fill="url(#sandboxGrad)"/>
+  <text x="1005" y="504" text-anchor="middle" fill="#0f172a" font-size="12" font-weight="bold">Sandbox</text>
+  <rect x="1060" y="490" width="105" height="16" rx="3" fill="#0a1628" opacity="0.5"/>
+  <text x="1112" y="502" text-anchor="middle" fill="#fbbf24" font-size="8">Runtime (async)</text>
+
+  <text x="845" y="528" fill="#fbbf24" font-size="10" font-weight="bold">Hook: Tool Execute</text>
+  <text x="855" y="548" fill="#94a3b8" font-size="9">SandboxMiddleware → lifecycle (lazy init)</text>
+  <text x="865" y="563" fill="#64748b" font-size="8">→ abefore_agent / aafter_agent (async)</text>
+  <text x="855" y="583" fill="#94a3b8" font-size="9">ensure_sandbox_initialized(runtime)</text>
+  <text x="865" y="598" fill="#64748b" font-size="8">→ Every sandbox tool wraps body with this</text>
+  <text x="865" y="613" fill="#64748b" font-size="8">→ await provider.acquire(thread_id)</text>
+  <text x="855" y="633" fill="#94a3b8" font-size="9">ensure_sandbox_initialized_async(runtime)</text>
+  <text x="865" y="648" fill="#64748b" font-size="8">→ asyncio.to_thread(provider.acquire)</text>
+
+  <!-- ============================================================ -->
+  <!-- CONNECTION ARROWS -->
+  <!-- ============================================================ -->
+
+  <!-- Skills → before_agent (dashed blue, compile time) -->
+  <line x1="365" y1="140" x2="495" y2="147" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="5,4" marker-end="url(#arrow-blue)"/>
+  <text x="430" y="134" fill="#60a5fa" font-size="7">injects into system prompt (compile time)</text>
+
+  <!-- Tools → Tool Execute (dashed green, compile time: tools bound to model) -->
+  <line x1="365" y1="310" x2="495" y2="369" stroke="#10b981" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arrow-green)"/>
+  <text x="395" y="325" fill="#34d399" font-size="7">tools=[...] bound to model (compile time)</text>
+
+  <!-- Tools → Tool Execute (solid green, runtime: wrap_tool_call) -->
+  <line x1="365" y1="440" x2="495" y2="369" stroke="#10b981" stroke-width="1.2" marker-end="url(#arrow-green)"/>
+  <text x="395" y="415" fill="#34d399" font-size="7">wrap_tool_call / awrap_tool_call (async)</text>
+
+  <!-- before_agent → Memory (solid pink) -->
+  <line x1="705" y1="147" x2="830" y2="145" stroke="#ec4899" stroke-width="1.2" marker-end="url(#arrow-pink)"/>
+  <text x="765" y="138" fill="#f9a8d4" font-size="7">abefore_agent (async)</text>
+
+  <!-- after_model → Subagents (solid teal) -->
+  <line x1="705" y1="257" x2="830" y2="340" stroke="#14b8a6" stroke-width="1.2" marker-end="url(#arrow-teal)"/>
+  <text x="755" y="280" fill="#5eead4" font-size="7">aafter_model (async)</text>
+
+  <!-- Tool Execute → Subagents (solid teal) -->
+  <line x1="705" y1="369" x2="830" y2="430" stroke="#14b8a6" stroke-width="1.2" marker-end="url(#arrow-teal)"/>
+  <text x="755" y="390" fill="#5eead4" font-size="7">task_tool (async coroutine)</text>
+
+  <!-- Tool Execute → Sandbox (solid orange) -->
+  <line x1="705" y1="369" x2="830" y2="550" stroke="#f59e0b" stroke-width="1.2" marker-end="url(#arrow-orange)"/>
+  <text x="760" y="450" fill="#fbbf24" font-size="7">ensure_sandbox_initialized (async)</text>
+
+  <!-- after_step → Memory hook 2 (solid pink) -->
+  <line x1="705" y1="425" x2="830" y2="235" stroke="#ec4899" stroke-width="1.2" marker-end="url(#arrow-pink)"/>
+  <text x="765" y="320" fill="#f9a8d4" font-size="7">after_agent (sync, no async variant)</text>
+
+  <!-- ============================================================ -->
+  <!-- CHECKPOINTER (below loop) -->
+  <!-- ============================================================ -->
+  <rect x="460" y="540" width="280" height="65" rx="8" fill="#110b1a" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="6,3" filter="url(#shadow)"/>
+  <rect x="460" y="540" width="280" height="24" rx="8" fill="url(#checkpointerGrad)"/>
+  <rect x="460" y="554" width="280" height="10" fill="url(#checkpointerGrad)"/>
+  <text x="600" y="556" text-anchor="middle" fill="#fff" font-size="11" font-weight="bold">Checkpointer</text>
+  <rect x="645" y="544" width="82" height="14" rx="3" fill="#0a1628" opacity="0.5"/>
+  <text x="686" y="554" text-anchor="middle" fill="#c4b5fd" font-size="7">Direct Property</text>
+
+  <text x="480" y="582" text-anchor="middle" fill="#c4b5fd" font-size="9">agent.checkpointer = checkpointer</text>
+  <text x="480" y="598" fill="#94a3b8" font-size="8">Set in run_agent() before graph.astream() — not a middleware</text>
+
+  <!-- Checkpointer connection: dotted line UP to loop box (no arrowhead) -->
+  <line x1="600" y1="540" x2="600" y2="520" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="4,4"/>
+
+  <!-- ============================================================ -->
+  <!-- LEGEND -->
+  <!-- ============================================================ -->
+  <rect x="20" y="485" width="345" height="155" rx="8" fill="#1e293b" stroke="#475569" stroke-width="0.8"/>
+
+  <text x="192" y="508" text-anchor="middle" fill="#f1f5f9" font-size="12" font-weight="bold">Legend</text>
+
+  <rect x="35" y="522" width="14" height="14" rx="3" fill="#3b82f6"/>
+  <text x="57" y="534" fill="#93c5fd" font-size="10">Skills — Graph Construction Time (compile)</text>
+
+  <rect x="35" y="544" width="14" height="14" rx="3" fill="#10b981"/>
+  <text x="57" y="556" fill="#6ee7b7" font-size="10">Tools — Graph Construction + Runtime</text>
+
+  <rect x="35" y="566" width="14" height="14" rx="3" fill="#ec4899"/>
+  <text x="57" y="578" fill="#f9a8d4" font-size="10">Memory — before_agent / after_agent</text>
+
+  <rect x="35" y="588" width="14" height="14" rx="3" fill="#14b8a6"/>
+  <text x="57" y="600" fill="#5eead4" font-size="10">Subagents — after_model / Tool Execute</text>
+
+  <rect x="35" y="610" width="14" height="14" rx="3" fill="#f59e0b"/>
+  <text x="57" y="622" fill="#fbbf24" font-size="10">Sandbox — Tool Execute (lazy init)</text>
+
+  <rect x="35" y="632" width="14" height="14" rx="3" fill="#8b5cf6"/>
+  <text x="57" y="644" fill="#c4b5fd" font-size="10">Checkpointer — Direct Property (not a middleware)</text>
+
+  <!-- Line style legend -->
+  <line x1="205" y1="528" x2="240" y2="528" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,4"/>
+  <text x="248" y="532" fill="#94a3b8" font-size="9">Dashed = Graph Construction Time</text>
+
+  <line x1="205" y1="548" x2="240" y2="548" stroke="#64748b" stroke-width="1.5"/>
+  <text x="248" y="552" fill="#94a3b8" font-size="9">Solid = Runtime Hook (async)</text>
+
+  <line x1="205" y1="568" x2="240" y2="568" stroke="#8b5cf6" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <text x="248" y="572" fill="#c4b5fd" font-size="9">Dash-dot = Direct Property Assignment</text>
+
+  <!-- ============================================================ -->
+  <!-- BOTTOM: Async annotation -->
+  <!-- ============================================================ -->
+  <rect x="460" y="625" width="280" height="22" rx="5" fill="#1e293b" stroke="#475569" stroke-width="0.5"/>
+  <text x="600" y="640" text-anchor="middle" fill="#64748b" font-size="8">All runtime hooks use async/await — Sandbox, Subagents, Memory</text>
+
+  <!-- ============================================================ -->
+  <!-- SECTION: Graph construction vs Runtime split annotation -->
+  <!-- ============================================================ -->
+  <line x1="390" y1="75" x2="390" y2="520" stroke="#475569" stroke-width="0.5" stroke-dasharray="2,8"/>
+  <line x1="810" y1="75" x2="810" y2="520" stroke="#475569" stroke-width="0.5" stroke-dasharray="2,8"/>
+
+</svg>

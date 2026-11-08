@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 850 600" font-family="system-ui,-apple-system,sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="#546E7A"/></marker>
+  </defs>
+
+  <text x="425" y="24" text-anchor="middle" font-size="16" font-weight="700" fill="#263238">DeerFlow Gateway 启动流程 — lifespan()</text>
+  <text x="425" y="42" text-anchor="middle" font-size="10" fill="#78909C">uvicorn 启动 → app 就绪，接受请求</text>
+
+  <!-- ===== Step 0: Module load ===== -->
+  <rect x="175" y="58" width="500" height="42" rx="6" fill="#ECEFF1" stroke="#90A4AE" stroke-width="1.5"/>
+  <text x="425" y="76" text-anchor="middle" font-size="11" font-weight="700" fill="#455A64">module load: app = create_app()</text>
+  <text x="425" y="92" text-anchor="middle" font-size="9" fill="#607D8B">读取 Gateway 配置 · 创建 FastAPI · 注册 3 中间件 · 注册 16 Router · 挂载 lifespan</text>
+
+  <line x1="425" y1="102" x2="425" y2="122" stroke="#546E7A" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- ===== Steps 1-5: lifespan ===== -->
+  <rect x="50" y="126" width="750" height="460" rx="10" fill="#E8F5E9" stroke="#66BB6A" stroke-width="2"/>
+  <text x="425" y="152" text-anchor="middle" font-size="14" font-weight="700" fill="#1B5E20">lifespan() — AsyncExitStack 内顺序执行</text>
+
+  <!-- Step 1: Config -->
+  <rect x="75" y="168" width="700" height="55" rx="6" fill="#C8E6C9" stroke="#81C784"/>
+  <text x="90" y="188" font-size="12" font-weight="700" fill="#2E7D32">1</text>
+  <text x="110" y="188" font-size="11" font-weight="600" fill="#1B5E20">get_app_config() — 加载 config.yaml</text>
+  <text x="110" y="204" font-size="9" fill="#388E3C">config.yaml → YAML parse → config_version check → resolve $ENV_VAR → Pydantic AppConfig</text>
+  <text x="110" y="218" font-size="8" fill="#66BB6A">进程级 singleton cache · mtime 热重载 · ContextVar 运行时覆盖支持</text>
+
+  <line x1="425" y1="225" x2="425" y2="240" stroke="#81C784" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Logging -->
+  <rect x="75" y="244" width="700" height="30" rx="5" fill="#C8E6C9" stroke="#81C784"/>
+  <text x="95" y="264" font-size="11" font-weight="600" fill="#1B5E20">2. apply_logging_level(config.log_level) — 设置 deerflow/app logger 级别</text>
+
+  <line x1="425" y1="276" x2="425" y2="292" stroke="#81C784" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: langgraph_runtime -->
+  <rect x="75" y="296" width="700" height="140" rx="6" fill="#A5D6A7" stroke="#66BB6A"/>
+  <text x="95" y="316" font-size="11" font-weight="700" fill="#1B5E20">3. langgraph_runtime(app, startup_config) — 基础设施初始化</text>
+  <!-- Sub-steps -->
+  <rect x="95" y="326" width="170" height="24" rx="3" fill="#81C784"/>
+  <text x="180" y="343" text-anchor="middle" font-size="8" fill="#1B5E20">3a. make_stream_bridge</text>
+  <rect x="275" y="326" width="170" height="24" rx="3" fill="#81C784"/>
+  <text x="360" y="343" text-anchor="middle" font-size="8" fill="#1B5E20">3b. init_engine (SQLAlchemy)</text>
+  <rect x="455" y="326" width="170" height="24" rx="3" fill="#81C784"/>
+  <text x="540" y="343" text-anchor="middle" font-size="8" fill="#1B5E20">3c. make_checkpointer</text>
+  <rect x="635" y="326" width="120" height="24" rx="3" fill="#81C784"/>
+  <text x="695" y="343" text-anchor="middle" font-size="8" fill="#1B5E20">3d. make_store</text>
+
+  <rect x="95" y="356" width="220" height="24" rx="3" fill="#81C784"/>
+  <text x="205" y="373" text-anchor="middle" font-size="8" fill="#1B5E20">3e. make_run_repository (SQL)</text>
+  <rect x="325" y="356" width="220" height="24" rx="3" fill="#81C784"/>
+  <text x="435" y="373" text-anchor="middle" font-size="8" fill="#1B5E20">3f. make_thread_meta_store</text>
+  <rect x="555" y="356" width="200" height="24" rx="3" fill="#81C784"/>
+  <text x="655" y="373" text-anchor="middle" font-size="8" fill="#1B5E20">3g. make_run_event_store</text>
+
+  <rect x="95" y="386" width="280" height="24" rx="3" fill="#66BB6A"/>
+  <text x="235" y="403" text-anchor="middle" font-size="9" font-weight="700" fill="#1B5E20">3h. RunManager(store, event_store)</text>
+  <rect x="385" y="386" width="370" height="24" rx="3" fill="#66BB6A"/>
+  <text x="570" y="403" text-anchor="middle" font-size="9" font-weight="700" fill="#1B5E20">3i. reconcile_orphaned_inflight_runs (SQLite only)</text>
+
+  <line x1="425" y1="438" x2="425" y2="454" stroke="#81C784" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: Admin -->
+  <rect x="75" y="458" width="700" height="32" rx="5" fill="#C8E6C9" stroke="#81C784"/>
+  <text x="95" y="479" font-size="11" font-weight="600" fill="#1B5E20">4. _ensure_admin_user() — bootstrap agent 检查 · 迁移无 user_id 的孤立 LangGraph threads</text>
+
+  <line x1="425" y1="492" x2="425" y2="508" stroke="#81C784" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 5: Channels -->
+  <rect x="75" y="512" width="700" height="32" rx="5" fill="#C8E6C9" stroke="#81C784"/>
+  <text x="95" y="533" font-size="11" font-weight="600" fill="#1B5E20">5. start_channel_service(config) — 启动 IM Channel 监听 (Feishu/Slack/Telegram/DingTalk/...)</text>
+
+  <line x1="425" y1="546" x2="425" y2="562" stroke="#81C784" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 6: Ready -->
+  <rect x="200" y="566" width="450" height="14" rx="3" fill="#66BB6A"/>
+  <text x="425" y="577" text-anchor="middle" font-size="9" font-weight="700" fill="#1B5E20">6. yield — app 就绪，开始接受 HTTP 请求</text>
+
+  <!-- Config load order callout -->
+  <rect x="60" y="595" width="730" height="28" rx="4" fill="#FFF3E0" stroke="#FFB74D"/>
+  <text x="425" y="614" text-anchor="middle" font-size="9" fill="#E65100">Config 加载顺序: load_dotenv() → DEER_FLOW_CONFIG_PATH env → config.yaml (项目根) → config.example.yaml (version 比对) → extensions_config.json · .env</text>
+</svg>
