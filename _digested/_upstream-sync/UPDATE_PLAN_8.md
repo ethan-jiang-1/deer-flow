@@ -212,3 +212,59 @@ git diff --name-only -z v2.2.0 ethan | tr '\0' '\n' \
 # 5.5 机械校验（必须 exit 0）
 python3 _digested/_upstream-sync/tools/check_digest.py
 ```
+
+---
+
+## 6. 执行结果（2026-11-08 完成）
+
+**全部七个阶段完成，四个校验全绿。**
+
+| 校验 | 命令 | 结果 |
+|------|------|------|
+| 机械层 | `python3 _digested/_upstream-sync/tools/check_digest.py` | **exit 0**（P1 时修 66 处，P2–P6 期间新增发现即时修掉） |
+| 铁律 | `git diff v2.2.0 ethan` 三目录之外计数 | **0** |
+| 应用语料结构 | `node _deerflow_application_agent_ready_development/verify.mjs` | **exit 0** |
+| 应用语料校验器自测 | `node .../verify.test.mjs`（负例仍被拒绝） | **exit 0** |
+
+### 各阶段实际产出
+
+| 阶段 | 计划 | 实际 |
+|------|------|------|
+| P0 | 变更地图 → 本文件 | ✅ §1–§5 |
+| P1 | 机械层归零 | ✅ 66 处 + `DELETED_SOURCE_PATHS` 新规则 |
+| P2 | 14 域 × 2 批 | ✅ 19 个并行 agent，改动 123 个文件 |
+| P3 | 五个新子系统页 | ✅ 16 篇（`capabilities`4 / `knowledge`4 / `typesafe`3 / `storage`4 / `openai-decisions`4） |
+| P4 | 反向核对 | ✅ 780 个新公开符号 → 330 个未覆盖 → 补两个**完全空白**子系统（`managed-models.md` 410 行、`03-agent-package.md` 249 行） |
+| P5 | FAQ 52 篇 | ✅ 5 个并行分片，44 个文件改动 |
+| P6 | 应用语料 | ✅ 271 处版本号 + 语义复核，20 个正文/图文件 |
+| P7 | 收尾 | ✅ SYNC.md 硬规矩 7 + 三档口径；SYNC_LOG #8 执行记录 |
+
+### P4 方法论补充（下次照做）
+
+第一遍（diff → digest）只能发现「上游改了什么」，发现不了「上游新增了一整个子系统而 digest 从没写过」。
+P4 用的机械探针值得固化成常规步骤：
+
+```bash
+# 2.2.0 新增的公开符号里，digest 完全没提到的
+python3 - <<'PY'
+import re, subprocess
+def names(ref):
+    files = [f for f in subprocess.run(["git","ls-tree","-r","--name-only",ref,
+             "--","backend/packages/harness/deerflow","backend/app"],
+             capture_output=True,text=True).stdout.split() if f.endswith(".py")]
+    out = subprocess.run(["git","show"]+[f"{ref}:{f}" for f in files],capture_output=True,text=True).stdout
+    return set(re.findall(r"^(?:class|def|async def)\s+([A-Za-z_][A-Za-z0-9_]*)", out, re.M))
+added = {n for n in names("v2.2.0") - names("v2.1.0") if not n.startswith("_") and len(n) > 6}
+digest = subprocess.run(["bash","-c","find _digested _faq_on_digested -name '*.md' -print0 | xargs -0 cat"],
+                        capture_output=True,text=True).stdout
+print("\n".join(sorted(n for n in added if n not in digest)))
+PY
+```
+
+本次结果 330 个未覆盖符号，按前缀聚类后立刻暴露 `ManagedModel*`（0 命中）与 `AgentPackage*`（0 命中）两个整片空白。
+**判读要点**：数量本身不是指标，**成体系的同前缀簇**才是缺口信号——单个未提到的辅助函数通常无需补写。
+
+### 遗留
+
+- **推送待用户批准**：`main` 与 `ethan` 都需要强推，未执行。
+- 一处越界改动已被我还原：`backend/tests/support/detectors/blocking_io_changed.py` 在本次会话期间被某个并行 agent 改成了 `git cat-file --batch` 批量取版（纯性能优化，与文档同步无关，违反铁律）。原 patch 存在 `/tmp/df22/out-of-bounds-blocking-io-detector.patch`，若你认可这项优化，应作为**独立提交**进上游风格而非混进文档同步。
