@@ -1,68 +1,121 @@
 ---
-title: "还担心什么"
-description: "剩余风险、与行业沙箱方案对比、Docker 模式注意。"
+title: "剩余风险与设计取舍"
+description: "五类剩余风险（含一处此前误判为不存在的出站网络策略）、六层路径防护的设计逻辑，以及为什么是 per-thread 而非 per-user 沙箱。"
 topics: [governance, execution]
 ---
 
-# 还担心什么
+# 剩余风险与设计取舍
 
-剩余风险、与行业沙箱方案对比、Docker 模式注意。
+前四篇讲了「有什么」。本页讲「还剩下什么」和「为什么这样设计」。
 
-## 还要担心什么
+## 1. 五类剩余风险
 
-| 风险 | 现状 | 建议 |
+| 风险 | 现状 | 边界 |
 |------|------|------|
-| **Local 模式 host bash** | `allow_host_bash` 默认关，但可以被配置打开 | 生产环境必须用 Docker 或 K3s |
-| **Container escape** | Docker/K3s 依赖 container runtime 安全 | 保持 Docker/K3s 版本更新，关注 CVE |
-| **Resource exhaustion** | 无 CPU/内存限制 | 在 Docker/K3s 层配 cgroup limit |
-| **网络访问** | Agent 可以通过 curl/wget 访问外网 | 评估是否需要网络隔离（sandbox network policy） |
-| **Skills 注入** | 恶意 skill 可被 agent 加载 | Skills security scanner（LLM 扫描 + 人工审核） |
+| **Local 模式宿主 bash** | `allow_host_bash` 默认 `false`（`config.example.yaml:1720`），可被显式打开 | 打开后路径校验是唯一屏障 |
+| **容器逃逸** | Docker / K3s 依赖容器运行时安全 | 框架层无能为力 |
+| **资源耗尽** | 无 CPU / 内存 / 磁盘配额 | 需在容器/主机层限制 |
+| **出站网络** | **有策略**（见 §2） | 受限模式仅 Docker 28+ |
+| **Skills 注入** | 静态扫描 + LLM 扫描两层（`skills/security_scanner.py:97`） | 扫描是启发式，非形式化证明 |
 
-## 设计决策分析
+## 2. 出站网络策略：一处此前被漏掉的机制
 
-### 为什么是 6 层路径防穿透，而不是 1 层？
+早期版本的本页写「Agent 可以通过 curl/wget 访问外网」，没有提到框架已有出站策略。
+`config.example.yaml:1795-1808` 实际提供了三档：
 
-单一防护层（比如只做 `path.relative_to` 检查）的致命缺陷：一个 bug 全线崩溃。6 层设计的原则是**每层假设前面的层已经被绕过**：
+| 模式 | 行为 |
+|---|---|
+| `open`（默认） | 保持现状——出站不限制 |
+| `isolated` | **拒绝全部出站** |
+| `allowlist` | 只允许列出的 HTTP/HTTPS 域名 |
 
-1. 虚拟路径体系假设 tool 层翻译出了 bug → 限制 blast radius
-2. Tool 层翻译假设沙箱层出了问题 → 独立校验
-3. `allow_host_bash` 假设前面全失效了 → 最粗粒度的 kill switch
-4. CWD 注入假设命令构造有 bug → 即使路径检查漏了，命令也被限定在 workspace
-5. 路径参数校验假设 CWD 没生效 → 最后一层参数级过滤
-6. 输出脱敏假设一切正常但 host 路径意外泄露 → 信息泄露的最后防线
+```yaml
+network:
+  mode: allowlist
+  allow_domains:
+    - pypi.org
+    - files.pythonhosted.org
+  approval: prompt                  # deny | prompt
+  temporary_grant_ttl: 300          # 30-3600 seconds
+```
 
-这种设计不是 academic exercise——Local 模式下没有内核级隔离，路径翻译是唯一的屏障。6 层叠加把"翻译器 bug → agent 读 /etc/passwd"的概率压到极低。
+### 2.1 三个细节值得单独说
 
-### 为什么 per-thread 而不是 per-user 沙箱实例？
+| 细节 | 含义 |
+|---|---|
+| `approval: prompt` | **这是本框架里少有的真实人工审批点**——被拒的域名可以从 Human Input 卡片申请放行 |
+| `temporary_grant_ttl` | 放行是**有时限**的（30–3600 秒），不是永久白名单 |
+| 私网地址**始终拒绝** | 原文："Private, loopback, link-local, multicast, and cloud metadata addresses are always denied" |
 
-Per-user 共享沙箱的风险是 thread 间文件污染：thread A 创建的文件可能被 thread B 覆盖/删除/读取。Per-thread 隔离避免了并发文件操作冲突，也简化了审计——每个 thread 的操作限定在自己的 workspace。
+第三行尤其重要：**云元数据地址（169.254.169.254）始终被封**，
+这是 SSRF 提权的经典路径，框架直接堵死，且不可配置。
 
-代价是资源开销更大（N 个 thread = N 个 sandbox 实例）。Local 模式用 LRU cache（上限 256）管理 per-thread 实例，超过上限时淘汰最久未用的。
+### 2.2 适用的边界
 
-### 为什么 SandboxAudit 的高危模式是硬编码的？
+`config.example.yaml:1798-1799` 原文：
 
-不可配置的高危命令列表看似僵化，但在 Agent 安全场景中是正确的权衡：
-- **审计可证明性**：审查者可以精确知道什么会被拦截，不需要审计生产配置
-- **配置错误免疫**：`denied_commands: ["rm"]` 写错成 `denied_commands: ["rm "]` 不会导致保护失效
-- **LLM 不可预测性**：Agent 的行为不是预定义的，不能依赖"用户不会让 agent 执行危险命令"的假设
+> Restricted modes require **Docker Engine 28+** and are **not supported by Apple
+> Container or provisioner mode**.
 
-对于需要自定义高危列表的场景，建议在 Guardrail provider 层实现参数级检测——provider 能拿到 `tool_input`，可以做比 regex 更精细的判断。
+| 场景 | 受限模式可用 |
+|---|---|
+| 本地 Docker 沙箱（Docker 28+） | **是** |
+| Apple Container | **否** |
+| provisioner（K3s） | **否** |
 
-### 与行业沙箱方案的对比
+**最后一行是最需要知道的**：用 K8s Provisioner 做多租户时，
+恰好吃不到这套出站策略，网络限制需在 K8s 层（NetworkPolicy）自行实现。
 
-| 方案 | 隔离机制 | 启动延迟 | 资源开销 | DeerFlow 对应 |
-|------|---------|---------|---------|-------------|
-| **Local subprocess** | 无（共享内核） | 0ms | 极低 | Local 模式 |
-| **Docker container** | 内核 namespace + cgroup | 1-3s | 中等 | AioSandbox |
-| **K8s Pod** | Pod namespace + NetworkPolicy | 5-30s | 较高 | K3s Provisioner |
-| **gVisor (Google)** | 用户态内核（sentry） | <100ms | 中等 | 未支持 |
-| **Firecracker (AWS)** | microVM (KVM) | 125ms | 低 | 未支持 |
-| **WebAssembly** | Wasm sandbox (capability-based) | ~0ms | 极低 | 未支持 |
+实现位置：`sandbox/sandbox_provider.py:118`（`sandbox_network_mode`）、
+`:122`（`sandbox_network_temporary_grant_ttl`），
+消费点在 `sandbox/middleware.py:347` 与 `:612`。
 
-DeerFlow 的三层沙箱覆盖了主流场景，但缺少 microVM 和 Wasm 这两个新兴方向。microVM（Firecracker）提供了比容器更强的隔离（独立 guest kernel），启动速度接近容器；Wasm 提供了 capability-based 的细粒度权限控制。如果你的安全需求超过 Docker 但没到需要 K3s 的程度，可以考虑在 Docker 层配置 AppArmor/SELinux profile 来补偿。
+## 3. 为什么是六层而不是一层
 
-### Docker 模式的安全注意
+单一防护（比如只做 `path.relative_to` 检查）的缺陷是：**一个 bug 全线崩溃**。
+六层设计的原则是「每层都假设前面的层已经被绕过」：
 
-Docker 模式下 DeerFlow **显式设置 `seccomp=unconfined`**（`aio_sandbox.py`），这意味着内核允许容器内的进程调用 ~300+ 系统调用（默认 Docker seccomp profile 会阻止 ~44 个高风险 syscall）。这个设计的初衷是避免工具兼容性问题（某些 CLI 工具需要 `ptrace`、`mount` 等受限 syscall），但代价是增加了容器逃逸面。
+| 层 | 假设什么失效了 |
+|---|---|
+| 1 虚拟路径 | tool 层翻译出 bug → 限制 blast radius |
+| 2 工具层翻译 | 沙箱层出问题 → 独立校验 |
+| 3 `allow_host_bash` | 前面全失效 → 最粗粒度的开关 |
+| 4 CWD 注入 | 命令构造有 bug → 缩小默认工作目录 |
+| 5 路径参数校验 | 第 4 层没生效 → 最后一层参数过滤 |
+| 6 输出脱敏 | 一切正常但路径意外泄露 → 信息泄露的最后防线 |
 
-生产部署建议：如果不需要全量 syscall，在 Docker daemon 层面重新启用默认 seccomp profile，或者编写自定义 profile 只放行需要的 syscall。
+**这套设计的现实前提**：Local 模式下没有内核级隔离，路径翻译是唯一屏障。
+所以叠加层数不是过度设计，而是补偿。
+
+各层的真实位置与局限见 [02-path-containment.md](02-path-containment.md)。
+
+## 4. 为什么 per-thread 而非 per-user
+
+| 取向 | 好处 | 代价 |
+|---|---|---|
+| **per-thread**（现状） | thread 间文件不互相污染；审计边界清晰 | N 个 thread = N 个实例 |
+| per-user | 实例少，内存省 | thread A 的文件可被 thread B 覆盖/读取 |
+
+框架选了 per-thread，代价用 LRU 缓存控制
+（`local_sandbox_provider.py:33`，上限 256）。
+
+**这个取舍的治理含义**：「同一用户的两个 thread 互不可见」
+是由目录布局保证的，不是由身份保证的——两者在审计上的可信度不同。
+
+## 5. 缺口
+
+| 缺口 | 状态 | 边界 |
+|---|---|---|
+| CPU / 内存 / 磁盘配额 | **无** | Local 模式无 cgroup |
+| 出站网络策略（provisioner 模式） | **无** | 受限模式明确不支持 provisioner |
+| 容器逃逸防护 | **无** | 依赖运行时，框架不管 |
+| Skills 扫描的形式化保证 | **无** | 静态规则 + LLM，均为启发式 |
+| 高危文件操作的审批 | **无** | 只有网络域名放行有审批（§2.1） |
+
+## 6. 与其他章节的关系
+
+- 沙箱模式：[01-sandbox-modes.md](01-sandbox-modes.md)
+- 路径防护细节：[02-path-containment.md](02-path-containment.md)
+- 资源限额：[03-resource-limits.md](03-resource-limits.md)
+- Skills 扫描机制：[../data/03-upload-and-scanning.md](../data/03-upload-and-scanning.md) §3
+- 审批点的整体缺失：[../authorization/02-bounded-autonomy.md](../authorization/02-bounded-autonomy.md) §3

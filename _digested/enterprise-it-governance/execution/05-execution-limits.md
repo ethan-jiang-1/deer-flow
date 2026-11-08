@@ -10,11 +10,25 @@ topics: [governance, execution]
 
 ## 循环检测
 
-`LoopDetectionMiddleware` — 检测 agent 是否陷入了重复调用同一个 tool 的循环：
+`LoopDetectionMiddleware`（`agents/middlewares/loop_detection_middleware.py:278`）— 检测 agent 是否陷入了重复调用同一个 tool 的循环：
 
 - **Soft block：** 检测到重复 pattern → 注入警告消息（延迟到 `wrap_model_call` 中注入以兼容 OpenAI/Moonshot message 配对校验）
 - **Hard stop：** pattern 持续 → 清除 tool_calls → `should_continue` 路由到 END → agent 强制结束
-- 可通过 `config.yaml` 中的 `loop_detection.enabled` 开关
+- 可通过 `loop_detection.enabled` 开关（`config.example.yaml:1504`）
+
+`config.example.yaml:1504-1519` 的实际默认值：
+
+| 键 | 默认 | 作用 |
+|---|---|---|
+| `enabled` | `true` | **默认开启**（与 guardrails 相反） |
+| `warn_threshold` | 3 | 重复 3 次开始注入警告 |
+| `hard_limit` | 5 | 重复 5 次强制结束 |
+| `window_size` | 20 | 检测窗口 |
+| `max_tracked_threads` | 100 | 保留 `(thread_id, run_id)` 的历史条数 |
+| `tool_freq_warn` / `tool_freq_hard_limit` | 30 / 50 | 单工具总调用次数阈值 |
+
+最后一行还有一个实用设计：`tool_freq_overrides` 可对**单个工具**单独调高阈值
+（例子给的是 `bash` 调到 150/300），不影响其它工具的防护强度。
 
 ## Subagent 并发限制
 

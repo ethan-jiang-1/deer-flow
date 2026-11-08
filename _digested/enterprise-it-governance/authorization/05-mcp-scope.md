@@ -117,7 +117,7 @@ def requires_admin(server: McpServerConfig) -> bool:
 | 标记 | 需要 admin？ | 含义 |
 |---|---|---|
 | `personal_public_network: true` | **否** | 按普通用户策略准入（公网 server） |
-| 标记缺失 / 其他值 | **是** | 含**所有历史遗留** personal 配置 |
+| 标记缺失 / 其他值 | **是** | 含**所有历史遗留** personal 配置（无迁移，仅兼容读取） |
 
 **fail-closed 方向**：判定用的是 `is not True`，所以任何缺失的标记都落到「需要 admin」，
 而不是「放行」。注释明说 "legacy personal files require authority too"。

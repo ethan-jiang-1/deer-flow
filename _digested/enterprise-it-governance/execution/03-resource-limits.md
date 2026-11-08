@@ -1,32 +1,110 @@
 ---
 title: "资源管控与隔离"
-description: "CPU/内存/磁盘限制，per-thread 隔离。"
+description: "输出截断（可配）、命令长度与 null byte 拒绝（不可配）、sandbox 实例缓存 256、per-thread 隔离的真实边界。"
 topics: [governance, execution]
 ---
 
 # 资源管控与隔离
 
-CPU/内存/磁盘限制，per-thread 隔离。
+资源管控在这个框架里有两类：**可配的**（输出截断）和**不可配的**（安全校验）。
+两者的运维含义完全不同。
 
-## 资源管控
+## 1. 可配的限额：输出截断
 
-| 资源 | 限制 | 位置 |
-|------|------|------|
-| **Sandbox 实例数** | Local: LRU cache 256 个 per-thread sandbox | `sandbox/local/` |
-| **bash 输出** | middle truncation 20,000 字符 | `tools.py` |
-| **read_file 输出** | head 50,000 字符 | `tools.py` |
-| **ls 输出** | head 20,000 字符 | `tools.py` |
-| **命令长度** | 拒绝 >10,000 字符的 bash 命令 | `sandbox_audit_middleware.py` |
-| **null byte** | 拒绝含 null byte 的命令 | `sandbox_audit_middleware.py` |
+`config.example.yaml:1748-1750`：
 
-## Per-Thread 隔离
-
-每个 thread 有自己的 sandbox 实例。在 Local 模式下：
-
-```
-thread_1 → sandbox_id="local:thread_1" → workspace at users/alice/threads/t1/workspace
-thread_2 → sandbox_id="local:thread_2" → workspace at users/alice/threads/t2/workspace
+```yaml
+bash_output_max_chars: 20000
+read_file_output_max_chars: 50000
+ls_output_max_chars: 20000
 ```
 
-两个 thread 之间无法通过 sandbox 读写对方的文件。文件操作锁 `(sandbox_id, path)` 粒度确保同一 sandbox 内并发写同一文件时有互斥。
+| 资源 | 默认 | 截断方式 | 配置键 |
+|---|---|---|---|
+| bash 输出 | 20,000 字符 | middle（中间截断） | `bash_output_max_chars`（`backend/packages/harness/deerflow/sandbox/tools.py:2900`） |
+| `read_file` 输出 | 50,000 字符 | head | `read_file_output_max_chars`（`backend/packages/harness/deerflow/sandbox/tools.py:3300`） |
+| `ls` 输出 | 20,000 字符 | head | `ls_output_max_chars`（`backend/packages/harness/deerflow/sandbox/tools.py:3006`） |
 
+### 1.1 为什么 bash 是中间截断
+
+`backend/packages/harness/deerflow/sandbox/tools.py` 里三处的取值都遵循「配置优先、否则 20000」的模式。
+bash 输出用**中间截断**而不是头部截断，原因是：命令的头部常是进度噪音，
+而**结尾**往往在报错信息里。截中间能同时保住两端。
+
+这对「用 bash 输出判断失败原因」这件事是必要的。
+
+## 2. 不可配的校验：命令本身
+
+`sandbox_audit_middleware.py:535`：
+
+```python
+_MAX_COMMAND_LENGTH = 10_000
+```
+
+| 校验 | 行 | 行为 | 可配 |
+|---|---|---|---|
+| 命令长度 > 10,000 字符 | `:541` | **拒绝** | **否** |
+| 含 null byte | `:543-544` | **拒绝**，返回 `"null byte detected"` | **否** |
+
+**这两项为什么不该可配**：它们不是策略，是**输入合法性校验**。
+超长命令和 null byte 都可能是绕过正则匹配的手段——
+让运营方调这两个值，等于给绕过留了配置口子。
+
+和 [03-configurability.md](../authorization/03-configurability.md) §3 同一条思路：
+不可配换的是「可证明」。
+
+## 3. Sandbox 实例缓存
+
+`local/local_sandbox_provider.py:33`：
+
+```python
+DEFAULT_MAX_CACHED_THREAD_SANDBOXES = 256
+```
+
+| 事实 | 含义 |
+|---|---|
+| 默认缓存 256 个 per-thread sandbox | 内存占用随活跃 thread 数增长 |
+| LRU 淘汰 | 超出后最久未用的被回收 |
+| 回收后 thread 数据仍在磁盘 | 只回收实例，不删数据 |
+
+**第三行要注意**：淘汰的是内存里的 sandbox 实例，workspace 文件不受影响。
+但下一次访问该 thread 会重建实例，有一次性延迟。
+
+## 4. Per-thread 隔离的真实边界
+
+```
+thread_1 → sandbox_id="local:thread_1" → users/alice/threads/t1/workspace
+thread_2 → sandbox_id="local:thread_2" → users/alice/threads/t2/workspace
+```
+
+| 保证 | 强度 |
+|---|---|
+| 通过 sandbox 工具无法读写对方文件 | **有**（路径映射 + 校验） |
+| 文件操作锁 `(sandbox_id, path)` 粒度的互斥 | **有** |
+| 进程级隔离 | **无**（Local 模式同进程） |
+| 任意代码无法互相访问 | **无**——`python -c` 可绕过工具层 |
+
+**最后一行是关键**：per-thread 隔离是**路径层**的隔离，不是**进程层**的隔离。
+需要进程级隔离必须换沙箱后端（见 [01-sandbox-modes.md](01-sandbox-modes.md)）。
+
+## 5. 缺口
+
+| 缺口 | 状态 | 边界 |
+|---|---|---|
+| CPU / 内存 / 磁盘配额 | **无** | Local 模式下无 cgroup 限制 |
+| 单 thread 的磁盘用量上限 | **无** | 可无限写入直到磁盘满 |
+| 全局并发 run 上限 | **部分** | 取决于 scheduler 配置，非默认强制 |
+| per-user 资源配额 | **无** | 无按用户的汇总限制 |
+| 输出截断是否可配 | **有** | 三个键均可配（`config.example.yaml:1748-1750`） |
+| 命令校验是否可配 | **无**（有意） | 输入合法性校验，不可调 |
+
+**第一行与第二行是 Local 模式的实质短板**：
+一个 agent 跑一段 `yes > /tmp/big` 就能把磁盘写满，
+框架层没有任何机制阻止。这类资源必须由容器/主机层限制。
+
+## 6. 与其他章节的关系
+
+- 沙箱模式：[01-sandbox-modes.md](01-sandbox-modes.md)
+- 路径防护：[02-path-containment.md](02-path-containment.md)
+- 预算与递归限额：[../cost/03-budgets-and-limits.md](../cost/03-budgets-and-limits.md)
+- 策略可配置性：[../authorization/03-configurability.md](../authorization/03-configurability.md)

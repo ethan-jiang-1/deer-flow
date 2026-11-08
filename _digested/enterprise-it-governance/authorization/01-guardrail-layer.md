@@ -12,6 +12,20 @@ Tool 级授权，可插拔 provider，2.2.0 三个内置门同一协议。
 
 详见 `_digested/security/03-guardrail.md`。这里从 IT 管理视角总结关键点：
 
+### ⚠ 首先要知道：这一层默认不存在
+
+`config.example.yaml` 里 guardrails 的**四种配置方式全部是注释掉的**
+（`config.example.yaml:3272-3301`，从 `# --- Option 1` 到 `# --- Option 4`）。
+
+| 事实 | 含义 |
+|---|---|
+| 示例配置中 guardrails 整块被注释 | 复制示例文件后，**这一层不启用** |
+| 没有 provider 就没有判定 | 所有工具调用直接执行 |
+| 代码层 `fail_closed` 默认 `True`（`packages/harness/deerflow/guardrails/middleware.py:34`） | 但只在 provider 存在时才有意义 |
+
+**这是评估顺序上的第一步**：先确认 `guardrails.enabled` 与 `provider.use` 是否配了，
+再看下面这些能力。否则讨论的是「配了之后能做什么」。
+
 ### 可配置性
 
 ```yaml

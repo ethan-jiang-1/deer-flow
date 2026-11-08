@@ -55,7 +55,7 @@ topics: [governance, data, credentials]
 | 与 JWT 的关系 | **从不**从 `AUTH_JWT_SECRET` 或其他 secret 派生 |
 | 未设 env 时 | 单实例会生成 `{base_dir}/.credentials_key`（独占创建，`0600`），同一 runtime home 的 uvicorn worker 收敛到同一 key |
 | 密文格式 | `fernet:v2:<Fernet token>`；`fernet:v1:` 与裸 token 是旧格式，仍可解密 |
-| **密钥丢失** | 用它加密的所有值**不可读**；消费方当作「缺失」而不是报错 |
+| **密钥丢失** | 用它加密的所有值不可读，消费方当作「缺失」处理 —— 有回退，恢复路径**未闭合** |
 
 ### 3.1 多实例的强制检查
 
