@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" font-family="PingFang SC, sans-serif">
+  <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">PII 脱敏的覆盖边界：哪条路被洗、哪条路不洗</text>
+  <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">开关默认关闭；开启后也只作用于两类内容 —— 其余路径原样出站</text>
+  <defs><marker id="x" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+
+  <!-- toggle -->
+  <rect x="330" y="72" width="340" height="52" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+  <text x="500" y="94" text-anchor="middle" font-weight="700" font-size="13" fill="#991b1b">pii_redaction.enabled = false</text>
+  <text x="500" y="113" text-anchor="middle" font-size="10" fill="#b91c1c">出厂默认关闭 · 开启后还需配 token_secret（≥16 字符，强制）</text>
+
+  <path d="M500,124 v24" stroke="#64748b" stroke-width="1.5" marker-end="url(#x)"/>
+
+  <!-- covered -->
+  <rect x="40" y="154" width="450" height="190" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+  <text x="265" y="178" text-anchor="middle" font-weight="700" font-size="13" fill="#14532d">✓ 被脱敏的两类内容</text>
+
+  <g font-size="11">
+    <rect x="60" y="192" width="410" height="62" rx="6" fill="#ffffff" stroke="#16a34a"/>
+    <text x="76" y="212" font-weight="700" fill="#14532d">真实用户输入的消息</text>
+    <text x="76" y="230" font-size="10" fill="#166534">用户自己打的字 —— 这里最可能出现真实 PII</text>
+    <text x="76" y="246" font-size="10" fill="#15803d">→ 发送给模型前替换为占位符</text>
+
+    <rect x="60" y="264" width="410" height="62" rx="6" fill="#ffffff" stroke="#16a34a"/>
+    <text x="76" y="284" font-weight="700" fill="#14532d">远程内容的工具结果</text>
+    <text x="76" y="302" font-size="10" fill="#166534">从外部网站 / API 取回的正文</text>
+    <text x="76" y="318" font-size="10" fill="#15803d">→ 进入上下文前替换为占位符</text>
+  </g>
+
+  <!-- five toggles -->
+  <path d="M490,250 h40" stroke="#64748b" stroke-width="1.5" marker-end="url(#x)"/>
+  <rect x="540" y="154" width="420" height="190" rx="10" fill="#f8fafc" stroke="#0284c7" stroke-width="2"/>
+  <text x="750" y="178" text-anchor="middle" font-weight="700" font-size="13" fill="#0c4a6e">五个可分别开关的类型</text>
+  <g font-size="11" fill="#075985">
+    <text x="560" y="204">· redact_email　　　邮箱地址</text>
+    <text x="560" y="226">· redact_api_key　　密钥 / 令牌</text>
+    <text x="560" y="248">· redact_credit_card 银行卡号（含 Luhn 校验）</text>
+    <text x="560" y="270">· redact_phone　　　电话号码</text>
+    <text x="560" y="292">· redact_national_id 身份证件号</text>
+  </g>
+  <text x="560" y="320" font-size="10" fill="#b45309">占位符由「值」派生（keyed HMAC）</text>
+  <text x="560" y="336" font-size="10" fill="#b45309">→ 同一值在同一部署内得到同一占位符</text>
+
+  <!-- not covered -->
+  <rect x="40" y="368" width="920" height="130" rx="10" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+  <text x="60" y="392" font-weight="700" font-size="13" fill="#991b1b">✗ 不覆盖的出站路径</text>
+  <g font-size="11" fill="#7f1d1d">
+    <text x="60" y="416">① memory-extraction 走 TypeSafe 外部 API —— 这条路径不在脱敏范围内（config.example.yaml:2369-2372 明示）</text>
+    <text x="60" y="436">② thread state 里保留原文 —— 脱敏发生在「送模型」这一步，持久化的是用户原话</text>
+    <text x="60" y="456">③ UI 展示的是原文 —— 用户在界面上看到的是自己输入的完整内容</text>
+  </g>
+  <text x="60" y="480" font-size="10" fill="#64748b">结论：脱敏是「出站前的一道网」，不是「存储时的清洗」。两者不可互相替代。</text>
+
+  <!-- bottom takeaways -->
+  <rect x="40" y="512" width="920" height="56" rx="8" fill="#fffbeb" stroke="#ca8a04" stroke-width="1.5"/>
+  <text x="60" y="534" font-size="11" font-weight="700" fill="#713f12">为什么用 keyed HMAC 而不是随机占位符</text>
+  <text x="60" y="554" font-size="10" fill="#854d0e">随机占位符会让同一实体的不同出现看起来像不同实体，模型无法把「同一个人的邮箱」关联起来 —— 用密钥派生的占位符保留了可关联性，同时不含原文。</text>
+</svg>

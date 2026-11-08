@@ -10,9 +10,6 @@ topics: [governance, execution]
 
 ## 七种沙箱模式
 
-![执行边界的四层防线](figures/execution-layers.svg)
-
-
 | 模式 | `sandbox.use` | 隔离级别 | 适用场景 |
 |------|--------------|---------|---------|
 | **Local** | `deerflow.sandbox.local:LocalSandboxProvider` | 无进程隔离，共享 host 内核 | 个人开发、信任环境 |
@@ -25,5 +22,25 @@ topics: [governance, execution]
 
 > 表中 7 行对应 7 种运行模式，但只有 6 个 provider 类——Provisioner 是 AIO provider 配置 `provisioner_url` 后的一种模式。详见 [concepts/sandbox/abstract-interface-and-seven-impls.md](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。
 
-**Local 模式的特殊风险：** agent 的 bash 命令直接在 host 上执行。所有隔离依赖虚拟路径翻译——如果路径翻译有 bug，agent 就能碰到系统文件。
+### 七种模式归入三档
+
+![三种隔离级别](figures/sandbox-modes-compare.svg)
+
+图中的 Local / Provisioner / Remote 三档是按**隔离边界画在哪一层**归类：
+进程内、容器/命名空间、网络之外。七种 provider 都落在这三档里。
+
+**Local 模式的默认行为与特殊风险：**
+
+`sandbox.allow_host_bash` 默认 **`false`**（`config.example.yaml:1720`）。
+框架自己的注释写得比任何二手描述都直接（`config.example.yaml:1717-1719`）：
+
+> Host bash execution is disabled by default because LocalSandboxProvider is
+> **not a secure isolation boundary for shell access**. Enable only for fully
+> trusted, single-user local workflows.
+
+所以 Local 模式下 bash **默认不执行**。一旦把它打开，agent 的命令就**直接在 host 上跑**，
+隔离只能依赖虚拟路径翻译——路径翻译若出 bug，agent 就能碰到系统文件。
+
+**审计视角的含义**：`allow_host_bash: true` 是一个需要单独的评审动作的开关，
+不是「顺手打开让 agent 好用点」的配置项。
 

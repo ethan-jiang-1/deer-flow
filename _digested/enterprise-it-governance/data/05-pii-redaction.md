@@ -11,6 +11,9 @@ topics: [governance, data, pii]
 
 ## 1. 默认关闭
 
+![PII 脱敏的覆盖边界](figures/pii-coverage.svg)
+
+
 `config.example.yaml:1537-1538`：
 
 ```yaml

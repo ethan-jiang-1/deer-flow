@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+  <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">三种隔离级别：七种模式归入三档</text>
+  <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">七种 provider 配置归入三档；选哪档不是「安全 vs 不安全」，而是「隔离边界画在哪一层」</text>
+
+  <!-- three columns -->
+  <g font-size="11">
+    <!-- Local -->
+    <rect x="40" y="76" width="290" height="300" rx="12" fill="#fef2f2" stroke="#dc2626" stroke-width="2"/>
+    <text x="185" y="102" text-anchor="middle" font-weight="700" font-size="14" fill="#991b1b">Local</text>
+    <text x="185" y="122" text-anchor="middle" font-size="10" fill="#b91c1c">默认 provider · allow_host_bash 默认 false</text>
+
+    <text x="60" y="152" font-weight="700" fill="#7f1d1d">隔离边界</text>
+    <text x="60" y="172" font-size="10" fill="#7f1d1d">无 —— 与 Gateway 同进程同宿主</text>
+
+    <text x="60" y="200" font-weight="700" fill="#7f1d1d">仍然有的防护</text>
+    <text x="60" y="220" font-size="10" fill="#7f1d1d">· 虚拟路径映射与穿越拒绝</text>
+    <text x="60" y="238" font-size="10" fill="#7f1d1d">· SandboxAudit 命令分类</text>
+    <text x="60" y="256" font-size="10" fill="#7f1d1d">· Guardrail 工具授权</text>
+
+    <text x="60" y="284" font-weight="700" fill="#7f1d1d">挡不住的</text>
+    <text x="60" y="304" font-size="10" fill="#7f1d1d">· 未分类的命令（正则盲区）</text>
+    <text x="60" y="322" font-size="10" fill="#7f1d1d">· 出网、读环境变量、碰宿主进程</text>
+
+    <rect x="60" y="330" width="250" height="40" rx="6" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="185" y="346" text-anchor="middle" font-size="10" font-weight="700" fill="#991b1b">宿主 bash 默认关闭</text>
+    <text x="185" y="361" text-anchor="middle" font-size="9" fill="#991b1b">开启 = 假设 agent 不会主动作恶</text>
+
+    <!-- Provisioner -->
+    <rect x="355" y="76" width="290" height="300" rx="12" fill="#fffbeb" stroke="#ca8a04" stroke-width="2"/>
+    <text x="500" y="102" text-anchor="middle" font-weight="700" font-size="14" fill="#713f12">Provisioner</text>
+    <text x="500" y="122" text-anchor="middle" font-size="10" fill="#854d0e">每 thread 独立容器</text>
+
+    <text x="375" y="152" font-weight="700" fill="#854d0e">隔离边界</text>
+    <text x="375" y="172" font-size="10" fill="#854d0e">容器 —— 内核命名空间 + 独立文件系统</text>
+
+    <text x="375" y="200" font-weight="700" fill="#854d0e">仍然有的防护</text>
+    <text x="375" y="220" font-size="10" fill="#854d0e">Local 的全部 + 容器层</text>
+    <text x="375" y="238" font-size="10" fill="#854d0e">· 跨 thread 不可见</text>
+    <text x="375" y="256" font-size="10" fill="#854d0e">· 可限制资源与网络</text>
+
+    <text x="375" y="284" font-weight="700" fill="#854d0e">代价</text>
+    <text x="375" y="304" font-size="10" fill="#854d0e">· 需 K8s 或容器运行时</text>
+    <text x="375" y="322" font-size="10" fill="#854d0e">· 冷启动延迟 · 需管理生命周期</text>
+
+    <rect x="375" y="338" width="250" height="26" rx="6" fill="#fef9c3" stroke="#ca8a04"/>
+    <text x="500" y="356" text-anchor="middle" font-size="10" font-weight="700" fill="#713f12">需要额外组件（8002 端口）</text>
+
+    <!-- Remote -->
+    <rect x="670" y="76" width="290" height="300" rx="12" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/>
+    <text x="815" y="102" text-anchor="middle" font-weight="700" font-size="14" fill="#14532d">Remote</text>
+    <text x="815" y="122" text-anchor="middle" font-size="10" fill="#15803d">外部沙箱服务</text>
+
+    <text x="690" y="152" font-weight="700" fill="#166534">隔离边界</text>
+    <text x="690" y="172" font-size="10" fill="#166534">网络 + 另一套凭据体系</text>
+
+    <text x="690" y="200" font-weight="700" fill="#166534">仍然有的防护</text>
+    <text x="690" y="220" font-size="10" fill="#166534">· 与 Gateway 完全分离</text>
+    <text x="690" y="238" font-size="10" fill="#166534">· 可按沙箱服务自身策略加固</text>
+
+    <text x="690" y="284" font-weight="700" fill="#166534">代价</text>
+    <text x="690" y="304" font-size="10" fill="#166534">· 多一个信任域与一份凭据</text>
+    <text x="690" y="322" font-size="10" fill="#166534">· 数据离开本机 → 需评估跨境</text>
+
+    <rect x="690" y="338" width="250" height="26" rx="6" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="815" y="356" text-anchor="middle" font-size="10" font-weight="700" fill="#14532d">隔离最强，信任面最宽</text>
+  </g>
+
+  <!-- bottom -->
+  <rect x="40" y="400" width="920" height="132" rx="10" fill="#f8fafc" stroke="#64748b" stroke-width="1.5"/>
+  <text x="60" y="424" font-weight="700" font-size="13" fill="#334155">三档共同的边界</text>
+  <g font-size="11" fill="#475569">
+    <text x="60" y="448">· 三档都不改变「agent 继承用户身份」这一事实 —— 沙箱隔离的是执行环境，不是权限来源</text>
+    <text x="60" y="468">· 三档都不提供「执行前人工审批」—— 拦截全部是自动判定</text>
+    <text x="60" y="488">· 三档的审计都只覆盖 bash —— 文件工具不走 SandboxAudit</text>
+  </g>
+  <text x="60" y="514" font-size="10" fill="#64748b">选型只看一件事：你是否假设「agent 可能主动作恶」。若是，Local 不够；若否，Local 的三层防护已能挡住常见误操作。</text>
+</svg>
