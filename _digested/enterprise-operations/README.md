@@ -1,10 +1,10 @@
 ---
-title: "Operations — 部署、安全、运维"
+title: "Enterprise Operations — 部署、安全、运维"
 description: "把 DeerFlow 跑起来之后的事。"
 type: index
 ---
 
-# Operations — 部署、安全、运维
+# Enterprise Operations — 部署、安全、运维
 
 把 DeerFlow 跑起来之后的事。
 

@@ -73,7 +73,7 @@ location /api/v1/auth/login {
 
 ## 权限模型
 
-所有已认证用户自动获得全部 6 项权限（`threads:read/write`、`agents:read/write`、`memory:read/write`）。
+所有已认证用户自动获得全部 13 项权限（threads/runs/projects 各 3 + memory 2 + agents 2）；`authorization.enabled: true` 后才按角色收窄。
 
 ## 内部 Token 说明
 

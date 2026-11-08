@@ -1,12 +1,12 @@
 ---
 title: "认证与授权"
-description: "DeerFlow 有三条并行的认证路径，共享同一套 Gateway 中间件链。"
+description: "DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链。"
 topics: [security, auth, isolation-defense]
 ---
 
 # 认证与授权
 
-DeerFlow 有三条并行的认证路径，共享同一套 Gateway 中间件链。
+DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链。
 
 ## AuthMiddleware — 统一入口
 
@@ -169,18 +169,21 @@ IP 来源：`request.client.host`。只有配置了 `AUTH_TRUSTED_PROXIES` 才�
 
 ## 权限模型
 
-`app/gateway/authz.py:48` — 6 个权限定义：
+`app/gateway/authz.py:63-86` — 13 个权限定义：
 
 ```
 threads:read · threads:write · threads:delete
 runs:create · runs:read · runs:cancel
+projects:read · projects:write · projects:delete
+memory:read · memory:write
+agents:read · agents:write
 ```
 
 两个装饰器：
 - `@require_auth` — 验证已认证（独立于 AuthMiddleware，可直接用于路由）
 - `@require_permission("runs:cancel")` — 检查特定权限 + `owner_check`（验证 thread 归属）+ `require_existing`（对不存在返回 404 而非 403）
 
-**默认状态：** 所有 authenticated 用户获得全部 6 个权限。**当 `authorization.enabled: true` 时**，路由权限改由 `authz.py::resolve_route_permissions()` 委托给 AuthorizationProvider（见下节），`threads:*`/`runs:*` 作为 `resource="route"` 请求求值，决策按 `authorization.fail_closed` 处理。
+**默认状态：** 所有 authenticated 用户获得全部 13 个权限。**当 `authorization.enabled: true` 时**，路由权限改由 `authz.py::resolve_route_permissions()` 委托给 AuthorizationProvider（见下节），`threads:*`/`runs:*` 作为 `resource="route"` 请求求值，决策按 `authorization.fail_closed` 处理。
 
 ---
 

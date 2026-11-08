@@ -9,20 +9,22 @@ topics: [governance, compliance, audit]
 DeerFlow 不是 IT 管理平台。但它内建了一批治理原语。
 **知道这些原语在哪、覆盖什么、缺什么**，是评估部署风险的前提。
 
-本卷全部结论都附 `file:line`，可自行复核。
+![IT 治理视角：12 个管理维度 × DeerFlow 能力映射](figures/governance-overview.svg)
+
+本卷**判断性段落**附 `file:line`；介绍性文字与明确标注为部署决策的条目除外，可自行复核。
 
 ## 1. 12 个维度 × 能力矩阵
 
 | # | 维度 | 核心问题 | DeerFlow 能力 | 缺口 |
 |---|------|---------|-------------|------|
 | 1 | **身份与访问** | Agent 用谁的身份跑？ | JWT + CSRF + 内部 token + per-user 隔离（4 条认证路径） | **无 Agent 独立身份**，继承用户权限 |
-| 2 | **沙箱隔离** | Agent 能碰系统文件吗？ | 3 种沙箱模式 + 路径防穿透 + per-thread 隔离 | Local 模式共享宿主内核 |
-| 3 | **工具授权** | 谁能决定 agent 调什么工具？ | GuardrailMiddleware（可插拔 provider）+ 三道门（名单 / 风险概率 / decisions 接口） | 无 per-thread 策略；未探测的工具是绕过路径 |
-| 4 | **命令审计** | bash 里能写危险命令吗？ | SandboxAuditMiddleware：高危 block + 中危 warn | 规则硬编码；**只写日志不落库** |
-| 5 | **执行限额** | Agent 能无限跑下去吗？ | 循环检测 + 并发上限（默认执行 3 / 截断 64） + `token_budget`（默认关）+ `recursion_limit` 100 | **无货币预算**；token 预算默认关闭 |
+| 2 | **沙箱隔离** | Agent 能碰系统文件吗？ | 7 种沙箱模式（3 类隔离）+ 路径防穿透 + per-thread 隔离 | Local 模式共享宿主内核 |
+| 3 | **工具授权** | 谁能决定 agent 调什么工具？ | GuardrailMiddleware（可插拔 provider）+ 三道门（名单 / 风险概率 / decisions 接口） | 无 per-thread 配置项；未探测的工具是绕过路径 |
+| 4 | **命令审计** | bash 里能写危险命令吗？ | SandboxAuditMiddleware：高危 block + 中危 warn（JSON，只写 gateway.log） | 规则硬编码；**只写日志不落库** |
+| 5 | **执行限额** | Agent 能无限跑下去吗？ | 循环检测 + 并发上限（默认执行 3 / 截断 64） + `token_budget`（顶层默认关；子代理默认开）+ `recursion_limit` 100 | **无货币预算**；顶层 token 预算默认关闭 |
 | 6 | **内容安全** | Agent 输出有害内容怎么办？ | SafetyFinishReasonMiddleware（被动清除被污染的 tool_calls） | 无主动输出扫描；无独立输入 guardrail |
-| 7 | **审计追溯** | 出事了能查到谁干的吗？ | SandboxAudit 日志 + RunJournal + tracing | subagent 的 guardrail 事件不可见；allow 决策不留痕 |
-| 8 | **成本归属** | Agent 花了多少钱？ | TokenUsageMiddleware + subagent 用量合并 + per-model `stream_usage` | 无实时成本仪表盘；无单价表 |
+| 7 | **审计追溯** | 出事了能查到谁干的吗？ | SandboxAudit 日志 + RunJournal + tracing | subagent 的 guardrail 无决策字段；正常 allow 决策不留痕 |
+| 8 | **成本归属** | Agent 花了多少钱？ | TokenUsageMiddleware + subagent 用量合并 + per-model `stream_usage` + Console 单用户计价 | 无实时成本告警；无跨用户视图；无货币预算执行 |
 | 9 | **可观测性** | Agent 现在在干什么？ | StreamBridge SSE + heartbeat + tracing span | 无行为异常检测；无集群仪表盘 |
 | 10 | **数据治理** | 用户数据隔离吗？PII 安全吗？ | per-user 存储 + 路径脱敏 + 上传配额 + **PII 脱敏（默认关）** | PII 脱敏默认关闭；无数据分类标签 |
 | 11 | **可靠性** | Agent 挂了怎么恢复？ | LLMErrorHandling（retry + 熔断）+ ToolErrorHandling | 无 agent 级 SLO；无 error budget |
@@ -65,6 +67,8 @@ DeerFlow 不是 IT 管理平台。但它内建了一批治理原语。
 **整体 3 级偏上**——「能拦」这件事做得比「能证明」好。
 
 ## 4. 最该提前知道的三个边界
+
+![Defense-in-Depth：从请求进入到 Tool 执行，14 层防护](figures/defense-in-depth.svg)
 
 ### 4.1 Agent 没有独立身份
 

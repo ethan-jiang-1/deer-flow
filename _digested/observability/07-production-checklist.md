@@ -56,7 +56,8 @@ agent 级 SLO、实时成本预算告警、操作完整性验证、终态事件�
 | guardrail deny 审计、事件覆盖 | [enterprise-it-governance/audit/03-event-coverage.md](../enterprise-it-governance/audit/03-event-coverage.md) |
 | 操作完整性验证、终态事件原子性 | [enterprise-it-governance/audit/01-audit-chain.md](../enterprise-it-governance/audit/01-audit-chain.md) |
 | SandboxAudit 是否结构化 | [enterprise-it-governance/audit/02-sandbox-audit.md](../enterprise-it-governance/audit/02-sandbox-audit.md) |
-| agent 级 SLO、实时成本预算告警 | [enterprise-it-governance/cost/02-deployment-and-ops.md](../enterprise-it-governance/cost/02-deployment-and-ops.md) §5 |
+| agent 级 SLO / error budget | [enterprise-it-governance/cost/02-deployment-and-ops.md](../enterprise-it-governance/cost/02-deployment-and-ops.md) §5 |
+| 实时成本预算告警 | [enterprise-it-governance/cost/03-budgets-and-limits.md](../enterprise-it-governance/cost/03-budgets-and-limits.md) §5 |
 | 成本预算与限额 | [enterprise-it-governance/cost/03-budgets-and-limits.md](../enterprise-it-governance/cost/03-budgets-and-limits.md) |
 
 本页只留「上线前开什么、日常看什么、排障走哪条路、告警怎么自己补」这些**可操作**内容。

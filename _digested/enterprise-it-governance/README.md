@@ -22,9 +22,9 @@ IT 部门负责人关心的不是「middleware 怎么写的」，而是「这东
 | **[authorization/](authorization/README.md)** | 6 | **能操作什么** —— 13 个权限、Guardrail 门、MCP scope、bounded autonomy |
 | **[execution/](execution/README.md)** | 6 | **操作怎么被执行** —— 七种沙箱模式、六层路径防护、资源限额 |
 | **[data/](data/README.md)** | 7 | **数据流向哪里** —— 存储分层、脱敏、上传扫描、凭证、PII、保留期 |
-| **[audit/](audit/README.md)** | 5 | **事后能否还原** —— 三层审计、SandboxAudit、事件覆盖矩阵 |
+| **[audit/](audit/README.md)** | 5 | **事后能否还原** —— 审计链路、SandboxAudit、可观测、事件覆盖矩阵 |
 | **[compliance/](compliance/README.md)** | 5 | **能否对上条款** —— GDPR / SOC2 / ISO27001 / EU AI Act 的机制映射 |
-| **[cost/](cost/README.md)** | 5 | **花多少、怎么控** —— 成本归属、限额维度、多实例 |
+| **[cost/](cost/README.md)** | 6 | **花多少、怎么控** —— 成本归属、限额维度、多实例、并发调度 |
 | **[lifecycle/](lifecycle/README.md)** | 4 | **从生到死** —— agent 生命周期、变更控制、蔓延风险 |
 
 `lifecycle/` 与 `cost/` 是新增的两面：前者管「上线之后改了什么」，

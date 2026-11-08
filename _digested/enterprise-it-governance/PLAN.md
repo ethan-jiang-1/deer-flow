@@ -24,7 +24,7 @@ DeerFlow 与个人玩具的区别在于：**它能被企业 IT 管起来**。治
 
 | 原文档写的 | v2.2.0 实际 | 证据 |
 |---|---|---|
-| Subagent 并发「≤3」 | 64 | `packages/harness/deerflow/config/subagents_config.py:17` `MAX_CONCURRENT_SUBAGENT_CALLS = 64` |
+| Subagent 并发「≤3」 | **默认执行并发 3**；64 只是响应级截断上限 | `subagent_runtime_config.py:12`、`subagents_config.py:17` |
 | 「无 per-run 预算上限」 | 有 | `packages/harness/deerflow/config/subagents_config.py:50` `max_total_per_run` + `TokenBudgetConfig` |
 | 「Guardrail deny 不写 RunJournal」 | 已写 | `packages/harness/deerflow/guardrails/middleware.py:171` `record_middleware`（定义在 `:131`），带 `allow`/`policy_id`/`reason_codes`/`fail_closed`/`user_role`/`provider_error` |
 | `backend/.deer-flow/users/` | `{project_root}/.deer-flow/users/` | 2.2 新增 `USER.md` 与 per-user `skills/` |
@@ -177,7 +177,7 @@ _digested/
 | `01-cost-attribution.md` | 40 | 120 | Token 用量、subagent 合并、`stream_usage` + **承接** agent 级 SLO/error budget 缺口——见 §4.3 |
 | `02-deployment-and-ops.md` | 35 | 80 | 热更新、健康检查、迁移 |
 | `03-budgets-and-limits.md` | — | **110** | 🆕 **承接** `orchestration-ladder/03` 搬来的「不理想化清单」+ 九层限额的治理视角表（谁能管/能配吗/默认值/缺口）+ 实时成本预算缺口——见 §4.4 |
-| `04-multi-instance.md` | — | **100** | 🆕 `multi_instance` 8 条拒绝规则 + 多实例部署的完整治理要求（SQL/事件后端/SSE/孤儿流恢复）——见 §4.3 |
+| `04-multi-instance.md` | — | **100** | 🆕 `multi_instance` 8 条启动闸门规则（4 前置 + 4 拒绝）+ 多实例部署的完整治理要求（SQL/事件后端/SSE/孤儿流恢复）——见 §4.3 |
 
 ### 3.7 `lifecycle/` — 生命周期与变更控制
 
@@ -228,7 +228,7 @@ _digested/
 |---|---:|---|---|
 | `observability/07-production-checklist.md` | 95 | **混合体** | **切分**（见 4.3） |
 | `observability/02-run-events-and-journal.md` 的「已知缺口」节 | ~15 | 治理 | **搬** 到 `audit/03-event-coverage.md` |
-| `orchestration-ladder/03-资源预算与公平性-*.md` 的「不理想化清单」节 | ~10 | 治理 | **搬** 到 `cost/03-budgets-and-limits.md` |
+| `orchestration-ladder/03-资源预算与公平性-*.md` 的「不理想化清单」节 | ~10 | 治理 | **搬** 到 `cost/05-concurrency-and-scheduling.md` §2 |
 | `observability/04-console-and-cost.md` | 89 | 机制（Console 端点 + 计价） | **留**，成本治理判断在本卷 |
 | `internals/runtime/04-journal.md` | — | 机制 | **留** |
 | `concepts/sandbox/*` | — | 机制 | **留** |
@@ -252,14 +252,14 @@ _digested/
 
 | 缺口 | 搬到 |
 |---|---|
-| 聚合仪表盘、内置告警 | `audit/02-observability.md` |
-| guardrail deny 审计（2.2 已接入但只覆盖 `wrap_tool_call`） | `audit/01-audit-chain.md` |
-| SandboxAudit 结构化（纯文本，接 SIEM 需解析） | `audit/03-event-coverage.md` |
-| agent 级 SLO / error budget | `cost/01-cost-attribution.md` |
-| 实时成本预算告警 | `cost/03-budgets-and-limits.md` |
-| Agent 操作完整性验证（部分改善未闭合） | `audit/03-event-coverage.md` |
-| 终态事件原子性（两个事务，需 outbox） | `audit/03-event-coverage.md` |
-| 事件删除即证据失效 | `audit/03-event-coverage.md` |
+| 聚合仪表盘、内置告警 | `audit/02-observability.md` §5 |
+| guardrail deny 审计（只覆盖 `wrap_tool_call`） | `audit/03-event-coverage.md` §3 |
+| SandboxAudit 结构化（已是 JSON，只写日志） | `audit/02-sandbox-audit.md` |
+| agent 级 SLO / error budget | `cost/02-deployment-and-ops.md` §5 |
+| 实时成本预算告警 | `cost/03-budgets-and-limits.md` §5 |
+| Agent 操作完整性验证（部分改善未闭合） | `audit/01-audit-chain.md` |
+| 终态事件原子性（两个事务，需 outbox） | `audit/01-audit-chain.md` |
+| 事件删除即证据失效 | `audit/01-audit-chain.md` |
 
 搬完后 `observability/07` 保留「上线/看/排障/告警」四节，开头加一句指向本卷缺口清单。
 
@@ -268,9 +268,9 @@ _digested/
 这篇 ~200 行是机制分析（九层限额怎么叠加、谁先触发、超限长什么样），**主体留下**。
 但第 189 行的「**四、不理想化清单（"无限制"本身是发现）**」是治理判断，搬走。
 
-**九层限额表本身不搬**——它是机制核验，本卷 `cost/03` 引用它并做治理视角归纳
-（谁能管 / 能配吗 / 默认值 / 缺口）。**这不是复制**：原文按「叠加顺序」组织，
-治理视角按「可管理性」组织，是两种视图。
+**九层限额表本身不搬**——它是机制核验，本卷 `cost/05` 承接其六条「无限制」事实，
+并补 scheduler 的容量旋钮；逐层叠加顺序仍以原页为准。**这不是复制**：
+原文按「叠加顺序」组织，治理视角按「可管理性」组织，是两种视图。
 
 ### 4.5 为什么这些不搬
 
@@ -298,10 +298,10 @@ _digested/
 | # | 动作 | 文件 | 状态 |
 |---|---|---|---|
 | 1 | 从 `observability/07` 移除「已知缺口」整节 | `observability/07-production-checklist.md` | ✅ |
-| 2 | 将该节 9 条缺口按 4.3 表分落到本卷 4 篇 | `audit/01`、`audit/02`、`audit/03`、`cost/01`、`cost/03` | ✅ |
+| 2 | 将该节 9 条缺口按 4.3 表分落到本卷 5 篇 | `audit/01`、`audit/02`、`audit/03`、`cost/01`、`cost/03` | ✅ |
 | 3 | `observability/07` 开头加一句指向本卷缺口清单 | 同上 | ✅ |
 | 4 | 从 `orchestration-ladder/03` 移除「四、不理想化清单」节 | `orchestration-ladder/03-*.md` | ✅ |
-| 5 | 将「不理想化清单」内容并入本卷 `cost/03` | `cost/03-budgets-and-limits.md` | ✅ |
+| 5 | 将「不理想化清单」内容并入本卷（原计划 cost/03，后拆分到 cost/05 §2） | `cost/05-concurrency-and-scheduling.md` | ✅ |
 | 6 | `orchestration-ladder/03` 开头加一句指向本卷治理归纳 | 同上 | ✅ |
 | 7 | 校验：搬动后原文件无断链、本卷无重复叙述 | `check_digest.py` | ✅ |
 
@@ -315,7 +315,7 @@ _digested/
 | SandboxAudit 是否结构化 | `audit/02-sandbox-audit.md` |
 | agent 级 SLO、实时成本预算告警 | `cost/02-deployment-and-ops.md` §5 |
 | 成本预算与限额 | `cost/03-budgets-and-limits.md` |
-| 六条「无限制」事实 | `cost/03-budgets-and-limits.md` §7 |
+| 六条「无限制」事实 | `cost/05-concurrency-and-scheduling.md` §2 |
 
 原文件均保留一节**指路**（不是「内容仍在原处」），搬迁后 `check_digest.py` 无断链。
 
@@ -358,7 +358,7 @@ _digested/
 |---|---|---|---:|
 | **A** | `identity/` 全量（含 4 篇新建）+ `authorization/` 全量（含 2 篇新建） | 无 | ~850 |
 | **B** | `data/` + `audit/` + `compliance/`（含 4 篇新建） | **§4.7 第 1–3 条**：切分 `observability/07`，9 条缺口分落 `audit/01`·`02`·`03` 与 `cost/01`·`03` | ~1000 |
-| **C** | `cost/` + `lifecycle/` + `execution/` + `00-overview.md` + `README.md` | **§4.7 第 4–6 条**：切分 `orchestration-ladder/03`，不理想化清单并入 `cost/03` | ~450 |
+| **C** | `cost/` + `lifecycle/` + `execution/` + `00-overview.md` + `README.md` | **§4.7 第 4–6 条**：切分 `orchestration-ladder/03`，不理想化清单并入 `cost/05` | ~450 |
 
 **搬迁任务与内容写作同批完成**——切分出的内容直接落到目标篇，不设「先留占位、后补内容」的中间态。
 
@@ -409,8 +409,8 @@ _digested/
 质量不是写完了再看看，而是**每篇交付前必须过的闸门**。下面四条闸门对应四类具体的
 失败模式，每条都有可执行的检查方式。
 
-**闸门已自动化**：`_digested/enterprise-it-governance/tools/check_quality.py` 实现 §9.2–§9.7 的全部检查，
-当前跑出 26 处阻塞、27 处告警——这些就是本卷开工前的质量基线，也是终点的对照。
+**闸门已自动化（形状层）**：`_digested/enterprise-it-governance/tools/check_quality.py` 实现 §9.2 证据数、§9.3 启发式、§9.4 旧值残留、§9.6 体例、§9.7 免责声明；
+§9.5 事实登记与跨篇语义仍需人工/`--only line_symbol_strict` 抽查。
 
 ### 9.1 已发现的质量问题（现状基线）
 
@@ -484,7 +484,7 @@ done
 | **Subagent 实际执行并发** | **3**（`max_running`，上限 `le=64`） | `packages/harness/deerflow/config/subagent_runtime_config.py:12` | ✅ |
 | 两者如何合并 | `clamp_subagent_concurrency` 取小值 | `packages/harness/deerflow/config/subagents_config.py:20-25` | ✅ |
 | per-run 总量上限 | `max_total_per_run`，默认 6（区间 1–50） | `packages/harness/deerflow/config/subagents_config.py:13`、`:179` | ✅ |
-| Guardrail 决策入 journal | 是，带 6 字段 | `packages/harness/deerflow/guardrails/middleware.py:171`（定义 `:131`） | ✅ |
+| Guardrail 决策入 journal | 是，带 11 个字段（含 `agent_id`/`is_subagent`） | `packages/harness/deerflow/guardrails/middleware.py:171`（定义 `:131`） | ✅ |
 | **RBAC 权限数** | **13** | `app/gateway/authz.py:161-175` | ✅ |
 | `authorization.enabled` 未开时 | **返回全部 13 个权限** | `app/gateway/authz.py:278-281` | ✅ |
 | 登录限速默认 | 5 次 / 锁 300 秒 | `packages/harness/deerflow/config/auth_config.py:110`、`:125` | ✅ |
@@ -533,3 +533,32 @@ done
 - [ ] `compliance/` 每篇有免责声明
 - [ ] frontmatter 三项齐全，单篇 60–200 行
 - [ ] 搬迁任务（如本批有）执行完毕，原文件无残留断链
+
+## 10. 审计修复记录（2026-11-08）
+
+本轮按 [`AUDIT-FIX-PLAN.md`](AUDIT-FIX-PLAN.md) 修复 2026-11-08 全面审计发现的问题。
+修复后的校验结果：
+
+| 项 | 结果 |
+|---|---|
+| `check_quality.py` | exit 0（54 篇 / 43 内容篇 / 524 证据） |
+| `verify_anchors.py` | exit 0（561 锚点全部存在且在范围内） |
+| `check_digest.py` | exit 0 |
+| 三目录铁律 | `0` |
+| 源码 diff（`v2.2.0..HEAD`，除三目录） | 空 |
+
+主要事实订正（逐条见 `AUDIT-FIX-PLAN.md`）：
+
+- 成本：`max_total_per_run` 不再当并发；64 不再写成「不挡」；TokenBudget/价格表/Console 计价/缓存计价按源码改写。
+- 身份：PAT 过期（1–365 天）、PAT 图与路由白名单、SSO `sso_failed` 契约、`admin_emails` 首次生效、 多 IdP 绑定。
+- 授权：内置 `RbacAuthorizationProvider`、`/auth/me` 的 `permissions`、热加载与重启矩阵。
+- 执行：bash 不经过第 5 层路径校验、AIO 默认 2 CPU/2G/pids 512、subagent 超时 1800s。
+- 数据：run 事件随 thread 删除、回收站惰性清扫、blob/knowledge 驻留、PII fail-open。
+- 审计：SandboxAudit 是 JSON、证据摘要是「部分」而非「防篡改」、事件覆盖不止六个方法。
+- 生命周期/合规：kill switch 三态、自定义 agent 删除 API、版本闸门改为版本告警、合规映射四列。
+- 结构：8 个域 README 与文件树对齐；13 张 SVG 全部嵌入；`cost/03 §7` 指路改为 `cost/05 §2`。
+- 工具：`check_quality.py` 增加 README 覆盖/章节编号/旧值检查，并在声明中降级为「形状层」；
+  `verify_anchors.py` 增加 `--strict-lines` 语义提示。
+
+`b56fe3f81` 仍保持精确 revert：`main` 是上游镜像，不直接改 `main`；该性能补丁保留在
+`ethan`/`origin/ethan` 历史中，待后续单独上游化，不在本轮破坏三目录铁律。
