@@ -1,33 +1,48 @@
 ---
 title: "Internals — 内部机制深入"
-description: "当你需要理解"它为什么这样工作"而不是"怎么用它"时，来这里。"
+description: "当你要理解「它为什么这样工作」而不是「怎么用它」时，来这里：Agent Loop、Middleware、Model Layer、Config、Runtime、MCP、持久化与 2.2 新子系统的源码级契约。"
 type: index
+topics: [internals, architecture, agent-runtime, contracts]
 ---
 
 # Internals — 内部机制深入
 
-当你需要理解"它为什么这样工作"而不是"怎么用它"时，来这里。
+> **定位**：`_digested/` 的源码级机制层，13 个子目录按机制切分，回答「这条机制为什么这样设计、契约落在哪个文件、改它要动哪里」，给要读源码或写扩展的开发者。
+> **边界**：不覆盖上手与用法（[getting-started](../getting-started/README.md)、[concepts](../concepts/README.md)）；不覆盖部署、安全与合规（[enterprise-operations](../enterprise-operations/README.md)）；不覆盖测试策略（[testing](../testing/README.md)、[test-strategy](../test-strategy/README.md)）。
 
-## 子目录
+## 阅读路径
 
-| 目录 | 内容 |
-|------|------|
-| `agent-loop/` | Agent 循环核心：三层嵌套、中间件即循环、扩展点、代码追踪 |
-| `middleware/` | 中间件体系：6 hook 点、链组装、**2.2 起 39 条目位**目录（含 TerminalResponse / ModelLengthFinishReason / SafetyFinishReason）、Claude Code 对比 |
-| `model-layer/` | 模型抽象：`create_chat_model()` 工厂、thinking/vision、streaming |
-| `harness-hooks/` | 扩展点：配置热加载、单例传播、反射加载、Guardrail、MCP 拦截器、ContextVar 覆盖 |
-| `configuration/` | 配置系统：config.yaml 全字段参考、extensions_config.json、动态加载 |
-| `runtime/` | 自建运行时：RunManager、StreamBridge、Serialization、RunJournal |
-| `persistence/` | 持久化：DB/Checkpointer/Store 三后端（SQLite/Postgres/Memory）、checkpoint full/delta 双模式与 delta 历史缓存 |
-| `mcp/` | MCP 深度：Session Pool、OAuth、缓存失效、按用户凭据、Durable Task、作用域（`mcp_scope.py`） |
-| `capabilities/` | 🆕 v2.2.0 能力目录：声明式能力发现（`builtin.json` + catalog/business/runtime），执行仍归 owning runtime |
-| `knowledge/` | 🆕 v2.2.0 知识检索契约：只读 `KnowledgeSource` / `RetrievalProvider`，可选 catalog 与 filter 能力，WeKnora 等 provider |
-| `storage/` | 🆕 v2.2.0 内容寻址 blob 存储（`#4189` item 2）：`BlobRef` / `BlobStore` 契约 + 本地 FS 后端；`blob_storage.enabled` 关闭时无人写入 |
-| `typesafe/` | 🆕 v2.2.0 共用 TypeSafe(Jev) 客户端：一套传输层（生命周期/认证/重试/截止预算/错误分类）多个适配器（风险门 fail-closed vs memory fail-soft） |
-| `openai-decisions/` | 🆕 v2.2.0 OpenAI Decisions 传输（`#7005`）：与 typesafe 同槽位、不同 endpoint dialect，复用其传输生命周期 |
+1. **先看**：[agent-loop/README.md](agent-loop/README.md) — 先弄清 loop 在哪里、middleware 怎样长进 loop。
+2. **再看**：[middleware/00-overview.md](middleware/00-overview.md) — 一次 model/tool 调用究竟穿过哪些 hook。
+3. **深入**：[runtime/README.md](runtime/README.md) — 自建运行时如何把图执行、事件流与日志接成一条管道。
 
-## 跨目录文档
+## 本篇目
 
-| 文件 | 内容 |
-|------|------|
-| [`shared-utils-contract.md`](shared-utils-contract.md) | `deerflow/utils/` 里被多处依赖的不变量：事件双发、`file_io`/`assembly_io` 专用池与 ContextVar、消息身份与原文保留、thread_id 规则、端口预留、图外 oneshot LLM、outline/think-block 解析边界、"活动内容" MIME |
+| 文件 | 主题 | 深度 |
+|---|---|---|
+| [shared-utils-contract.md](shared-utils-contract.md) | `deerflow/utils/` 被多域依赖的不变量：事件双发、文件/装配线程池、消息身份、thread_id、图外 oneshot LLM | 深入 |
+| [agent-loop/README.md](agent-loop/README.md) | Agent loop 归属、middleware 即结构、扩展点、代码追踪、错误处理 | 概览 |
+| [capabilities/README.md](capabilities/README.md) | 声明式能力目录：清单、adapter、installation identity、MCP 选择 | 概览 |
+| [configuration/README.md](configuration/README.md) | 两套配置文件、字段参考、动态加载、上下文压缩 | 概览 |
+| [harness-hooks/README.md](harness-hooks/README.md) | 配置热重载、单例传播、反射加载、插件与打包扩展 | 概览 |
+| [knowledge/README.md](knowledge/README.md) | provider 中立的只读检索契约：能力位、证据、预算、失败策略 | 概览 |
+| [mcp/README.md](mcp/README.md) | MCP 会话池、OAuth、缓存失效、个人连接与 durable task | 概览 |
+| [middleware/README.md](middleware/README.md) | 39 个 middleware 条目、6 种 hook、链装配与目录 | 概览 |
+| [model-layer/README.md](model-layer/README.md) | `create_chat_model()` 工厂、thinking/vision、streaming、托管模型 | 概览 |
+| [openai-decisions/README.md](openai-decisions/README.md) | 第二个决策后端：只拥有线协议，传输继承 typesafe | 概览 |
+| [persistence/README.md](persistence/README.md) | DB/Checkpointer/Store 三后端、full/delta 双模式与历史缓存 | 概览 |
+| [runtime/README.md](runtime/README.md) | RunManager、StreamBridge、序列化、RunJournal、归属与 goal 续跑 | 概览 |
+| [storage/README.md](storage/README.md) | 内容寻址 blob 存储：契约、local_fs 后端、producer | 概览 |
+| [typesafe/README.md](typesafe/README.md) | 共用判定客户端：一套传输、多个适配器、相反失败方向 | 概览 |
+
+## 宪章与约定
+
+- 本目录无独立宪章；写作纪律沿用 [根 README](../README.md)。各子目录若有包内 `AGENTS.md`，在各自 README 的「宪章与约定」里链接。
+
+## 相关目录
+
+- [根 README](../README.md) — 全库入口与按阶段选择的阅读地图。
+- [overview](../overview/README.md) — 先看全景与架构，再进机制细节。
+- [concepts](../concepts/README.md) — 概念解释层；本目录是它的源码级下钻。
+- [observability](../observability/README.md) — 事件流、日志与追踪的观测视角（runtime 的姊妹面）。
+- [enterprise-operations](../enterprise-operations/README.md) — 安全、部署与运维的实现视角。

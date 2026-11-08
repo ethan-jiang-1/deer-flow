@@ -1,14 +1,18 @@
 ---
 title: "DeerFlow 源码研究笔记 — 开发者知识库"
-description: "## 从这里开始：按你的阶段选择"
+description: "DeerFlow 源码研究笔记的总入口：按阶段选路、按目录深入，并约定每个子目录 README 的写法。"
 type: index
+topics: [index, navigation, research]
 ---
 
 # DeerFlow 源码研究笔记 — 开发者知识库
 
+> **定位**：整个 `_digested/` 语料的入口地图——先按阶段选路，再进子目录；子目录 README 负责定位与渐进式披露。
+> **边界**：只做导航与写作约定；具体机制在 `overview/`、`concepts/`、`internals/` 等子目录，问答在 [`_faq_on_digested/`](../_faq_on_digested/README.md)。
+
 > **约束：绝不修改源代码。** `main` 分支跟踪 [bytedance/deer-flow](https://github.com/bytedance/deer-flow) 上游，`ethan` 分支承载所有研究内容。
 
-## 从这里开始：按你的阶段选择
+## 阅读路径
 
 | 你想… | 去这里 | 重点文件 |
 |--------|--------|---------|
@@ -28,7 +32,7 @@ type: index
 | 🪜 编排原语阶梯 | [orchestration-ladder/](orchestration-ladder/) | 跨原语统一视角：完成语义与崩溃窗口、状态三分法、资源预算叠加、选择语义边界句、goal 驾驶座、LangGraph 能力面榨取、组合模式、谱系与冷恢复、外部叙事核对、图计算本质重述（借鉴 DSH ladder 方法） |
 | 🔄 跟上游同步 | [_upstream-sync/](_upstream-sync/) | 当前同步点、同步流程、机械校验器 `_digested/_upstream-sync/tools/check_digest.py` |
 
-## 目录结构
+## 本篇目
 
 ```
 _digested/
@@ -57,6 +61,26 @@ _digested/
 - `figures/` — SVG 图（在浏览器中打开渲染）
 - 子目录按主题组织（如 `internals/agent-loop/`）
 
+## README 约定（每个子目录）
+
+每个子目录的 `README.md` 都是 **`type: index`**，固定六段，保证「先定位、再选读、最后深入」：
+
+1. **定位 / 边界**（引用块）：这个目录是什么、回答什么问题、不覆盖什么（指向兄弟目录）。
+2. **阅读路径**：先看 → 再看 → 深入，3 步以内，每步一个文件 + 一句话。
+3. **本篇目**：`文件 | 主题 | 深度` 三列表；不把正文搬进 README。
+4. **宪章与约定**：有独立宪章（`SYNC.md` / `PLAN.md` / `01-doctrine.md` / `10-runtime-participation-rules.md` 等）就链接；没有就写「沿用根 README」，不硬造。
+5. **相关目录**：父级 / 兄弟目录，各一句话。
+6. **长度**：目标 40–100 行；超过 100 行时，把同步历史、详细清单压成 3–5 条并链到正文页，README 只留索引与一句话结论。
+
+> 这套约定的目的是**渐进式披露**：读者先花 30 秒知道「这里该不该进」，再花 5 分钟读入口篇，最后才进正文。
+
+
+## 宪章与约定
+
+- [README 约定（每个子目录）](#readme-约定每个子目录) — 本文件下方，所有子目录 README 的六段模板。
+- [上游同步宪章](_upstream-sync/SYNC.md) — `main`/`ethan` 的分工、同步流程与机械校验器。
+- **写作纪律**：不修改源码、结论带 `file:line`、缺口写三态（无 / 有但不覆盖 / 部分闭合）。
+
 ## 工作流
 
 - `main` = 上游镜像，**禁止直接修改**
@@ -73,6 +97,11 @@ _digested/
 | 15 分钟 | + `overview/03-logical-architecture.md` + `overview/06-startup-flow.md` | Agent Loop 怎么跑、启动全流程 |
 | 30 分钟 | + `concepts/lead-agent/` + `concepts/sandbox/` + `concepts/subagent/` | 三大核心抽象 |
 | 60 分钟 | + `concepts/skills-tools/` + `concepts/memory/` + `internals/middleware/00-overview.md` | 全部核心概念 |
+
+## 相关目录
+
+- [`_faq_on_digested/`](../_faq_on_digested/README.md) — 问答体，按问题检索。
+- [`_deerflow_application_agent_ready_development/`](../_deerflow_application_agent_ready_development/) — 应用开发路径与落地手册。
 
 ## 🤖 AI Agent 快速检索
 

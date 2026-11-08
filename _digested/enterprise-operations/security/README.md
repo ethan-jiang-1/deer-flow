@@ -2,34 +2,39 @@
 title: "安全与信任边界"
 description: "一段用户 prompt 到 agent 执行 `rm -rf /` — 中间有多少层防护？"
 type: index
+topics: [security, defense-in-depth, sandbox, guardrail]
 ---
 
 # 安全与信任边界
 
-一段用户 prompt 到 agent 执行 `rm -rf /` — 中间有多少层防护？
+> **定位**：实施视角的安全卷——从 Auth 到 OS 隔离的纵深防御、七种沙箱的 13 维差异、Guardrail 与 SandboxAudit 的分工，以及 v2.2.0 的扩展能力授予面。给做安全加固与上线评审的运维/安全工程师看。
+> **边界**：控制点该不该批、缺口如何定级见 [企业 IT 治理卷](../../enterprise-it-governance/README.md)；部署与镜像构建见 [deployment/](../deployment/README.md)。
 
-**回答的核心问题**：纵深防御层次（从 Auth 到 OS 隔离）、七种沙箱的 13 维差异对比、Guardrail 与 SandboxAudit 的分工、端到端信任边界上的每道防线在代码中的位置、以及 🆕 2.2.0 的扩展能力授予面。
+## 阅读路径
 
-> **约束：不修改项目源代码。** 本 `_digested/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
+1. **先看**：[00-overview.md](00-overview.md) — 纵深防御同心圆、认证凭据路径、隔离对比与已知缺陷。
+2. **再看**：[04-trust-boundary.md](04-trust-boundary.md) — 16 层防护在代码中的位置与端到端执行流。
+3. **深入**：[06-extension-boundary.md](06-extension-boundary.md) — 插件逐项授予、`host_access`、model invocation 预算、skill 发布闸门。
 
-## 阅读顺序
+## 本篇目
 
-| 文件 | 内容 |
-|------|------|
-| **00-overview.md** | 全景：纵深防御同心圆图、认证凭据路径图、隔离对比表、已知缺陷 |
-| **01-auth.md** | 认证授权：JWT + PAT + CSRF + Internal Token + 登录限流 + 权限模型（Phase 4 effective permissions 贯通） |
-| **02-sandbox-isolation.md** | 沙箱隔离：三档对比(13维)、allow_host_bash、6层路径防穿越 |
-| **03-guardrail.md** | Guardrail + 审计：可插拔授权、高危命令拦截、MCP 结果清洗、blocked payload elision、输出安全 |
-| **04-trust-boundary.md** | 端到端信任链：16 层防护（2.1 的 14 层 + 🆕 插件 action/管理授权）在代码中的位置和执行流 |
-| **05-production-auth-setup.md** | 生产认证配置：JWT 环境变量、多用户隔离、Nginx 速率限制分步指南 |
-| 🆕 **06-extension-boundary.md** | 扩展安全边界：plugin action/management 授权目标、host_access 授予、model invocation 预算、skill mutation 发布闸门、completed-run evidence |
+| 文件 | 主题 | 深度 |
+|---|---|---|
+| [00-overview.md](00-overview.md) | 安全全景：同心圆、凭据路径、已知缺陷 | 概览 |
+| [01-auth.md](01-auth.md) | 认证授权：JWT + PAT + CSRF + Internal Token + 限流 + 权限模型 | 深入 |
+| [02-sandbox-isolation.md](02-sandbox-isolation.md) | 沙箱隔离：三档 13 维对比、`allow_host_bash`、6 层路径防穿越 | 深入 |
+| [03-guardrail.md](03-guardrail.md) | Guardrail + 审计：可插拔授权、高危命令拦截、输出安全 | 深入 |
+| [04-trust-boundary.md](04-trust-boundary.md) | 端到端信任链：16 层防护的位置与执行流 | 概览 |
+| [05-production-auth-setup.md](05-production-auth-setup.md) | 生产认证配置：JWT 环境变量、多用户隔离、Nginx 限速 | 概览 |
+| [06-extension-boundary.md](06-extension-boundary.md) | 扩展安全边界：授权目标、宿主授予、发布闸门 | 深入 |
 
-## 关键问题
+## 宪章与约定
 
-- 七种沙箱差多少？→ `02-sandbox-isolation.md` 13 维对比表
-- `allow_host_bash: false` 到底防了什么？→ `02-sandbox-isolation.md` LocalSandbox 节
-- Guardrail 和 SandboxAudit 有什么区别？→ `03-guardrail.md`
-- 🆕 TypeSafe / OpenAI Decisions 这两个风险门有什么不同？→ `03-guardrail.md` 三道工具级风险门表
-- 🆕 插件能拿到什么、拿不到什么？→ `06-extension-boundary.md`
-- 从请求到执行经过多少层检查？→ `04-trust-boundary.md` 链路图
-- 最大的安全短板是什么？→ `00-overview.md` 已知缺陷表
+- 本目录无独立宪章；写作纪律沿用 [根 README](../../README.md)。
+- 安全判断以 `file:line` 为据，版本基线 v2.2.0。
+
+## 相关目录
+
+- [Enterprise Operations 总览](../README.md) — 部署、通道、API 与运维全景。
+- [Deployment](../deployment/README.md) — Docker Compose、Nginx 与 K3s Provisioner。
+- [企业 IT 治理卷](../../enterprise-it-governance/README.md) — 控制点与缺口的判断面。

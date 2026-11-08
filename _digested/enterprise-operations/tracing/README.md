@@ -1,33 +1,40 @@
 ---
 title: "Tracing — 追踪系统"
-description: "| 文件 | 内容 |"
+description: "LangSmith + Langfuse 双 provider、两层附着策略，以及请求级 `X-Trace-Id` 与中间件审计事件。"
 type: index
+topics: [tracing, langsmith, langfuse, trace-id]
 ---
 
 # Tracing — 追踪系统
 
-## 文件索引
+> **定位**：排障与可观测视角的追踪说明——trace 挂在哪一层、双 provider 怎么选、请求 id 从哪来，以及审计事件如何随 run 落库。给接 tracing 后端和查线上问题的工程师看。
+> **边界**：日志、事件流与 Console 的全貌见 [observability/](../../observability/README.md)；成本归因见 [enterprise-it-governance/cost/](../../enterprise-it-governance/cost/README.md)。
 
-| 文件 | 内容 |
-|------|------|
-| [langsmith-langfuse-dual-provider.md](langsmith-langfuse-dual-provider.md) | 全景：两层附着策略、LangSmith/Langfuse 双 provider、工厂模式、Langfuse v4 合约、元数据注入、配置、环境标签 |
-| [trace-ids-and-audit-events.md](trace-ids-and-audit-events.md) | 请求级 `X-Trace-Id` 无条件签发、非 HTTP 入口点绑定、loop detection / deferred tool promotion 审计事件持久化 |
+## 阅读路径
 
-## 关键设计决策
+1. **先看**：[langsmith-langfuse-dual-provider.md](langsmith-langfuse-dual-provider.md) — 两层附着策略、双 provider、工厂模式与 Langfuse v4 合约。
+2. **深入**：[trace-ids-and-audit-events.md](trace-ids-and-audit-events.md) — `X-Trace-Id` 无条件签发、非 HTTP 入口绑定、审计事件持久化。
 
-- **图根级别附着 > 模型级别附着** — Langfuse v4 只在 `on_chain_start(parent_run_id=None)` 时将 metadata 提升到根 trace
-- **`inject_langfuse_metadata()` 双路径共享** — Gateway worker 和嵌入式 client 走同一个 helper，防止漂移
-- **调用者覆盖优先** — `setdefault` 确保前端设置的 `langfuse_session_id` 不被覆盖
-- **LangSmith-only 零影响** — `build_langfuse_trace_metadata()` 在 Langfuse 未启用时返回 `{}`
-- **trace id 无条件签发（#5119）** — `X-Trace-Id` 不受任何配置门控；`logging.enhance.enabled` 只管日志输出，ContextVar 是唯一源，其余载体都是派生输出
-- **审计事件只记元数据** — `middleware:loop_detection` / `middleware:tool_promotion` 经 RunJournal 落 run event store，不含工具参数或消息内容，失败绝不打断 agent run
+## 本篇目
 
-## 测试覆盖
+| 文件 | 主题 | 深度 |
+|---|---|---|
+| [langsmith-langfuse-dual-provider.md](langsmith-langfuse-dual-provider.md) | LangSmith / Langfuse 双 provider 与元数据注入 | 概览 |
+| [trace-ids-and-audit-events.md](trace-ids-and-audit-events.md) | 请求级 trace id 与中间件审计事件 | 深入 |
 
-| 测试文件 | 覆盖范围 |
-|---------|---------|
-| `test_tracing_factory.py` | factory — provider 检测、异常传播、空 provider 返回 `[]` |
-| `test_tracing_metadata.py` | metadata — 所有字段映射、空值回退、tags 生成、`deerflow_trace_id` 恒写入 |
-| `test_worker_langfuse_metadata.py` | worker 注入 — `inject_langfuse_metadata` 在 `run_agent()` 中正确合并 |
-| `test_client_langfuse_metadata.py` | client 注入 — `DeerFlowClient.stream()` 同样调用共享 helper |
-| `test_trace_middleware.py` / `test_trace_entry_points.py` / `test_worker_trace_binding.py` | 请求 trace id — HTTP 中间件、三个非 HTTP 入口绑定、worker 盖章与调用方回声拒绝 |
+### 两篇怎么分工
+
+- 前者管**去哪**：provider 工厂、图根/模型两级附着、`inject_langfuse_metadata()` 双路径共享。
+- 后者管**凭什么串起来**：trace id 无条件签发且 ContextVar 是唯一源；loop detection / tool promotion 只记元数据，失败不打断 run。
+
+## 宪章与约定
+
+- 本目录无独立宪章；写作纪律沿用 [根 README](../../README.md)。
+- 机制与结论以 `file:line` 为据，版本基线以各页标注为准（当前 v2.2.0）。
+
+## 相关目录
+
+- [Enterprise Operations 总览](../README.md) — 部署、安全、通道与 API 全景。
+- [observability/](../../observability/README.md) — 日志关联、RunEvent 事件流与 Console 调试。
+- [security/](../security/README.md) — 审计与防线的实施视角。
+- [根 README](../../README.md) — 全库阅读地图与 README 约定。

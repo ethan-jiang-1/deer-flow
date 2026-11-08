@@ -1,60 +1,47 @@
 ---
 title: "Agent Loop — 技术内核"
-description: "DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tools → model 再产生 tool_calls → ... 直到 model 输出纯文本。这个循环本身不复杂，复杂的是**循环"
+description: "DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tools → 直到输出纯文本；复杂的是循环每一圈上挂了多少东西——middleware 洋葱链、Pregel superstep 与 subagent 三层嵌套。"
 type: index
+topics: [agent-loop, langgraph, middleware, extension-points]
 ---
 
 # Agent Loop — 技术内核
 
-DeerFlow 的核心是一个 agent loop：model 产生 tool_calls → 执行 tools → model 再产生 tool_calls → ... 直到 model 输出纯文本。这个循环本身不复杂，复杂的是**循环每一圈上挂了多少东西**。
+> **定位**：回答「loop 到底在哪（谁的代码在循环）、middleware 怎么嵌进 loop、想扩展应从哪一层加」，给要改 agent 行为或排查循环问题的开发者。
+> **边界**：不逐个介绍 middleware 条目（去 [../middleware/](../middleware/README.md)）；不覆盖运行管道与 SSE 传输（去 [../runtime/](../runtime/README.md)）；不覆盖模型适配（去 [../model-layer/](../model-layer/README.md)）。
 
-**回答的核心问题**：agent loop 到底在哪（谁的代码在循环）、middleware 怎么嵌入 loop、想扩展应该从哪个层面加。
+## 阅读路径
 
-> **约束：不修改项目源代码。** 本 `_digested/` 下所有内容仅作研究记录。详见 [根 README](../README.md)。
+1. **先看**：[00-loop-anatomy.md](00-loop-anatomy.md) — 谁在循环、怎么循环、边界在哪。
+2. **再看**：[01-middleware-as-loop.md](01-middleware-as-loop.md) — middleware 不是 loop 外面的装饰，它就是 loop 的结构。
+3. **深入**：[03-code-trace.md](03-code-trace.md) — 从 `run_agent()` 到 Pregel `tick()` 的完整调用链。
 
-## 阅读顺序
+## 本篇目
 
-| 文件 | 内容 |
-|------|------|
-| **00-loop-anatomy.md** | Agent loop 本身：谁在循环、怎么循环、边界在哪 |
-| **01-middleware-as-loop.md** | 中间件不是 loop 外的东西——它就是 loop 本身的结构 |
-| **02-extension-points.md** | 从内到外的扩展点：怎么加 tool、怎么加 middleware、怎么加 subagent |
-| **03-code-trace.md** | 代码路径追踪：从 `run_agent()` 到 Pregel `tick()` 的完整调用链，每步标注谁负责 |
-| **04-error-handling-and-debugging.md** | 🆕 错误处理与调试：loop detection、LLM 重试、tool 元数据、日志、认证、大文件 |
+| 文件 | 主题 | 深度 |
+|---|---|---|
+| [00-loop-anatomy.md](00-loop-anatomy.md) | 循环主体、LangGraph compiled graph、三层嵌套、subagent 与 Stream Bridge 的绑定 | 概览 |
+| [01-middleware-as-loop.md](01-middleware-as-loop.md) | middleware 洋葱链如何构成 loop、hook 点在执行路径上的位置 | 概览 |
+| [02-extension-points.md](02-extension-points.md) | 从内到外：加 tool / middleware / subagent 的选择 | 深入 |
+| [03-code-trace.md](03-code-trace.md) | `run_agent()` → `agent.astream()` → `PregelLoop.tick()` 逐层追踪 | 深入 |
+| [04-error-handling-and-debugging.md](04-error-handling-and-debugging.md) | loop detection 双层检测、LLM 重试、tool 错误元数据、日志与调优 | 深入 |
 
-## 关键问题
+## 宪章与约定
 
-- Agent 的 "一圈 step" 到底发生了什么？→ `00-loop-anatomy.md`
-- 这个 loop 是自己写的还是 LangGraph 的？→ `00-loop-anatomy.md` 核心发现 + `03-code-trace.md` 精确代码路径
-- middleware 跟 loop 是什么关系？→ `01-middleware-as-loop.md`
-- 我想往里加东西，应该从哪个层面加？→ `02-extension-points.md`
-- Subagent 的 loop 跟主 agent 的 loop 有什么不同？→ `00-loop-anatomy.md` Subagent 部分
-- 前后端之间的 SSE stream 怎么跟 loop 绑定的？→ `00-loop-anatomy.md` Stream Bridge 部分
-- **loop 的 while 循环代码到底在哪？** → `03-code-trace.md` Layer D：PregelLoop.tick()
-- **DeerFlow 真的利用了 LangChain 的 middleware 吗？** → `03-code-trace.md` Layer E：100% 利用
+- 本目录无独立宪章；写作纪律沿用 [根 README](../README.md)。
 
-## 核心结论（先看完再读详细篇）
+## 相关目录
 
-1. **DeerFlow 没有手写 while 循环** —— loop 在 LangGraph 的 `PregelLoop.tick()` 里（`langgraph/pregel/_loop.py`）。DeerFlow 的 `async for chunk in agent.astream()` 是**消费端**，不是循环本身
-2. **DeerFlow 100% 利用了 LangChain 的 middleware hook 体系** —— 39 个 middleware 条目位全部是标准 `AgentMiddleware` 子类（或标准类实例的组合），没有自己发明 hook 协议
-3. **middleware 不是 loop 外面的装饰，它就是 loop 的**结构——每个 hook 点（before_model / after_model / wrap_tool_call 等）精确嵌入 graph 的执行路径
-4. **三层循环嵌套**：Pregel superstep loop（LangGraph）→ middleware 洋葱链（LangChain compose + DeerFlow 实现）→ subagent loop（DeerFlow 独立线程）
-5. **Loop Detection 的警告不放在 after_model 里**是有意为之——为了不破坏 OpenAI/Moonshot 的 tool-call pairing 校验
+- [internals 父级](../README.md) — 13 个内部机制子目录的总入口。
+- [middleware](../middleware/README.md) — 6 种 hook 点与 39 个条目位的完整目录。
+- [runtime](../runtime/README.md) — `run_agent()` 所在的运行管道、流发布与 journal。
+- [model-layer](../model-layer/README.md) — loop 每圈调用的模型工厂与 streaming。
+- [harness-hooks](../harness-hooks/README.md) — 面向扩展作者的 hook 接线与动态加载。
 
-## 源文件索引
+## 速览
 
-| 组件 | 路径 |
-|------|------|
-| Agent loop 入口 | `packages/harness/deerflow/runtime/runs/worker.py:run_agent()` |
-| Lead agent 工厂 | `packages/harness/deerflow/agents/lead_agent/agent.py:_make_lead_agent()` |
-| Middleware 装配 | `packages/harness/deerflow/agents/lead_agent/agent.py:build_middlewares()`（v2.1.0 公开名；旧 `_build_middlewares` 已不存在） |
-| Runtime middlewares | `packages/harness/deerflow/agents/middlewares/tool_error_handling_middleware.py:build_lead_runtime_middlewares()` |
-| Subagent 执行器 | `packages/harness/deerflow/subagents/executor.py:SubagentExecutor._aexecute()` |
-| Loop 检测 | `packages/harness/deerflow/agents/middlewares/loop_detection_middleware.py` |
-| RunManager | `packages/harness/deerflow/runtime/runs/manager.py` |
-| StreamBridge | `packages/harness/deerflow/runtime/stream_bridge/` |
-| 前端 SSE 消费 | `frontend/src/core/threads/hooks.ts` |
-| Middleware 定位装饰器 | `packages/harness/deerflow/agents/features.py:@Next/@Prev` |
-| **LangChain create_agent** | `langchain/agents/factory.py` (v1.2.15, 1870 行) — 构建 StateGraph、compose 洋葱链 |
-| **LangGraph Pregel** | `langgraph/pregel/__init__.py` + `_loop.py` — BSP superstep 循环 |
-| **LangChain AgentMiddleware** | `langchain/agents/middleware/types.py` (v1.2.15) — 基类、6 种 hook、ModelRequest/ModelResponse 类型 |
+- **loop 不在 DeerFlow 里**：`async for chunk in agent.astream()` 是消费端，真正的 `while` 在 LangGraph 的 `PregelLoop.tick()`。
+- **三层嵌套**：Pregel superstep loop（LangGraph）→ middleware 洋葱链（LangChain compose + DeerFlow 实现）→ subagent loop（DeerFlow 独立线程）。
+- **100% 复用标准 hook**：39 个条目位全部是 `AgentMiddleware` 子类或标准类实例的组合，没有自造 hook 协议。
+- **Loop Detection 的警告故意不进 `after_model`**：避免破坏 OpenAI/Moonshot 的 tool-call pairing 校验（依据见 [00](00-loop-anatomy.md)）。
+- **源码入口**：`runtime/runs/worker.py:run_agent()`、`agents/lead_agent/agent.py:_make_lead_agent()` / `build_middlewares()`、`subagents/executor.py:_aexecute()`；loop 本体在 `langgraph/pregel/_loop.py`，`@Next/@Prev` 在 `agents/features.py:42-63`。

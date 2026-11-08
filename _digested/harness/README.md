@@ -1,41 +1,47 @@
 ---
 title: "harness — 代码仓库对 coding agent 友好度研究"
 description: "本目录调研「一个仓库/项目如何做到对 coding agent（Claude Code、Codex、Cursor、DeerFlow 等）友好」：公认标准、模式与反模式，以一手来源为准，含五维评估框架、60 条审计清单与真实案例精读。"
+type: index
+topics: [harness, coding-agent, agents-md, ax]
 ---
 
 # harness — 代码仓库对 coding agent 友好度研究
 
-> 本目录回答一个问题：**一个代码仓库要怎样组织，才能让 coding agent 高效工作？** 所有论断尽量给出一手来源（官方文档 / 规范原文 / 厂商工程博客）的 markdown 链接。专题配图见各篇 `figures/`。
+> **定位**：回答一个问题——**一个代码仓库要怎样组织，才能让 coding agent 高效工作？** 覆盖公认标准、各厂商的仓库指引机制、工具与测试接口设计、真实案例与可勾选审计清单；给要改造仓库或审计 agent 友好度的工程团队看。
+> **边界**：做通用标准与横向案例研究，不替代 DeerFlow 的专项工程质量评估（见 [harness-engineering/](../harness-engineering/README.md)），也不做其运行时机制解剖（见 [internals/](../internals/README.md)）。
+
+**一句话结论**：**AGENTS.md 已成事实标准，但友好度取决于三件事**——可预测的指令入口与分层就近、可自主闭环的确定性验证命令、以及把软指令升级为 hooks / permissions 的硬约束；AX = DX + 无状态读者、注意力预算、自主执行体三个新约束。
 
 ## 阅读路径
 
-| 你想… | 去这里 | 重点 |
-|--------|--------|------|
-| 快速了解框架与反模式 | [01-what-makes-repo-agent-friendly.md](01-what-makes-repo-agent-friendly.md) | AGENTS.md 规范 + 各厂商机制对照表 + 五维评估框架 + 反模式速查表 |
-| 理解概念背景 | [02-ax-from-dx-to-ax.md](02-ax-from-dx-to-ax.md) | DX→AX 演化、Builder.io 七原则、AX 与可维护性异同（图：[dx-to-ax](figures/dx-to-ax.svg)） |
-| 深挖各 harness 怎么消费仓库 | [03-harness-consumption-deep-dive.md](03-harness-consumption-deep-dive.md) | Claude Code / Codex / Cursor / Aider / Gemini CLI / DeerFlow 的注入时机、预算上限、失败模式（图：[context-injection-pipeline](figures/context-injection-pipeline.svg)） |
-| 设计面向 agent 的接口 | [04-tool-and-interface-design.md](04-tool-and-interface-design.md) | 命名空间、返回值 token 预算、错误可行动性、聚合操作、工具数量（图：[tool-lifecycle](figures/tool-lifecycle.svg)） |
-| 建设测试基建 | [05-verifiability-and-test-infra.md](05-verifiability-and-test-infra.md) | 验证闭环六原则 + deer-flow 真实测试布局印证（图：[verification-loop](figures/verification-loop.svg)） |
-| 看真实仓库怎么做 | [06-case-studies.md](06-case-studies.md) | openai/codex、apache/airflow、electron、temporal-sdk-java、deer-flow 精读与横向对比 |
-| 动手审计一个仓库 | [07-audit-checklist.md](07-audit-checklist.md) | 60 条可勾选检查项（每条含查法/合格标准/依据）+ 打分与权重建议（图：[audit-framework](figures/audit-framework.svg)） |
-| 看 deer-flow 的实测得分 | [08-deerflow-audit.md](08-deerflow-audit.md) | 按 07 篇 60 条对本仓库逐条实证审计：总评 A-、五维得分、Top 问题与整改路线图 |
-| 用 DSH 的镜片给本仓库打分 | [09-dsh-eval-harness.md](09-dsh-eval-harness.md) | **自说明版**：记分法全部机制内嵌（28 个维度记号、两轴档位、封顶、红绿、MG 档、活体实验与反证动作——§0，不依赖任何外部文档），给 deer-flow v2.1.0 的 28 维打分：开发侧 10 红 / 7 绿、运行时侧 6 红 / 5 绿，两侧均 MG1、达标线未达；EV2 负例控制 0/0 与模型可见面不落盘是两根钉子，**后者已由 LX1 在真实部署记录上活体实证**（input_tokens 8715 vs 可见几个 token）；含切片走查、gap 清单与施工顺序，并与 08 篇的 A- 对照（图：[deerflow-dsh-scorecard](figures/deerflow-dsh-scorecard.svg)） |
-| 看参与规则住在哪一层 | [10-runtime-participation-rules.md](10-runtime-participation-rules.md) | 五个运行时问题逐问取证（能力可见性、依赖未就绪、同名隔离、清理归属、配置到树）；三层载体分布与"测试即门禁"形态，缺口如实登记（图：[participation-layers](figures/participation-layers.svg)） |
+1. **先看**：[01-what-makes-repo-agent-friendly.md](01-what-makes-repo-agent-friendly.md) — 五维评估框架、各厂商机制对照与反模式速查，先建立判断坐标。
+2. **再看**：[03-harness-consumption-deep-dive.md](03-harness-consumption-deep-dive.md) — Claude Code / Codex / Cursor / Aider / Gemini CLI / DeerFlow 各自在何时、按什么预算消费仓库。
+3. **深入**：[09-dsh-eval-harness.md](09-dsh-eval-harness.md) — 自说明版 28 维记分法，以及在 deer-flow 上的红绿结果与活体实证。
 
-## 关键结论速览
+## 本篇目
 
-1. **指令文件已成为事实标准**：[AGENTS.md](https://agents.md/) 规范被 6 万+ 开源项目采用，Claude Code、Codex、Cursor、Gemini CLI、Aider 等均原生或可配置读取；无必填字段，最靠近被编辑文件的文件优先。
-2. **上下文是有限资源**：Anthropic 的 [context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents) 与 Chroma 的 [context rot](https://www.trychroma.com/research/context-rot) 研究表明，token 越多、注意力越稀释 → 指令要少而精、具体、可验证。
-3. **闭环反馈是核心**：给 agent 确定性的构建/测试命令，让它能自主验证自己的修改，是各规范（如 AGENTS.md 测试指令、Codex review 规则"格式检查留给 CI"）的共同要求。
-4. **软指令 ≠ 硬约束**：Claude Code 官方明确 CLAUDE.md 是"上下文而非强制配置"，必须生效的用 hooks / settings enforce —— 这是安全护栏维度的分界线。
-5. **AX = DX + 三个新约束**：无状态读者、注意力预算、自主执行体（见 [02 篇](02-ax-from-dx-to-ax.md)）。
+| 文件 | 主题 | 深度 |
+|---|---|---|
+| [01-what-makes-repo-agent-friendly.md](01-what-makes-repo-agent-friendly.md) | AGENTS.md 规范、厂商机制对照、五维框架与反模式 | 概览 |
+| [02-ax-from-dx-to-ax.md](02-ax-from-dx-to-ax.md) | Agent Experience：DX→AX 演化、七原则、与可维护性的异同 | 深入 |
+| [03-harness-consumption-deep-dive.md](03-harness-consumption-deep-dive.md) | 六种 harness 的注入时机、预算上限与失败模式 | 深入 |
+| [04-tool-and-interface-design.md](04-tool-and-interface-design.md) | 工具与接口设计：命名空间、返回值预算、错误可行动性 | 深入 |
+| [05-verifiability-and-test-infra.md](05-verifiability-and-test-infra.md) | 验证闭环六原则，并用本仓库测试布局印证 | 深入 |
+| [06-case-studies.md](06-case-studies.md) | openai/codex、airflow、electron 等六仓库 AGENTS.md 精读 | 深入 |
+| [07-audit-checklist.md](07-audit-checklist.md) | 60 条可勾选审计项：查法、合格标准、打分权重 | 概览 |
+| [08-deerflow-audit.md](08-deerflow-audit.md) | 按 60 条对本仓库逐条实测：A-、Top 问题与路线图 | 深入 |
+| [09-dsh-eval-harness.md](09-dsh-eval-harness.md) | DSH 28 维记分法（机制自内含）+ 红绿结果与活体实验 | 深入 |
+| [10-runtime-participation-rules.md](10-runtime-participation-rules.md) | 五个运行时参与问题的分层取证与缺口登记 | 深入 |
 
-## 与本仓库的关系
+**配图**（`figures/`，SVG 浏览器直接打开）：[dx-to-ax](figures/dx-to-ax.svg)（02 DX→AX 演化）、[context-injection-pipeline](figures/context-injection-pipeline.svg)（03 注入管线）、[tool-lifecycle](figures/tool-lifecycle.svg)（04 工具生命周期）、[verification-loop](figures/verification-loop.svg)（05 验证闭环）、[audit-framework](figures/audit-framework.svg)（07 审计框架）、[deerflow-dsh-scorecard](figures/deerflow-dsh-scorecard.svg)（09 28 维记分卡）、[participation-layers](figures/participation-layers.svg)（10 参与规则三层载体）。
 
-deer-flow 本身就是这套标准的范本之一（根 `AGENTS.md` 定位层 + 嵌套模块指南 + `CLAUDE.md` 薄 shim + 离线测试子集），[06 篇案例 5](06-case-studies.md) 有精读；[07 篇](07-audit-checklist.md)可直接用于对本仓库逐条打分。
+## 宪章与约定
 
-## 文件命名约定
+- 本目录把运行时参与规则单列为一篇宪章页：[10-runtime-participation-rules.md](10-runtime-participation-rules.md) — 能力可见性、依赖未就绪、同名隔离、清理归属、配置到树五问，为后续审计定纪律。
+- 其余写作纪律沿用 [根 README](../README.md)：论断尽量给一手来源、按 `0X-*.md` 编号、图放 `figures/`。
 
-- `README.md` — 本目录阅读指南
-- `0X-*.md` — 按推荐阅读顺序编号
-- `figures/*.svg` — 手写 SVG 图（浏览器直接打开渲染）
+## 相关目录
+
+- [harness-engineering/](../harness-engineering/README.md) — DeerFlow 专项工程质量评估：文档体系、证据文化与反馈三环。
+- [graph-engineering/](../graph-engineering/README.md) — 图工程支持度判定与编排注入，另一条「能力边界」评估线。
+- [../README.md](../README.md) — 根索引：全部目录的阅读地图。
