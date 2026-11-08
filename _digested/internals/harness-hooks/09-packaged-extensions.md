@@ -87,7 +87,7 @@ class ExtensionSpec(BaseModel):
 
 lead run 与 subagent 只有在注册了 middleware / task-lifecycle / system-model / compaction 观察时，才分配一个 `ExtensionData` task store（`needs_task_store` 预计算标志）；service 与 router 是 app-scoped，不分配。middleware 与 system-call 现场经 `EXTENSION_TASK_STORE_KEY` / `task_store_from_runtime()` 取回 live store，lifecycle contributor 直接收到同一 store。每个 task 解析一次不可变扩展快照，并把同一对象绑定到 task-store 分配、钩子、同步 agent 构造，避免并发单例替换混入两代扩展。
 
-### 🆕 宿主侧组装投影（`agents/assembly_descriptor.py`，510 行）
+### 🆕 宿主侧组装投影（`agents/assembly_descriptor.py`，512 行）
 
 `registry.agent_assembly_observer` 收到的 `AgentAssemblyDescriptor` 不是宿主随便攒的 dict——它由 `agents/assembly_descriptor.py::build_assembly_descriptor()` 从**只有工厂知道的**信息投影出来（"哪个 model 在 runtime override 之后活下来、渲染后的 prompt 到底写了什么、授权过滤后剩哪些 tool、middleware 栈最终顺序"）。两条规则写在模块 docstring 里：
 
@@ -112,7 +112,7 @@ lead run 与 subagent 只有在注册了 middleware / task-lifecycle / system-mo
 
 **消费方 ABI**：`agents/lead_agent/agent.py` 提供两个入口——`make_lead_agent(config)`（`langgraph.json` 声明的 **graph-only** ABI，签名与裸图返回类型都不能改）与 `assemble_lead_agent(config, *, app_config=None) -> LeadAgentAssembly(graph, descriptor)`。`LeadAgentAssembly` 是 2 字段 dataclass，`descriptor` **故意宽松类型**（该模块在 LangGraph Server 启动期被 import，不能把扩展契约包拖进那条 import 路径）。`unwrap_agent_graph(agent_result)` 与 dataclass 放在一起，"什么算 assembly、哪个属性放 graph"只有一个答案；它用**类型检查**而不是 duck-typing `.graph`，所以第三方/测试工厂返回裸图仍然合法（`runtime/runs/worker.py` 就这么用）。
 
-### 🆕 通知循环（`extensions/notify.py`，500 行）
+### 🆕 通知循环（`extensions/notify.py`，567 行）
 
 所有 extension 回调都经这一个 fail-open 派发层，规则是"**扩展故障不能弄坏宿主**"：
 

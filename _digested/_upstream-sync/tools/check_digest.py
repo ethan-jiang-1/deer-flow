@@ -77,6 +77,22 @@ EXTERNAL_PATH_HINTS = (
 # import 示例里的占位模块（教学用途，不是真实路径）
 PLACEHOLDER_MODULE_HINTS = ("my_provider", "my_middleware", "app.xxx", "deerflow_middlewares", "my_company")
 
+# 已删除的源码路径：digest 允许把它们作为**历史叙述**引用，但同一行必须带显式删除标记。
+# 维护方式：每次 sync 发现"源码删了、digest 还原样描述"的情况，先改文档，再把路径登记到这里。
+# 值 = 删除所在的版本/PR，仅用于可读性，不参与判定。
+DELETED_SOURCE_PATHS = {
+    "skills/tool_policy.py": "v2.2.0 #6935（allowed-tools 降级为兼容元数据）",
+    "tool_policy.py": "v2.2.0 #6935（同上，裸文件名形式）",
+    "middlewares/skill_tool_policy_middleware.py": "v2.2.0 #6935（529 行整删）",
+    "skill_tool_policy_middleware.py": "v2.2.0 #6935（同上，裸文件名形式）",
+    "deerflow/testing/models.py": "fork 自制内容，2.2.0 同步清除（上游从未存在）",
+    "testing/models.py": "fork 自制内容，2.2.0 同步清除（同上）",
+    "sitecustomize.py": "v2.2.0（删除）",
+}
+
+# 历史引用必须出现的删除标记（同一行）
+DELETED_MARKERS = ("已删除", "被删", "删除", "已不存在", "从不存在", "历史", "~~", "不再", "移除", "gone", "deleted")
+
 EXTERNAL_VAR_PREFIXES = (
     "LANG", "OPEN", "ANTHROPIC", "DEEP", "GEMINI", "QWEN", "MOONSHOT", "GLM", "KIMI",
     "VOLC", "ARK", "FEISHU", "WECOM", "DINGTALK", "TELEGRAM", "DISCORD", "SLACK",
@@ -214,6 +230,11 @@ def resolve_module(mod: str) -> str | None:
 
 def is_placeholder(token: str) -> bool:
     return token.startswith(PLACEHOLDER_PREFIXES) or any(h in token for h in EXTERNAL_PATH_HINTS)
+
+
+def is_deleted_source_ref(token: str) -> bool:
+    """token 是否指向一个已从源码树删除、但允许作为历史引用出现的路径。"""
+    return any(token == p or token.endswith("/" + p) for p in DELETED_SOURCE_PATHS)
 
 
 def slug(heading: str) -> str:
@@ -363,6 +384,16 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                         exceptions.append(("path_exists", f"{rel_doc}:{no} 已声明例外: {token}"))
                         continue
                     if not resolve_path(token, index):
+                        if is_deleted_source_ref(token):
+                            if any(mk in line for mk in DELETED_MARKERS):
+                                exceptions.append(("path_exists", f"{rel_doc}:{no} 已删除路径的历史引用: {token}"))
+                                continue
+                            findings.append((
+                                "path_exists",
+                                f"{rel_doc}:{no} -> {token}（该路径已于 {DELETED_SOURCE_PATHS.get(token, '?')} 删除，"
+                                f"作为历史引用时本行需带删除标记：{'/'.join(DELETED_MARKERS[:4])}…）",
+                            ))
+                            continue
                         findings.append(("path_exists", f"{rel_doc}:{no} -> {token}"))
 
             if enabled("env_var"):

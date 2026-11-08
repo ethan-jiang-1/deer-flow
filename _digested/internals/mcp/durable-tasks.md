@@ -15,20 +15,20 @@ MCP 服务器暴露的"提交 → 轮询 → 取结果"类工具（典型如 Ope
 ## 相关文件
 
 - `deerflow/mcp/tasks/driver.py` (36 行) — `McpTaskDriver` 协议 + `McpTaskDriverRegistry`
-- `deerflow/mcp/tasks/models.py` (146 行) — 协议中立状态机、快照、任务引用
-- `deerflow/mcp/tasks/ordinary.py` (218 行，v2.1.0 实测) — 唯一内置 driver：普通 submit/status/cancel 三工具契约
-- `deerflow/mcp/tasks/runtime.py` (124 行) — 进程内桥：`McpTaskSubmitter` 协议 + 启动快照冻结
-- `deerflow/mcp/task_tool_caller.py` (267 行) — 按精确名调用原始 MCP 工具、复用 stdio 会话
+- `deerflow/mcp/tasks/models.py` (151 行) — 协议中立状态机、快照、任务引用
+- `deerflow/mcp/tasks/ordinary.py` (247 行，v2.1.0 实测) — 唯一内置 driver：普通 submit/status/cancel 三工具契约
+- `deerflow/mcp/tasks/runtime.py` (144 行) — 进程内桥：`McpTaskSubmitter` 协议 + 启动快照冻结
+- `deerflow/mcp/task_tool_caller.py` (402 行) — 按精确名调用原始 MCP 工具、复用 stdio 会话
 - `deerflow/mcp/tools.py` (`_configure_task_tools_for_server`) — 隐藏 status/cancel、替换 submit 包装器
-- `deerflow/tools/builtins/background_tasks_tool.py` (84 行) — 模型可见的 `list/cancel_background_task` 业务工具
+- `deerflow/tools/builtins/background_tasks_tool.py` (91 行) — 模型可见的 `list/cancel_background_task` 业务工具
 - `deerflow/mcp/user_scoped_auth.py` (150 行) — 共享 MCP server 的按用户凭据注入
-- `deerflow/mcp/context_headers.py` (206 行) 🆕 同步#6 — 按请求凭据注入（submit 带、poll 不带，见 §4.2）
+- `deerflow/mcp/context_headers.py` (207 行) 🆕 同步#6 — 按请求凭据注入（submit 带、poll 不带，见 §4.2）
 - `deerflow/mcp/interceptors.py` (96 行) — 拦截器组装（OAuth → user-auth → context-headers → 自定义）
 - `deerflow/persistence/mcp_tasks/model.py` / `sql.py` — `mcp_tasks` 表与 `McpTaskRepository`
 - `deerflow/persistence/migrations/versions/001{1,2,3}_mcp_task*.py` — 建表 / 结果字段 / 通知字段
-- `app/mcp_tasks/service.py` (676 行) — `McpTaskService`：轮询/取消/通知的后台循环
+- `app/mcp_tasks/service.py` (1731 行) — `McpTaskService`：轮询/取消/通知的后台循环
 - `app/mcp_tasks/errors.py` — `PermanentNotificationError`
-- `app/gateway/routers/mcp_tasks.py` (126 行) — `/api/threads/{id}/mcp-tasks` 读/取消 API
+- `app/gateway/routers/mcp_tasks.py` (218 行) — `/api/threads/{id}/mcp-tasks` 读/取消 API
 - `app/gateway/services.py` (`launch_mcp_task_notification_run`) — 通知投递 Agent run
 - `deerflow/config/mcp_tasks_config.py` (15 行) — `mcp_tasks` 启动配置段
 

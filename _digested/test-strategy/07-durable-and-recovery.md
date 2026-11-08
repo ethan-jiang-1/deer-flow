@@ -48,7 +48,7 @@ topics: [testing, persistence, recovery]
 
 `backend/packages/harness/deerflow/mcp/AGENTS.md:4` 定义协议中立的 `McpTaskDriver` 契约与 `TaskSnapshot` 六状态（`submitted/working/input_required/completed/failed/cancelled`）；通知重试用**与投递失败计数分离的幂等 attempt 计数**、封顶指数退避、5 次失败后死信；严格 existing-thread admission 对删除/失配的目标线程**立即死信**；远端 poll hint 封顶 24 小时。
 
-`backend/tests/test_mcp_task_service.py`（1419 行、36 个 async 测试，桩基齐备：`FakeRepository` / `FailingApplyRepository` / `HangingDriver` / `BlockingCancelDriver`），典型锚点：补偿不被重复取消打断（`:303`）、取消持久化但不调远端（`:519`）、幂等投递等待成功 run（`:620`）、busy 线程以最新事件替换 claim（`:756`）、永久拒绝立即死信（`:823`）、重试预算死信（`:899`）、poll hint 封顶一天（`:996`）、指数退避封顶（`:1067`）、快照错误有界（`:1137`）、driver 缺失/失败释放 claim（`:1329`）、意外失败隔离到自己的 claim（`:1353`）。外围 12 个 `test_mcp_task_*` 文件覆盖 repository/ordinary driver/e2e/postgres/tool_caller 等。
+`backend/tests/test_mcp_task_service.py`（4847 行、36 个 async 测试，桩基齐备：`FakeRepository` / `FailingApplyRepository` / `HangingDriver` / `BlockingCancelDriver`），典型锚点：补偿不被重复取消打断（`:303`）、取消持久化但不调远端（`:519`）、幂等投递等待成功 run（`:620`）、busy 线程以最新事件替换 claim（`:756`）、永久拒绝立即死信（`:823`）、重试预算死信（`:899`）、poll hint 封顶一天（`:996`）、指数退避封顶（`:1067`）、快照错误有界（`:1137`）、driver 缺失/失败释放 claim（`:1329`）、意外失败隔离到自己的 claim（`:1353`）。外围 12 个 `test_mcp_task_*` 文件覆盖 repository/ordinary driver/e2e/postgres/tool_caller 等。
 
 ### 4. Checkpoint / 压缩 / 摘要
 

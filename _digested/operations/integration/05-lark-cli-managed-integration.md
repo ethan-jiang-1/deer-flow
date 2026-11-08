@@ -7,8 +7,8 @@ topics: [integration, lark-cli, sandbox, broker]
 # Lark CLI 托管集成（安装事务 / 凭据切换 / Pattern A-B）
 
 > 本文只写**契约级**内容，不抄实现细节。源码真值（tag `v2.1.0`，345f08be）：
-> `backend/packages/harness/deerflow/integrations/lark_cli.py`（2846 行，下文记 `lark_cli.py`）、
-> `backend/packages/harness/deerflow/integrations/lark_broker.py`（457 行，下文记 `lark_broker.py`）。
+> `backend/packages/harness/deerflow/integrations/lark_cli.py`（3709 行，下文记 `lark_cli.py`）、
+> `backend/packages/harness/deerflow/integrations/lark_broker.py`（554 行，下文记 `lark_broker.py`）。
 > IM 通道侧的 Feishu 聊天机器人是另一件事，见 [04-im-channels.md](04-im-channels.md)；
 > Pattern A/B 的简版概述在 [operations/channels/00-overview.md](../channels/00-overview.md) 的「Lark CLI 托管集成」。
 

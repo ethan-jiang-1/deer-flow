@@ -130,7 +130,7 @@ grouped 模式用嵌套 `SidebarMenu` 缩进项目内的 thread 行，但 `Sideb
 | `ArchivedProjectsGroup` 的缩进 menu | 同上 | 同上 |
 | 根 `SidebarMenu` | 原语默认 `w-full` | 不变 |
 
-`className` 经 `cn()`（tailwind-merge）解析，`w-auto` 覆盖原语的 `w-full`，块级 flex 容器改为「填满剩余宽度 − margin」。回归测试 `frontend/tests/unit/components/workspace/projects-section-nested-menu.dom.test.tsx`（165 行）从预置 query cache 渲染 grouped 模式并展开 Archived 组，断言每个缩进菜单有 `w-auto`、无 `w-full`，根菜单仍为 `w-full`（happy-dom 无布局引擎，故在 class 层面钉住）。
+`className` 经 `cn()`（tailwind-merge）解析，`w-auto` 覆盖原语的 `w-full`，块级 flex 容器改为「填满剩余宽度 − margin」。回归测试 `frontend/tests/unit/components/workspace/projects-section-nested-menu.dom.test.tsx`（169 行）从预置 query cache 渲染 grouped 模式并展开 Archived 组，断言每个缩进菜单有 `w-auto`、无 `w-full`，根菜单仍为 `w-full`（happy-dom 无布局引擎，故在 class 层面钉住）。
 
 > **可迁移经验**：在定宽容器（侧栏）里给布局原语加横向 margin 时，要同时改掉它的默认宽度（`w-full` → `w-auto`）；`w-full + margin` 必然横向溢出，而绝对定位的尾部操作按钮（kebab）是最先被裁掉的元素。
 

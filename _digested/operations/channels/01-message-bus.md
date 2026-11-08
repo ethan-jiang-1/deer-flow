@@ -76,7 +76,7 @@ class OutboundMessage:
 
 ## ChannelManager Dispatch Loop
 
-`app/channels/manager.py` — 2958 行核心调度器（v2.1.0 实测）：
+`app/channels/manager.py` — 4162 行核心调度器（v2.1.0 实测）：
 
 ```python
 class ChannelManager:

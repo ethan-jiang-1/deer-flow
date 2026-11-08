@@ -8,14 +8,14 @@ topics: [mcp, tools, protocol-integration]
 
 ## 相关文件
 
-- `deerflow/mcp/cache.py` (316 行) — 惰性初始化、content-signature 缓存失效、跨循环初始化锁
-- `deerflow/mcp/oauth.py` (262 行) — OAuth TokenManager、双检查锁、header 注入 + 值合法性检查
-- `deerflow/mcp/session_pool.py` (756 行) — 持久会话池，按 `(server_name, scope_key, owning_loop)` 键控、LRU 256 硬上限、跨线程安全
+- `deerflow/mcp/cache.py` (1407 行) — 惰性初始化、content-signature 缓存失效、跨循环初始化锁
+- `deerflow/mcp/oauth.py` (575 行) — OAuth TokenManager、双检查锁、header 注入 + 值合法性检查
+- `deerflow/mcp/session_pool.py` (1062 行) — 持久会话池，按 `(server_name, scope_key, owning_loop)` 键控、LRU 256 硬上限、跨线程安全
 - `deerflow/mcp/headers.py` (103 行) 🆕 同步#6 — 大小写不敏感 header 写入 + 非法 header 值检测（#5010、#5066）
-- `deerflow/mcp/context_headers.py` (206 行) 🆕 同步#6 — `headers_from_context` 按请求凭据拦截器（#5010）
-- `deerflow/mcp/client.py` (80 行) — 传输类型路由、服务器配置构建（静态 headers 同样过值检查）
-- `deerflow/mcp/tools.py` (967 行) — 通过 MultiServerMCPClient 加载工具、stdio 会话池包装、断线重连
-- `app/gateway/routers/mcp.py` (~1588 行) 🆕 同步#6 — MCP 管理面：Settings 页后端 API（#5022）
+- `deerflow/mcp/context_headers.py` (207 行) 🆕 同步#6 — `headers_from_context` 按请求凭据拦截器（#5010）
+- `deerflow/mcp/client.py` (86 行) — 传输类型路由、服务器配置构建（静态 headers 同样过值检查）
+- `deerflow/mcp/tools.py` (1498 行) — 通过 MultiServerMCPClient 加载工具、stdio 会话池包装、断线重连
+- `app/gateway/routers/mcp.py` (~1733 行) 🆕 同步#6 — MCP 管理面：Settings 页后端 API（#5022）
 
 ## MCP 工具生命周期全景
 

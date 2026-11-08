@@ -32,13 +32,11 @@
 
 ## 关键源码
 
-- `docs/testing/README.md` L3（移植声明）、L29-37（五级阶梯表，⑤ = record/replay）；`docs/testing/01-extension-testing-strategy.md` L97-112（观察性 wrap 契约与两脸断言）、L114-124（台阶五）
+- ⚠️ **sync #8 更正（2.2.0）**：原先这里的 `docs/testing/*` 与 `backend/packages/harness/deerflow/testing/models.py`（`ScriptedModel` 发布包）**是 fork 时的自制内容，上游从不存在，已随 2.2.0 同步清除**。2.2.0 的脚本化模型只是局部夹具（如 `backend/tests/test_goal_evaluator_accounting.py:29` 的 `class ScriptedModel(BaseChatModel)`），不发布、不可复用——本文「证据五：机制是发布的包」一节据此降级。
 - `backend/scripts/record_gateway.py` L1-13（record-through-browser docstring）、L87-90（hermetic DEER_FLOW_HOME）；`backend/scripts/build_fixture_from_jsonl.py` L1-6（JSONL → fixture 拼装）
 - `backend/tests/replay_provider.py` L22-35（why hash-by-input）、L37-41（record/replay 共享同一哈希）、L85（`DEERFLOW_REPLAY_FIXTURE`）、L95-101（`_replay_misses` 与被吞风险）、L144-176（归一化正则）、L201（system 排除）、L225（hide_from_ui 剔除）、L245-252（哈希函数）、L283-289（ReplayChatModel）、L342-351（miss fail loud）、L384-385（bind_tools no-op）
 - `backend/tests/_replay_fixture.py` L1-8（record/replay 必须同 config）、L20/L31/L39（只换 `models[].use` 一块）、L49-59（hermetic config：skills 空目录、memory/summarization 禁用）
 - `backend/tests/test_replay_golden.py` L1-10（Layer 1）、L83-87（miss fail loud 断言）、L97（`assert events == golden`）；`backend/docs/REPLAY_E2E.md` L12-17（两层分工）、L29-40（#3352）
-- `backend/packages/harness/deerflow/testing/models.py` L41-51（`ScriptedModel.requests` / `bound_tools` = model-visible face）；`backend/packages/harness/deerflow/testing/AGENTS.md` L12-15（one mock only / published）
-- `examples/deerflow-extension-example/tests/test_model_surface.py` L1-7（「If you change what the model sees … this test fails — that is the point」）
 - `backend/packages/harness/deerflow/persistence/models/run_event.py` L14、L33（`(thread_id, seq)` 唯一约束）；`backend/packages/harness/deerflow/runtime/events/catalog.py` L58-71（事件类型清单）；`backend/packages/harness/deerflow/runtime/checkpoint_state.py` L130（checkpointer 接线形状）
 - `frontend/playwright.record.config.ts` L7（never run in CI）、L21（录制入口命令）
 

@@ -12,7 +12,7 @@ topics: [setup, configuration, quickstart]
 
 | 文件 | 用途 | 生成方式 |
 |------|------|----------|
-| `config.yaml` | 主配置（`config.example.yaml` 当前 **3021 行**，`config_version: 45`） | `make config`（`scripts/configure.py`）从 `config.example.yaml` 复制，已存在则中止 |
+| `config.yaml` | 主配置（`config.example.yaml` 当前 **3680 行**，`config_version: 45`） | `make config`（`scripts/configure.py`）从 `config.example.yaml` 复制，已存在则中止 |
 | `extensions_config.json` | MCP + Skills 启停 + `middlewares`；**可选**（找不到按搜索路径解析，最终返回空配置） | `make config` **不生成**；`make docker-start` 时由 `scripts/docker.sh:388-395` 从 `extensions_config.example.json` 复制（无模板则写 `{}`） |
 
 ## 配置解析优先级

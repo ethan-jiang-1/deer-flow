@@ -199,7 +199,7 @@ Provider 启动时（及 AIO 定期 `_cleanup_idle_resources`）调用 `_reconci
    - 无主且 grace 已过 → `claim()` 成功后 adopt 入 warm pool
 3. 对账用 `claim()`（非 `take()`），无主容器不会被销毁，只会被收养
 
-E2B 侧是独立的远程对账线程（见上文 #5）。测试：`test_sandbox_orphan_reconciliation.py`（3028 行 / 90 个 test 函数，v2.1.0 实测）覆盖 store 故障 fail-closed、grace 重置、LAPSED vs LOST、Redis 状态丢失恢复等。
+E2B 侧是独立的远程对账线程（见上文 #5）。测试：`test_sandbox_orphan_reconciliation.py`（3029 行 / 90 个 test 函数，v2.1.0 实测）覆盖 store 故障 fail-closed、grace 重置、LAPSED vs LOST、Redis 状态丢失恢复等。
 
 ## 沙箱中间件 🆕
 

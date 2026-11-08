@@ -1,6 +1,6 @@
 ---
 title: "上传安全管道"
-description: "`deerflow/uploads/manager.py` (390 行，v2.1.0 实测) — 与 FastAPI 无关的纯业务逻辑"
+description: "`deerflow/uploads/manager.py` (798 行，v2.1.0 实测) — 与 FastAPI 无关的纯业务逻辑"
 topics: [gateway, api, rest]
 ---
 
@@ -8,7 +8,7 @@ topics: [gateway, api, rest]
 
 ## 文件
 
-`packages/harness/deerflow/uploads/manager.py` (390 行，v2.1.0 实测) — 与 FastAPI 无关的纯业务逻辑。Gateway 侧的 HTTP 适配层在 `app/gateway/routers/uploads.py` 与 `app/gateway/upload_ingestion.py`（见 §HTTP 状态码）。
+`packages/harness/deerflow/uploads/manager.py` (798 行，v2.1.0 实测) — 与 FastAPI 无关的纯业务逻辑。Gateway 侧的 HTTP 适配层在 `app/gateway/routers/uploads.py` 与 `app/gateway/upload_ingestion.py`（见 §HTTP 状态码）。
 
 `manager.py` 公开入口（行号为 v2.1.0 实测）：
 

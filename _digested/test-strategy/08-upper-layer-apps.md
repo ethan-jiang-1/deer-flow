@@ -60,7 +60,7 @@ DeerFlow 是**平台**——测试面必须延伸到嫁接在它之上的东西�
 
 ## 五、IM 渠道：全离线打桩的三种范式
 
-渠道测试全部离线：`test_channels.py`（11167 行 / 352 个测试，全仓最大测试文件）、`test_dingtalk_channel.py`（120 测试）、`test_buzz_channel.py`（99 测试）。
+渠道测试全部离线：`test_channels.py`（14345 行 / 352 个测试，全仓最大测试文件）、`test_dingtalk_channel.py`（120 测试）、`test_buzz_channel.py`（99 测试）。
 
 - **mock 消息对象**（DingTalk）：`unittest.mock.AsyncMock/MagicMock` 构造 mock 消息，进程内 `MessageBus`，每例新开 event loop；
 - **真实密码学 + 假网络**（Buzz/Nostr）：`pytest.importorskip("coincurve")`（可选依赖缺失自动跳过），fixture 用**真实密钥对签名事件**（`test_buzz_channel.py:26` 注释原文："every fixture author is now a real keypair whose events are signed"），relay URL 是假的 `wss://buzz.example.com`（`:42`）——签名语义是真的（替身不可替换被测语义），网络是假的（贵的与不确定的被替身替换）；

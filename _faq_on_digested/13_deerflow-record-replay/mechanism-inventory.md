@@ -36,8 +36,15 @@ DeerFlow 不是「有类似思想」，是**同一思想的移植体**：四个�
 
 ## 证据五：机制是发布的包
 
-- `deerflow.testing` 随 `deerflow-harness` wheel 发布；`backend/packages/harness/deerflow/testing/AGENTS.md` L12-15「One mock only」「Test-only, but published」——下游仓 import 而不是拷 fake。对应 21/03 证据一「回放器是发布在 npm 上的普通插件」：机制可复用判据在 DeerFlow 全部成立。
-- keyless 切片：`examples/deerflow-extension-example/tests/test_model_surface.py` L1-7「If you change what the model sees (tool naming, result shape, message flow), this test fails — that is the point」——DSH `request/header` pin（21/02:53-63）的语义等价物，载体从 sidecar 文件换成进程内断言（`ScriptedModel.requests` / `bound_tools`，`testing/models.py` L41-51「This is the model-visible face」）。替身谱系定位见 `_digested/test-strategy/02-deterministic-llm.md`（四级替身表）。
+> ⚠️ **sync #8 更正（2.2.0）**：本条原据 `deerflow.testing`（随 `deerflow-harness` wheel 发布的测试工具包）
+> 论证「机制是发布的包」。该包是 **fork 时的自制内容，上游从不存在，已随 2.2.0 同步清除**。
+> 「机制可复用判据」在此**不成立**：2.2.0 的回放与脚本化模型都是 `backend/tests/` 内的仓内夹具
+> （`replay_provider.py`、`_replay_fixture.py`、`test_goal_evaluator_accounting.py:29` 的
+> `class ScriptedModel(BaseChatModel)`），下游仓要么复制要么自建。以下两条保留为**历史记录**，
+> 不再作为现行事实引用。
+
+- ~~`deerflow.testing` 随 `deerflow-harness` wheel 发布~~（已不适用）；原据 `testing/AGENTS.md`「One mock only」「Test-only, but published」。
+- keyless 切片：原据 `examples/deerflow-extension-example/tests/test_model_surface.py`（自制示例测试，2.2.0 的示例家族已重构，该文件是否存在需按实际树核对）——DSH `request/header` pin 的语义等价物。替身谱系定位见 `_digested/test-strategy/02-deterministic-llm.md`（四级替身表）。
 
 ## 证据六：hermetic config——同一问题、不同解法
 

@@ -1,6 +1,6 @@
 ---
 title: "RunManager — 运行生命周期管理"
-description: "`backend/packages/harness/deerflow/runtime/runs/manager.py` (2424 行，v2.1.0 实测)"
+description: "`backend/packages/harness/deerflow/runtime/runs/manager.py` (3150 行，v2.1.0 实测)"
 topics: [runtime, streaming, checkpointer]
 ---
 
@@ -8,7 +8,7 @@ topics: [runtime, streaming, checkpointer]
 
 ## 文件
 
-`backend/packages/harness/deerflow/runtime/runs/manager.py` (2424 行，v2.1.0 实测)
+`backend/packages/harness/deerflow/runtime/runs/manager.py` (3150 行，v2.1.0 实测)
 
 ## 功能概述
 

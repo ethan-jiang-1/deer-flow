@@ -47,7 +47,7 @@ async def close_engine() -> None:
 
 ### ORM Models
 
-`persistence/models/__init__.py`（61 行）的 import + `__all__` 是唯一的显式注册入口：**22 个 Row 类 / 22 张表**（`persistence/models/__init__.py:17-36` 为 import，`:38-61` 为 `__all__` 的 22 项）。`RunEventRow` 是唯一留在 `models/run_event.py` 的模型，其余按实体子包分放。
+`persistence/models/__init__.py`（88 行）的 import + `__all__` 是唯一的显式注册入口：**22 个 Row 类 / 22 张表**（`persistence/models/__init__.py:17-36` 为 import，`:38-61` 为 `__all__` 的 22 项）。`RunEventRow` 是唯一留在 `models/run_event.py` 的模型，其余按实体子包分放。
 
 | Row | 表 | 用途 |
 |-----|-----|------|
@@ -119,7 +119,7 @@ legacy checkpointer: 段存在 → 原样用它
 
 sqlite 路径处理统一走 `store/_sqlite_utils.py`：`resolve_sqlite_conn_str()` 把普通路径（相对/绝对）解析成绝对路径，但 `":memory:"` 与 `file:` URI **原样返回**；`ensure_sqlite_parent_dir()` 建父目录，同样对内存库/URI no-op。
 
-## Postgres schema 固定（`persistence/postgres_schema.py`，257 行）
+## Postgres schema 固定（`persistence/postgres_schema.py`，261 行）
 
 `database.postgres_schema` / `checkpointer.postgres_schema` 为空时保持服务端默认 `search_path`（通常 `public`）；非空时**同一份实现**同时服务三处消费者（应用 ORM engine、LangGraph checkpointer、LangGraph Store）。难点是两个 PG 驱动认的机制**不同**：
 
@@ -459,7 +459,7 @@ def to_dict(self, exclude: set[str] | None = None) -> dict[str, Any]:
 3. **`_row_to_dict()` 重映射** — ORM 的 `metadata_json`/`kwargs_json` →
    接口的 `metadata`/`kwargs`；datetime → ISO 字符串（`coerce_iso` 修复 SQLite 丢失 tzinfo 的问题）。
 
-### RunRepository（`run/sql.py`, 906 行）
+### RunRepository（`run/sql.py`, 1151 行）
 
 实现 `RunStore` 接口，25 个公开方法（下图只画主要路径；完整清单见文件内 `async def`，含 lease/takeover/cancel 与线程操作 reservation）：
 
@@ -512,7 +512,7 @@ list/tuple → [_safe_json(v)]
 最后手段 → str(obj)
 ```
 
-### FeedbackRepository（`feedback/sql.py`, 280 行）
+### FeedbackRepository（`feedback/sql.py`, 295 行）
 
 11 个方法：
 
@@ -607,7 +607,7 @@ flowchart TD
 
 **Memory 后端的 `coerce_iso` 修复**（`thread_meta/memory.py:234-237`）：旧版 Gateway 将时间戳写为 `str(time.time())`（Unix epoch 秒），`coerce_iso()` 将这些值标准化为 ISO 8601。
 
-## JSON 匹配系统（`json_compat.py`, 231 行）
+## JSON 匹配系统（`json_compat.py`, 235 行）
 
 为 metadata 过滤实现跨 SQLite/PostgreSQL 的类型安全 JSON 值比较。
 
@@ -716,7 +716,7 @@ purge 只替换版本行不碰应用数据，且**不能直接 stamp 到 head**�
 回归测试：`backend/tests/test_persistence_forward_revision_compat.py`（构造原始 schema → 验证启动拒绝 →
 演练恢复 → 校验 thread 读写与 incarnation 数据保留）。bootstrap 自身从不做 re-stamp。
 
-### Hybrid bootstrap 分支（`persistence/bootstrap.py`，700 行）
+### Hybrid bootstrap 分支（`persistence/bootstrap.py`，732 行）
 
 `bootstrap_schema(engine, *, backend, postgres_schema="")`（`bootstrap.py:603`）在 `init_engine` 末尾调用。`_decide_state()`（`bootstrap.py:421-436`）按反射结果分三支；整个 reflect-and-act 序列在 Postgres 下走 `pg_advisory_lock`、SQLite 下走 per-engine `asyncio.Lock`（`bootstrap.py:523` / `:565` / `:590`）：
 
@@ -735,6 +735,13 @@ purge 只替换版本行不碰应用数据，且**不能直接 stamp 到 head**�
 
 ### env.py 关键配置
 
+> ⚠️ **路径消歧（sync #8 起必读）**：本节说的是 **Alembic 环境**
+> `backend/packages/harness/deerflow/persistence/migrations/env.py`（131 行）。
+> 不是 `deerflow/env.py`——后者在 2.2 被彻底重写成 37 行的 dotenv 选择器
+> （`load_selected_env_file()`：只认 `DEER_FLOW_ENV_FILE`，未设返回 `False` 让调用方回落到默认发现；
+> 与 `PYTHON_DOTENV_DISABLED` 冲突即抛；`utf-8-sig` 吃 BOM；先整读再解析，解码失败不会半加载）。
+> 本页所有 `env.py` 引用都指 Alembic 那份。
+
 ```python
 target_metadata = Base.metadata  # 自动发现所有 ORM 模型
 
@@ -746,12 +753,12 @@ def do_run_migrations(connection):
     )
 ```
 
-**明确的范围隔离**（env.py 行 1-10 的 docstring，原文）：
+**明确的范围隔离**（`persistence/migrations/env.py` 行 1-10 的 docstring，原文）：
 > ONLY manages DeerFlow's tables (runs, threads_meta, feedback, users, run_events, channel_connections, channel_credentials, channel_oauth_states, channel_conversations).
 
-**`render_as_batch=True`**：SQLite 对 ALTER TABLE 支持有限，batch 模式通过创建新表 + 复制数据 + 重命名来模拟 ALTER（`env.py:65` 与 `:76`）。
+**`render_as_batch=True`**：SQLite 对 ALTER TABLE 支持有限，batch 模式通过创建新表 + 复制数据 + 重命名来模拟 ALTER（`persistence/migrations/env.py:65` 与 `:76`）。
 
-**模型注册**（env.py 行 36-42 的 `try: import deerflow.persistence.models`）：触发所有 ORM 模型注册到 `Base.metadata`。sync #7 把 `RunChangeClockRow`（`run/model.py`，单例行 change clock）与 `UserPreferenceRow`（`user/model.py`）补进了 `models/__init__.py` 的 import + `__all__` 显式清单（upstream #5517）。注意两者此前**并非不在 `Base.metadata`**——它们与 `RunRow`/`UserRow` 同模块，import 该模块时就随类定义一并注册了，此前缺的只是这份 `__init__` 清单。如果 import 失败，Alembic 以当前已知的 metadata 继续运行。
+**模型注册**（`persistence/migrations/env.py:37-42` 的 `try: import deerflow.persistence.models`）：触发所有 ORM 模型注册到 `Base.metadata`。sync #7 把 `RunChangeClockRow`（`run/model.py`，单例行 change clock）与 `UserPreferenceRow`（`user/model.py`）补进了 `models/__init__.py` 的 import + `__all__` 显式清单（upstream #5517）。注意两者此前**并非不在 `Base.metadata`**——它们与 `RunRow`/`UserRow` 同模块，import 该模块时就随类定义一并注册了，此前缺的只是这份 `__init__` 清单。如果 import 失败，Alembic 以当前已知的 metadata 继续运行。
 
 ## 数据流总结
 

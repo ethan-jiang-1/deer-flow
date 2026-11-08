@@ -45,7 +45,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 | # | 条目 | 评分 | 证据 |
 |---|------|------|------|
-| 1 | 规范指令入口 | ✅ | 计数口径：`*AGENTS*.md` 共 **29 个** = 恰为 `AGENTS.md` 的 **28 个**（`scripts/check_agent_guidance.py` 自报 "28 AGENTS.md"）+ 变体 `backend/docs/GITHUB_AGENTS.md`；根 `AGENTS.md` 238 行 |
+| 1 | 规范指令入口 | ✅ | 计数口径：`*AGENTS*.md` 共 **29 个** = 恰为 `AGENTS.md` 的 **28 个**（`scripts/check_agent_guidance.py` 自报 "28 AGENTS.md"）+ 变体 `backend/docs/GITHUB_AGENTS.md`；根 `AGENTS.md` 249 行 |
 | 2 | 推荐章节覆盖 | ✅ | 根 AGENTS.md 章节：What is DeerFlow / Service Topology / Repository Map / **Commands** / Cross-Cutting Conventions（含安全注意）；backend/AGENTS.md 另有 Commands/Architecture/Code Style |
 | 3 | 根文件=定位层 | ✅ | 根 AGENTS.md 自述 "monorepo orientation layer… read that module's guide"；`backend/AGENTS.md`、`frontend/AGENTS.md` 等 27 个非根文件承接深度（28 个 `AGENTS.md` 减去根） |
 | 4 | 嵌套就近生效 | ✅ | 嵌套覆盖达模块级：`harness/deerflow/{agents,mcp,sandbox,skills,config,runtime,…}/AGENTS.md` 共 19 个（含 `agents/memory/`、`persistence/migrations/` 三层深度） |
@@ -98,7 +98,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 | # | 条目 | 评分 | 证据 |
 |---|------|------|------|
-| 39 | 深模块薄接口 | ⚠️ | 架构分层清晰（harness/app split、middleware chain），但存在巨文件：`runtime/runs/worker.py` **3061 行**、`e2b_sandbox_provider.py` 2892、`lark_cli.py` 2846、`sandbox/tools.py` 2789（`wc -l` top5 实测） |
+| 39 | 深模块薄接口 | ⚠️ | 架构分层清晰（harness/app split、middleware chain），但存在巨文件：`runtime/runs/worker.py` **3864 行**、`e2b_sandbox_provider.py` 2892、`lark_cli.py` 2846、`sandbox/tools.py` 2789（`wc -l` top5 实测） |
 | 40 | 模块大小规则 | ❌ | grep 根/backend/frontend AGENTS.md：**无**任何量化模块/文件大小规则（对照 codex "≤500 LoC, >800 split"） |
 | 41 | API 冻结策略 | ⚠️ | `packages/extension-api/` 被根 AGENTS.md 定为 "public extension contract"，五类贡献点有 reference example；但无 temporal 式"public/internal 分界 + 禁改签名"明文 |
 | 42 | 契约显式 | ✅ | `contracts/`：run_event_stream、subagent_status、slash_skill、skill_review 四组 JSON 契约；版本四源 lockstep + CI 阻断 |

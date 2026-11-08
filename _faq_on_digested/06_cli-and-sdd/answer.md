@@ -20,7 +20,7 @@ DeerFlow 没有 `console_scripts`、没有 `__main__.py`、没有 `pip install` 
 
 ## A.2 debug.py — 内置 REPL
 
-源码：`backend/debug.py`（168 行，v2.1.0）
+源码：`backend/debug.py`（171 行，v2.1.0）
 
 ```bash
 cd backend && PYTHONPATH=. uv run python debug.py

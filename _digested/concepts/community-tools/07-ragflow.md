@@ -168,7 +168,7 @@ knowledge_search(query)
 | 脱敏 | `tools.py:_redact_error` / `_RAGFLOW_UUID_PATTERN` |
 | tool 定义 | `tools.py:knowledge_search_tool`（`StructuredTool.from_function`） |
 | 配置示例 | `config.example.yaml`（tools 段 RAGFlow 注释块） |
-| 测试 | `tests/test_ragflow_client.py`（257 行）/ `tests/test_ragflow_tools.py`（747 行） |
+| 测试 | `tests/test_ragflow_client.py`（322 行）/ `tests/test_ragflow_tools.py`（1321 行） |
 
 ## 相关
 

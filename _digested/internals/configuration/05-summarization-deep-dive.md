@@ -95,7 +95,7 @@ summarization:
 - 自动：在 `before_model` hook 中触发，作为 agent loop 的一环
 - 手动：独立 API 调用，不经过 agent loop，直接操作 checkpoint
 
-### 手动压缩的宿主侧契约（`runtime/context_compaction.py`，224 行）
+### 手动压缩的宿主侧契约（`runtime/context_compaction.py`，244 行）
 
 路由只是薄壳；真正的工作核心是 `compact_thread_context(accessor, thread_id, *, keep=None, force=True, user_id=None, agent_name=None, model_name=None, app_config=None) -> ThreadCompactionResult`。它在**不执行 agent**的前提下模拟 lead 的解析与写回：
 

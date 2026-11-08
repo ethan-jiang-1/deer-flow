@@ -20,7 +20,7 @@ topics: [testing, ci, quality-assurance]
 | 前端 Playwright | **52** 个 spec（mock 后端 45 + auth 2 + 真后端回放 4 + 手动录制 1） |
 | Router/API 测试 | 63 个文件使用 TestClient |
 | 迁移/持久化契约 | 14 个 `test_migration*` + 12 个 `test_persistence*`（根目录） |
-| TUI / 渠道 | 16 个 `test_tui_*`；`test_channels.py` 11167 行 352 个测试（全仓最大测试文件） |
+| TUI / 渠道 | 16 个 `test_tui_*`；`test_channels.py` 14345 行 352 个测试（全仓最大测试文件） |
 | 配置钉住类 | 约 25 个文件解析 compose/Helm/Makefile/workflow/markdown 并断言 |
 | CI 测试门禁 | 16 个 workflow 中 6 个纯测试（backend-unit 4 分片 / blocking-io / frontend-unit / e2e / replay-e2e / skill-review），另有 lint-check 与 verify-versions |
 | 时长基线 | `backend/.test_durations` 13,141 行，提交入库 |

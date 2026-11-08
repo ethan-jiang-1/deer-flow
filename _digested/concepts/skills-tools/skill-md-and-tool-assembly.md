@@ -346,17 +346,42 @@ Portable Agent Skills 的标量语法是空白分隔、允许带括号命令模�
 
 Custom skill 按用户隔离存储，`SkillStorage` 按 `(app_config, user_id)` 缓存。Sandbox 挂载用户级 skill 目录。
 
-## `allowed-tools` 修正 🆕
+## `allowed-tools`：从「工具过滤器」降级为「兼容元数据」 ⚠️ 2.2 重大变更
 
-**2.1 修复**：`allowed-tools` 只对 slash-activated 或实际 loaded 的 lead-agent skill 生效。Passive enabled skill 不再意外限制全局 toolset。`task` 需显式声明才能委派 subagent。
+> **sync #8 重写**（对应 upstream #6935 `0d73798be`，2.2.0 引入）。这一节在 2.1 时代描述的是
+> 已被删除的 `skills/tool_policy.py` 的工具过滤机制——**该文件和它配套的 `SkillToolPolicyMiddleware`（529 行）
+> 在 2.2 已被整体删除**。下面是 2.1 的历史，以及 2.2 的现行语义。
 
-**分词加固（#4984）**：可移植标量形式按状态机分词——引号内、转义字符、括号模式内的空格不切分；未闭合引号/未闭合括号/多余右括号直接报错（fail-closed），而非静默截断模式。
+### 2.1 的行为（历史，仅供理解迁移）
 
-**策略装配边界（`skills/tool_policy.py`，补深）**：
+`allowed-tools` 只对 slash-activated 或实际 loaded 的 lead-agent skill 生效，Passive enabled skill
+不限制全局 toolset。实现落在两处：
 
-- `ALWAYS_AVAILABLE_BUILTIN_TOOL_NAMES = {describe_skill, read_file, review_skill_package, tool_search}`：即使 active skill 声明了 `allowed-tools` 也保留这 4 个——它们是框架级的文件/审查/发现工作流，不扩展被激活 skill 的业务工具授权（`tool_policy.py:13-25`）。
-- `allowed_tool_names_for_skills(skills) -> set | None`：**没有任何** loaded skill 声明 `allowed-tools` → 返回 `None`（legacy 全放行）；一旦有任一 skill 显式声明，未声明该字段的 skill **贡献 0 个工具**（`None` 与空元组都算"显式声明"，空列表另记一条 info 日志）——防止旧 skill 无意中取消别的 skill 的限制（`28-51`）。
-- `filter_tools_by_skill_allowed_tools(tools, skills, *, always_allowed_tool_names=...)` 先取上面的并集，再并入 always-allowed 集合，最后按 `tool.name` 过滤（`54-65`）。`task` / `list_background_tasks` / `cancel_background_task` **不在** always-allowed 内，必须显式声明；`tool_search` 提升出来的业务工具仍受 active policy 约束（`tool_policy.py:13-17` + `tools/AGENTS.md`）。
+- **已删除**：`skills/tool_policy.py`（65 行）——`ALWAYS_AVAILABLE_BUILTIN_TOOL_NAMES`（describe_skill /
+  read_file / review_skill_package / tool_search）、`allowed_tool_names_for_skills()`、
+  `filter_tools_by_skill_allowed_tools()`；语义要点是「没有 skill 声明 → 返回 `None` 全放行；
+  一旦有 skill 声明，未声明的 skill 贡献 0 个工具」。
+- **已删除**：`agents/middlewares/skill_tool_policy_middleware.py`（529 行）——把上述并集同时应用到
+  **模型可见性、tool_search 结果、执行**三层，并带 slash 授权与持久化 `skill_context` 的重新授权。
+
+**分词加固（#4984，2.1 遗留、2.2 不再用于过滤）**：可移植标量形式按状态机分词——引号内、转义字符、
+括号模式内的空格不切分；未闭合引号/未闭合括号/多余右括号直接报错（fail-closed）。
+
+### 2.2 的现行语义（#6935 之后）
+
+`allowed-tools` **只是兼容元数据**：为老 skill 保留解析与展示，**不再过滤、授予或拒绝任何工具**。
+
+- 删除了 `skills/tool_policy.py` 与 `agents/middlewares/skill_tool_policy_middleware.py`；
+  `build_middlewares()` 里对 `SkillToolPolicyMiddleware` 的注册一并移除（`agents/lead_agent/agent.py`）。
+- `SkillActivationMiddleware` 的职责收窄为：识别 `/skill-name task` 语法、只解析「已启用且运行时允许」的
+  skill、注入 `SKILL.md` 正文、记录 `middleware:skill_activation` 审计事件——**激活本身不再改变工具集**。
+- **权限上限的唯一所有者变成「agent 组装 + 执行授权」**：Layer 1 能力过滤
+  （`authorization.enabled` 的 `AuthorizationProvider`）与 Layer 2 执行前检查
+  （`GuardrailAuthorizationAdapter`）决定模型能看到、能调用什么；`middleware/AGENTS.md` #18 原文：
+  「Agent assembly/execution authorization owns the permission ceiling」。
+- 对文档/测试的影响：任何「skill 声明 allowed-tools 就看不到 bash」式断言**在 2.2 已不成立**；
+  要限制工具请走 `disallowed_tools`、`authorization` 或 custom agent 的 `skills`/工具配置。
+- 迁移提示：老 skill 的 `allowed-tools` 字段可以留着（不报错、仍可展示），但**不要再指望它做安全边界**。
 
 ## Per-Agent Skill 控制
 

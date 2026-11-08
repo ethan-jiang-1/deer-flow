@@ -178,7 +178,7 @@ topics: [harness, evaluation, deerflow, dsh, audit]
 
 | 维 | 覆盖面 | 约束力 | 判定 | 证据（一句话） |
 |---|---|---|---|---|
-| KN1 入口链 | 2 | 2 | 🟢 | 定位层根 `AGENTS.md`（238 行）+ 嵌套模块指南 + KiB 预算门禁接进 CI（`lint-check.yml:28,36`、`Makefile:91`） |
+| KN1 入口链 | 2 | 2 | 🟢 | 定位层根 `AGENTS.md`（249 行）+ 嵌套模块指南 + KiB 预算门禁接进 CI（`lint-check.yml:28,36`、`Makefile:91`） |
 | KN2 归属 | 2 | 1 | 🔴 | 家基本单一，但**描述层漂移已发生 ≥3 处**且无同步检查（见下） |
 | KN3 决策记录 | 2 | 1 | 🔴 | `docs/plans/` 有带日期的 RFC 与实现计划（如 `2026-07-10-pluggable-authorization-rfc.md`）；无状态区分、无归档纪律、无模板检查 |
 | KN4 分类学 | 2 | 1 | 🔴 | 根 `AGENTS.md` 的 Repository Map 逐目录职责 + 模块指南；无"放错地方"的结构检查 |
@@ -327,7 +327,7 @@ topics: [harness, evaluation, deerflow, dsh, audit]
 
 | 证据 | 来源 |
 |---|---|
-| AGENTS.md 定位层 + 预算门禁接线 | `AGENTS.md`（238 行）、`scripts/check_agent_guidance.py`、`.github/workflows/lint-check.yml:28,36`、`Makefile:91` |
+| AGENTS.md 定位层 + 预算门禁接线 | `AGENTS.md`（249 行）、`scripts/check_agent_guidance.py`、`.github/workflows/lint-check.yml:28,36`、`Makefile:91` |
 | KN2 漂移四实例 | `scripts/configure.py:24-45` vs 根/`backend/AGENTS.md`；`backend/docs/TUI.md:28,85` vs `tui/session.py:37-64`、`command_registry.py:44`；`skill_storage.py:197` |
 | EV2 缺位 | grep `negative control\|负例\|proven to fail` 于 `AGENTS.md`/`backend/AGENTS.md`/`CONTRIBUTING.md`/`docs/AGENTS.md`：0 命中 |
 | CI 权限声明 | 16 个 workflow 中 11 个含 `permissions:`；`lint-check.yml` 为 `contents: read` |

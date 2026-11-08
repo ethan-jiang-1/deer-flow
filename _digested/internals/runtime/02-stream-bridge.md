@@ -1,6 +1,6 @@
 ---
 title: "StreamBridge — 流发布/订阅协议"
-description: "- `runtime/stream_bridge/base.py` (115 行，v2.1.0 实测) — 抽象协议"
+description: "- `runtime/stream_bridge/base.py` (163 行，v2.1.0 实测) — 抽象协议"
 topics: [runtime, streaming, checkpointer]
 ---
 
@@ -8,10 +8,10 @@ topics: [runtime, streaming, checkpointer]
 
 ## 文件
 
-- `runtime/stream_bridge/base.py` (115 行，v2.1.0 实测) — 抽象协议 + `StreamEvent`/`StreamGap`/两个哨兵
-- `runtime/stream_bridge/memory.py` (192 行，v2.1.0 实测) — 内存实现
-- `runtime/stream_bridge/redis.py` (384 行，v2.1.0 实测) — 🆕 Redis Streams 跨进程实现（`supports_cross_process = True`）
-- `runtime/stream_bridge/async_provider.py` (101 行，v2.1.0 实测) — 后端工厂
+- `runtime/stream_bridge/base.py` (163 行，v2.1.0 实测) — 抽象协议 + `StreamEvent`/`StreamGap`/两个哨兵
+- `runtime/stream_bridge/memory.py` (218 行，v2.1.0 实测) — 内存实现
+- `runtime/stream_bridge/redis.py` (1068 行，v2.1.0 实测) — 🆕 Redis Streams 跨进程实现（`supports_cross_process = True`）
+- `runtime/stream_bridge/async_provider.py` (108 行，v2.1.0 实测) — 后端工厂
 - `runtime/stream_modes.py` (47 行) — 🆕 对外 stream mode 词表与 `messages-tuple → messages` 映射
 
 ## 协议设计
@@ -148,7 +148,7 @@ class StreamGap:
 
 契约要点：抛出 `StreamGap` **同时终止迭代**（`return`）；调用方据此**重载持久状态**并从当前尾部续订，而不会把"部分重放"误当"完整重放"。`StreamBridge` 还有实例级能力位 `supports_cross_process: bool = False`（memory 保持 False），供上层判断订阅是否可能跨进程。
 
-## 🆕 `RedisStreamBridge`（`stream_bridge/redis.py`，384 行）
+## 🆕 `RedisStreamBridge`（`stream_bridge/redis.py`，1068 行）
 
 每个 run 一个 Redis Stream，订阅者直接 `XREAD`。这让 SSE bridge 在多 worker 下可用，同时保住 `Last-Event-ID` 重放语义。
 

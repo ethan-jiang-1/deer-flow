@@ -61,7 +61,7 @@ topics: [skills, installer, parser, skillscan, contract]
 
 ## 2. `skills/installer.py` — `.skill` 安装链路
 
-`installer.py`（329 行）是**纯业务逻辑、无 FastAPI 依赖**的共享安装实现（模块 docstring `:1-5`），Gateway 与 embedded client 都委托它。真正的编排在 storage 侧的两个 `ainstall_skill_from_archive`（`storage/local_skill_storage.py:119-149`、`storage/user_scoped_skill_storage.py:325-358`），installer 提供所有"危险步骤"。
+`installer.py`（331 行）是**纯业务逻辑、无 FastAPI 依赖**的共享安装实现（模块 docstring `:1-5`），Gateway 与 embedded client 都委托它。真正的编排在 storage 侧的两个 `ainstall_skill_from_archive`（`storage/local_skill_storage.py:119-149`、`storage/user_scoped_skill_storage.py:325-358`），installer 提供所有"危险步骤"。
 
 ```
 storage.ainstall_skill_from_archive(archive_path)

@@ -123,7 +123,7 @@ checkpointer 在 `_apply_singleton_configs()` 中有特殊处理——如果 che
 
 ## 🆕 边界的单一来源：`config/reload_boundary.py::STARTUP_ONLY_FIELDS`
 
-上面"必须重启"那张表在代码里的**真值**是 `deerflow/config/reload_boundary.py`（139 行）。它存在的理由写在模块 docstring 里：Gateway 的 request-time 依赖每次都经 `get_app_config()` 解析 `AppConfig`，所以 per-run 字段天然下一条消息生效；真正需要重启的是 Gateway **在 startup 捕获一次**的基础设施子集（engine、单例、IM client、logging handler）。
+上面"必须重启"那张表在代码里的**真值**是 `deerflow/config/reload_boundary.py`（171 行）。它存在的理由写在模块 docstring 里：Gateway 的 request-time 依赖每次都经 `get_app_config()` 解析 `AppConfig`，所以 per-run 字段天然下一条消息生效；真正需要重启的是 Gateway **在 startup 捕获一次**的基础设施子集（engine、单例、IM client、logging handler）。
 
 契约有三层：
 

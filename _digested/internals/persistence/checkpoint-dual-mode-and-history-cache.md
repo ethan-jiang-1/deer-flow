@@ -60,7 +60,7 @@ topics: [persistence, checkpointer, delta-channel, cache, gateway]
    - `ensure_checkpoint_mode_compatible()` / `aensure_checkpoint_mode_compatible()`：**写前**门（写不能撤销，所以事先查 `get_tuple`/`aget_tuple`）。delta 模式直接 return（新写没有 legacy 兼容问题）。
    - 违规统一抛 `CheckpointModeMismatchError`，消息固定为 "Thread requires delta mode; materialize and convert its checkpoints before using full mode."
 
-## 3. 唯一的状态读写咽喉：`CheckpointStateAccessor`（`runtime/checkpoint_state.py`，209 行）
+## 3. 唯一的状态读写咽喉：`CheckpointStateAccessor`（`runtime/checkpoint_state.py`，244 行）
 
 delta checkpoint **不存完整 `channel_values`**，直接读 saver 只会看到哨兵值。所以 `CheckpointStateAccessor` 被定义为**所有 thread checkpoint-state 读写的唯一入口**：它绑定"一个编译好的图（携带 mode 匹配的 channel schema）+ checkpointer + 冻结 mode"，每次操作都注入 mode 标记、过兼容门。
 
@@ -88,7 +88,7 @@ delta checkpoint **不存完整 `channel_values`**，直接读 saver 只会看�
 
 **为什么可以永不失效（正确性论证，写在 `cached_saver.py` 模块 docstring 与 `checkpoint_cache/base.py` 里）**：一个 checkpoint 的 delta 历史是其**已封闭祖先链**的纯函数——LangGraph 契约排除了目标自身的 pending writes，parent link 在创建时固定，祖先的 writes 在子节点出现后即封闭。因此按 `(thread, ns, checkpoint_id, channel)` 分键的条目是**不可变**的：无需 invalidation，共享后端在多进程间天然一致。
 
-### 4.1 键与契约（`checkpoint_cache/base.py`，80 行）
+### 4.1 键与契约（`checkpoint_cache/base.py`，89 行）
 
 ```python
 CACHE_FORMAT_VERSION = 1
@@ -124,7 +124,7 @@ redis 后端的**降级策略**（性能开关不能变成可用性开关）：
 - 线程清理失败 → 记 warning，残留条目靠 TTL 兜底（源数据已删，所以**从不 raise**）。
 - redis 是可选 extra：client 与 `RedisError` 都惰性 import，缺包时报带安装命令的 `ImportError`（`REDIS_INSTALL`）。
 
-### 4.3 工厂与部署身份（`checkpoint_cache/provider.py`，101 行）
+### 4.3 工厂与部署身份（`checkpoint_cache/provider.py`，102 行）
 
 `make_checkpoint_cache(app_config, *, serde)` 是 async context manager，镜像 `make_stream_bridge` 的"config → env fallback → memory"形状：
 
@@ -142,7 +142,7 @@ checkpoint_cache_key_prefix(app_config)
 
 `_stable_postgres_identity()` 刻意**不哈希原始 URL**：凭据轮换会让缓存命名空间整体变化（冷缓存 + 直到 TTL 的孤儿键），而数据库（以及所有缓存历史）其实没变。URL 解析失败回退原始字符串（仍按部署稳定），且 identity 计算**永不**让配置加载失败。
 
-### 4.4 包装器 `CachedHistorySaver`（`runtime/checkpointer/cached_saver.py`，328 行）
+### 4.4 包装器 `CachedHistorySaver`（`runtime/checkpointer/cached_saver.py`，364 行）
 
 `CachedHistorySaver(inner, cache, *, key_prefix)` 是**任何** `BaseCheckpointSaver` 的 read-through delta-history 包装：
 

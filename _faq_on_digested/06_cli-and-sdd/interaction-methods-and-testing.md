@@ -68,7 +68,7 @@ DEER_FLOW_SKILLS_PATH=/Users/bowhead/deer-flow/skills \
 
 ## 2. debug.py REPL（最快上手）
 
-源码：`backend/debug.py`（168 行）
+源码：`backend/debug.py`（171 行）
 
 ```bash
 cd /Users/bowhead/deer-flow/backend

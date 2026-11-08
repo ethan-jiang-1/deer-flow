@@ -85,9 +85,9 @@ task_continuity:
 
 | 文件 | 职责 |
 |------|------|
-| `backend/packages/harness/deerflow/agents/task_continuity/archive.py`（187 行） | SQLite 归档 + FTS5 检索：`scope()` / `records()` / `capture()` / `acapture()` / `lookup()`，`digest()` 生成 batch/source ID |
-| `backend/packages/harness/deerflow/agents/task_continuity/state.py`（99 行） | `normalize_task_history` / `normalize_task_notes` / `merge_task_notes` / `TaskNotesChannel`，全部预算常量与 ID 正则 |
-| `backend/packages/harness/deerflow/agents/task_continuity/tools.py`（105 行） | 三个 `StructuredTool`（同步 + 协程双模式，Gateway 异步 / DeerFlowClient 同步图都要）；`append_task_continuity_tools()` 仅在 `enabled=True` 时追加 |
+| `backend/packages/harness/deerflow/agents/task_continuity/archive.py`（254 行） | SQLite 归档 + FTS5 检索：`scope()` / `records()` / `capture()` / `acapture()` / `lookup()`，`digest()` 生成 batch/source ID |
+| `backend/packages/harness/deerflow/agents/task_continuity/state.py`（103 行） | `normalize_task_history` / `normalize_task_notes` / `merge_task_notes` / `TaskNotesChannel`，全部预算常量与 ID 正则 |
+| `backend/packages/harness/deerflow/agents/task_continuity/tools.py`（166 行） | 三个 `StructuredTool`（同步 + 协程双模式，Gateway 异步 / DeerFlowClient 同步图都要）；`append_task_continuity_tools()` 仅在 `enabled=True` 时追加 |
 | `backend/packages/harness/deerflow/config/task_continuity_config.py` | `TaskContinuityConfig`（pydantic，含 ge/le 钳制） |
 | `backend/packages/harness/deerflow/agents/middlewares/summarization_middleware.py` | 压缩时调 `capture()`/`acapture()`，把 `task_history` 写入 checkpoint 更新 |
 | `backend/packages/harness/deerflow/agents/thread_state.py` | `task_notes` / `task_history` channel 接线 |
@@ -96,7 +96,7 @@ task_continuity:
 
 上游附带完整公开评测：[docs/experiments/task-continuity-20260912/](../../../docs/experiments/task-continuity-20260912/README.md)（A/B/C/D 协议、脚本、结果、[VALIDATION.md](../../../docs/experiments/task-continuity-20260912/VALIDATION.md)）。**关键结论**：向量检索（Qwen3-Embedding-0.6B + 等权 RRF 混合）叠加在关键词检索之上**未建立稳定净收益**（C vs D：净 −5.0 个百分点，配对 bootstrap 95% 区间 [−15.0, +5.0]，精确 McNemar p=0.625）——因此**生产实现是纯 lexical，无向量依赖**。注意：这些数字描述的是强制压缩下的独立 replay 原型，不是生产实现或完整 DeerFlow 基线的验收率。
 
-`backend/tests/test_task_continuity.py`（607 行）覆盖：真实图压缩 + checkpoint resume 后的 source 恢复、作用域/回滚隔离、retention、截断、失败行为与工具契约。手动 live 集成检查用生产 middleware + 原生工具 + 合成历史：
+`backend/tests/test_task_continuity.py`（1004 行）覆盖：真实图压缩 + checkpoint resume 后的 source 恢复、作用域/回滚隔离、retention、截断、失败行为与工具契约。手动 live 集成检查用生产 middleware + 原生工具 + 合成历史：
 
 ```sh
 cd backend
