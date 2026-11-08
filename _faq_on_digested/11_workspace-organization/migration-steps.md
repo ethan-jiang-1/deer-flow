@@ -119,3 +119,11 @@ cp "$V1/.env" "$V2/.env"                 # 密钥（config 里 $DEEPSEEK_API_KEY
 - **技能更新**：`.claude/skills/` 是复制方式（方式二）→ 手动 `npx skills@latest update`；想自动跟上游可改 symlink 方式（方式三）。
 - **配置**：换场景用 `cd deep_research_harness && make profile-dev PROFILE=demo` 等 profiles 命令。
 - **换机器**：`git clone --recurse-submodules` + 重建 `.env`/`config.yaml`（本地不提交）。
+
+> 🔄 同步 #8（v2.2.0）：本页是**已执行的历史记录**，`9ef471e9`、`uv lock` 的「229 包」、`258 passed` 都是那次建仓的真实结果，保持不改。但照此复现时要把「钉哪个 commit」换成含 upstream **v2.2.0** 的 ethan HEAD，并注意三处 v2.2.0 差异：
+>
+> 1. **`config.yaml` 是新 schema**：Phase 6 从 V1 复制的老配置 `config_version` 是 45，v2.2.0 要 **63**（`config.example.yaml:23`）。复制后跑一次 `cd deerflow && make config-upgrade`（或用 V2 根自己的模板）把缺字段补齐，否则启动会警告版本落后。
+> 2. **`.env` 的解析规则变了**：v2.2.0 起由 `DEER_FLOW_ENV_FILE` 选择器决定读哪个 dotenv（`deerflow/env.py:10`），没设才退回 `load_dotenv()` 自动发现。V2 里有 `profiles/` 多套配置时，**不同 cwd 可能读到不同 `.env`**——建议在 `profiles/*` 或 Makefile 里显式导出 `DEER_FLOW_ENV_FILE`。
+> 3. **`.deer-flow/` 里老数据只读**：v2.2.0 把顶层 `memory.json` 与顶层 `agents/` 定为 legacy 只读回退（`deerflow/config/paths.py:140-157`、`:207`），写入面统一到 `users/{user_id}/`。V2 若沿用 V1 的 `.deer-flow`，历史记忆/agent 仍读得到，但新写入会落到 per-user 目录，**别再假设两者是同一份文件**。
+>
+> 另外 `uv sync` 之后可以立刻用 submodule 里的 console script 做冒烟验证：`uv run deerflow --print "ping"`（v2.2.0 新增的可安装命令，`backend/packages/harness/pyproject.toml:69-70`），比先起 Gateway 再 curl 更快。

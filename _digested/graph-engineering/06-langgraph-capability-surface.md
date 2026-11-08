@@ -31,7 +31,7 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 | `interrupt()` 函数原语(节点内动态 HITL) | `langgraph.types.interrupt` 可导入,配合 `Command(resume=...)` 成对 | deerflow 全库零处调用。产品级 HITL 走 `ask_clarification`(goto=END + 下轮对话);`interrupt_before/after` 已暴露却无人传值——**原语齐备,产品语义缺失** |
 | `Send()` 跨节点 fan-out | 原生支持(动态 Map-Reduce) | deerflow 不构图,没有可 Send 的目标节点;子代理派发走工具层。**这是"动态面降级到工具层"的最直接表达** |
 | `Command(goto=<非END节点>)` | 支持 | 唯一使用是 END 短路。langchain 侧还有上游限制:`wrap_model_call` 内**不支持** `Command` 的 `goto`/`resume`/`graph`(venv 实测 `factory.py:216`-`225` 三处 `NotImplementedError`) |
-| **`jump_to` 状态字段(middleware 内转场)** | **v2.2.0 新登记**——这是上一条的官方替代品:上游报错文案自己写着 "Use the `jump_to` state field with `before_model`/`after_model` hooks instead"。钩子用 `hook_config(can_jump_to=...)` 声明可跳目标,返回 `{"jump_to": "tools"/"model"/"end"}` 即可改流向,**不需要新节点** | deerflow **已经在拿它做成本模型**:`subagents/turn_budget.py:31`-`39` 推导出"任何 jump 都让 turn 预算是下界";`find_jumping_hooks()` 会在子代理 executor 里对声明了 jump 的钩子**发警告**。但 docstring 结尾原话 "No middleware in today's subagent chain does"——**能力已识别,尚无消费者**。lead 侧 `Command(goto=END)` 仍是唯一流向变更 |
+| **`jump_to` 状态字段(middleware 内转场)** | **v2.2.0 新登记**——这是上一条的官方替代品:上游报错文案自己写着 "Use the `jump_to` state field with `before_model`/`after_model` hooks instead"。钩子用 `hook_config(can_jump_to=...)` 声明可跳目标,返回 `{"jump_to": "tools"/"model"/"end"}` 即可改流向,**不需要新节点** | deerflow **已经在拿它做成本模型**:`subagents/turn_budget.py:31`-`39` 推导出"任何 jump 都让 turn 预算是下界";`find_jumping_hooks()` 会在子代理 executor 里对声明了 jump 的钩子**发警告**。但 docstring 结尾原话 "No middleware in today's subagent chain does" 只管**子代理链**——**2.2.0 起 lead 链已有真实消费者**：`TodoMiddleware.after_model` 声明 `@hook_config(can_jump_to=["model"])`（`todo_middleware.py:313`）并在 `:372` 返回 `{"jump_to": "model"}`；`ClarificationMiddleware` 在 `wrap_tool_call` 返回 `Command(goto=END)`（`clarification_middleware.py:519-522`）。所以"尚无消费者"是 2.1.0 的结论，**已过期** |
 | `add_conditional_edges` / 自定义构图 | 全套可用 | DeerFlow 不写图拓扑——两节点元图的全部路由都由 langchain factory 的 `model_to_tools`/`tools_to_model` 决策树提供 |
 | `interrupt_before=["*"]` 全节点暂停 | 参数支持 `Literal["*"]` | 已接线,无调用方 |
 
@@ -64,5 +64,5 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 
 **DeerFlow 不是"没用 LangGraph",而是"用了它的控制面,冻结了它的拓扑面,把它的动态面降级到工具层"**——并且:
 1. 它在依赖**之上打补丁**(`checkpoint_patches.py` 修上游 delta 回放缺陷、稳定消息 ID 等)——关系是修正性的,不只是消费性的;
-2. 它把 LangGraph 图能力中最有价值的四个(interrupt_before/resume、Send、fork、jump_to)分别处理为:**暴露但无人用**、**封在工具层之下**、**delta 模式结构性禁用**、**识别进成本模型但无消费者**;
+2. 它把 LangGraph 图能力中最有价值的四个(interrupt_before/resume、Send、fork、jump_to)分别处理为:**暴露但无人用**、**封在工具层之下**、**delta 模式结构性禁用**、**识别进成本模型且 lead 链已有消费者（TodoMiddleware）**;
 3. 对"如何更好地支持企业":依赖侧的 HITL 原语对(`interrupt_before` + `Command(resume)`)已经端到端可达——**给 Gate 语义补上产品层的消费,是全部缺口里离现有资产最近的一个**。

@@ -103,11 +103,12 @@ class ToolCounterMiddleware(AgentMiddleware):
             return {"tool_call_count": count}
         return None
 
-# 3. 传给 create_agent
-from deerflow.agents.lead_agent import make_lead_agent
-# 需要在 build_middlewares 中添加你的 middleware
-# 或者在 custom_middlewares 参数中传入
+# 3. 把它挂上去——走扩展契约，不要改 core
+#    见 extensions/AGENTS.md 的 middleware contributor；
+#    core 侧的接入点是 build_middlewares()（agents/lead_agent/agent.py L485）。
 ```
+
+> 🔄 同步 #8（v2.2.0）：旧版这里写「在 `build_middlewares` 中添加你的 middleware，或者在 `custom_middlewares` 参数中传入」——**`custom_middlewares` 这个入口已删除**，仓库根 `AGENTS.md` 的「Extension-first evaluation」把「把业务逻辑硬编码进 core」列为禁止项。现行做法是写一个 middleware contributor 交给扩展栈：结尾由 `compose_with_extensions(middlewares, AgentScope.LEAD, ...)` 统一合并（`agent.py` L790-792），合并只发生**一次**、且在 lead 专属中间件追加之后，所以你的中间件看到的是完整栈。另外**自定义 state 字段不要指望自动生效**——如果中间件自己声明了 `state_schema`，装配期 `normalize_middleware_state_schemas(...)`（`agent.py` L1248）会按 checkpoint mode 把它换成适配版本，而 lead agent 的 state schema 由 `get_thread_state_schema(mode)` 单独取（L1255）。要加字段，两处必须同时改到位。
 
 **为什么 NotRequired 就够了**：只有这一个 middleware 写 `tool_call_count`，不存在多 writer 冲突。
 
@@ -165,7 +166,9 @@ class SubResultCollectorMiddleware(AgentMiddleware):
 
 **通过 sandbox 文件系统传递，不要试图通过 state 传递。**
 
-原因：DeerFlow 的子 agent 使用**全新的 ThreadState**（`agent.py` 里给子 agent 传的是 `state_schema=ThreadState`，不继承你的自定义 state）。子 agent 看不到你在父 agent state 里加的字段。
+原因：DeerFlow 的子 agent 使用**全新的 ThreadState**——子代理执行器里 `create_agent(...)` 硬编码 `state_schema=ThreadState` 且 `checkpointer=False`（`subagents/executor.py` L1205-1212），不继承你的自定义 state。子 agent 看不到你在父 agent state 里加的字段。
+
+> 🔄 同步 #8（v2.2.0）核对结论：这条**依然成立**，但行号从「`agent.py` 里」更正到 `subagents/executor.py:1210`；同时子代理这次调用是 `checkpointer=False` 编译的——**子代理没有独立 checkpoint**，所以你在子代理里写的 state 字段连落盘都不会有。详见 [_digested/graph-engineering/06-langgraph-capability-surface.md](../../_digested/graph-engineering/06-langgraph-capability-surface.md) §3「子代理一次性执行」。
 
 ```python
 # 子 agent #1 产出代码
@@ -205,9 +208,11 @@ class MyState(ThreadState):
 
 ### 坑 3：None 值不触发 reducer
 
-LangGraph 的规则：如果一个 node 不返回某个 key（返回值里没有这个 key），reducer 不被调用。只有**两个返回都有这个 key**时 reducer 才执行。
+LangGraph 的规则：如果一个 node 不返回某个 key（返回值里没有这个 key），reducer 不被调用。只有**两个返回都有这个 key**时 reducer 才执行；但 `new=None` 的那次调用在 LangGraph 内部怎么处理，取决于 reducer 自己的签名与默认值。
 
-这意味着：如果你用 `Annotated[list[str], merge]`，并且只有一个 middleware 返回了 `{"my_list": [...]}`，reducer 不会被调用——直接用这个值。
+这意味着：如果你用 `Annotated[list[str], merge]`，并且只有一个 middleware 返回了 `{"my_list": [...]}`，你的 reducer 大概率不会被调用——直接用这个值。**但别把它当保证**：上面 `my_reducer` / `merge_sub_results` 的模板都对 `None` 做了保护（`if new is None: return existing`），原因正是「reducer 可能收到 `None`」。自己写 reducer 时照抄这层保护，比赌它不被调用安全。
+
+> 🔄 同步 #8（v2.2.0）补一条更硬的坑：**delta 模式下 `messages` 根本不是 `add_messages`**。`get_thread_state_schema("delta")` 返回的 schema 里 `messages` 是 `Annotated[list[AnyMessage], DeltaChannel(merge_message_writes, snapshot_frequency=...)]`（`thread_state.py` L487-499）。所以「坑 1 不要覆盖 messages 的 reducer」在 2.2.0 要升级成更强的表述：**连读 `__annotations__` 判断 `messages` 走什么通道都不可靠**——同一个 `ThreadState` 类在两种 mode 下被映射成两个不同的 schema，判断一律走 `get_thread_state_schema(mode)` 或 `adapt_state_schema_for_mode(...)`，别自己读注解。
 
 ### 坑 4：别往 state 里放大文件
 
@@ -226,4 +231,6 @@ State 会被 checkpoint（序列化到数据库）。如果你往 state 里放�
 | 多个 middleware 同时写一个列表 | `Annotated[list, reducer]` | ✅ 加字段 + reducer |
 | 敏感数据不进 messages | `NotRequired[str]`（可选 `PrivateStateAttr`） | ✅ 加字段 |
 | 子 agent 间传数据 | sandbox 文件 | ❌ 不改 |
-| 影响路由决策 | 加字段 + 条件边读它 | ✅ 加字段 |
+| 影响路由决策 | 加字段 + 条件边读它；或让钩子返回 `jump_to`（须先 `hook_config(can_jump_to=...)` 声明） | ✅ 加字段 |
+| 让工件可被追踪/消费 | `tool_artifacts` / `tool_artifact_processed`（2.2.0 已内置） | ❌ 不改 |
+| 目标判定结果 | `goal_outcome`（2.2.0 已内置） | ❌ 不改 |

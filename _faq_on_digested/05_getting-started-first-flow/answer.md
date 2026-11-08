@@ -21,13 +21,24 @@ DeerFlow 是一个开源 super-agent harness，基于 LangGraph，通过 Skills�
 
 | 文件 | 作用 |
 |------|------|
-| `config.yaml`（项目根） | 模型、工具、沙箱、子 agent、记忆、标题、总结等全配置 |
+| `config.yaml`（项目根） | 模型、工具、沙箱、子 agent、记忆、标题、总结等全配置（`config_version: 63`） |
 | `extensions_config.json`（项目根） | MCP 服务器连接 + Skills 启用/禁用状态 |
-| `skills/public/` | 内置 Skills（git 跟踪） |
+| `skills/public/` | 内置 Skills（git 跟踪，v2.2.0 共 23 个） |
 | `skills/custom/` | 自定义 Skills（gitignore） |
-| `.deer-flow/users/{uid}/agents/{name}/` | 自定义 Agent 的 SOUL.md + config.yaml |
+| `.deer-flow/users/{uid}/agents/{name}/` | 自定义 Agent 的 SOUL.md + config.yaml（**现行布局**） |
+| `.deer-flow/users/{uid}/USER.md` | 用户画像（仅 `agents_api.enabled: true` 时可通过 `/user-profile` 路由读写） |
 | `.deer-flow/users/{uid}/memory.json` | 用户记忆数据 |
+| `.deer-flow/users/{uid}/skills/custom/` | 按用户隔离的自定义 Skills |
 | `.deer-flow/users/{uid}/threads/{tid}/` | 每个对话线程的 workspace/uploads/outputs |
+| `.deer-flow/memory.json`、`.deer-flow/agents/{name}/` | **legacy 只读回退**（v2.2.0 起不再写入，见下） |
+
+> 🔄 同步 #8（v2.2.0）：工作区布局在 v2.2.0 定稿为 **`users/{user_id}/` 为唯一写入面**（`deerflow/config/paths.py:140-157` 的布局 docstring）。要点：
+> - 顶层 `.deer-flow/memory.json`（`paths.py:195-197`）与顶层 `.deer-flow/agents/{name}/`（`paths.py:207-215` 的 `agents_dir()`）是 **legacy 共享布局**，现在只做**只读回退**——读的时候会兜底，写的时候不会碰。`FileAgentStore.delete()`（`deerflow/persistence/agents/file.py:168`）删到 legacy agent 会返回 `legacy` 并原地保留。
+> - 新增 `users/{uid}/USER.md`（`paths.py:199-205` 的 `user_md_file()`）：**只是存取**，本版本没有任何代码把它注入 prompt——读写它是 `GET`/`PUT /api/agents/user-profile`（`backend/app/gateway/routers/agents.py:692` 的 `get_user_profile` 与 `:729` 的 `update_user_profile`），且受 `agents_api.enabled` 开关约束（默认 `false`，`config.example.yaml:2580`）。
+> - 新增 `users/{uid}/skills/`（`paths.py:284-286` 的 `user_skills_dir()`，含 `:288` 的 `user_custom_skills_dir()`），挂在沙箱里的 `/mnt/skills/custom`；整合包 skill 走 `.deer-flow/integrations/skills/{provider}/`（`paths.py:297` 的 `integration_skills_dir()`）。
+> - 记忆的 `memory.storage_path` 现在被当成**根目录**而非文件路径（`deerflow/config/memory_config.py:277-289` 会把旧的 `.json` 形式丢弃并 warn），per-user 落在 `{storage_path}/users/{uid}/memory.json`。
+>
+> 完整目录语义见 `_digested/internals/configuration/04-config-reference.md`。
 
 ### 常用命令
 
@@ -41,13 +52,21 @@ make docker-logs       # Docker 日志
 
 # === 配置 ===
 make config            # 从 config.example.yaml 生成 config.yaml
-make config-upgrade    # 合并新版 config schema 的缺失字段（config_version 现为 45）
+make config-upgrade    # 合并新版 config schema 的缺失字段（config_version 现为 63）
+
+# === 终端 / 脚本（v2.2.0 新增）===
+uv pip install 'deerflow-harness[tui]'
+deerflow                       # 全屏 TUI（内嵌 client，不需要 Gateway）
+deerflow --print "问题"         # 一次性回答（失败退出码 1）
+deerflow --json "问题"          # 逐行 NDJSON 事件
 
 # === 后端（backend/ 目录）===
-make test              # 运行全部测试
+make test              # 运行全部测试（分四个并行 shard）
 make lint              # ruff 代码检查
 make format            # ruff 格式化
 ```
+
+> 🔄 同步 #8（v2.2.0）：`make config-upgrade` 的目标版本从 45 提到 **63**（`config.example.yaml:23`）。`make test` 现在是四个并行 shard，且默认排除 live 与 blocking-I/O 测试（严格阻塞 IO 套件单独用 `make test-blocking-io`）。新增的 `deerflow` 命令见 `_digested/getting-started/06-tui.md`。
 
 ### 推荐模型
 
@@ -69,7 +88,7 @@ DeerFlow 官方推荐：**Doubao-Seed-2.0-Code**、**DeepSeek V3.2**、**Kimi 2.
 |------|------|
 | 系统架构全景 | `_digested/overview/` |
 | Agent 循环执行流 | `_digested/internals/agent-loop/` |
-| Middleware 完整链（37 个 + 时序） | `_digested/internals/middleware/03-catalog.md` |
+| Middleware 完整链（39 个条目位 + 时序） | `_digested/internals/middleware/03-catalog.md` |
 | 配置系统（双文件 + 热加载边界） | `_digested/internals/configuration/` |
 | 模型层（factory + provider patches） | `_digested/internals/model-layer/` |
 | Gateway API 和应用层 | `_digested/operations/app-layer/` |
@@ -77,6 +96,8 @@ DeerFlow 官方推荐：**Doubao-Seed-2.0-Code**、**DeepSeek V3.2**、**Kimi 2.
 | Sandbox（local vs Docker vs K8s） | `_digested/concepts/sandbox/` |
 
 > 🔄 同步 #6（v2.1.0-rc0）：Node.js 要求升级为 24+（#5063）；Gateway 新增 `GET /health/ready` 就绪探针；`DeerFlowClient` 支持多用户内嵌复用（#5206）与流式修复（#5408/#5479）；前端新增 Projects / Trash / Capability Center 页面；seven sandbox 实现不变。
+
+> 🔄 同步 #8（v2.2.0）：本页随 v2.2.0 复核的要点——middleware 由 37 改记 **39 个条目位**；`config_version` 45 → **63**；工作区唯一写入面收敛到 `users/{user_id}/`（顶层 `memory.json` / `agents/` 变 legacy 只读回退）；skill 的 `allowed-tools` 降级为**兼容元数据**（上游 #6935 `0d73798be`，`skills/tool_policy.py` 已删除、`agents/middlewares/skill_tool_policy_middleware.py` 已删除）；新增可安装的 `deerflow` 终端命令。sandbox 实现集合未变（local / Docker / K8s provisioner 三选一）。
 
 ## 相关 FAQ
 

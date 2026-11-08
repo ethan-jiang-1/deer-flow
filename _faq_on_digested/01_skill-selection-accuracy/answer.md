@@ -8,19 +8,22 @@ skills/{public,custom}/**/SKILL.md
         ▼
 LocalSkillStorage.load_skills(enabled_only=True)
   → 递归扫描磁盘，解析 YAML frontmatter（name, description, license, allowed-tools）
-  → 见 deerflow/skills/storage/skill_storage.py:277（基类 load_skills(enabled_only=...)；
-    用户隔离变体见 user_scoped_skill_storage.py:185，v2.1.0-rc0 后存储已按用户分域）
+  → 见 deerflow/skills/storage/skill_storage.py:349（基类 load_skills(enabled_only=...)；
+    用户隔离变体见 user_scoped_skill_storage.py:186，v2.1.0-rc0 后存储已按用户分域）
+  → allowed-tools 仍照常解析（parser.py:269 → parse_allowed_tools，parser.py:108），
+    但 2.2 起只是兼容元数据，不参与任何工具过滤（见下文专节）
         │
         ▼
 get_skills_prompt_section()
   → 所有 enabled skill 的 (name, description, category, file_path) 
   → 默认路径仍不经相关性排序；但新增 deferred discovery 路径：
     传入 skill_names 时只渲染 <skill_index>（纯名字），LLM 用 describe_skill 按需取详情
-  → 见 deerflow/agents/lead_agent/prompt.py:884（legacy 全量元数据路径仍存在）
+  → 见 deerflow/agents/lead_agent/prompt.py:959（legacy 全量元数据路径仍存在；
+    单条渲染 _render_available_skill 在 prompt.py:332，2.2 行号已右移）
         │
         ▼
 系统 prompt 的 <available_skills> 块
-  → XML 格式注入（_render_available_skill，prompt.py:231；块拼接在 prompt.py:846）：
+  → XML 格式注入（_render_available_skill，prompt.py:332；签名派生块在 prompt.py:911-923）：
     <skill>
         <name>my-skill</name>
         <description>This skill helps with X, Y, Z...</description>
@@ -33,7 +36,7 @@ get_skills_prompt_section()
 LLM 阅读理解所有 skill 描述 → 自主决定调用 read_file 加载哪个
 ```
 
-> 🔄 同步 #6（v2.1.0-rc0）：本节链路已部分演进——新增 **deferred discovery** 路径（`skills_config.skills.deferred_discovery`）：开启后系统 prompt 只注入 `<skill_index>`（仅名字），LLM 通过 `describe_skill` 工具按需读取详情（`skills/describe.py`，`get_skill_index_prompt_section` prompt.py:925）。同时 `/mnt/skills` 收归 managed enabled-only projection（#4178），未启用的 skill 在沙箱文件系统中不可见。详见 `_digested/concepts/skills-tools/skill-md-and-tool-assembly.md`。
+> 🔄 同步 #6（v2.1.0-rc0）：本节链路已部分演进——新增 **deferred discovery** 路径（`skills_config.skills.deferred_discovery`）：开启后系统 prompt 只注入 `<skill_index>`（仅名字），LLM 通过 `describe_skill` 工具按需读取详情（`skills/describe.py`，`get_skill_index_prompt_section`，describe.py:213，deferred 分派 prompt.py:995-1002）。同时 `/mnt/skills` 收归 managed enabled-only projection（#4178），未启用的 skill 在沙箱文件系统中不可见。详见 `_digested/concepts/skills-tools/skill-md-and-tool-assembly.md`。
 
 ### 问题的根源
 
@@ -59,21 +62,43 @@ DeerFlow 的 skill 选取依赖**一个步骤**：LLM 在系统 prompt 中读所
 
 ### 唯一存在的筛选机制：agent-level skill whitelist
 
-`get_skills_prompt_section()` 接受一个 `available_skills: set[str]` 参数：
+`get_skills_prompt_section()` 接受一个 `available_skills: set[str] | None` 参数：
 
 ```python
-# prompt.py:943
-if available_skills is not None and not any(
-    skill.name in available_skills for skill in skills
-):
+# prompt.py:1018-1019
+if available_skills is not None and not any(skill.name in available_skills for skill in skills):
     return ""
 ```
 
 这个参数来自 `AgentConfig.skills`——每个 custom agent 可以配置 `skills: ["foo", "bar"]` 来只暴露部分 skill。但这需要**人工配置**，不是自动选择。而且 default agent 的 `skills` 是 `None`（= 所有 skill 可见）。
 
+> 🔄 同步 #8（v2.2.0）：白名单链路多了两层叠加，但**都不是相关性排序**：
+> 1. **Layer 1 授权过滤**——`available_skills` 在交给 prompt 之前先过 `filter_available_skills_by_authorization()`（`authz/skill_filter.py`，调用点在 agent.py:1041），被 `skill` 策略拒绝的 skill 不进 `<skill_index>`、不可 `describe_skill`、也不能 slash 激活（agent.py:1013-1044 注释原文）。
+> 2. 白名单仍**只读 `(agent_config.skills, is_bootstrap)` 二元组**（`_available_skill_names()`，agent.py:812-817）——HTTP `body.context` 里没有任何 key 能改它（`_CONTEXT_CONFIGURABLE_KEYS` 白名单，`app/gateway/services.py:880-895`，见 Q2/Q3）。
+
 ### tool_search 不适用于 skill
 
-`deerflow/tools/builtins/tool_search.py` 的 `tool_search` 工具只对 **MCP deferred tools** 生效（通过 `DeferredToolCatalog` + `DeferredToolFilterMiddleware`）。Skills 不经过这个通道——skill 发现是通过 `read_file` 加载 SKILL.md，完全由 LLM 自主决定。
+`deerflow/tools/builtins/tool_search.py` 的 `tool_search` 工具只对 **MCP deferred tools** 生效（通过 `DeferredToolCatalog`，tool_search.py:113 + `DeferredToolFilterMiddleware`）。Skills 不经过这个通道——skill 发现是通过 `read_file` 加载 SKILL.md，完全由 LLM 自主决定。
+
+> 🔄 同步 #8（v2.2.0）：`build_deferred_tool_setup()` 的 docstring 现在明写「Skill `allowed-tools` declarations are compatibility metadata and never filter this assembly」（tool_search.py:281-284）——即 skill 的 `allowed-tools` 也不会**间接**通过 deferred 装配影响工具集，这条通道确实是纯净的 MCP-only。
+
+### ⚠️ 2.2 重大变更：`allowed-tools` 不再是工具过滤器
+
+v2.1 时代 skill 的 `allowed-tools` frontmatter 会**收紧模型可见可调用的工具集**（只对 slash 激活或实际 load 的 lead-agent skill 生效）：
+
+- **已删除**：`deerflow/skills/tool_policy.py`（65 行）——`ALWAYS_AVAILABLE_BUILTIN_TOOL_NAMES`、`allowed_tool_names_for_skills()`、`filter_tools_by_skill_allowed_tools()`。
+- **已删除**：`deerflow/agents/middlewares/skill_tool_policy_middleware.py`（529 行）——把上述并集应用到模型可见性、`tool_search` 结果与执行三层。
+- **已删除**：`build_middlewares()` 里的 `SkillToolPolicyMiddleware` 注册（`agents/lead_agent/agent.py`）。
+
+（上游 #6935 / `0d73798be`，2.2.0 引入。）
+
+**2.2 的现行语义**：`allowed-tools` **只是兼容元数据**——照常解析（parser.py:269）、照常展示（`describe_skill` 把它渲染成 `Allowed tools (compatibility metadata, not enforced):`，describe.py:193-198），但**不再过滤、授予或拒绝任何工具**。prompt 里也直接告诉模型：「A skill's `allowed-tools` frontmatter is compatibility metadata… your tools are controlled by DeerFlow's Agent configuration and authorization」（prompt.py:949）。
+
+- `SkillActivationMiddleware` 的职责随之收窄为：识别 `/skill-name task`、只解析「已启用且运行时允许」的 skill、注入 `SKILL.md` 正文、记审计事件——**激活本身不改变工具集**（`middlewares/AGENTS.md` #18）。
+- **权限上限的唯一所有者变成「agent 组装 + 执行授权」**：Layer 1 能力过滤（`authorization.enabled` 的 `AuthorizationProvider`，`authz/provider.py:86` + `apply_tool_authorization()`，`authz/tool_filter.py:25-33`）与 Layer 2 执行前检查（`GuardrailAuthorizationAdapter`，`authz/adapter.py:27`）。要限制工具请走 `disallowed_tools`、`authorization` 或 custom agent 的 `skills`/`tool_groups`。
+- 历史残留：`runtime/secret_context.py:37` 仍保留 `SKILL_TOOL_POLICY_DECISION_CONTEXT_KEY = "__skill_tool_policy_decision"` 这个**已废弃的保留 key**，只为让含该 key 的历史 payload 继续被 redact（secret_context.py:31-37 注释明说 policy 已移除）。
+
+**对 Q1 的问题意味着什么：** `allowed-tools` 从来不是「选取精度」问题的解，它管的是选中之后工具能做什么。2.2 把它降级后，选取精度这条链**完全没有变化**——仍然只有 `<available_skills>` 全量注入 + LLM 自主判断（或 deferred discovery / slash 激活）。
 
 ---
 
@@ -155,7 +180,7 @@ DeerFlow 的 skill description 完全由 skill 作者控制。在 digest 或文�
 
 **3. 给每个 skill 加 `trigger_keywords` frontmatter**
 
-扩展 `Skill` dataclass（`deerflow/skills/types.py:41`）和 parser（`parse_skill_file`，`deerflow/skills/parser.py:190`）：
+扩展 `Skill` dataclass（`deerflow/skills/types.py:41`）和 parser（`parse_skill_file`，`deerflow/skills/parser.py:211`）：
 
 ```python
 @dataclass
@@ -167,6 +192,8 @@ class Skill:
 ```
 
 然后在 `get_skills_prompt_section()` 中，用用户 query 的关键词与 `trigger_keywords` 做交集筛选，减少注入 prompt 的 skill 数量。
+
+> 🔄 同步 #8（v2.2.0）：注意别和 **`allowed-tools` 的新语义**混淆——2.2 已把 `allowed-tools` 降级为兼容元数据（见上文专节），所以这个新 frontmatter 字段必须是**独立键**，且要同时过两道门：`ALLOWED_FRONTMATTER_PROPERTIES` 白名单（`skills/frontmatter.py:14-27`，2.2 共 11 个键，未知键在安装/写入门是**硬失败**，`skills/validation.py:42-44`）与 review core 的 `structure.unknown-frontmatter-field` 检查。另：v2.1 的历史方案里曾把「`allowed-tools` 限制工具」当作防误触手段，这条路 2.2 已不存在——防误触只能靠 `_rank_by_intent` 排序（catalog.py:96/76）、`authorization` 的策略，或给 agent 配窄 `skills:` 白名单。
 
 ### 中期可做（加一个新机制）
 
@@ -204,6 +231,8 @@ Codex 的做法（budget 硬上限 + 渐进加载 + 显式/隐式双模式）是
 
 > 🔄 同步 #6（v2.1.0-rc0）：结论需打折更新——keyword 预筛与 relevance 排序已由 `_rank_by_intent`/`_intent_score`（`skills/catalog.py`）落地，deferred discovery（`<skill_index>` + `describe_skill`）提供了官方的渐进加载路径，`/mnt/skills` enabled-only projection（#4178）收窄了沙箱可见面；尚未实现的只剩 context budget 硬上限与 embedding 排序。
 
+> 🔄 同步 #8（v2.2.0）：补充一条**不能省的口径**——`allowed-tools` 在 2.2 已从「工具过滤器」降级为「兼容元数据」（#6935 / `0d73798be`），所以 v2.1 时代「skill 声明 allowed-tools 就看不到某工具」式的护栏**在 2.2 已不成立**；限制工具只能走 `disallowed_tools`、`authorization`（Layer 1 `AuthorizationProvider` / Layer 2 `GuardrailAuthorizationAdapter`）或 custom agent 的工具配置。这不改变上面的结论：选取精度仍缺 context budget 硬上限与 embedding 排序，`<available_skills>` 默认仍是全量平铺。
+
 ---
 
 ## 相关 digest 笔记
@@ -212,8 +241,10 @@ Codex 的做法（budget 硬上限 + 渐进加载 + 显式/隐式双模式）是
 - `_digested/internals/harness-hooks/06-mcp-interceptors.md` — MCP tools 通过 `tool_search` 的延迟发现机制
 - `_digested/internals/middleware/03-catalog.md` — `DeferredToolFilterMiddleware` 的两阶段工作（wrap_model_call 隐藏 schema + wrap_tool_call 拒绝未 promote 的 tool）
 - `_digested/internals/harness-hooks/08-agent-self-modification.md` — `SkillEvolutionConfig` 控制 agent 能否创建/修改 skill
+- `_digested/concepts/skills-tools/skill-md-and-tool-assembly.md` — SKILL.md 装配全貌；其「`allowed-tools`：从工具过滤器降级为兼容元数据」一节是本文 2.2 口径的权威出处
 
 Sources:
+- DeerFlow 源码（v2.2.0 实测行号）: `deerflow/skills/storage/skill_storage.py:349`、`skills/parser.py:108,211,269`、`skills/frontmatter.py:14-27`、`skills/describe.py:193-198,213`、`agents/lead_agent/prompt.py:332,911-923,949,959,995-1002,1018-1019`、`agents/lead_agent/agent.py:812-817,1041`、`tools/builtins/tool_search.py:113,281-284`、`authz/tool_filter.py:25-33`、`authz/provider.py:86`、`runtime/secret_context.py:37`
 - [Agent Skills – Codex (OpenAI Developers)](https://developers.openai.com/codex/skills)
 - [OpenAI are quietly adopting skills - Simon Willison](https://simonwillison.net/2025/Dec/12/openai-skills/)
 - [Skills在Claude Code, Codex, OpenClaw深度对比](http://mp.weixin.qq.com/s?__biz=MzUyNjY5ODI2Nw==&mid=2247483841&idx=1&sn=9bb8171fc1220c9d0de920ccedbf1fd9)

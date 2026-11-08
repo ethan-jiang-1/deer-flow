@@ -8,24 +8,62 @@
 
 # Part A：所有交互手段一览
 
-DeerFlow 没有可安装的 `deerflow` CLI 二进制（无 console_scripts、无 __main__.py），但它支持 8 种交互形式。按「从最快到最重」排列：
+DeerFlow 支持 10 种交互形式。按「从最快到最重」排列：
+
+> 🔄 同步 #8（v2.2.0）：原文断言「没有可安装的 `deerflow` CLI 二进制（无 console_scripts、无 `__main__.py`）」——该断言**已失效**。v2.2.0 的 harness 自带 TUI 终端工作台：console script `deerflow = "deerflow.tui.cli:main"` 注册在 `packages/harness/pyproject.toml:69-70`，`python -m deerflow.tui` 走 `tui/__main__.py` 调同一个 `main()`。`textual` 是**可选**依赖 `textual>=0.80`（`packages/harness/pyproject.toml:75` 的 extra `tui`），不装也能用 `--print` / `--json` 两种 headless 模式。下面的表已按此重排为 10 项。
 
 | # | 方式 | 启动命令 | 流式 | 可见性 | 适合 |
 |---|------|---------|------|--------|------|
-| 1 | **Python REPL + DeerFlowClient** | `uv run python` → `from deerflow.client import DeerFlowClient` | ✅ `stream()` | token 级 + tool call 内部可见 | 程序化实验、调试 |
-| 2 | **debug.py REPL** | `PYTHONPATH=. uv run python debug.py` | ❌ `ainvoke` 阻塞 | 最终结果 + artifacts | 断点调试、快速问答 |
-| 3 | **chat.sh (bash)** | `bash skills/.../chat.sh "问题"` | ✅ SSE via curl | 最终文本 | shell 环境、脚本集成 |
-| 4 | **status.sh (bash)** | `bash skills/.../status.sh [models/skills/agents]` | — | 资源列表 | 环境巡检 |
-| 5 | **Web UI** | `http://localhost:2026` | ✅ SSE → React | 全部：tool call 卡片、artifacts、todos、token | 交互体验、演示 |
-| 6 | **curl → Gateway API** | `curl -N -X POST :8001/api/runs/stream` | ✅ SSE raw | 全部原始 JSON | HTTP 集成 |
-| 7 | **IM Channels** | Feishu/Slack/Telegram/DingTalk/WeCom/Discord/WeChat/Buzz | 部分（Feishu/WeCom/Telegram/Buzz） | 仅文本 | 团队日常使用 |
-| 8 | **Jupyter/脚本** | 普通 `.py` 文件 | ✅ `stream()` | 自定义 | 自动化流水线 |
+| 1 | **`deerflow` TUI** 🆕 | `deerflow`（或 `python -m deerflow.tui`） | ✅ 后台 daemon 线程跑 `stream()` | 渲染好的 transcript + tool call 摘要 + token 用量 | 日常终端使用、演示 |
+| 2 | **`deerflow --print` / `--json`** 🆕 | `deerflow --print "问题"` | `--json` 逐行 NDJSON，`--print` 只出最终答案 | 脚本可解析 | shell 脚本、CI |
+| 3 | **Python REPL + DeerFlowClient** | `uv run python` → `from deerflow.client import DeerFlowClient` | ✅ `stream()` | token 级 + tool call 内部可见 | 程序化实验、调试 |
+| 4 | **debug.py REPL** | `PYTHONPATH=. uv run python debug.py` | ❌ `ainvoke` 阻塞 | 最终结果 + artifacts | 断点调试、快速问答 |
+| 5 | **chat.sh (bash)** | `bash skills/.../chat.sh "问题"` | ✅ SSE via curl | 最终文本 | shell 环境、脚本集成 |
+| 6 | **status.sh (bash)** | `bash skills/.../status.sh [models/skills/agents]` | — | 资源列表 | 环境巡检 |
+| 7 | **Web UI** | `http://localhost:2026` | ✅ SSE → React | 全部：tool call 卡片、artifacts、todos、token | 交互体验、演示 |
+| 8 | **curl → Gateway API** | `curl -N -X POST :8001/api/runs/stream` | ✅ SSE raw | 全部原始 JSON | HTTP 集成 |
+| 9 | **IM Channels** | Feishu/Slack/Telegram/DingTalk/WeCom/Discord/WeChat/Buzz | 部分（Feishu/WeCom/Telegram/Buzz） | 仅文本 | 团队日常使用 |
+| 10 | **Jupyter/脚本** | 普通 `.py` 文件 | ✅ `stream()` | 自定义 | 自动化流水线 |
 
 下面逐一详解。
 
+## 0. `deerflow` TUI + headless（v2.2.0 新增，最省事）
+
+它是**内嵌** `DeerFlowClient` 的终端外壳：同一套 `config.yaml`、同一套 `DEER_FLOW_HOME`、同一个 checkpointer，**不需要 Gateway / Nginx / Docker**。
+
+```bash
+uv pip install 'deerflow-harness[tui]'   # textual 是可选依赖
+cd backend && PYTHONPATH=. uv run python -m deerflow.tui   # 从源码跑
+
+deerflow                                  # 有 TTY → 全屏 TUI
+deerflow --tui "帮我扫一遍这个仓库"        # 强制 TUI，并带上首条消息
+deerflow --print "用 Python 写冒泡排序"    # headless：只把最终答案打到 stdout
+echo "hello" | deerflow --print            # 从管道读消息
+deerflow --json "列出 workspace 文件"      # headless：逐行 StreamEvent JSON
+deerflow --print "继续上次" --continue     # 续跑最近一条线程
+deerflow --recursion-limit 250 --print "长任务"
+deerflow extensions --help                 # 扩展管理子命令（转发到 deerflow.extensions.cli）
+```
+
+启动模式由**纯函数** `plan_launch(*, stdin_isatty, stdout_isatty, env)` 决定（`tui/cli.py:119`，无 I/O、不构造 client），优先级 `--print` → `--json` → `--cli` → `--tui`/`DEER_FLOW_TUI`/TTY 自动检测 → 兜底 `headless-help`。
+
+脚本可依赖的契约：
+
+- `--print` 与 `--json` **互斥**（argparse `add_mutually_exclusive_group`，`tui/cli.py:60` 起，`--print` 在 `:61`、`--json` 在 `:69`），一次调用只跑一个 headless 模式；消息只能给在一处（flag 后面或位置参数二选一）。
+- **失败退出码 1**（v2.2.0 新增）：既包括抛异常（`tui/cli.py:359` 的 `return 1`、BrokenPipe 的 `:364`、错误兜底的 `:367`），也包括「流正常结束但最后一条 AI 消息被 LLM error middleware 标成 `deerflow_error_fallback`」——由 `_RunOutcome.error_text()`（`tui/cli.py:326`）识别；`--json` 额外写一行 `{"type":"error",…}`（`_report_json_error`，`tui/cli.py:336`）。没有这条契约就区分不出「真回答」和「错误兜底文本」。
+- 无 TTY 且没给 headless 参数 → `headless-help`，退出码 **2**（`tui/cli.py:259` 的 `return 0 if not plan.reason else 2`），不会挂起。
+- `--recursion-limit` 只收正整数（`_positive_int`，`tui/cli.py:41`），且必须同时给 `--print`/`--json`/`--cli`。
+- 首位置参数 `chat` 是默认会话面的别名，会被剥掉（`_strip_chat`，`tui/cli.py:95`）。
+- TUI 内建 **18** 条 slash 命令（`tui/command_registry.py:38-57` 的 `BUILTIN_COMMANDS`）：`/help`、`/new`、`/clear`、`/threads`、`/switch`、`/resume`、`/goal`、`/model`、`/skills`、`/tools`、`/mcp`、`/memory`、`/uploads`、`/artifacts`、`/details`、`/usage`、`/config`、`/quit`。
+- `textual` 未安装且未强制 `--tui` → 打印安装提示 + headless help，退出码 **0**；强制了 `--tui` → 只打印提示，退出码 **1**（`_run_tui` 的 import 兜底，`tui/cli.py:392`）。
+
+> 完整契约（启动模式全表、18 条命令的实际行为、键位、会话持久化与输入历史、降级路径、19 个 `test_tui_*.py`）见 `_digested/getting-started/06-tui.md`。
+
 ## 1. Python REPL + DeerFlowClient（最灵活）
 
-源码：`deerflow/client.py:145`（`class DeerFlowClient`；v2.1.0 中文件已扩至约 1780 行）
+源码：`deerflow/client.py:177`（`class DeerFlowClient`；`StreamEvent` 在 `:136`，v2.2.0 全文 2002 行）
+
+> 🔄 同步 #8（v2.2.0）：原引用 `client.py:145` 已漂移（类定义实际在 `:177`），行数由「约 1780 行」更新为 2002 行。
 
 ```bash
 cd /Users/bowhead/ai_deerflow_wiki
@@ -83,15 +121,17 @@ PYTHONPATH=. uv run python debug.py
 - 阻塞式——等完整 response 回来才打印
 - 显示 `present_files` 暴露的 artifacts（虚拟 → 物理路径）
 
-编辑 `debug.py` 第 93-100 行改配置：
+编辑 `debug.py` 第 96-104 行改配置：
 ```python
 config = {"configurable": {
     "thread_id": "debug-thread-001",
     "thinking_enabled": True,
     "is_plan_mode": True,
-    "model_name": "deepseek-v3",     # 指定模型
+    "model_name": "kimi-k2.5",      # 指定模型
 }}
 ```
+
+> 🔄 同步 #8（v2.2.0）：配置 dict 的实际行号是 `backend/debug.py:96-104`（原文写「第 93-100 行」）。同一段之后的调用链也没变：`Runtime(context={"thread_id": ...})` 在 `:106`，`make_lead_agent(config)` 在 `:109`，`PromptSession(history=InMemoryHistory())` 在 `:111`，`agent.ainvoke` 在 `:137`，`present_files` 展示在 `:144-158`；`input()` 降级在 `:128`，`quit`/`exit` 退出在 `:131`。示例里的模型名与源码 v2.2.0 默认值一致（`kimi-k2.5`）。`.env` 加载已改为 dotenv 选择器（`deerflow/env.py:10` 的 `load_selected_env_file()`，调用点 `backend/debug.py:23`、`:33-34`），见第 1 节末尾。
 
 ## 3. chat.sh（纯 shell）
 
@@ -116,6 +156,8 @@ DEERFLOW_URL=http://host:2026 bash chat.sh "hi"
 ```
 
 内部原理：curl + SSE → 5 步（health check → 创建 thread → 构建请求 → SSE 流式读 → 解析 values 事件提取 AI 回复）。
+
+> 🔄 同步 #8（v2.2.0）：`chat.sh` 本身未变（234 行，`skills/public/claude-to-deerflow/scripts/chat.sh`），仍是 `DEERFLOW_URL`（默认 `http://localhost:2026`）→ `/api/langgraph/threads` → `/threads/{id}/runs/stream`，四种 mode 对应 `context` 里的 `thinking_enabled` / `is_plan_mode` / `subagent_enabled` 三个开关。若只想「一条命令拿最终答案」，v2.2.0 起不必绕 Gateway——直接用 `deerflow --print "问题"`（见第 0 节），差别是 `chat.sh` 必须 Gateway 活着，而 `--print` 是内嵌运行。
 
 ## 4. status.sh（环境巡检）
 
@@ -187,6 +229,8 @@ print(result)
 ```
 
 配合 `DEER_FLOW_HOME` 和固定 `thread_id`，就是自动化流水线的基础。
+
+> 🔄 同步 #8（v2.2.0）：`DEER_FLOW_HOME` 的默认值不是某个写死的目录，而是 `runtime_home()`（`deerflow/config/runtime_paths.py:22-27`）：优先取 `DEER_FLOW_HOME`，否则落到 `project_root()/.deer-flow`，而 `project_root()`（`runtime_paths.py:7-19`）先看 `DEER_FLOW_PROJECT_ROOT`、再退回**当前工作目录**。所以脚本在哪个 cwd 里跑，状态目录就落在哪里——自动化里请显式钉住 `DEER_FLOW_HOME`。`.env` 也不再被胡乱自动发现：新选择器 `deerflow/env.py:10` 的 `load_selected_env_file()` 只在设了 `DEER_FLOW_ENV_FILE` 时才接管，未设时调用方仍走 `load_dotenv()` 自动发现；它会拒绝 `PYTHON_DOTENV_DISABLED`（`env.py:19-21`），按 `utf-8-sig` 读、`override=False`（不覆盖已存在的环境变量）。详见 `_digested/getting-started/00-config-overview.md`。
 
 ---
 
@@ -427,8 +471,9 @@ jobs:
 
 | 内容 | 位置 |
 |------|------|
-| DeerFlowClient 全方法 | `deerflow/client.py:145`（`stream()` L770、`chat()` L1193） |
-| StreamEvent 定义 | `deerflow/client.py` `StreamEvent` dataclass |
+| DeerFlowClient 全方法 | `deerflow/client.py:177`（`stream()` L859、`chat()` L1314；全文 2002 行） |
+| StreamEvent 定义 | `deerflow/client.py:136`（`StreamEvent` dataclass） |
+| `deerflow` CLI 入口 | `deerflow/tui/cli.py:119`（`plan_launch()`）、`:242`（`main()`）；console script 在 `packages/harness/pyproject.toml:69-70` |
 | debug.py REPL | `backend/debug.py` |
 | chat.sh | `skills/public/claude-to-deerflow/scripts/chat.sh` |
 | status.sh | `skills/public/claude-to-deerflow/scripts/status.sh` |

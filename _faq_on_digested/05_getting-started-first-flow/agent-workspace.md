@@ -13,7 +13,7 @@
 | Agent 元数据目录 | `.deer-flow/users/{uid}/agents/{name}/` | 持久（手动删除） | 仅有 SOUL.md + config.yaml + memory.json |
 | 线程工作目录 | `.deer-flow/users/{uid}/threads/{tid}/user-data/` | 线程删除时销毁 | workspace/ + uploads/ + outputs/ |
 
-Agent 元数据目录**不是通用数据存储**——`setup_agent` 和 `update_agent` 工具只写入那两三个文件，`DELETE /api/agents/{name}` 会整个 `shutil.rmtree`。
+Agent 元数据目录**不是通用数据存储**——agent 管理工具只写入那两三个文件，`DELETE /api/agents/{name}` 会整个 `shutil.rmtree`（`deerflow/persistence/agents/file.py:184`；注意 `:168` 的 `delete()` 先做守卫：目录里没有 `config.yaml` 时返回 `not-custom-agent` 不动手，legacy 布局返回 `legacy` 也不动手）。
 
 ---
 
@@ -75,7 +75,7 @@ client.chat(
 **局限**：
 - Custom mount 是**全局的**——所有 agent、所有线程看到的 `/mnt/agent-home` 是同一个目录
 - 如果需要多个 agent 各有各的目录，要在 mount 下建子目录，靠 agent 自觉（无框架级隔离）
-- host_path 必须在 provider 初始化时存在，否则 mount 被静默跳过
+- host_path 必须在 provider 初始化时存在，否则 mount 会被跳过（v2.2.0 起记 `logger.error`，早期版本是静默跳过）
 - 修改 mount 配置需要重启进程
 
 ### 方案 2：仅用固定 thread_id（最简单）
@@ -103,7 +103,6 @@ client.chat("读 knowledge/ 的内容，继续工作", thread_id="agent-main")
 ---
 name: code-review-workflow
 description: 代码审查工作流：读取 /mnt/agent-home/workflows/review.md 获取流程定义
-allowed-tools: [read_file, write_file, bash, ls, glob, grep]
 ---
 
 # 代码审查工作流
@@ -120,31 +119,33 @@ allowed-tools: [read_file, write_file, bash, ls, glob, grep]
 
 这样 agent 的行为定义（Skill）和 agent 的数据（custom mount 里的文件）分离，各司其职。
 
+> 🔄 同步 #8（v2.2.0）：这里**把 `allowed-tools` 从 frontmatter 里删掉**了。v2.2.0（上游 #6935，commit `0d73798be`）起它只是**兼容元数据**——仍解析、校验、展示（`describe_skill` 前缀 `Allowed tools (compatibility metadata, not enforced):`），也进 catalog 指纹，但**从不**过滤或授予工具。v2.1.0 里做过滤的实现已删除（`skills/tool_policy.py` 已删除、`agents/middlewares/skill_tool_policy_middleware.py` 已删除）。要给 skill 收工具，只能落到 agent 的 `tool_groups` 或授权层（Layer 1 能力过滤 + Layer 2 `GuardrailAuthorizationAdapter`）。详见 `_digested/concepts/skills-tools/skill-md-and-tool-assembly.md`。
+
 ---
 
 ## 源码级关键细节
 
 ### Custom Mount 是如何工作的
 
-配置 `sandbox.mounts` 后，`LocalSandboxProvider._setup_path_mappings()`（`local_sandbox_provider.py:101-228`）在初始化时把每个 mount 转为 `PathMapping(container_path, local_path, read_only)`。这些 mapping 是**静态的、全局的**——所有线程的 sandbox 共享同一套（per-thread 的 `/mnt/user-data`、`/mnt/acp-workspace`、`/mnt/skills/custom` 映射则在 `_build_thread_path_mappings()` 中按 `thread_id`/`user_id` 追加）。
+配置 `sandbox.mounts` 后，`LocalSandboxProvider._setup_path_mappings()`（`local_sandbox_provider.py:122`）在初始化时把每个 mount 转为 `PathMapping(container_path, local_path, read_only)`。这些 mapping 是**静态的、全局的**——所有线程的 sandbox 共享同一套（per-thread 的 `/mnt/user-data`、`/mnt/acp-workspace`、`/mnt/skills/custom` 映射则在 `_build_thread_path_mappings()` 中按 `thread_id`/`user_id` 追加）。
 
-路径解析用**最长前缀匹配**（`local_sandbox.py:295-310`，`_find_path_mapping` 按 container specificity 排序），所以 `/mnt/agent-home/knowledge` 会优先匹配到 `/mnt/agent-home` 这个 mount。
+路径解析用**最长前缀匹配**（`local_sandbox.py:557`，`_find_path_mapping()` 遍历按 container specificity 排好序的 `_mappings_by_container_specificity`，命中条件是 `path == container_path or path.startswith(container_path + "/")`），所以 `/mnt/agent-home/knowledge` 会优先匹配到 `/mnt/agent-home` 这个 mount，而 `/mnt/agent-home2` 不会误命中。
 
 ### Mount 的约束
 
-源码 `local_sandbox_provider.py:164-228`：
+源码 `local_sandbox_provider.py:175` 起（保留前缀校验）与 `:216` 起（`host_path` 存在性校验）：
 
 | 约束 | 违规后果 |
 |------|---------|
-| `host_path` 必须是绝对路径 | 静默跳过 + warning |
-| `container_path` 必须以 `/` 开头 | 静默跳过 + warning |
-| container_path 不能与 `/mnt/skills`（含 public/custom/integrations/legacy 子路径）、`/mnt/user-data`、`/mnt/acp-workspace` 冲突 | 静默跳过 + warning |
-| `host_path` 必须在 provider 初始化时存在 | 静默跳过 + warning |
+| `host_path` 必须是绝对路径 | `logger.warning` + 跳过 |
+| `container_path` 必须以 `/` 开头 | `logger.warning` + 跳过 |
+| container_path 不能与 `/mnt/skills`（含 public/custom/integrations/legacy 子路径）、`/mnt/user-data`、`/mnt/acp-workspace` 冲突 | `logger.warning` + 跳过 |
+| `host_path` 必须在 provider 初始化时存在 | **`logger.error`** + 跳过（附排查指引，v2.2.0 起，上游 #3244） |
 | 尾部斜杠 | 自动去除 |
 
 ### 路径安全校验也覆盖 custom mount
 
-`validate_local_tool_path()`（`tools.py:904-955`）在做路径白名单检查时，会将 custom mount 路径纳入允许范围（`tools.py:948-954`）：
+`validate_local_tool_path()`（`tools.py:1019`）在做路径白名单检查时，会将 custom mount 路径纳入允许范围（判定用 `_is_custom_mount_path()`，`tools.py:456`；只读拦截在 `tools.py:1071-1076`）：
 
 ```python
 if _is_custom_mount_path(path):
@@ -158,13 +159,13 @@ if _is_custom_mount_path(path):
 
 ### thread_id 决定 workspace 路径
 
-`Paths.sandbox_work_dir()`（`paths.py:337`）：
+`Paths.sandbox_work_dir()`（`paths.py:365-371`）：
 
 ```
 {base_dir}/users/{user_id}/threads/{thread_id}/user-data/workspace/
 ```
 
-其中 `base_dir` 默认是 `{project_root}/.deer-flow`（`runtime_paths.py:23`）。用固定 `thread_id` 意味着固定 workspace 路径。
+其中 `base_dir` 默认是 `{project_root}/.deer-flow`（`runtime_paths.py:22-27` 的 `runtime_home()`，`project_root()` 在 `:7-19`）。用固定 `thread_id` 意味着固定 workspace 路径。
 
 ---
 
@@ -219,14 +220,16 @@ Skill 或 SOUL.md 中约定：
 
 | 机制 | 文件 |
 |------|------|
-| VolumeMountConfig 定义 | `deerflow/config/sandbox_config.py:115` |
-| LocalSandboxProvider mount 转换 | `deerflow/sandbox/local/local_sandbox_provider.py:101-228` |
-| PathMapping 解析（最长前缀匹配） | `deerflow/sandbox/local/local_sandbox.py:82, 295-310` |
-| 工具层 custom mount 路径校验 | `deerflow/sandbox/tools.py:904-955` |
-| 工作目录路径定义 | `deerflow/config/paths.py:337` |
+| VolumeMountConfig 定义 | `deerflow/config/sandbox_config.py:162` |
+| LocalSandboxProvider mount 转换 | `deerflow/sandbox/local/local_sandbox_provider.py:122`（静态）、`:334`（per-thread） |
+| PathMapping 解析（最长前缀匹配） | `deerflow/sandbox/local/local_sandbox.py:557`（`_find_path_mapping`）、`:575`（`_resolve_path_with_mapping`） |
+| 工具层 custom mount 路径校验 | `deerflow/sandbox/tools.py:456`（`_is_custom_mount_path`）、`:1019`（`validate_local_tool_path`） |
+| 工作目录路径定义 | `deerflow/config/paths.py:365` |
 | ThreadDataMiddleware（工作目录创建） | `deerflow/agents/middlewares/thread_data_middleware.py` |
-| Agent 元数据目录 | `deerflow/config/paths.py:245-251`（`user_agents_dir` / `user_agent_dir`） |
-| DeerFlowClient thread_id 流 | `deerflow/client.py:770`（`stream`）、`:1193`（`chat`）、`:1601`（`upload_files`） |
-| config.example.yaml mounts 注释 | `config.example.yaml:1440-1545`（另见 `thread_data_mounts` 选项，`:1526` 附近） |
+| Agent 元数据目录 | `deerflow/config/paths.py:272`（`user_agents_dir`）、`:276`（`user_agent_dir`）；legacy 在 `:207` |
+| DeerFlowClient thread_id 流 | `deerflow/client.py:859`（`stream`）、`:1314`（`chat`）、`:1754`（`upload_files`） |
+| config.example.yaml mounts 注释 | `config.example.yaml:1731` 起（`thread_data_mounts` 见 AIO 段 `:1819`） |
 
 > 🔄 同步 #6（v2.1.0-rc0）：本节全部行号引用因源码演进已重核更新（原 `sandbox_config.py:4-10`、`local_sandbox_provider.py:82-169`、`local_sandbox.py:19-25,114`、`tools.py:624-675,164-191`、`paths.py:66-80,191,159-169`、`client.py:206,503,585`、`config.example.yaml:606-654` 均已漂移；符号本身仍在）。机制结论不变；另注意 per-user skills 挂载（`/mnt/skills/custom`）已改为按 `user_id` 动态构建。
+
+> 🔄 同步 #8（v2.2.0）：本页所有行号已按 v2.2.0 重核（原 `sandbox_config.py:115`、`local_sandbox_provider.py:101-228`、`local_sandbox.py:82,295-310`、`tools.py:904-955`、`paths.py:337,245-251`、`client.py:770,1193,1601`、`config.example.yaml:1440-1545` 均已漂移）。三处结论层面的变化：① mount 校验的失败反馈从"静默跳过"升级为分类日志（`host_path` 缺失是 `logger.error`，其余是 `logger.warning`）；② agent 删除多了守卫——非自定义 agent（目录无 `config.yaml`）返回 `not-custom-agent`、legacy 布局返回 `legacy`，都不会被删；③ 工作区布局的**唯一写入面**是 `users/{user_id}/`，顶层 `.deer-flow/agents/` 与 `memory.json` 已是 legacy 只读回退（`deerflow/config/paths.py:140-157`）。「没有 agent 专属持久工作目录这个一等公民」的结论不变——`users/{uid}/` 下也没有给 agent 用的通用数据目录。

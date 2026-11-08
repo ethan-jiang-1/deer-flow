@@ -6,9 +6,9 @@
 
 **「DeerFlow 没有这套东西」错了一半；另一半是对的。**
 
-1. **机制层面：有，而且是明牌移植。** `docs/testing/README.md` L3 第一句「移植自 DeepSeek Harness 的插件测试策略（`_digested/test-strategy/08·09·10`）」；五级证据阶梯第⑤级「组装转录」（L37）就是 DSH 快照层的对应物，正文篇明说「DeerFlow 的全车道**已经存在**」（`docs/testing/01-extension-testing-strategy.md` L116）。机制细节本仓 digest 已消化（→ `_digested/testing/07-record-replay.md`），本 FAQ 不重复，只做 digest 没做的**跨仓对照与缺口分析**。
+1. **机制层面：有，但不是"移植来的"，是并行长成的东西。** ⚠️ **sync #8 更正**：旧版本这里写「`docs/testing/README.md` L3 明写移植自 DSH、五级台阶第⑤级组装转录」——**`docs/testing/` 整个目录是 fork 时的自制内容，上游从不存在，已随 2.2.0 同步清除**（同批被清的还有 `deerflow.testing` 发布包）。现行一手证据只剩代码：`backend/tests/replay_provider.py` + `backend/tests/_replay_fixture.py` + `backend/tests/test_replay_golden.py` + `frontend/playwright.record.config.ts`，机制文档是 `backend/docs/REPLAY_E2E.md`。所以准确说法是：**上游 DeerFlow 自己演化出了一套 record/replay，形状与 DSH 那套同源同题但各自成立**（→ [mechanism-inventory.md](mechanism-inventory.md)）。
 2. **形状层面：处处相反，但各自成立。** DSH：trajectory 夹具、位置绑定、pin 住 request/header、一份文件两用。DeerFlow：hash-by-input、顺序无关、挥发字段先归一化、**有意把 system prompt 排除出匹配键**（`backend/tests/replay_provider.py` L201）、回放输入与期望（独立提交的 SSE golden）分离。两边都把取舍理由写在源码注释里——这不是谁抄错谁，是各自宿主事实（持久化形态、运行拓扑、消费方式）的自然后果（→ [two-shapes.md](two-shapes.md)）。
-3. **生产落盘层面：不对等——最初判断对的那一半。** DeerFlow 落盘的是 checkpoint（graph state）+ run_events（UI 事件面，事件类型清单 `backend/packages/harness/deerflow/runtime/events/catalog.py` L58-71 里没有一条记「模型收到了什么」）。模型实际收到的完整请求落盘即消失，没有 session.jsonl 等价物，也没有 model-visible ⟺ logged 式的不变量声明（→ [production-logging-gap.md](production-logging-gap.md)）。
+3. **生产落盘层面：不对等——最初判断对的那一半。** DeerFlow 落盘的是 checkpoint（graph state）+ run_events（UI 事件面，事件类型清单 `backend/packages/harness/deerflow/runtime/events/catalog.py` L58-66 与 L117 的 `WORKER_RUN_EVENT_DEFINITIONS` 里没有一条记「模型收到了什么」）。模型实际收到的完整请求落盘即消失，没有 session.jsonl 等价物，也没有 model-visible ⟺ logged 式的不变量声明（→ [production-logging-gap.md](production-logging-gap.md)）。v2.2.0 给这道缺口**收了窄窄一条边**：`run_events` 表新增 `content_sha256` 列，能证明"这条事件的内容没被改过"，**但仍不含模型请求面**——可验证性有了，可复现性没有。
 4. **它已经拿到过回报。** #3352：后端 ordering 测试全绿、前端单测把假设 hardcode 进 mock 也全绿，只有真前端 × 真后端的车道抓到上下文压缩后刷新线程乱序——「组装转录/真实组装」思想的价值证明，DeerFlow 版的 DSH「ACP 事故」（病例详见 `_digested/test-strategy/03-contract-e2e.md`，此处不重复）。
 5. **缺口三个，按值/价排序**：生产 run→夹具导出器（bug 复现路线断头，最值得补）> 调用数对账（少了调用无感知，最便宜）> override 等价物（四类失败表达不了，按事故触发）。另有一条反方向提醒：**不要**为了「更 DSH」把 system prompt 塞回回放哈希（→ [gaps-and-worth.md](gaps-and-worth.md)）。
 
@@ -42,5 +42,5 @@
 
 ## 外部来源与基线
 
-- **DSH 仓**（本机 `/Users/bowhead/deepseek-harness`）：`_faq_on_digested/21_recorded-session-snapshots/` 的 question / answer / 01-06 篇，下文以「21/01:59-63」形式引用（21 号文件自身行号）。其基线 `dsh-v0.2.0-rc.2`（`639ed01539`）。
+- **DSH 仓**（本机 `/Users/bowhead/deepseek-harness`）：`_faq_on_digested/21_recorded-session-snapshots/` 的 question / answer / 01-06 篇，下文以「21/01:59-63」形式引用（21 号文件自身行号）。其基线 `dsh-v0.2.1-rc.2`（`687f282e8625c6b8d11ff58211a90524be2e4317`，2026-10-18；DSH FAQ 21 号 question 已升到这个基线，本文旧版写的 `dsh-v0.2.0-rc.2`/`639ed01539` 已过时）。**行号纪律**：下文所有「21/xx:NN」都以该树为准，DSH 侧换基线后需重扫。
 - **DeerFlow 侧基线**：工作树 `230149ed7`（2026-10-09 21:34）。行号以该树为准；树从 `ff63563f1` 前移后抽验 7 处关键锚点未漂。

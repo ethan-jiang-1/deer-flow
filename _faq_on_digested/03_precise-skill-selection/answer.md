@@ -17,7 +17,7 @@
 
 ### 位置
 
-`backend/packages/harness/deerflow/client.py:179-194` — `DeerFlowClient.__init__()`
+`backend/packages/harness/deerflow/client.py:210-224` — `DeerFlowClient.__init__()`（v2.2.0 行号）
 
 ### 它做了什么
 
@@ -26,24 +26,31 @@ class DeerFlowClient:
     def __init__(
         self,
         ...
-        available_skills: list[str] | None = None,  # 直接指定 skill 列表
+        available_skills: set[str] | None = None,  # 直接指定 skill 列表（client.py:221）
         ...
     ):
-        self._available_skills = available_skills
+        self._available_skills = set(available_skills) if available_skills is not None else None  # client.py:270
 ```
 
-然后在 `_ensure_agent()` (line 296 起) 中，这个参数被直接传给 agent 构建：
+然后在 `_ensure_agent()`（client.py:331 起）中，这个参数被直接传给 agent 构建——2.2.0 在中间多插了一道 Layer 1 授权过滤：
 
 ```python
 # client.py — 不走 configurable，不走 context，直接传参
-system_prompt=apply_prompt_template(
-    available_skills=self._available_skills,  # ← 确定性的！
-    ...
-),
-# v2.1.0：available_skills 现直接传入 make_lead_agent()（client.py:442/460），
-# 由 agent 工厂统一应用 prompt 过滤与 allowed-tools 工具策略
-# （filter_tools_by_skill_allowed_tools 见 skills/tool_policy.py:54）；
-# 旧的 _load_enabled_skills_for_tool_policy 客户端辅助已不存在
+# v2.2.0：_available_skills 先过 Layer 1 授权过滤，再用于 skill 目录与 prompt
+available_skills = filter_available_skills_by_authorization(     # client.py:442-449
+    self._available_skills,
+    context=cfg, app_config=self._app_config, user_id=effective_user_id,
+    candidate_skill_names=candidate_skill_names, authorization=skill_authorization,
+)
+...
+if available_skills is not None:                                  # client.py:476-477
+    skills_list = [s for s in skills_list if s.name in available_skills]
+# 然后随 agent 装配一起下发（client.py:517 / 553）
+# 注意：client.py:389 的 agent 缓存 key 仍用未过滤的 self._available_skills
+# ⚠️ 2.2 起 available_skills **不再**联动 allowed-tools —— 那个工具策略在
+#    skills/tool_policy.py（**已删除**，#6935）里，配套的
+#    SkillToolPolicyMiddleware（skill_tool_policy_middleware.py，**已删除**）也已移除；
+#    工具边界改由 agent 组装 + 执行授权（authz/tool_filter.py、authz/adapter.py）决定
 ```
 
 **这意味着，如果你在 Python 进程中使用 `DeerFlowClient`，你已经可以精准指定任意 skill 集合。** 不需要 LLM 选择，不需要 agent config 文件，就是传参：
@@ -55,12 +62,12 @@ client = DeerFlowClient(
 )
 result = client.chat("执行长城任务", thread_id="task-001")
 # → 系统 prompt 里只有 k8s-deploy 和 python-testing 两个 skill
-# → 工具集合也受这两个 skill 的 allowed-tools 限制
+# → 但工具集合**不受**这两个 skill 的 allowed-tools 限制（2.2 起 allowed-tools 是兼容元数据）
 ```
 
 ### `DeerFlowClient.__init__()` 完整参数列表
 
-`client.py:179-193`，共 **10 个参数**：
+`client.py:210-223`，共 **10 个参数**（v2.2.0；`available_skills` 的类型是 `set[str] | None`，`client.py:221`）：
 
 | 参数 | 类型 | 默认值 | 作用 |
 |------|------|--------|------|
@@ -77,7 +84,7 @@ result = client.chat("执行长城任务", thread_id="task-001")
 
 ### `chat()` / `stream()` per-call kwargs（`**kwargs`）
 
-`_get_runnable_config()` (`client.py:282-294`) 支持的 per-call 覆盖，共 **5 个**：
+`_get_runnable_config()`（`client.py:317-329`）支持的 per-call 覆盖，共 **5 个**：
 
 | kwargs key | 覆盖的 `__init__` 参数 | 备注 |
 |------------|----------------------|------|
@@ -117,11 +124,14 @@ result = client.chat("执行长城任务", thread_id="task-001")
 
 ### 位置
 
-`backend/packages/harness/deerflow/config/agents_config.py:219`（`AgentConfig` 定义在 agents_config.py:206）
+`backend/packages/harness/deerflow/config/agents_config.py:221`（`AgentConfig` 定义在 agents_config.py:207）
 
 ```python
 class AgentConfig(BaseModel):
     skills: list[str] | None = None  # None=全部, []=禁用, ["a","b"]=只选这些
+    # 2.2 注释原文（agents_config.py:215-217）："skills controls which skills are
+    # discoverable and may be activated by the agent.
+    # allowed-tools is compatibility metadata only and never restricts tools"
 ```
 
 ### 它做了什么
@@ -151,11 +161,12 @@ Agent 工厂读取链路：
 
 ```
 agent_name="my-automation-agent"
-  → load_agent_config("my-automation-agent")  # agents_config.py:316
+  → load_agent_config("my-automation-agent")  # agents_config.py:332
   → AgentConfig(skills=["k8s-deploy", "python-testing", "db-migration"])
-  → _available_skill_names(agent_config, False)  # agent.py:774-780
+  → _available_skill_names(agent_config, False)  # agent.py:812-817
   → {"k8s-deploy", "python-testing", "db-migration"}
-  → get_skills_prompt_section(available_skills={"..."})
+  → filter_available_skills_by_authorization(...)  # agent.py:1041-1047（Layer 1，2.2 新增）
+  → get_skills_prompt_section(available_skills={"..."})  # prompt.py:959
   → 系统 prompt 中只注入这 3 个 skill
 ```
 
@@ -169,7 +180,7 @@ agent_name="my-automation-agent"
 
 ### 结合 `update_agent` 的动态化
 
-`update_agent` tool（`tools/builtins/update_agent_tool.py:77` 起）允许 agent **在运行时修改自己的 `skills:`**：
+`update_agent` tool（`tools/builtins/update_agent_tool.py:78` 起）允许 agent **在运行时修改自己的 `skills:`**：
 
 ```python
 # update_agent_tool.py
@@ -188,7 +199,7 @@ def update_agent(
 
 ### 位置
 
-`backend/app/gateway/services.py:506-518`
+`backend/app/gateway/services.py:880-895`
 
 ```python
 _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
@@ -200,9 +211,9 @@ _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
 
 ### 它为谁工作
 
-`merge_run_context_overrides()` (services.py:611) 会从 `body.context` 中提取这些 key，注入到 `config["configurable"]` 和 `config["context"]`（另有 internal-caller 专属的 `_CONTEXT_INTERNAL_CALLER_KEYS`，外部调用方传了也会被丢弃）。
+`merge_run_context_overrides()` (services.py:1005) 会从 `body.context` 中提取这些 key，注入到 `config["configurable"]` 和 `config["context"]`（另有 internal-caller 专属的 `_CONTEXT_INTERNAL_CALLER_KEYS`，外部调用方传了也会被丢弃）。
 
-`_get_runtime_config()` (agent.py:219-225) 合并两者：
+`_get_runtime_config()` (agent.py:219-226) 合并两者：
 
 ```python
 def _get_runtime_config(config: RunnableConfig) -> dict:
@@ -215,7 +226,7 @@ def _get_runtime_config(config: RunnableConfig) -> dict:
 
 **这意味着：只要一个 key 通过了 `_CONTEXT_CONFIGURABLE_KEYS` 白名单，它就能在 `_get_runtime_config()` 中被读到。**
 
-而 `_make_lead_agent()` 已经在读取这些 key（agent.py:947-962）：
+而 `_make_lead_agent()` 已经在读取这些 key（agent.py:987 / 995 / 1008）：
 
 ```python
 thinking_enabled = cfg.get("thinking_enabled", True)
@@ -228,7 +239,7 @@ agent_name = validate_agent_name(cfg.get("agent_name"))
 1. 在 `_CONTEXT_CONFIGURABLE_KEYS` 中加 `"skills"`
 2. 在 `_make_lead_agent()` 中加 `cfg.get("skills")` 逻辑
 
-**但当前没有这条路径。**
+**但当前没有这条路径。** 2.2.0 实测白名单仍是那 10 个 key（services.py:880-895），`skills` 不在其中。
 
 ---
 
@@ -237,7 +248,7 @@ agent_name = validate_agent_name(cfg.get("agent_name"))
 ### 位置
 
 - `deerflow/agents/middlewares/deferred_tool_filter_middleware.py` — 中间件
-- `deerflow/tools/builtins/tool_search.py` — 搜索 + promote 工具
+- `deerflow/tools/builtins/tool_search.py:113` — `DeferredToolCatalog`（docstring 原文 "Immutable catalog of deferred tools. Pure search, no mutation."）；`search()` 在 tool_search.py:128，promote 状态随图状态传递（返回 `{"promoted": {"catalog_hash", "names"}}`，tool_search.py:268-272）
 - ContextVar 隔离：~~tool_search.py:145-158~~ — **v2.1.0-rc0 已重构：tool_search 不再使用 ContextVar**（tool_search.py 顶部注释明确 "no ContextVar"，改为随图状态传递；搜索还支持 `select:` 精确选择与 `+` 前缀必含名匹配，评分逻辑对齐 `SkillCatalog.search`）
 
 ### 它的完整生命周期
@@ -294,14 +305,16 @@ Session 开始
 
 **重点：即使在 "自主静默执行" 场景下，外部系统也可以在初始消息中直接调用 `skill_search("k8s-deploy", "python-testing")` 来 promote 所需的 skill。** 这绕过了 LLM 自主选择的不可靠性。
 
+> 🔄 同步 #8（v2.2.0）：上面这个「设计设想」与 2.2 的落地形态要对上号——skill 侧的官方实现叫 **deferred discovery**（`skills_config.skills.deferred_discovery`，`config/skills_config.py:46`，默认 `False`），prompt 只渲染 `<skill_index>`、`describe_skill` 按需取详情；但**它不是 `skill_search`，也没有 promote 概念**：`DeferredToolCatalog` 是 "pure search, no mutation" 的不可变目录（tool_search.py:114），只服务 MCP tools。另外 `build_deferred_tool_setup()` 的 docstring 现在明写 skill 的 `allowed-tools` 是兼容元数据、不参与 deferred 装配（tool_search.py:281-284）。所以「外部系统调 `skill_search` 把 skill promote 进上下文」在 2.2 仍是**设想**，不是现成能力；现成的确定性手段是 `/skill-name` slash 激活与 agent 的 `skills:` 白名单。
+
 ---
 
 ## 机制 5：Bootstrap —— 一个已工作的 "受限 skill 集" 先例
 
 ### 位置
 
-- `backend/app/channels/manager.py:2740-2745` — `/bootstrap` 命令
-- `backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-776` — 硬编码限制
+- `backend/app/channels/manager.py:3730-3735` — `/bootstrap` 命令
+- `backend/packages/harness/deerflow/agents/lead_agent/agent.py:812-817` — 硬编码限制（`_BOOTSTRAP_SKILL_NAMES = {"bootstrap"}`，agent.py:84）
 
 ```python
 def _available_skill_names(agent_config, is_bootstrap: bool) -> set[str] | None:
@@ -332,14 +345,14 @@ if command == "task":
 
 ### 位置
 
-`backend/app/gateway/services.py` — `build_run_config()`（services.py:866 起）
+`backend/app/gateway/services.py` — `build_run_config()`（services.py:1328 起）
 
 > 🔄 同步 #6（v2.1.0-rc0）：原文引用的 "forward all top-level keys" 循环（旧 services.py:234-236）已随 `build_run_config` 重写而消失。现行实现按 LangGraph >=0.6.0 语义处理 `body.config`：`context` 与 `configurable` 二选一（同时给出时告警并优先 `context`），`__` 前缀的私有 key 会被剥除（防伪造 skill secret-binding 内部状态，#3938），`recursion_limit` 有 Gateway 级 clamp（`_resolve_gateway_recursion_limits`）。"任意 key 直接透传" 的行为已大幅收窄。
 
 ### 实际使用者
 
-- `body.config["recursion_limit"]` → LangGraph graph execution（经 `_resolve_gateway_recursion_limits()` clamp，services.py:781 起）
-- `body.config["metadata"]` → LangSmith/Langfuse tracing（`_ensure_thread_metadata`，services.py:198 起）
+- `body.config["recursion_limit"]` → LangGraph graph execution（经 `_resolve_gateway_recursion_limits()` clamp，services.py:1226 起）
+- `body.config["metadata"]` → LangSmith/Langfuse tracing（`_ensure_thread_metadata`，services.py:256 起）
 - `body.config["callbacks"]` → 自定义 callback 注入
 - `body.config["tags"]` → trace tagging
 
@@ -365,6 +378,11 @@ if command == "task":
 
 对于"长城任务"场景，当前最务实的方案是：**预建 agent config（每种任务类型一个 agent，每个 agent 配置好 skills），通过 `agent_name` context key 切换。** 这不需要改任何代码。
 
+> 🔄 同步 #8（v2.2.0）：**结论不变，但要补三点 2.2 的口径修正。**
+> 1. **工具边界不再由 skill 决定。** 2.1 时代几个机制（`DeerFlowClient(available_skills=...)`、slash 激活、agent `skills:`）都「顺带」受 skill 的 `allowed-tools` 收紧，形成「选定 skill 集 = 锁定工具集」的组合。2.2 已把 `allowed-tools` 降级为**兼容元数据**（上游 #6935 / `0d73798be`）：**已删除** `skills/tool_policy.py`（65 行）与 `agents/middlewares/skill_tool_policy_middleware.py`（529 行），`build_middlewares()` 的注册一并移除。权限上限改为由 **Layer 1 `AuthorizationProvider`**（`authz/provider.py:86` + `apply_tool_authorization()`，`authz/tool_filter.py:25-33`）与 **Layer 2 `GuardrailAuthorizationAdapter`**（`authz/adapter.py:27`）拥有。所以上面的三种「精准 skill 选择」方案，现在**只能**管 skill 可见性，管不了工具——要限制工具请用 `disallowed_tools` / `authorization` / agent 的 `tool_groups`。
+> 2. **多了一道 Layer 1 过滤。** 嵌入式 client 与 lead agent 在应用 `available_skills` 前都要先过 `filter_available_skills_by_authorization()`（client.py:442-449、agent.py:1041-1047），所以「传进去的集合」≠「模型看到的集合」——授权策略可以进一步收窄它。`deerflow/client.py:389` 的 agent 缓存 key 用未过滤的 `self._available_skills`，但上方 client.py:415 注释已声明这是**有意为之**：「`self._available_skills` is left untouched (it feeds the cache key at line 282)」——过滤只在装配时生效。
+> 3. **`skills` 仍未进白名单。** `_CONTEXT_CONFIGURABLE_KEYS`（services.py:880-895）在 2.2 依旧是那 10 个 key，所以「5 行代码的最小整合点」在原样成立之前仍待实现，且实现时**不要**顺手把工具收紧逻辑挂到 skill 上（那是 2.1 已删除的机制）。
+
 ---
 
 ## 相关 digest 笔记
@@ -377,16 +395,18 @@ if command == "task":
 - `_digested/internals/harness-hooks/08-agent-self-modification.md` — `update_agent` 原子写入 + 生效时机
 - `_digested/internals/middleware/03-catalog.md` — 完整 37 middleware 目录 + DeferredToolFilterMiddleware 位置
 
-Sources:
-- DeerFlow 源码: `deerflow/client.py:179-194, 282-294, 296` — `DeerFlowClient.available_skills` 参数（v2.1.0 行号）
-- DeerFlow 源码: `deerflow/config/agents_config.py:206-219, 316` — `AgentConfig.skills` 字段
-- DeerFlow 源码: `deerflow/agents/lead_agent/agent.py:774-780` — `_available_skill_names()`
-- DeerFlow 源码: `deerflow/agents/lead_agent/agent.py:219-225` — `_get_runtime_config()` 合并逻辑
-- DeerFlow 源码: `app/gateway/services.py:506-518, 611` — `_CONTEXT_CONFIGURABLE_KEYS` + `merge_run_context_overrides`
-- DeerFlow 源码: `app/gateway/services.py:866` — `build_run_config()`（v2.1.0-rc0 已重写，forward-all 行为收窄）
-- DeerFlow 源码: `deerflow/tools/builtins/tool_search.py` — `DeferredToolCatalog`（v2.1.0-rc0 重构：无 ContextVar，`select:`/`+` 搜索）
-- DeerFlow 源码: `deerflow/skills/catalog.py:76-96` — `_intent_score`/`_rank_by_intent` 字面 intent 排名（新增）
-- DeerFlow 源码: `deerflow/skills/slash.py` — slash skill 激活解析（新增）
-- DeerFlow 源码: `deerflow/agents/middlewares/deferred_tool_filter_middleware.py` — promote/filter 生命周期
-- DeerFlow 源码: `deerflow/tools/builtins/update_agent_tool.py:77` — agent 自修改 skills
-- DeerFlow 源码: `app/channels/manager.py:2740-2745` — `/bootstrap` → `extra_context={"is_bootstrap": True}`
+Sources（行号为 v2.2.0 实测）:
+- DeerFlow 源码: `deerflow/client.py:210-224, 221, 317-329, 389, 442-449, 476-477, 517, 553` — `DeerFlowClient.available_skills` 参数与 Layer 1 过滤
+- DeerFlow 源码: `deerflow/config/agents_config.py:207, 215-221, 332` — `AgentConfig.skills` 字段（含 allowed-tools 兼容元数据注释）
+- DeerFlow 源码: `deerflow/agents/lead_agent/agent.py:84, 812-817` — `_available_skill_names()`
+- DeerFlow 源码: `deerflow/agents/lead_agent/agent.py:219-226` — `_get_runtime_config()` 合并逻辑
+- DeerFlow 源码: `app/gateway/services.py:880-895, 1005` — `_CONTEXT_CONFIGURABLE_KEYS` + `merge_run_context_overrides`
+- DeerFlow 源码: `app/gateway/services.py:1328` — `build_run_config()`（forward-all 行为已收窄）
+- DeerFlow 源码: `deerflow/tools/builtins/tool_search.py:113, 128, 268-272, 281-284` — `DeferredToolCatalog`（不可变、纯搜索、无 ContextVar）
+- DeerFlow 源码: `deerflow/skills/catalog.py:76-96` — `_intent_score`/`_rank_by_intent` 字面 intent 排名
+- DeerFlow 源码: `deerflow/skills/slash.py:39, 54` — slash skill 激活解析
+- DeerFlow 源码: `deerflow/agents/middlewares/skill_activation_middleware.py:118, 318-355` — 激活三层判据（已收窄，不再改工具集）
+- DeerFlow 源码: `deerflow/authz/tool_filter.py:25-33`、`deerflow/authz/provider.py:86`、`deerflow/authz/adapter.py:27` — 工具权限上限的两个所有者（Layer 1 / Layer 2）
+- DeerFlow 源码: `deerflow/agents/middlewares/deferred_tool_filter_middleware.py` — deferred schema 的 filter 生命周期
+- DeerFlow 源码: `deerflow/tools/builtins/update_agent_tool.py:78-82` — agent 自修改 skills
+- DeerFlow 源码: `app/channels/manager.py:2276-2300, 3730-3735` — `_resolve_available_skill_names()` 与 `/bootstrap`

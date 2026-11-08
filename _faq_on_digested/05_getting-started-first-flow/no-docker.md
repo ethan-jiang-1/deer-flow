@@ -15,6 +15,7 @@ DeerFlow 的**默认沙箱就是本地模式**，不需要 Docker。
 ```yaml
 sandbox:
   use: deerflow.sandbox.local:LocalSandboxProvider
+  allow_host_bash: false      # config.example.yaml:1720
 ```
 
 `LocalSandboxProvider` 是纯本地实现——文件读写、目录列表、glob、grep 全部直接在宿主机上执行，不经过任何容器。`make dev` 启动的三个进程（Gateway :8001、Frontend :3000、Nginx :2026）也都是本地进程。
@@ -39,6 +40,15 @@ print(reply)
 ```
 
 `DeerFlowClient` 是纯进程内调用，零 HTTP，零服务依赖。它和 Gateway 共享同一套 `deerflow.*` 模块。
+
+> 🔄 同步 #8（v2.2.0）：还有第三条更省事的路——**`deerflow` 终端命令**（v2.2.0 新增，console script 定义在 `backend/packages/harness/pyproject.toml:69-70`）：
+>
+> ```bash
+> uv pip install 'deerflow-harness[tui]'    # textual 是可选依赖（pyproject.toml:75）
+> deerflow --print "用 Python 写个 hello world"
+> ```
+>
+> 它底层就是 `DeerFlowClient`，同样不需要 Gateway / Nginx / Docker。无 TTY 又没给参数时退出码 2；run 失败退出码 1（`deerflow/tui/cli.py:359`）。`--print` 与 `--json` 互斥（`:60-75`），`--recursion-limit` 只在无头模式下可用。想交互就用不带参数的 `deerflow`（全屏 TUI，18 条内置命令）。细节见 `_digested/getting-started/06-tui.md`。
 
 ### 不用 Docker 的代价
 
@@ -77,4 +87,6 @@ make install      # 安装依赖（Node.js 24+ / pnpm / uv / nginx，见 `make c
 make dev          # 启动（或 cd backend && make gateway 只跑后端）
 ```
 
-> 🔄 同步 #6（v2.1.0-rc0）：本地环境 Node.js 要求 22+ → 24+（#5063）；其余沙箱结论不变（seven sandbox 实现未变）。
+> 🔄 同步 #6（v2.1.0-rc0）：本地环境 Node.js 要求 22+ → 24+（#5063）；其余沙箱结论不变（sandbox 实现集合未变）。
+
+> 🔄 同步 #8（v2.2.0）：上表两处数字/语义复核结论——① 本地模式的 per-thread 沙箱缓存上限仍是 **256**（`deerflow/sandbox/local/local_sandbox_provider.py:33` 的 `DEFAULT_MAX_CACHED_THREAD_SANDBOXES = 256`），"并发无限"只是说没有硬并发闸门；② bash 的默认关闭没变（`config.example.yaml:1720` 的 `allow_host_bash: false`），但失败反馈变好了：mount 配错现在会记日志（`host_path` 缺失是 `logger.error`，路径非法或撞保留前缀是 `logger.warning`），不再静默跳过（`local_sandbox_provider.py:122` 的 `_setup_path_mappings()`）。另外 `sandbox:` 段还多了预热与超时/输出预算项，例如 `prewarm: false`（`config.example.yaml:1723`）、`bash_command_timeout: 600`（`:1763`）、`bash_output_max_chars: 20000`（`:1748`）。

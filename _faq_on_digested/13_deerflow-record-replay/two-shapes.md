@@ -9,9 +9,9 @@
 两边都在回答同一个问题：**模型实际收到了什么，必须有一个可 diff 的固定形态。**
 
 - DSH 侧的起点是事故（178 单测全绿、生产不能用）与设计目标「真运行的保真度 + 夹具的确定性」（21/01:9-29）。
-- DeerFlow 侧的措辞几乎可以互换：`examples/deerflow-extension-example/tests/test_model_surface.py` L5-7「If you change what the model sees (tool naming, result shape, message flow), this test fails — that is the point」。
+- DeerFlow 侧这句措辞在 2.2.0 **已经不在了**：原出处 `examples/deerflow-extension-example/tests/test_model_surface.py` L5-7「If you change what the model sees (tool naming, result shape, message flow), this test fails — that is the point」所在的文件已随示例家族重构删除（上游里从不存在等价物，属 fork 自制内容，已删除）。现行等价表述以 `backend/docs/REPLAY_E2E.md` L7-9 的「mock 造 fake green」诊断与 `backend/tests/test_replay_golden.py` L70-72 的断言分工为准——目标不变，出处换了。
 
-## 六个决定点的对照
+## 六个决定点的对照（sync #8 补第 7 行）
 
 | 决定点 | DSH（快照层） | DeerFlow（record/replay 车道） | 为什么相反 |
 |---|---|---|---|
@@ -21,13 +21,14 @@
 | 挥发噪声 | typed token（`{{session:1}}` 首现编号，保关系去噪声） | 正则归一化（UUID/TS/DATE/PATH 剥掉；`<system-reminder>` 整块剥；`hide_from_ui` 消息剔除，L144-176、L225） | DSH 要从夹具重建请求所以必须保关系；DeerFlow 只需要配对，抹掉最省 |
 | 期望在哪 | 同一份日志（一份文件两用） | 独立提交的 SSE golden + miss 对账 | DeerFlow 的 golden 是「被测协议」的独立 oracle，坏脚本回放出来若与 golden 不符会红 |
 | 静默失效的对手 | patch 不生效 / provider 抢流 / title 占脚本位（21/03:129-137） | Gateway 把 miss 吞成正常 assistant 错误消息，SSE 形状不变、golden 绿着变陈旧（L95-101） | 两边都发现「最危险的是不报错」，都把 fail loud 当设计属性：DSH 校对 `--dump-config`；DeerFlow 进程内 miss 列表 + `test_replay_golden.py` L85 `assert not misses` |
+| **并发**（sync #8 补第 7 行） | **是固有限制**：并发子会话会不确定地抢脚本位（21/03:143，回放器自己声明的已知限制），所以 L4 场景按许可清单收窄——「涉及并发子代理委派的场景」列入不建判据（21/05:48） | **题设上不存在**：键是 caller + 归一化输入哈希而不是位置，`subagent:*` 各占自己的桶，谁先跑都拿回自己的输出（L22-32） | DSH 从轨迹**按位置推导**脚本，并发没有稳定的第 N 条；DeerFlow 从「调用→输出」表按内容查找，风险从「绑错脚本」转移到「同一 caller + 同一输入被并发重复调用时按 `deque` 顺序消费」——只有两路产出可交换时才无害 |
 
 ## system prompt 的两种命运（最值得琢磨的一行）
 
 - **DSH：pin 是功能。** model-visible ⟺ logged（21/01:67-79）：动请求头而夹具没动 → 要么改动对模型不可见、要么不变量破了。sidecar diff 是报警器。
 - **DeerFlow：排除也是功能。** L201-207 原文：「The lead-agent system prompt is a living, frequently-edited implementation detail … Hashing it would make every fixture go stale — and red-fail on unrelated PRs」；「The conversation flow (user input -> tool calls -> results -> answer) is the stable key」。
-- **合起来看**：同一条「prompt 漂移要报警」的需求，DSH 放进回放匹配，DeerFlow 放到另外两层——keyless 的 `ScriptedModel.requests` 断言 + assembly fingerprint 两脸断言（`docs/testing/01-extension-testing-strategy.md` L110-112）。
-- **诚实账单**：分层降低了夹具维护成本，代价是全车道**不抓 prompt 漂移**——改了 system prompt 且无 ScriptedModel 断言覆盖时，回放照样绿。DSH 的夹具会红。这是把 pin 摘出去的代价，不是免费午餐。
+- **合起来看**：同一条「prompt 漂移要报警」的需求，DSH 放进回放匹配，DeerFlow **只能放到别处**——而 v2.2.0 里那个「别处」变薄了：原来的两脸断言（`ScriptedModel.requests` + assembly fingerprint）依据的 `docs/testing/01-extension-testing-strategy.md` L110-112 与 `deerflow.testing` **都是 fork 自制内容，上游从不存在，已随 2.2.0 同步清除**（`.md` 文件、`deerflow/testing/` 包目录均已不在树里）。
+- **诚实账单（2.2.0 重算）**：分层降低了夹具维护成本，代价是全车道**不抓 prompt 漂移**——改了 system prompt 而没有任何就地 `ScriptedModel` / `FakeToolCallingModel` 断言覆盖时，回放照样绿，DSH 的夹具会红。2.2.0 之后连「该由谁报警」都没有现成基建：要 prompt 报警，得在**自己的测试文件里**写 `class ScriptedModel(BaseChatModel)`（样板：`backend/tests/test_goal_evaluator_accounting.py:29`）把请求录下来断言。这是把 pin 摘出去的代价，不是免费午餐。
 
 ## 噪声处理的同构与分歧
 
@@ -45,4 +46,4 @@
 
 - 形状相反的根源是三个宿主事实：持久化形态（轨迹 vs 调用记录）、运行拓扑（单流 vs 多 caller）、消费方式（要重建请求 vs 只配对）。
 - 「prompt 进不进匹配键」是两边最大的哲学分歧，都是有意为之、都写了理由。
-- DSH 用一条不变量解决的问题，DeerFlow 用分层解决；分层的代价是全车道不抓 prompt 漂移——所以那两层 keyless 断言不是可选项，是这个设计的必要补全。
+- DSH 用一条不变量解决的问题，DeerFlow 用分层解决；分层的代价是全车道不抓 prompt 漂移——而 2.2.0 把「分层里负责报警的那一层」（`deerflow.testing` 的 `ScriptedModel.requests`）清掉了，于是那部分补全要靠每个测试文件自建就地夹具。

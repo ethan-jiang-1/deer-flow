@@ -13,7 +13,7 @@
 前端 `sendMessage` 支持 `extraContext` 参数：
 
 ```typescript
-// frontend/src/core/threads/hooks.ts:223-237
+// frontend/src/core/threads/hooks.ts:271-300（sendMessage 的 extraContext 合并）
 context: {
   ...extraContext,   // 调用方传入
   ...ownedSettings,  // settings context
@@ -26,7 +26,7 @@ context: {
 ### 白名单限制
 
 ```python
-# backend/app/gateway/services.py:506-518
+# backend/app/gateway/services.py:880-895
 _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
     "model_name",
     "mode",
@@ -48,15 +48,15 @@ _CONTEXT_CONFIGURABLE_KEYS: frozenset[str] = frozenset({
 **机制 1：`/bootstrap` 命令**（硬编码，唯一 command→skill 映射）
 
 ```python
-# backend/app/channels/manager.py:2740-2745
+# backend/app/channels/manager.py:3730-3735
 if reply is None and command == "bootstrap":
     ...
     await self._handle_chat(chat_msg, extra_context={"is_bootstrap": True}, bound_identity_checked=True)
 
-# backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-776
+# backend/packages/harness/deerflow/agents/lead_agent/agent.py:812-817
 def _available_skill_names(agent_config, is_bootstrap: bool) -> set[str] | None:
     if is_bootstrap:
-        return set(_BOOTSTRAP_SKILL_NAMES)  # 硬编码，只暴露 bootstrap skill
+        return set(_BOOTSTRAP_SKILL_NAMES)  # 硬编码（agent.py:84），只暴露 bootstrap skill
 ```
 
 `/bootstrap` 设置 `is_bootstrap=True`，经由 `_available_skill_names()` 将可用 skill 限定为 `{"bootstrap"}`。`get_skills_prompt_section()` 然后将系统 prompt 中的 `<available_skills>` 缩减为仅一个 skill。
@@ -64,19 +64,19 @@ def _available_skill_names(agent_config, is_bootstrap: bool) -> set[str] | None:
 **机制 2：Agent config 中的 `skills` 白名单**
 
 ```python
-# agent.py:774-780
+# agent.py:815-816
 if agent_config and agent_config.skills is not None:
     return set(agent_config.skills)
 ```
 
 每个 agent 的 `config.yaml` 可以配置 `skills: [...]` 来控制可见 skill。但这需要**提前人工配置**，且 agent 一旦选定，skill 集合就固定了——不能根据单个任务动态变化。
 
-> 🔄 同步 #6（v2.1.0-rc0）：本节"仅有的两种机制"已不再是完整清单——新增 **slash skill 激活**通道：`skills/slash.py` 的 `parse_slash_skill_reference`/`resolve_slash_skill` 解析严格 `/skill-name 任务文本` 语法，`SkillActivationMiddleware`（`agents/middlewares/skill_activation_middleware.py`）在模型调用前把对应 SKILL.md 内容注入上下文——这是一个确定性的 command→skill 管道，且与 `available_skills` 白名单正交生效。详见 `_digested/concepts/skills-tools/skill-md-and-tool-assembly.md`。
+> 🔄 同步 #6（v2.1.0-rc0）：本节"仅有的两种机制"已不再是完整清单——新增 **slash skill 激活**通道：`skills/slash.py` 的 `parse_slash_skill_reference`/`resolve_slash_skill` 解析严格 `/skill-name 任务文本` 语法，`SkillActivationMiddleware`（`agents/middlewares/skill_activation_middleware.py`）在模型调用前把对应 SKILL.md 内容注入上下文——这是一个确定性的 command→skill 管道，且与 `available_skills` 白名单正交生效（注意：v2.2 起激活**只**管 skill 注入，`allowed-tools` 已降级为兼容元数据、不再联动工具集，见下文专节）。详见 `_digested/concepts/skills-tools/skill-md-and-tool-assembly.md`。
 
 ### `CONTEXT_CONFIGURABLE_KEYS` 中没有 skills 的原因
 
 ```python
-# agent.py:947-962
+# agent.py:987, 995, 1008（_get_runtime_config() 本体在 agent.py:219）
 cfg = _get_runtime_config(config)
 ...
 is_bootstrap = cfg.get("is_bootstrap", False)
@@ -86,6 +86,29 @@ available_skills = _available_skill_names(agent_config, is_bootstrap)
 ```
 
 `available_skills` 完全由 `(agent_config, is_bootstrap)` 二元组决定。不读取 `config.configurable` 中的任何 skill 相关字段。白名单里当然也不会包含它。
+
+> 🔄 同步 #8（v2.2.0）：这段仍是 2.2 的真实语义，但**后面多了一道 Layer 1 授权过滤**——`available_skills` 拿到手之后立刻过 `filter_available_skills_by_authorization()`（`authz/skill_filter.py`，调用点 agent.py:1041-1047），之后才用于 `<skill_index>` / `describe_skill` / slash 激活。所以 2.2 的完整决定链是 `(agent_config, is_bootstrap)` **× authorization 策略**，仍然没有任何一个环节读 `body.context`（agent.py:1013-1044 的注释原文："denied skills never appear in `<skill_index>`, can never be `describe_skill`'d, and cannot be slash-activated"）。
+
+---
+
+## ⚠️ 2.2 重大变更：`allowed-tools` 不再给 slash 激活「附赠」工具限制
+
+在 v2.1 里，`/skill-name` 激活除了注入 SKILL.md，还**顺带改变工具集**：激活的 skill 的 `allowed-tools` 会经一个专属 middleware 收紧模型可见可调用的工具，形成「用 `/k8s-deploy` 就只能用 k8s-deploy 声明的那几个工具」的刚性组合。这条机制在 2.2 已被整体删除：
+
+- **已删除**：`deerflow/skills/tool_policy.py`（65 行）——`ALWAYS_AVAILABLE_BUILTIN_TOOL_NAMES`、`allowed_tool_names_for_skills()`、`filter_tools_by_skill_allowed_tools()`。
+- **已删除**：`deerflow/agents/middlewares/skill_tool_policy_middleware.py`（529 行）——把上述并集同时应用到**模型可见性、`tool_search` 结果、执行**三层，并带 slash 授权与持久化 `skill_context` 的重新授权（语义要点：没有任何 skill 声明 → 返回 `None` 全放行；一旦有 skill 声明，未声明的 skill 贡献 0 个工具）。
+- **已删除**：`build_middlewares()` 里的 `SkillToolPolicyMiddleware` 注册（`agents/lead_agent/agent.py`）。
+
+（上游 #6935 / `0d73798be`，2.2.0 引入。）
+
+**2.2 的现行语义：** `allowed-tools` 只是**兼容元数据**，照常解析、照常展示，但**不再过滤、授予或拒绝任何工具**。
+
+- `SkillActivationMiddleware` 的职责收窄为：识别严格 `/skill-name task` 语法、只解析「已启用且运行时允许」的 skill、注入 `SKILL.md` 正文、记 `middleware:skill_activation` 审计事件——**激活本身不再改变工具集**（`agents/middlewares/AGENTS.md` #18 原文："Skill `allowed-tools` is compatibility metadata only: activation never filters, grants, or denies tools — Agent assembly/execution authorization owns the permission ceiling."）。
+- **权限上限的唯一所有者变成「agent 组装 + 执行授权」**：Layer 1 能力过滤（`authorization.enabled` 的 `AuthorizationProvider`，`authz/provider.py:86` + `apply_tool_authorization()`，`authz/tool_filter.py:25-33`）与 Layer 2 执行前检查（`GuardrailAuthorizationAdapter`，`authz/adapter.py:27`）。
+- `SkillActivationMiddleware` 在 2.2 里**真正**把关的只有 skill 维度，三层判据（`_resolve_activation`，skill_activation_middleware.py:318-355）：① skill 已安装；② 已启用（否则提示 "installed but disabled"）；③ 在这一 agent 的 `available_skills` 可见集内；④ 再过一次动作级的 `skill:activate` 授权判定（`_activation_allowed()`，与 `describe_skill`、skill 文件加载路径共用同一判定，避免三条路径漂移）。缺工具？请走 `disallowed_tools`、`authorization` 或 custom agent 的 `tool_groups`/`skills` 配置。
+- 历史残留：`runtime/secret_context.py:37` 的 `SKILL_TOOL_POLICY_DECISION_CONTEXT_KEY = "__skill_tool_policy_decision"` 是**已废弃的保留 key**，只为让含该 key 的历史 payload 继续被 redact（secret_context.py:31-37 注释明说 policy 已移除）。
+
+**对 Q2 的问题意味着什么：** 2.1 时代有人可能会想「在 MD 里写 `/k8s-deploy`，让激活顺带把工具也锁死」——这条路 2.2 已经断了。slash 激活现在**只**管 skill 选择（确定性注入 SKILL.md），工具边界完全交给授权层。也就是说：**「MD 能否精确指定 skill」的答案不变，但「指定 skill 同时收紧权限」的期望必须撤回。**
 
 ---
 
@@ -242,6 +265,8 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 
 > 🔄 同步 #6（v2.1.0-rc0）：`/bootstrap` 已不是唯一确定性映射——`/skill-name` slash 激活（`skills/slash.py` + `SkillActivationMiddleware`）让任务文本的第一行 `/k8s-deploy ...` 成为确定性 skill 路由；配合 enabled-only `/mnt/skills` projection（#4178），未启用 skill 的同名 slash 也无法激活。核心结论"任意 MD 正文内的 skill 指定仍不可靠"仍然成立，但"行首 slash 标记"这条刚性管道已经存在。
 
+> 🔄 同步 #8（v2.2.0）：上面三个改进层次的**第 3 条已经落地**（`/skill-name` slash 激活），第 1 条仍未做——2.2 的 `_CONTEXT_CONFIGURABLE_KEYS`（services.py:880-895）依旧是那 10 个 key，没有 `skills`。第 2 条（prompt 指令）也未被采纳。同时必须补一条**口径修正**：2.2 里 `/skill-name` 激活**只**决定 skill 选择，不再顺带收紧工具（`allowed-tools` 已降级为兼容元数据，#6935，见上文专节）。所以「MD 里写技能名 → 确定性选中 skill」成立；「MD 里写技能名 → 同时锁死可用工具」**不成立**，工具边界请交给 `authorization` 或 agent 的工具配置。
+
 核心矛盾是：DeerFlow 的 skill 选择**完全是 LLM 自主决策**——不管需求来自聊天输入还是 MD 文件，都是同一套"LLM 读描述→判断"流程。要改变这一点，需要在 LLM 之前的管道中加入**确定性路由**。
 
 三个改进层次：
@@ -250,6 +275,8 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 3. **加触发语法**（改 ~50 行代码）— 类似 Codex 的 `$skill-name`，在消息预处理阶段做确定性匹配
 
 方案 1 最务实，给 API 调用方（前端、channel、外部系统）提供了一个刚性管道。方案 3 提供最好的用户体验但需要最多的实现工作。
+
+> 🔄 同步 #8（v2.2.0）：现状重排——**方案 3 已实现**（行首 `/skill-name`），**方案 1 未实现**（`skills` 仍不在白名单），**方案 2 依赖 LLM 指令跟随、不建议当作硬保证**。2.2 新增的刚性能力全部落在 skill **可见性**一侧（Layer 1 授权过滤），不落在「从 MD 文本里解析出 skill 名」一侧：想让 MD 精确指定 skill，最务实的仍是「预建 agent config 的窄 `skills:` + 用 `agent_name` 切换」（见 Q3），或让 MD 第一行就是 `/k8s-deploy ...`。
 
 ---
 
@@ -260,12 +287,14 @@ MD: "使用 @k8s-deploy, @python-testing 完成..."
 - `_digested/internals/harness-hooks/08-agent-self-modification.md` — `update_agent` 的自修改流程
 - `_digested/internals/middleware/01-hooks-and-flow.md` — 中间件生命周期中如何处理上下文
 
-Sources:
-- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/agent.py:774-780, 947-962`（v2.1.0 行号）
-- DeerFlow 源码: `backend/app/gateway/services.py:506-518, 611-638`
-- DeerFlow 源码: `backend/app/channels/manager.py:2740-2745`
-- DeerFlow 源码: `backend/app/channels/commands.py:11-20`
-- DeerFlow 源码: `backend/packages/harness/deerflow/skills/slash.py`（新增：slash skill 激活）
-- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/prompt.py:884`
-- DeerFlow 源码: `frontend/src/core/threads/hooks.ts:223-237`
+Sources（行号为 v2.2.0 实测）:
+- DeerFlow 源码: `backend/packages/harness/deerflow/agents/lead_agent/agent.py:84, 812-817, 987, 995, 1008, 1041-1047`
+- DeerFlow 源码: `backend/app/gateway/services.py:880-895`（`_CONTEXT_CONFIGURABLE_KEYS`）、`:1005`（`merge_run_context_overrides`）
+- DeerFlow 源码: `backend/app/channels/manager.py:2276-2300`（`_resolve_available_skill_names`）、`:3730-3735`（`/bootstrap`）
+- DeerFlow 源码: `backend/app/channels/commands.py:11-24`
+- DeerFlow 源码: `backend/packages/harness/deerflow/skills/slash.py:39`（`parse_slash_skill_reference`）、`:54`（`resolve_slash_skill`）
+- DeerFlow 源码: `backend/packages/harness/deerflow/agents/middlewares/skill_activation_middleware.py:118, 139, 318-355`
+- DeerFlow 源码: `backend/packages/harness/deerflow/authz/skill_filter.py`（Layer 1 skill 授权过滤）、`authz/tool_filter.py:25-33`、`authz/adapter.py:27`（`GuardrailAuthorizationAdapter`）
+- DeerFlow 源码: `backend/packages/harness/deerflow/runtime/secret_context.py:31-37`（已删除 policy 的保留 key）
+- DeerFlow 源码: `frontend/src/core/threads/hooks.ts:271-300`
 - [Codex Skills — OpenAI Developers](https://developers.openai.com/codex/skills)

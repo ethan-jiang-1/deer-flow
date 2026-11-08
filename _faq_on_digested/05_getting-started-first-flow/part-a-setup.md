@@ -12,12 +12,14 @@ DeerFlow（Deep Exploration and Efficient Research Flow）是字节跳动开源�
 | **Skills 系统** | `SKILL.md`（YAML frontmatter + Markdown）定义 agent 行为，兼容 agentskills.io 标准 |
 | **MCP 工具集成** | 支持 stdio/SSE/HTTP 传输，带 deferred tool loading 和 tool_search |
 | **Sandbox 执行** | 代码在隔离 Docker 容器或本地沙箱中运行，统一的 `/mnt/user-data` 虚拟路径 |
-| **Sub-agent 委派** | `task()` 工具可委派子 agent 并行执行，最多 3 个并发 |
+| **Sub-agent 委派** | `task()` 工具可委派子 agent 并行执行，默认 3 个并发（上限 64），每次 run 默认最多 6 次委派 |
 | **持久记忆** | 基于文件/DB 的用户记忆系统，自动提取 fact 并注入系统 prompt |
-| **37 个 Middleware** | 覆盖沙箱生命周期、错误处理、token 统计、loop 检测、guardrail 等 |
+| **39 个 Middleware** | 覆盖沙箱生命周期、错误处理、token 统计、loop 检测、guardrail、PII 脱敏、artifact 采集等 |
 | **IM 频道** | 飞书/Slack/Telegram/DingTalk 可直接作为 agent 交互入口 |
 
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 数量 18 → 37（`_digested/internals/middleware/03-catalog.md`）。
+
+> 🔄 同步 #8（v2.2.0）：middleware 口径再变——现在是 **39 个条目位**（`_digested/internals/middleware/03-catalog.md` 按 v2.2.0 重写：`_build_runtime_middlewares()` 产出前 16 条 + `build_middlewares()`（`deerflow/agents/lead_agent/agent.py:485`）追加 23 条）。v2.2.0 新增 `KnowledgeScopeMiddleware` / `ArtifactResolutionMiddleware` / `ArtifactCaptureMiddleware` / `PiiRedactionMiddleware` / `ModelContentCompatibilityMiddleware`，`SkillToolPolicyMiddleware` **已删除**；lead 链默认约 24 条、全开约 30 条。Sub-agent 数也一并订正：默认并发 3（`MAX_CONCURRENT_SUBAGENTS`，`deerflow/subagents/executor.py:2337`），合法上限 64，且有 `subagents.max_total_per_run`（默认 6）的**每次 run 总数**兜底。
 
 技术栈：Python 3.12+ / Node.js 24+ / LangGraph / Next.js 16 / FastAPI / Nginx
 
@@ -102,6 +104,8 @@ make dev           # 启动全部服务（Gateway + Frontend + Nginx）
 编辑项目根目录的 `config.yaml`。值以 `$` 开头会从环境变量解析。
 
 > 🔄 同步 #6（v2.1.0-rc0）：`config.example.yaml` 的 `config_version` 现为 **45**；旧配置启动时 Gateway 会警告版本落后，用 `make config-upgrade` 合并缺失字段。
+
+> 🔄 同步 #8（v2.2.0）：`config_version` 已到 **63**（`config.example.yaml:23`），模板本身从 3021 行涨到 **3680 行**。新增的顶层段有 `blob_storage`（`:2563`，默认 `enabled: false`）、`knowledge_base`（`:824`，默认关）、`agents_api`（`:2580`，默认 `enabled: false`，关着时 agent/USER.md 管理路由一律 403）、`tool_artifacts`（`:1461`）、`pii_redaction`（`:1537`）、`deployment`（`:2923`）、`typesafe`（`:3372` 起，注释示例），以及 `lead_prompt_overlay`（`:26` 起，注释示例）。升级流程不变：`make config-upgrade` 把你的 `config.yaml` 合并进新模板，别手抄。**重启生效字段**从 18 项增至 **27 项**（`deerflow/config/reload_boundary.py:45` 的 `STARTUP_ONLY_FIELDS`，新增 `deployment`、`projects.summary_*` 等）——改这些必须重启 Gateway，热加载不生效。`.env` 也换了装法：`DEER_FLOW_ENV_FILE` 选择器（`deerflow/env.py:10`）。详见 `_digested/internals/configuration/04-config-reference.md` 与 `_digested/getting-started/00-config-overview.md`。
 
 **最小配置 — 只配一个 DeepSeek V3**：
 
@@ -222,6 +226,15 @@ memory = client.get_memory()
 print(f"{len(models['models'])} 个模型, {len(skills['skills'])} 个 skills")
 ```
 
-> `DeerFlowClient` 的实现见 `deerflow/client.py:145`（`class DeerFlowClient`），它与 Gateway 共享同一套底层模块（`make_lead_agent` → `create_agent` → middleware chain），不是二次包装。
+> `DeerFlowClient` 的实现见 `deerflow/client.py:177`（`class DeerFlowClient`；`stream()` 在 `:859`、`chat()` 在 `:1314`，全文 2002 行），它与 Gateway 共享同一套底层模块（`make_lead_agent` → `create_agent` → middleware chain），不是二次包装。
 >
 > 🔄 同步 #6（v2.1.0-rc0）：原引用 `client.py:82` 已漂移（现 L145）；另 v2.1.0-rc0 起 `DeerFlowClient` 支持多用户内嵌复用（#5206，按 `(agent_name, user_id)` 缓存内部 agent）与流式修复（#5408/#5479），trace id 无条件下发（#5119）。
+
+> 🔄 同步 #8（v2.2.0）：行号再漂移——类定义从 L145 → **L177**（`stream()` L859、`chat()` L1314）。另外**多了第四种体验方式**：可安装的 `deerflow` 终端命令（v2.2.0 新增）。有 TTY 时 `deerflow` 直接进全屏 TUI，脚本里用 `deerflow --print "问题"` / `deerflow --json "问题"`；`--print` 与 `--json` 互斥，run 失败退出码 1。它跑的是**内嵌** `DeerFlowClient`，不需要 Gateway/Nginx/Docker——和上面的 Python 内嵌方式同源，只是换了外壳。完整契约见 `_digested/getting-started/06-tui.md`。
+>
+> ```bash
+> uv pip install 'deerflow-harness[tui]'    # textual 是可选依赖
+> deerflow                                   # 全屏 TUI
+> deerflow --print "用 Python 写一个二分查找"  # 一次性回答
+> echo "解释 LangGraph" | deerflow --json     # 逐行 NDJSON 事件
+> ```

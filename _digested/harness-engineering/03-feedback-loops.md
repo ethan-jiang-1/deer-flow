@@ -38,7 +38,7 @@ topics: [feedback, error-handling, persistence, governance, memory]
 - 状态枚举破坏 v1 消费者 → 契约测试（`test_status_values_match_contract`）+ additive 字段纪律——一次 API 演进事故变成跨语言契约门。v2.2.0 里 additive 纪律的教科书写法可以看 `contracts/subagent_status_contract.json`：`version: 2` 只新增 `valid_stop_reason_values`（`token_capped|turn_capped|loop_capped|model_length_capped`），描述里明写"it is ignored by older consumers that only read `subagent_status`"——**新字段的兼容性承诺写在契约文件里**，不是靠 reviewer 记性；
 - **错误码被拆成"给人看的"和"给模型看的"两个清单** → `contracts/scheduled_task_errors_contract.json`（v2.2.0 新增）把 `detail.code` 分成 `ui_codes`（33 个，前端 `frontend/src/core/scheduled-tasks/errors.ts` 负责翻译）与 `agent_only_codes`（15 个，**只到模型**，不出现给用户）。这是一次"同一条错误对两个读者要说不同的话"的失败反思：early 版本里模型拿到的 `task_id_required`/`authority_expired` 这类话如果直出给用户，用户会看到内部术语，于是他们把读者维度显式建模进契约。
 
-加上"Pinned by tests/…" 双向锚点与 `docs/testing/` 的五台阶检查单，DeerFlow 元环的形态是：**AGENTS.md 治理 + 契约测试 + 预算 CI**——回写本身有红灯。v2.2.0 又给这套元环补了两个可量化的样本：`#6759`（middlewares 祖先链 98,441 > 98,304 越线）与 `#7522`（runtime 链 99,004 → 80,817）——**两次都是被自己的 `AG002` 打红之后改文档、不调阈值**，这是"回写有红灯"最直接的自证。
+加上"Pinned by tests/…" 双向锚点（⚠️ 原记的 `docs/testing/` 五台阶检查单**上游不存在**——该目录在 v2.2.0 树里没有，是 fork 自制内容的残留；现行等价物是 `backend/docs/REPLAY_E2E.md:12-17` 的两层分工 + `backend/tests/test_replay_golden.py:70-72`），DeerFlow 元环的形态是：**AGENTS.md 治理 + 契约测试 + 预算 CI**——回写本身有红灯。v2.2.0 又给这套元环补了两个可量化的样本：`#6759`（middlewares 祖先链 98,441 > 98,304 越线）与 `#7522`（runtime 链 99,004 → 80,817）——**两次都是被自己的 `AG002` 打红之后改文档、不调阈值**，这是"回写有红灯"最直接的自证。
 
 ## 两条学习通道：产品记忆与工程学习必须分开治理
 

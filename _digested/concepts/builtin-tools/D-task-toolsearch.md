@@ -11,7 +11,7 @@ topics: [tools, builtin, sandbox-tools]
 ## task (Subagent)
 
 **源码**: `packages/harness/deerflow/tools/builtins/task_tool.py:186`
-**加载条件**: `subagent_enabled: true`（运行时参数或 `config.yaml` → `subagents.enabled`）
+**加载条件**: `subagent_enabled: true`（运行时参数；⚠️ **`config.yaml` → `subagents.enabled` 在 v2.2.0 已不存在**——`SubagentsAppConfig`（`config/subagents_config.py:166-200`）只有 `timeout_seconds` / `max_turns` / `max_total_per_run` / `token_budget` / `agents` / `custom_agents`。写这个键会被 `config_version` 的未知键检查拒绝）
 **Tool Name**: `task`
 
 ### 用途

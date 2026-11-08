@@ -2,7 +2,7 @@
 
 ## 直接回答
 
-**90% 的情况下不需要。** ThreadState 的十几个字段 + messages 消息历史 + sandbox 文件系统，已经覆盖了大多数 agentic workflow 的需求。
+**90% 的情况下不需要。** ThreadState 的 17 个自有字段（v2.2.0 实数，`agents/thread_state.py` L379-397）+ messages 消息历史 + sandbox 文件系统，已经覆盖了大多数 agentic workflow 的需求。
 
 **只有当你遇到以下三种情况之一时，才需要加字段：**
 
@@ -38,9 +38,11 @@ Agent 的 messages 列表天然记录了所有上下文——用户说了什么�
 | 加载 skill | `skill_context` | SkillActivationMiddleware |
 | 设定目标 | `goal` | Goal evaluator |
 | 跨轮任务笔记/续作 | `task_notes` / `task_history` | task_continuity（`agents/task_continuity/`） |
+| 追踪工具产出的结构化工件 | `tool_artifacts` / `tool_artifact_processed`（2.2.0 新增） | 产出工件的工具 + 消费方 |
+| 记录目标判成什么 | `goal_outcome`（2.2.0 新增，与 `goal` 分开） | goal evaluator |
 | 记住用户偏好 | memory 系统（不在 state 里） | MemoryMiddleware |
 
-> 🔄 同步 #6（v2.1.0-rc0）：ThreadState 新增 `task_notes`（`merge_task_notes` reducer，来自 `agents/task_continuity/state.py`）与 `task_history: NotRequired[dict | None]` 顶层字段（`agents/thread_state.py:292-293`）；`DelegationEntry` 增加 `receipt_verdict` / `acceptance_verdict` 回执校验字段，`ViewedImageData` 增加 `sha256` / `source_sandbox_id`。详见 `_digested/concepts/lead-agent/`。
+> 🔄 同步 #8（v2.2.0）：v2.2.0 又加了 `goal_outcome`（L386）、`tool_artifacts`（L392）、`tool_artifact_processed`（L393）三个字段；`task_notes` 的 reducer 是通道类 `TaskNotesChannel(dict | None, merge_task_notes)`（L394，类在 `agents/task_continuity/state.py` L92）。字段清单与 reducer 全表见 [02-langgraph-vs-deerflow.md](02-langgraph-vs-deerflow.md)。
 
 ---
 
@@ -51,6 +53,8 @@ Agent 的 messages 列表天然记录了所有上下文——用户说了什么�
 **例**：你写了一个 code review workflow，agent 审查 10 个文件。你想在 middleware 里追踪"已审查了几个"，并在最后给用户一个总结。这个数字不应该出现在用户可见的 messages 里。
 
 **方案**：加 `review_count: NotRequired[int]`。
+
+> ⚠️ v2.2.0 提醒：字段加上了不等于生效。lead agent 的 state schema 是 `get_thread_state_schema(mode)` 现取的（`agents/lead_agent/agent.py` L1255），而每个 middleware 自己的 `state_schema` 会被 `normalize_middleware_state_schemas(...)` 按 mode 换掉（L1248）。两处都要指向含你新字段的 schema，否则 delta 模式下你读到的是旧类。
 
 ### 场景 2：多个 middleware 同时写，需要自定义合并
 
@@ -64,6 +68,8 @@ Agent 的 messages 列表天然记录了所有上下文——用户说了什么�
 
 **方案**：加一个 state 字段存储它。用 `PrivateStateAttr` 标记确保它不会出现在 trace 里。
 
+**但先说清楚这挡不住什么**：`PrivateStateAttr` 挡的是 **trace/输入面**，不是 **checkpoint 落盘**——敏感值仍会被序列化进数据库。2.2.0 里真正处理这类数据的方式是间接的：`viewed_images` 只留轻量元数据、base64 payload 根本不进 graph state（`backend/AGENTS.md` L310 原文「payloads never enter graph state」）；文件级大对象走 `blob_storage` 配置节。要放密钥就别放 state 里，放环境变量或 secrets 配置。
+
 ---
 
 ## 快速决策流程
@@ -75,15 +81,18 @@ Agent 的 messages 列表天然记录了所有上下文——用户说了什么�
     │   └── YES → 放 messages 里（用 ToolMessage 或 AIMessage）
     │
     ├── 它是文件？
-    │   └── YES → 写 sandbox 文件系统
+    │   └── YES → 写 sandbox 文件系统（大对象走 blob_storage，别进 state）
     │
     ├── 它是纯量（int/str/bool），只有一个 middleware 写它？
-    │   └── YES → NotRequired[T]
+    │   └── YES → NotRequired[T]（＋要它不进 trace 就叠 PrivateStateAttr）
     │
     ├── 它是列表/字典，多个 middleware 可能同时写？
-    │   └── YES → Annotated[T, custom_reducer]
+    │   └── YES → Annotated[T, custom_reducer]（reducer 里对 None 做保护）
     │
-    └── 它需要影响路由决策？
+    ├── 它只是「让循环下一步去哪」这一件事？
+    │   └── YES → 不加字段：钩子返回 {"jump_to": ...}（先 hook_config(can_jump_to=...)）
+    │
+    └── 它需要影响路由决策，且要跨轮保留？
         └── YES → 加字段 + 在条件边函数中读取
 ```
 

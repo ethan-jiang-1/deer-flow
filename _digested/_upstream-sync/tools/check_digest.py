@@ -39,6 +39,7 @@ import sys
 from collections import defaultdict
 from contextlib import suppress
 from functools import cache
+from pathlib import Path
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
@@ -180,16 +181,17 @@ def rel(path: str) -> str:
 
 
 def read_text(path: str, errors: str = "strict") -> str:
-    """读文本文件（显式 UTF-8，不依赖 locale）。"""
-    with open(path, encoding="utf-8", errors=errors) as fh:
-        return fh.read()
+    """读文本文件（显式 UTF-8，不依赖 locale）。
+
+    OSError 有意向上抛出：调用方（suppress / except OSError）负责决定跳过还是失败。
+    """
+    return Path(path).read_text(encoding="utf-8", errors=errors)
 
 
 @cache
 def file_line_count(path: str) -> int:
     """文件行数（带缓存：同一目标文件常被多条 digest 引用反复统计）。"""
-    with open(path, encoding="utf-8") as fh:
-        return sum(1 for _ in fh)
+    return len(read_text(path).splitlines())
 
 
 @cache

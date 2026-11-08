@@ -90,3 +90,16 @@ uv sync --extra operations --extra demo-tui    # 建 venv（框架走 submodule 
 - 注：git submodule、editable 安装、AGENTS.md 划界属通用工程实践，非 DeerFlow 特性
 
 > 🔄 同步 #6（v2.1.0-rc0）：ethan 分支已前进到 769589e8（已合并 upstream v2.1.0-rc0，含 Node.js 24+ 要求、config_version 45、Projects/Trash/Capability Center 新前端等）。文中 `9ef471e9` 是建仓时钉的 commit，属历史事实、保持不改；如需升级基座，按「未来维护」一节更新 submodule 指针即可。
+
+> 🔄 同步 #8（v2.2.0）：ethan 分支现已合入 upstream **v2.2.0**。`9ef471e9` 仍是建仓时钉的历史 commit（本文所有「258 测试通过」的结论也属于那次建仓的事实），**但如果你要按本文方式重建 V2，钉的应该是包含 v2.2.0 的 ethan HEAD**。升级基座时下面几件事会直接影响 V2 的可用性：
+>
+> | 变化 | 对 V2 的影响 |
+> |------|-------------|
+> | `config_version` 45 → **63**（`config.example.yaml:23`，模板 3680 行） | V2 根的 `config.yaml` 是从 V1 复制的老配置，升级后请用 `make config-upgrade` 合并，别手抄 |
+> | `.env` 改为 `DEER_FLOW_ENV_FILE` 选择器（`deerflow/env.py:10`） | V2 根放 `.env` 的老习惯仍可用（没设选择器时退回 `load_dotenv()` 自动发现），但**多环境（profiles）场景请显式设 `DEER_FLOW_ENV_FILE`**，否则哪个 `.env` 被读到取决于 cwd |
+> | 工作区唯一写入面收敛到 `users/{user_id}/`（`deerflow/config/paths.py:140-157`） | 顶层 `.deer-flow/memory.json` 与 `.deer-flow/agents/` 变成 legacy 只读回退；V2 若跨版本复用同一个 `.deer-flow`，老数据只读得到、写不会再落到那里 |
+> | skill 的 `allowed-tools` 降级为兼容元数据（上游 #6935 `0d73798be`） | 应用侧若靠 `allowed-tools` 限制 agent 工具，**v2.2.0 起不再生效**；改用 agent 的 `tool_groups` 或 `authorization`（Layer 1 + Layer 2 `GuardrailAuthorizationAdapter`）。v2.1.0 的 `skills/tool_policy.py` 已删除、`agents/middlewares/skill_tool_policy_middleware.py` 已删除 |
+> | `STARTUP_ONLY_FIELDS` 18 → **27** 项（`deerflow/config/reload_boundary.py:45`） | V2 的 profiles 切换若依赖热加载，注意新增的重启生效字段 |
+> | 新增可安装的 `deerflow` 终端命令 | V2 里可以直接 `uv run deerflow --print "..."` 做冒烟验证，不必先起 Gateway；`uv run` 会把 submodule 里的 console script 暴露出来 |
+>
+> 另外「用 submodule 钉版本」这个结论在 v2.2.0 下依然成立，且更划算：v2.2.0 的框架目录结构没有破坏性重排（`backend/packages/harness/deerflow/` 仍是可 `editable = true` 安装的包，`backend/packages/harness/pyproject.toml:69-70` 的 console script 也随之可用）。

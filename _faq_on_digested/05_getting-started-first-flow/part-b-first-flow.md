@@ -31,10 +31,6 @@ mkdir -p skills/custom/my-first-skill
 name: my-first-skill
 description: >-
   代码分析助手：读取代码文件，输出结构化 review 报告。
-allowed-tools:
-  - read_file
-  - bash
-  - write_file
 ---
 
 # 代码分析助手
@@ -67,6 +63,8 @@ allowed-tools:
 ...
 ```
 ```
+
+> 🔄 同步 #8（v2.2.0）：原示例 frontmatter 里的 `allowed-tools: [read_file, bash, write_file]` 在这里**删掉**了。v2.2.0（上游 #6935，commit `0d73798be`）把 `allowed-tools` 降级为**兼容元数据**：仍会解析、校验、展示（`describe_skill` 输出前缀 `Allowed tools (compatibility metadata, not enforced):`），也会进 skill catalog 指纹，但**从不**授予或收窄工具集。原来的强制逻辑所在文件已删除（v2.1.0 的 `skills/tool_policy.py` 已删除、`agents/middlewares/skill_tool_policy_middleware.py` 已删除）。要限制工具请走 `authorization`（Layer 1 能力过滤 + Layer 2 `GuardrailAuthorizationAdapter`）、`disallowed_tools`，或自定义 agent 的 `tool_groups`。详见 `_digested/concepts/skills-tools/skill-md-and-tool-assembly.md`。
 
 **启用 Skill**：
 
@@ -120,13 +118,10 @@ mkdir -p .deer-flow/users/default/agents/code-reviewer
 name: code-reviewer
 description: 专业代码审查 agent
 model: deepseek-v3
-tools:
-  - read_file
-  - write_file
+tool_groups:
+  - file:read
+  - file:write
   - bash
-  - ls
-  - str_replace
-  - present_files
 skills:
   - my-first-skill
 ```
@@ -157,18 +152,21 @@ curl -X POST http://localhost:2026/api/threads/review-2/runs/stream \
   }'
 ```
 
-> Agent 配置加载见 `deerflow/config/agents_config.py:316`（`load_agent_config`），SOUL.md 注入系统 prompt 见 `deerflow/agents/lead_agent/prompt.py:954-965`（"Append SOUL.md" 段）。
+> Agent 配置加载见 `deerflow/config/agents_config.py:332`（`load_agent_config`），SOUL.md 注入系统 prompt 见 `deerflow/agents/lead_agent/prompt.py:1029`（`get_agent_soul()`，渲染为 `<soul>` 块）。
 >
 > 🔄 同步 #6（v2.1.0-rc0）：原引用 `agents_config.py:80-126`、`prompt.py:659-664` 已漂移，符号仍在，行号按当前源码更新。
+
+> 🔄 同步 #8（v2.2.0）：**上面那段 `config.yaml` 改了**。v2.2.0 的 `AgentConfig`（`deerflow/config/agents_config.py:206`）里**没有 `tools:` 字段**——逐工具白名单请改用 `tool_groups`（`:211`）。它的其它字段是 `display_name` / `description` / `model` / `tool_groups` / `skills`（`:222`，注释原文：「`allowed-tools` is compatibility metadata only and never restricts tools」）/ `mcp_plugins`（`:225`，`None` = 继承全部，`[]` = 一个都不给）/ `knowledge_scope`（`:229`）/ `allowed_subagents`（`:233`，`None` = 全部，`[]` = 无）/ `model_settings` / `thinking_enabled` 等。可用的 `tool_groups` 在 `config.example.yaml:831` 起的 `tool_groups:` 段里定义（内置 `web` / `file:read` / `file:write` / `bash` / `browser` / `knowledge`）。
+>
+> 另外两点：① HTTP 那条路径要先开 `agents_api.enabled: true`（默认 `false`，`config.example.yaml:2580`），否则 agent 管理路由一律 403——不过 `context.agent_name` 走 run 端点不受这个开关限制，开关只挡住「通过 HTTP 管理 SOUL.md/USER.md」；② `load_agent_config` 现在会经 `deerflow.persistence.agents.get_agent_store()` 读，文件后端**先读 per-user 目录、再回落 legacy 顶层 `agents/`**（legacy 只读）。
 
 ## B.3 Sub-agent 委派 — 并行多 agent 协作
 
 在 `config.yaml` 中注册子 agent，Lead Agent 可以通过 `task()` 工具把任务分发给它们并行执行：
 
 ```yaml
-# config.yaml
+# config.yaml（config.example.yaml 里 subagents: 整段默认是注释状态）
 subagents:
-  enabled: true
   custom_agents:
     code-reviewer:
       description: 审查代码，输出结构化 review
@@ -181,6 +179,8 @@ subagents:
       model: deepseek-v3
       tools: [read_file, write_file, bash, ls]
 ```
+
+> 🔄 同步 #8（v2.2.0）：注意这里的 `tools:` **仍然有效**——sub-agent 用的是另一套结构 `CustomSubagentConfig`（`deerflow/config/subagents_config.py:124`），它的 `tools` 是真正的工具白名单（`None` = 继承父级全部），和自定义 agent 的 `tool_groups` 不是一回事，别混。同时 `subagents.enabled` 总开关**已删除**，写了也不生效；启用委派仍靠请求侧 `subagent_enabled`。
 
 使用示例：
 
@@ -205,14 +205,16 @@ User Message
 Lead Agent（plan_mode = 拆解为 todo items）
     │
     ├─→ task("code-reviewer", "审查 sandbox/tools.py")   ┐
-    ├─→ task("code-reviewer", "审查 models/factory.py")  │ 最多 3 个并发
+    ├─→ task("code-reviewer", "审查 models/factory.py")  │ 默认 3 个并发
     └─→ task("test-writer", "为 tools.py 写测试")        ┘
     │
     ▼
 Lead Agent 汇总子 agent 结果 → 生成最终回复
 ```
 
-> 子 agent 执行引擎见 `deerflow/subagents/executor.py`，并发上限 `MAX_CONCURRENT_SUBAGENTS = 3`，超时 15 分钟。
+> 子 agent 执行引擎见 `deerflow/subagents/executor.py:890`（`SubagentExecutor`），并发上限 `MAX_CONCURRENT_SUBAGENTS = 3`（`executor.py:2337`），内置 sub-agent 默认超时 **30 分钟**（`subagents.timeout_seconds` 默认 1800，`deerflow/config/subagents_config.py:171`）。
+
+> 🔄 同步 #8（v2.2.0）：原文写「超时 15 分钟」——**默认值已是 1800 秒**。自定义 sub-agent 的 `timeout_seconds` 默认仍是 900 秒（`subagents_config.py:152`），内置的走全局 1800 秒。另外 v2.2.0 多了几层闸门，别把它们搞混：① 单次 run 的委派总数上限 `subagents.max_total_per_run`，默认 **6**（`subagents_config.py:13`）；② 进程级容量 `subagent_runtime`（`config.example.yaml:1994`：`max_running: 3` / `max_queued: 64` / `admission_policy: queue` / `queue_timeout_seconds: 300`），超出排队而不是报错；③ 并发上限合法范围是 [1, 64]（`subagents_config.py:16-17`），会被 `max_running` 二次压住。
 
 ## B.4 MCP 工具扩展 — 接入外部能力
 
@@ -245,13 +247,11 @@ MCP 工具会被自动发现并绑定到 agent 上。如果工具太多担心噪
 
 ```yaml
 # config.yaml
-tools:
-  tool_search:
-    enabled: true      # 启用后 MCP tool schema 不会直接暴露
-    mode: keyword      # exact | keyword | text
+tool_search:
+  enabled: true      # 启用后 MCP tool schema 不会直接暴露
 ```
 
-启用后，agent 需要先调用 `tool_search("github")` 来发现相关工具，而不是一开始就面对几十个 tool schema。详见 `_faq_on_digested/04_mcp-best-practices/`。
+> 🔄 同步 #8（v2.2.0）：原文写的 `mode: keyword      # exact | keyword | text` 这个子键**在 v2.2.0 的 `config.example.yaml` 里已不存在**（`tool_search:` 在 `config.example.yaml:1395`，只有 `enabled: false` 和 `auto_promote_top_k: 3` 两项）。所以上面那行 `mode:` 已从示例里删掉；即便写了也**别指望它切换检索模式**（以你本地 `config.yaml` 的校验行为为准）。现行机制是：`enabled: true` 后 MCP tool schema 不直接进模型可见列表，`auto_promote_top_k`（1..5）控制每次模型调用前自动提升多少个匹配的 deferred schema。其余发现靠 agent 主动调 `tool_search`。详见 `_faq_on_digested/04_mcp-best-practices/`。
 
 ## B.5 完整示例：代码审查 Flow
 
@@ -323,6 +323,8 @@ Agent 循环（agent loop, 最多 N 轮）:
 Stream → SSE → 前端实时显示 / DeerFlowClient 逐 event 返回
 ```
 
-> Agent loop 的完整执行流（包括 graph.astream 的 3 个 stream_mode、37 个 middleware 的 hook 时序）见 `_digested/internals/agent-loop/`。
+> Agent loop 的完整执行流（包括 graph.astream 的 3 个 stream_mode、39 个 middleware 的 hook 时序）见 `_digested/internals/agent-loop/`。
 >
 > 🔄 同步 #6（v2.1.0-rc0）：middleware 数量 18 → 37（前 14 个共享层来自 `build_lead_runtime_middlewares()`，后 23 个来自 `build_middlewares()`，见 `_digested/internals/middleware/03-catalog.md`）。
+
+> 🔄 同步 #8（v2.2.0）：上面那张时序图是**示意**，不是 v2.2.0 的真实位置。真实链路是两阶段组装：`_build_runtime_middlewares()`（`deerflow/agents/middlewares/tool_error_handling_middleware.py:347`，经 `build_lead_runtime_middlewares` 导出）先产出前 **16** 条，再由 `build_middlewares()`（`deerflow/agents/lead_agent/agent.py:485`）追加 **23** 条，合计 **39 个条目位**。v2.2.0 新增的几条会影响这张图的阅读：`ArtifactResolutionMiddleware` / `ArtifactCaptureMiddleware`（artifact 生命周期）、`PiiRedactionMiddleware`（`config.example.yaml:1537` 的 `pii_redaction`）、`KnowledgeScopeMiddleware`、`ModelContentCompatibilityMiddleware`；`SkillToolPolicyMiddleware` **已删除**。要按真实顺序读，请看 `_digested/internals/middleware/03-catalog.md` 的分组表，别照这张图逐条对。

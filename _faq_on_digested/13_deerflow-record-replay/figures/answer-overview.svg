@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 640" font-family="system-ui, -apple-system, 'PingFang SC', 'Noto Sans SC', sans-serif" font-size="12">
   <title>DeerFlow 有没有 DSH 的录制会话快照思想：一页看懂</title>
-  <desc>三列并排。左列（蓝）思想同源：DeerFlow 测试策略明写移植自 DSH，第⑤级台阶「组装转录」对应快照层，录制端 record_gateway、回放端 ReplayChatModel、两层消费 SSE golden + 真前端、发布包 deerflow.testing 四个零件全在。中列（绿）形状相反：DSH 用 trajectory 夹具、位置绑定、pin 住 request/header、一份文件两用；DeerFlow 用 hash-by-input、顺序无关、把 system prompt 排除出匹配键、回放输入与独立提交的 SSE golden 期望分离。右列（琥珀与红）生产侧不对等与三个缺口：生产落盘只有 checkpoint（graph state）与 run_events（UI 事件面），都不含模型请求面，于是没有 run→fixture 导出器（bug 复现断头）、没有 override 等价物（四类失败）、没有调用数对账（少了调用无感知）。底部条是一句话记法：思想同源，形状相反；多层证据各管一面，生产落盘缺 model-visible。</desc>
+  <desc>三列并排。左列（蓝）思想同源：上游 DeerFlow 自己长出了一套 record/replay（旧版据以宣称「移植自 DSH」的 docs/testing 是 fork 自制内容、上游从不存在，已随 2.2.0 删除），录制端 record_gateway、回放端 ReplayChatModel、两层消费 SSE golden + 真前端三个零件全在，发布包 deerflow.testing 已删除。中列（绿）形状相反：DSH 用 trajectory 夹具、位置绑定、pin 住 request/header、一份文件两用；DeerFlow 用 hash-by-input、顺序无关、把 system prompt 排除出匹配键、回放输入与独立提交的 SSE golden 期望分离。右列（琥珀与红）生产侧不对等与三个缺口：生产落盘只有 checkpoint（graph state）与 run_events（UI 事件面），都不含模型请求面，于是没有 run→fixture 导出器（bug 复现断头）、没有 override 等价物（四类失败）、没有调用数对账（少了调用无感知）。底部条是一句话记法：思想同源，形状相反；多层证据各管一面，生产落盘缺 model-visible。</desc>
   <defs>
     <marker id="ov-a" viewBox="0 0 9 7" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
       <path d="M0,0 L9,3.5 L0,7 Z" fill="#64748b"/>
@@ -11,17 +11,17 @@
 
   <rect x="30" y="58" width="368" height="470" rx="10" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.5"/>
   <text x="214" y="86" text-anchor="middle" font-size="15" font-weight="700" fill="#1d4ed8">① 思想同源（机制层面）</text>
-  <text x="46" y="114" font-size="12.5" fill="#1e3a8a" font-weight="600">移植是明牌：</text>
-  <text x="46" y="132" font-size="11.5" fill="#1e3a8a">docs/testing/README.md L3「移植自 DeepSeek</text>
-  <text x="46" y="149" font-size="11.5" fill="#1e3a8a">Harness」；第⑤级台阶＝组装转录（L37）</text>
-  <text x="46" y="177" font-size="12.5" fill="#1e3a8a" font-weight="600">四个零件全在：</text>
+  <text x="46" y="114" font-size="12.5" fill="#1e3a8a" font-weight="600">同源而非移植：</text>
+  <text x="46" y="132" font-size="11.5" fill="#1e3a8a">上游自行演化出同题机制；旧据的 docs/testing</text>
+  <text x="46" y="149" font-size="11.5" fill="#1e3a8a">是 fork 自制、已删除，现行证据在 tests/ 与代码</text>
+  <text x="46" y="177" font-size="12.5" fill="#1e3a8a" font-weight="600">三个零件全在：</text>
   <text x="46" y="199" font-size="11.5" fill="#1e3a8a">录制 · record_gateway.py（Playwright 驱真前端，</text>
   <text x="46" y="215" font-size="11.5" fill="#1e3a8a">夹具＝真实产物）</text>
   <text x="46" y="237" font-size="11.5" fill="#1e3a8a">回放 · ReplayChatModel（无 key，miss 即 raise）</text>
   <text x="46" y="259" font-size="11.5" fill="#1e3a8a">消费 · Layer 1 SSE golden ＋ Layer 2 真前端渲染</text>
-  <text x="46" y="281" font-size="11.5" fill="#1e3a8a">发布 · deerflow.testing 随 harness wheel</text>
+  <text x="46" y="281" font-size="11.5" fill="#b91c1c">发布 · deerflow.testing 已删除（上游从不存在）</text>
   <text x="46" y="309" font-size="12.5" fill="#1e3a8a" font-weight="600">经验也跟着移植了：</text>
-  <text x="46" y="331" font-size="11.5" fill="#1e3a8a">机制发布成包 ／ 静默失效要 fail loud（_replay_misses）</text>
+  <text x="46" y="331" font-size="11.5" fill="#1e3a8a">夹具即真实产物 ／ 静默失效要 fail loud（_replay_misses）</text>
   <text x="46" y="353" font-size="11.5" fill="#1e3a8a">／ 录制配置要 hermetic（共享 builder，只换 use 块）</text>
   <rect x="46" y="375" width="336" height="70" rx="6" fill="#dbeafe"/>
   <text x="60" y="397" font-size="11.5" fill="#1e3a8a" font-weight="600">已拿到的回报：#3352</text>

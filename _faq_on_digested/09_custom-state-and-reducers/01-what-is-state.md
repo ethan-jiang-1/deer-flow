@@ -56,3 +56,9 @@ LangGraph 在两个时机调用它：
 2. **Reducers 定义了冲突解决规则**——当两个 node 同时写同一个 key 时，怎么合并？没有 reducer = 覆盖（last wins）
 3. **messages 用 add_messages reducer**——消息列表只追加、不覆盖，这是 agent 能"记住"对话历史的根本原因
 4. **State 不经过网络**——它是内存中的 Python 对象（checkpoint 时序列化到数据库）。node 读 state 是 O(1) 的字典查找
+
+## v2.2.0 补记：reducer 不只三种形态
+
+上面说的「有 reducer = 合并、无 reducer = last_value」是 LangGraph 的基线，但 DeerFlow 在 2.2.0 里用到了第三种：**通道类 reducer**（`task_notes` 用 `TaskNotesChannel(dict | None, merge_task_notes)`，`agents/thread_state.py` L394，类定义在 `agents/task_continuity/state.py` L92）。它继承 LangGraph 的 `BinaryOperatorAggregate`，在「二元合并」之外还能挂快照/序列化策略，所以 `task_notes` 既不覆盖也不简单追加，而是走自己的折叠协议。判断「这个字段的合并语义」时不要只看函数名，要看 reducer 位置放的是函数还是类。
+
+**更该先知道的一件事**：DeerFlow 的 `messages` 字段在 delta 模式下**不是** `add_messages`，而是 `DeltaChannel(merge_message_writes, snapshot_frequency=...)`（`thread_state.py` 的 `delta_messages_field()` L487-497）。`merge_message_writes` 是手写的「线性折叠」——它刻意保持 `add_messages` 的全部语义（删除、替换、id 冲突规则），只是把 N 条写入折成 O(N) 而不是 O(N²)。所以你在代码里**仍然按 `add_messages` 的心智模型去写**，但 checkpoint 落盘那层的存储代价与 fork 能力完全不同。详见 [_digested/graph-engineering/06-langgraph-capability-surface.md](../../_digested/graph-engineering/06-langgraph-capability-surface.md) §3「delta 模式禁 fork / time-travel」。
