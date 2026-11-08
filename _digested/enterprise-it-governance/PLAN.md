@@ -480,11 +480,19 @@ done
 
 | 事实 | 正确值 | 唯一来源 | 已核 |
 |---|---|---|---|
-| Subagent 单响应并发 | 64 | `packages/harness/deerflow/config/subagents_config.py:17` | ✅ |
-| per-run 总量上限 | `max_total_per_run` 存在 | `packages/harness/deerflow/config/subagents_config.py:50` | ✅ |
+| Subagent 单响应截断上限 | 64 | `packages/harness/deerflow/config/subagents_config.py:17` | ✅ |
+| **Subagent 实际执行并发** | **3**（`max_running`，上限 `le=64`） | `packages/harness/deerflow/config/subagent_runtime_config.py:12` | ✅ |
+| 两者如何合并 | `clamp_subagent_concurrency` 取小值 | `packages/harness/deerflow/config/subagents_config.py:20-25` | ✅ |
+| per-run 总量上限 | `max_total_per_run`，默认 6（区间 1–50） | `packages/harness/deerflow/config/subagents_config.py:13`、`:179` | ✅ |
 | Guardrail 决策入 journal | 是，带 6 字段 | `packages/harness/deerflow/guardrails/middleware.py:171`（定义 `:131`） | ✅ |
-| RBAC 权限数 | 11 | `app/gateway/authz.py:67-86` | ✅ |
-| 登录限速默认 | 5 次 / 锁 300s | `config.example.yaml` auth 段 | 待核 |
+| **RBAC 权限数** | **13** | `app/gateway/authz.py:161-175` | ✅ |
+| `authorization.enabled` 未开时 | **返回全部 13 个权限** | `app/gateway/authz.py:278-281` | ✅ |
+| 登录限速默认 | 5 次 / 锁 300 秒 | `packages/harness/deerflow/config/auth_config.py:110`、`:125` | ✅ |
+| guardrails 默认状态 | **关闭**（示例配置整块被注释） | `config.example.yaml:3272-3301` | ✅ |
+| token_budget 默认状态 | **关闭**（`enabled: false`） | `config.example.yaml:105-111` | ✅ |
+| pii_redaction 默认状态 | **关闭**（`enabled: false`） | `config.example.yaml:1537` | ✅ |
+| `allow_host_bash` 默认 | **false** | `config.example.yaml:1720` | ✅ |
+| 循环检测默认状态 | **开启** | `config.example.yaml:1504` | ✅ |
 | 沙箱模式数 | 7（6 provider 类） | `concepts/sandbox/*` | ✅ |
 | PII 脱敏覆盖 | 有，**不覆盖**记忆提取出口 | `config.example.yaml:2372` | ✅ |
 | kill switch | **无** | 全库 grep 零命中 | ✅ |
