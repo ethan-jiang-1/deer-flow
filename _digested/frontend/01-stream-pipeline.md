@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # SSE → React 流式管线
 
+![SSE 事件经过 useStream、stream-state、streamdown 到 React 提交的管线](figures/stream-pipeline.svg)
+
+> **图读法**：事件先归一化，再进渲染态；gap 只触发重连，不重放本地状态。
+
+
 DeerFlow 的流式渲染建立在 LangGraph SDK 的 `useStream` hook 之上，在它上面叠加了消息合并、乐观更新、token 计数、subtask 追踪和历史加载。
 
 ## API Client 层

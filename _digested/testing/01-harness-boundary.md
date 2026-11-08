@@ -12,6 +12,11 @@ last_verified: 2026-11-08
 
 # Harness/App 边界测试
 
+![源码树经 AST 扫描、blocking IO 检测、CI 分片到修复的边界检查链](figures/harness-boundary.svg)
+
+> **图读法**：边界不是口头约定；import 图与 blocking IO 都有机器检查。
+
+
 `backend/tests/test_harness_boundary.py` — CI 强制执行两层 import 边界。
 
 ## 为什么需要这个测试

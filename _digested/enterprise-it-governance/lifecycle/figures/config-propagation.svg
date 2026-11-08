@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" font-family="PingFang SC, sans-serif">
+  <title>变更生效路径：config.yaml → 内存 → 下次调用</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">变更生效路径：config.yaml → 内存 → 下次调用</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">同一份配置文件，不同字段的生效时机不同 —— 这是运维里最容易踩的坑</text>
   <defs><marker id="c" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>

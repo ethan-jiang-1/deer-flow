@@ -16,6 +16,12 @@ DeerFlow 不是 IT 管理平台。但它内建了一批治理原语。
 
 ![IT 治理视角：12 个管理维度 × DeerFlow 能力映射](figures/governance-overview.svg)
 
+> **图读法**：按行看“能力/缺口”；这张图是索引，具体证据回到各域正文。
+
+![Guardrails、token_budget、pii_redaction、authorization 四项控制的默认状态与风险](figures/default-off-risk.svg)
+
+> **图读法**：安全评审先看这四项，不要只看代码里有没有。
+
 本卷**判断性段落**附 `file:line`；介绍性文字与明确标注为部署决策的条目除外，可自行复核。
 
 ## 1. 12 个维度 × 能力矩阵
@@ -73,7 +79,9 @@ DeerFlow 不是 IT 管理平台。但它内建了一批治理原语。
 
 ## 4. 最该提前知道的三个边界
 
-![Defense-in-Depth：从请求进入到 Tool 执行，14 层防护](figures/defense-in-depth.svg)
+![纵深防线：从请求到 Tool 执行的七层](figures/defense-in-depth.svg)
+
+> **图读法**：自上而下是防线顺序；每层只回答“拦什么、失败怎么办”，不是调用时序。
 
 ### 4.1 Agent 没有独立身份
 

@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 520" font-family="PingFang SC, sans-serif">
+  <title>审计事件流向：三条链路互不相通</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">审计事件流向：三条链路互不相通</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">「出事了能查到吗」取决于事件落在哪条链路上 —— 三条链路没有联合视图</text>
   <defs><marker id="f" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>

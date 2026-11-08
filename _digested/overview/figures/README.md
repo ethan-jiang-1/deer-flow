@@ -1,6 +1,6 @@
 ---
 title: "Overview 图库 — SVG 架构图索引"
-description: "overview/ 的图目录索引：14 张自包含 SVG，覆盖同心圆分层、Agent Loop、进程拓扑、启动流程与请求路径。"
+description: "overview/ 的图目录索引：12 张自包含 SVG，覆盖同心圆分层、Agent Loop、进程拓扑、启动流程与请求路径。"
 type: index
 topics: [figures, svg, architecture]
 ---
@@ -22,12 +22,10 @@ topics: [figures, svg, architecture]
 |---|---|---|
 | [agent-runtime-overview.svg](agent-runtime-overview.svg) | [01-system-overview](../01-system-overview.md) | Agent Runtime 分层：中心引擎、Core Services、层层外扩 |
 | [agent-loop.svg](agent-loop.svg) | [03-logical-architecture](../03-logical-architecture.md) | Agent Loop 核心循环与 middleware 链 |
-| [agent-loop-core.svg](agent-loop-core.svg) | 未嵌入正文 | 内核：LangGraph 状态机 × 6 Hook 点 × 19 Middleware（图内口径） |
 | [concentric-rings.svg](concentric-rings.svg) | [03-logical-architecture](../03-logical-architecture.md) | 四层同心圆：Access → Gateway → Harness → Core |
 | [skills-loading.svg](skills-loading.svg) | [03-logical-architecture](../03-logical-architecture.md) | Skills 加载链：SKILL.md → load_skills → prompt → LLM |
 | [subagent-delegation.svg](subagent-delegation.svg) | [03-logical-architecture](../03-logical-architecture.md) | Sub-agent 委派：Lead → Executor → 3 并行 subagent → 聚合 |
 | [sandbox-paths.svg](sandbox-paths.svg) | [03-logical-architecture](../03-logical-architecture.md) | 虚拟路径映射与多层安全防护 |
-| [harness-app-boundary.svg](harness-app-boundary.svg) | [02-harness-app-boundary](../02-harness-app-boundary.md)（未嵌入） | Harness / App 两层边界与依赖方向 |
 | [process-topology.svg](process-topology.svg) | [04-component-architecture](../04-component-architecture.md) | 进程拓扑：Nginx / Gateway / Frontend / Provisioner 及端口 |
 | [dependency-graph.svg](dependency-graph.svg) | [04-component-architecture](../04-component-architecture.md) | Harness 内部依赖关系图 |
 | [gateway-lifespan.svg](gateway-lifespan.svg) | [06-startup-flow](../06-startup-flow.md) | Gateway 启动：module load → create_app → lifespan |

@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # 确定性 LLM 替身谱系
 
+![FakeToolCallingModel、ReplayChatModel、Monocle trace、手动录制与 CI 的确定性 LLM 替身谱系](figures/deterministic-llm.svg)
+
+> **图读法**：同一条断言尽量在更便宜、更确定的一层证明。
+
+
 agent 系统测试的中心矛盾：**被测系统的核心组件（LLM）是非确定的、慢的、要花钱的**。DeerFlow 的答案不是"mock 掉 agent"，而是在 **LLM 边界上替换模型**、让其余一切保持生产代码。这条边界上长出了一个四级替身谱系，按"离真实行为的距离"排列：
 
 | 级 | 替身 | 机制 | 距真实行为 |

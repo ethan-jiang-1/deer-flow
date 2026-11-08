@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # Hook 点与执行流
 
+![Middleware 正向 Setup / 反向 Teardown 的洋葱顺序](figures/middleware-execution-order.svg)
+
+> **图读法**：先看正向链，再看反向链；hook 的异常传播语义在正文。
+
+
 Agent 的每一次 step 穿过 6 种 hook 点。理解每种 hook 的触发时机、执行方式、和它适合做什么，是理解整个 middleware 系统的基础。
 
 > **交叉引用：** Middleware hook 在 Agent loop 中的位置见 [agent-loop/00-loop-anatomy.md](../agent-loop/00-loop-anatomy.md)（三层循环嵌套全景）。

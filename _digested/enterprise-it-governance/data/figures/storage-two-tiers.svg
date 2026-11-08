@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+  <title>数据存放：文件系统与关系库两处</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">数据存放：文件系统与关系库两处</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">备份、导出、删除都必须同时覆盖两处 —— 只处理一处就是数据缺口</text>
 

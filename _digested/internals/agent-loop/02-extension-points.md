@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # 扩展点：从内到外怎么往里加东西
 
+![六个核心服务挂入 Agent Loop 的 hook 点](figures/core-services-hook-points.svg)
+
+> **图读法**：图只标挂点；每个 hook 的契约与失败语义在正文。
+
+
 前面两篇讲了 loop 的结构和 middleware 的设计。这篇回答实际问题：**我想扩展 DeerFlow，应该从哪个层面加东西？**
 
 ## 三层扩展模型

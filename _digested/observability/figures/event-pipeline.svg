@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 322" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>RunEvent 管线：从回调到可消费事件</title>
+  <desc>RunJournal 负责标准化与刷盘；RunEventStore 是 append-only 事实。</desc>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+  <rect width="1000" height="322" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">RunEvent 管线：从回调到可消费事件</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">RunJournal 负责标准化与刷盘；RunEventStore 是 append-only 事实。</text>
+<rect x="30.0" y="104" width="173.6" height="158" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+<text x="116.8" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#0c4a6e">LangChain callbacks</text>
+<text x="116.8" y="157" text-anchor="middle" font-size="9.5" fill="#075985">chain / llm</text>
+<text x="116.8" y="172" text-anchor="middle" font-size="9.5" fill="#075985">tool / error</text>
+<rect x="221.6" y="104" width="173.6" height="158" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="308.4" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#14532d">RunJournal</text>
+<text x="308.4" y="157" text-anchor="middle" font-size="9.5" fill="#166534">缓冲、分类、seq、</text>
+<text x="308.4" y="172" text-anchor="middle" font-size="9.5" fill="#166534">evidence</text>
+<rect x="413.2" y="104" width="173.6" height="158" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+<text x="500.0" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#713f12">RunEventStore</text>
+<text x="500.0" y="157" text-anchor="middle" font-size="9.5" fill="#854d0e">memory / db</text>
+<text x="500.0" y="172" text-anchor="middle" font-size="9.5" fill="#854d0e">jsonl</text>
+<rect x="604.8" y="104" width="173.6" height="158" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+<text x="691.6" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#4c1d95">SSE + Console</text>
+<text x="691.6" y="157" text-anchor="middle" font-size="9.5" fill="#5b21b6">实时流、历史、调试端点</text>
+<rect x="796.4" y="104" width="173.6" height="158" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+<text x="883.2" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#0f172a">审计 / 回放</text>
+<text x="883.2" y="157" text-anchor="middle" font-size="9.5" fill="#475569">thread 删除、</text>
+<text x="883.2" y="172" text-anchor="middle" font-size="9.5" fill="#475569">subagent、</text>
+<text x="883.2" y="187" text-anchor="middle" font-size="9.5" fill="#475569">workspace</text>
+<line x1="205.6" y1="183.0" x2="217.6" y2="183.0" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="397.2" y1="183.0" x2="409.2" y2="183.0" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="588.8" y1="183.0" x2="600.8" y2="183.0" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<line x1="780.4" y1="183.0" x2="792.4" y2="183.0" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="30" y="304" font-size="10" fill="#475569">读法：从左到右是主路径；分支与失败语义回到正文，不在图里堆细节。</text>
+</svg>

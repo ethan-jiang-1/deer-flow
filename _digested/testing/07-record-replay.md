@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # Record/Replay E2E 测试
 
+![record、normalize、fixture、replay、assert 五步的录制回放流程](figures/replay-flow.svg)
+
+> **图读法**：哈希按归一化输入，不按调用序号；system prompt 不进 key。
+
+
 DeerFlow 最先进的测试模式。录一次（需要 API key），永久回放（零 API key，毫秒级）。
 
 ## 架构：三文件协作

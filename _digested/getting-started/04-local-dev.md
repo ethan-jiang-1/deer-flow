@@ -12,6 +12,11 @@ last_verified: 2026-11-08
 
 # 本地开发：make dev
 
+![浏览器、Nginx、Gateway、Frontend 与可选 Redis 的本地拓扑](figures/local-dev-topology.svg)
+
+> **图读法**：浏览器只认 2026；Gateway 与 Frontend 不直接暴露给用户。
+
+
 `make dev` 先跑 `scripts/check.py` 检查工具，再用 `scripts/serve.sh --dev` 启动 3 个本地服务（外加按需拉起的 AIO sandbox 容器）。
 
 ## 进程拓扑

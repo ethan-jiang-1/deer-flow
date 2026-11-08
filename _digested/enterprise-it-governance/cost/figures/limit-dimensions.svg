@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 540" font-family="PingFang SC, sans-serif">
+  <title>四个限额维度 —— 没有一个以「元」为单位</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">四个限额维度 —— 没有一个以「元」为单位</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">能限住 token、步数、并发；限不住钱。框架不知道模型单价</text>
 

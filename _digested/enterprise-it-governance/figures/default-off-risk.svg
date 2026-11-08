@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 388" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>默认关闭的四项控制：风险不是「没有」，是「没开」</title>
+  <desc>安全评审先看这四项，不要只看代码里有没有。</desc>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+  <rect width="1000" height="388" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">默认关闭的四项控制：风险不是「没有」，是「没开」</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">安全评审先看这四项，不要只看代码里有没有。</text>
+<rect x="30" y="96" width="940" height="40" rx="8" fill="#334155"/>
+<text x="147.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">控制</text>
+<text x="382.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">示例默认</text>
+<text x="617.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">不开的后果</text>
+<text x="852.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">评审动作</text>
+<rect x="30" y="136" width="940" height="58" fill="#ffffff" stroke="#e2e8f0"/>
+<text x="40.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">Guardrails</text>
+<text x="275.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">关闭（整块注释）</text>
+<line x1="265.0" y1="136" x2="265.0" y2="194" stroke="#e2e8f0"/>
+<text x="510.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">工具级授权不生效</text>
+<line x1="500.0" y1="136" x2="500.0" y2="194" stroke="#e2e8f0"/>
+<text x="745.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">确认部署配置</text>
+<line x1="735.0" y1="136" x2="735.0" y2="194" stroke="#e2e8f0"/>
+<rect x="30" y="194" width="940" height="58" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="40.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">token_budget</text>
+<text x="275.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">enabled:false</text>
+<line x1="265.0" y1="194" x2="265.0" y2="252" stroke="#e2e8f0"/>
+<text x="510.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">无 per-run 金额/Token 上限</text>
+<line x1="500.0" y1="194" x2="500.0" y2="252" stroke="#e2e8f0"/>
+<text x="745.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">开启并设阈值</text>
+<line x1="735.0" y1="194" x2="735.0" y2="252" stroke="#e2e8f0"/>
+<rect x="30" y="252" width="940" height="58" fill="#ffffff" stroke="#e2e8f0"/>
+<text x="40.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">pii_redaction</text>
+<text x="275.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">enabled:false</text>
+<line x1="265.0" y1="252" x2="265.0" y2="310" stroke="#e2e8f0"/>
+<text x="510.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">工具结果/PII 不脱敏</text>
+<line x1="500.0" y1="252" x2="500.0" y2="310" stroke="#e2e8f0"/>
+<text x="745.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">按数据分级开启</text>
+<line x1="735.0" y1="252" x2="735.0" y2="310" stroke="#e2e8f0"/>
+<rect x="30" y="310" width="940" height="58" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="40.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">authorization.enabled</text>
+<text x="275.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">false → 全 13 权限</text>
+<line x1="265.0" y1="310" x2="265.0" y2="368" stroke="#e2e8f0"/>
+<text x="510.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">所有登录用户全放行</text>
+<line x1="500.0" y1="310" x2="500.0" y2="368" stroke="#e2e8f0"/>
+<text x="745.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">启用 provider/角色</text>
+<line x1="735.0" y1="310" x2="735.0" y2="368" stroke="#e2e8f0"/>
+</svg>

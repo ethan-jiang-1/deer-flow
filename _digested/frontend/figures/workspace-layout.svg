@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 396" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>工作区布局：三栏与右面板四态</title>
+  <desc>右面板同一时刻只开一个：sidecar &gt; browser &gt; artifacts &gt; details。</desc>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+  <rect width="1000" height="396" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">工作区布局：三栏与右面板四态</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">右面板同一时刻只开一个：sidecar &gt; browser &gt; artifacts &gt; details。</text>
+<rect x="30.0" y="96" width="461.0" height="128" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+<text x="46.0" y="124" font-size="12" font-weight="700" fill="#0c4a6e">Sidebar</text>
+<text x="46.0" y="146" font-size="9.5" fill="#075985">Threads / Projects / Channels</text>
+<text x="46.0" y="162" font-size="9.5" fill="#075985">Capability Center；活动轮询收在一处。</text>
+<rect x="509.0" y="96" width="461.0" height="128" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="525.0" y="124" font-size="12" font-weight="700" fill="#14532d">Chat</text>
+<text x="525.0" y="146" font-size="9.5" fill="#166534">MessageList + composer；上传在发送时触发。</text>
+<rect x="30.0" y="242" width="461.0" height="128" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+<text x="46.0" y="270" font-size="12" font-weight="700" fill="#713f12">Right panel</text>
+<text x="46.0" y="292" font-size="9.5" fill="#854d0e">sidecar / browser / artifacts</text>
+<text x="46.0" y="308" font-size="9.5" fill="#854d0e">details；移动端改 Sheet。</text>
+<rect x="509.0" y="242" width="461.0" height="128" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+<text x="525.0" y="270" font-size="12" font-weight="700" fill="#4c1d95">Route surfaces</text>
+<text x="525.0" y="292" font-size="9.5" fill="#5b21b6">capabilities、extensions、projects、</text>
+<text x="525.0" y="308" font-size="9.5" fill="#5b21b6">trash、scheduled-tasks 各自有页面。</text>
+</svg>

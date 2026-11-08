@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" font-family="PingFang SC, sans-serif">
+  <title>合规要求的分界：软件能给的 vs 只能靠组织的</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">合规要求的分界：软件能给的 vs 只能靠组织的</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">把两侧分开是本卷的基本纪律 —— 混淆两侧会得出错误的「已合规」结论</text>
 

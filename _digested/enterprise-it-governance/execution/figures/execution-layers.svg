@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+  <title>执行边界的四层防线</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">执行边界的四层防线</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">从「允许调哪个工具」到「命令内部能不能越权」—— 每层拦的东西不同</text>
   <defs><marker id="e" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>

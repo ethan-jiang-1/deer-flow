@@ -22,7 +22,6 @@ topics: [governance, compliance, audit, cost]
 |---|---|---|
 | [00-overview.md](00-overview.md) | 12 个管理维度的能力与缺口矩阵 | 概览 |
 | [PLAN.md](PLAN.md) | 本卷重构计划：八个治理域的拆分意图与验收方式 | 概览 |
-| [AUDIT-FIX-PLAN.md](AUDIT-FIX-PLAN.md) | 全面审计的 BLOCKER/MAJOR/MINOR 逐项修复底稿 | 深入 |
 
 ### 八个面向
 
@@ -59,7 +58,7 @@ topics: [governance, compliance, audit, cost]
 
 ## 宪章与约定
 
-- 本卷宪章（执行计划与验收矩阵）：[PLAN.md](PLAN.md)；审计修复底稿与逐项数据：[AUDIT-FIX-PLAN.md](AUDIT-FIX-PLAN.md)。
+- 本卷宪章（执行计划与验收矩阵）：[PLAN.md](PLAN.md)。
 - 写作纪律沿用 [根 README](../README.md)：判断性段落附 `file:line`，缺口按「无 / 有但不覆盖 / 部分闭合」三态标注。
 - 合规页固定免责：「本卷不构成合规结论」，结论必须由审计方给出。
 

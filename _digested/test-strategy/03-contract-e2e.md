@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # 契约与跨栈 E2E
 
+![contracts JSON 经 backend pytest、frontend rstest、replay E2E 到缺口登记的契约防线](figures/contract-e2e.svg)
+
+> **图读法**：mock E2E 的 fake-green 由 replay real-backend 兜底。
+
+
 前后端两侧各有完整单测，契约仍然会碎——因为**每一侧的单测都在各自 mock 对方的形状**。DeerFlow 对这个裂缝有系统的认知，`backend/docs/REPLAY_E2E.md` 的开篇就是诊断书：
 
 > "The mock-based frontend e2e hand-writes the backend's JSON/SSE, so a backend schema or SSE change passes green (**'fake green'**). These layers replay a recorded **real** run against the **real** backend … so contract drift turns the build red instead."

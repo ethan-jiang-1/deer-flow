@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # 状态管理：TanStack Query、ThreadState、localStorage
 
+![TanStack Query、ThreadState、localStorage、URL 四层状态的拥有者与生命周期](figures/state-layers.svg)
+
+> **图读法**：不要把服务器状态塞进 localStorage，也不要把 UI 偏好塞进 Query cache。
+
+
 DeerFlow 前端使用三层状态架构：服务端状态（TanStack Query）、流式状态（LangGraph SDK）、本地偏好（localStorage + useSyncExternalStore）。
 
 ## 第一层：服务端状态 — TanStack Query

@@ -12,6 +12,11 @@ last_verified: 2026-11-08
 
 # 工作区布局：Drag 面板、响应式、Command Palette
 
+![工作区侧栏、聊天区、右面板四态与路由页面](figures/workspace-layout.svg)
+
+> **图读法**：右面板同一时刻只开一个：sidecar > browser > artifacts > details。
+
+
 ## 顶层 Shell
 
 `app/workspace/workspace-content.tsx`（Server Component）：

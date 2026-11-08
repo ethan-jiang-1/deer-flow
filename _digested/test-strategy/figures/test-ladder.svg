@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 516" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>测试阶梯：从静态边界到跨栈 E2E</title>
+  <desc>越往下越慢；能用上层证明的，不要下沉到 E2E。</desc>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+  <rect width="1000" height="516" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">测试阶梯：从静态边界到跨栈 E2E</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">越往下越慢；能用上层证明的，不要下沉到 E2E。</text>
+<rect x="150" y="96" width="700" height="64" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
+<text x="168" y="122" font-size="13" font-weight="700" fill="#0c4a6e">静态 / 边界</text>
+<text x="168" y="143" font-size="10" fill="#075985">import 边界、blocking IO、版本锁步、文档契约</text>
+<line x1="500.0" y1="161" x2="500.0" y2="174" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="150" y="178" width="700" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
+<text x="168" y="204" font-size="13" font-weight="700" fill="#14532d">单元 / 属性</text>
+<text x="168" y="225" font-size="10" fill="#166534">pytest / rstest / hypothesis；纯函数优先</text>
+<line x1="500.0" y1="243" x2="500.0" y2="256" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="150" y="260" width="700" height="64" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
+<text x="168" y="286" font-size="13" font-weight="700" fill="#713f12">确定性 LLM</text>
+<text x="168" y="307" font-size="10" fill="#854d0e">FakeToolCallingModel / ReplayChatModel / Monocle</text>
+<line x1="500.0" y1="325" x2="500.0" y2="338" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="150" y="342" width="700" height="64" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
+<text x="168" y="368" font-size="13" font-weight="700" fill="#4c1d95">契约 / 跨栈</text>
+<text x="168" y="389" font-size="10" fill="#5b21b6">contracts JSON 双端、Gateway conformance、replay E2E</text>
+<line x1="500.0" y1="407" x2="500.0" y2="420" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
+<rect x="150" y="424" width="700" height="64" rx="10" fill="#f1f5f9" stroke="#334155" stroke-width="1.5"/>
+<text x="168" y="450" font-size="13" font-weight="700" fill="#0f172a">门禁 / 元治理</text>
+<text x="168" y="471" font-size="10" fill="#475569">CI 分片、label 声明、waiver 信任边界</text>
+</svg>

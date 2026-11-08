@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" font-family="PingFang SC, sans-serif">
+  <title>三种隔离级别：七种模式归入三档</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">三种隔离级别：七种模式归入三档</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">七种 provider 配置归入三档；选哪档不是「安全 vs 不安全」，而是「隔离边界画在哪一层」</text>
 

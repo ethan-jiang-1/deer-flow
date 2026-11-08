@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 580" font-family="PingFang SC, sans-serif">
+  <title>PII 脱敏的覆盖边界：哪条路被洗、哪条路不洗</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">PII 脱敏的覆盖边界：哪条路被洗、哪条路不洗</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">开关默认关闭；开启后也只作用于两类内容 —— 其余路径原样出站</text>
   <defs><marker id="x" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>

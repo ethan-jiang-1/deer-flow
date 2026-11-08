@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # 结构化事件流：RunEventStore 与 RunJournal
 
+![LangChain callbacks、RunJournal、RunEventStore、SSE/Console 与审计回放的管线](figures/event-pipeline.svg)
+
+> **图读法**：RunJournal 负责标准化与刷盘；RunEventStore 是 append-only 事实。
+
+
 日志是给人 `grep` 的，事件流是给**程序**读的。DeerFlow 的 `RunEventStore` 是一份 append-only 的 run 记录，`RunJournal` 把 LangChain 回调标准化成 `RunEvent` 写进去。历史、调试、subtask、memory 审计、workspace 审查读的是同一批行的不同投影。
 
 > RunJournal 的缓冲/刷盘/token 分桶细节 → [internals/runtime/04-journal.md](../internals/runtime/04-journal.md)。这里聚焦事件流的**契约和消费方式**。

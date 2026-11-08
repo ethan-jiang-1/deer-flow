@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 388" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>四层状态：谁拥有、活多久、从哪来</title>
+  <desc>不要把服务器状态塞进 localStorage，也不要把 UI 偏好塞进 Query cache。</desc>
+  <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
+  <rect width="1000" height="388" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">四层状态：谁拥有、活多久、从哪来</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">不要把服务器状态塞进 localStorage，也不要把 UI 偏好塞进 Query cache。</text>
+<rect x="30" y="96" width="940" height="40" rx="8" fill="#334155"/>
+<text x="147.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">层</text>
+<text x="382.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">拥有者</text>
+<text x="617.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">生命周期</text>
+<text x="852.5" y="121" text-anchor="middle" font-size="10" font-weight="700" fill="#ffffff">事实源</text>
+<rect x="30" y="136" width="940" height="58" fill="#ffffff" stroke="#e2e8f0"/>
+<text x="40.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">TanStack Query</text>
+<text x="275.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">core hooks</text>
+<line x1="265.0" y1="136" x2="265.0" y2="194" stroke="#e2e8f0"/>
+<text x="510.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">请求 / 缓存</text>
+<line x1="500.0" y1="136" x2="500.0" y2="194" stroke="#e2e8f0"/>
+<text x="745.0" y="158" font-size="9.5" font-weight="700" fill="#0f172a">Gateway API</text>
+<line x1="735.0" y1="136" x2="735.0" y2="194" stroke="#e2e8f0"/>
+<rect x="30" y="194" width="940" height="58" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="40.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">ThreadState</text>
+<text x="275.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">workspace context</text>
+<line x1="265.0" y1="194" x2="265.0" y2="252" stroke="#e2e8f0"/>
+<text x="510.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">run / thread</text>
+<line x1="500.0" y1="194" x2="500.0" y2="252" stroke="#e2e8f0"/>
+<text x="745.0" y="216" font-size="9.5" font-weight="700" fill="#0f172a">SSE values</text>
+<line x1="735.0" y1="194" x2="735.0" y2="252" stroke="#e2e8f0"/>
+<rect x="30" y="252" width="940" height="58" fill="#ffffff" stroke="#e2e8f0"/>
+<text x="40.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">localStorage</text>
+<text x="275.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">settings/local.ts</text>
+<line x1="265.0" y1="252" x2="265.0" y2="310" stroke="#e2e8f0"/>
+<text x="510.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">浏览器</text>
+<line x1="500.0" y1="252" x2="500.0" y2="310" stroke="#e2e8f0"/>
+<text x="745.0" y="274" font-size="9.5" font-weight="700" fill="#0f172a">用户偏好</text>
+<line x1="735.0" y1="252" x2="735.0" y2="310" stroke="#e2e8f0"/>
+<rect x="30" y="310" width="940" height="58" fill="#f8fafc" stroke="#e2e8f0"/>
+<text x="40.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">URL / search</text>
+<text x="275.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">Next.js router</text>
+<line x1="265.0" y1="310" x2="265.0" y2="368" stroke="#e2e8f0"/>
+<text x="510.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">页面</text>
+<line x1="500.0" y1="310" x2="500.0" y2="368" stroke="#e2e8f0"/>
+<text x="745.0" y="332" font-size="9.5" font-weight="700" fill="#0f172a">可分享状态</text>
+<line x1="735.0" y1="310" x2="735.0" y2="368" stroke="#e2e8f0"/>
+</svg>

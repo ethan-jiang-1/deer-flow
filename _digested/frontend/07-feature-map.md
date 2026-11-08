@@ -10,6 +10,11 @@ last_verified: 2026-11-08
 
 # 前端功能面地图
 
+![frontend/src/core 的六个功能簇：运行时、工作区、能力、知识、任务、平台](figures/feature-map.svg)
+
+> **图读法**：先按簇定位，再进逐目录表；不要从组件名猜 owner。
+
+
 > **定位**：`frontend/` 的 feature map——回答「哪个 `core` 目录负责什么、入口在哪、对应哪个后端 owner」。按 `frontend/src/core/` 目录逐项建索引，给要定位改动面、判断归属、或从 UI 追到 Gateway 契约的人。
 > **边界**：不替代 [00-overview](00-overview.md) 的组件树、[01-stream-pipeline](01-stream-pipeline.md) 的 SSE 管线、[02-message-rendering](02-message-rendering.md) 的渲染、[03-state-management](03-state-management.md) 的状态层、[04-workspace-layout](04-workspace-layout.md) 的布局、[05-subagent-ui](05-subagent-ui.md) 的 subagent UI、[06-architecture](06-architecture.md) 的模块总览；也不覆盖后端实现。
 

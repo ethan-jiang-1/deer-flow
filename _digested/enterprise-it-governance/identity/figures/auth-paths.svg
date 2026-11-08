@@ -1,4 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="PingFang SC, sans-serif">
+<svg data-house="v1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" font-family="PingFang SC, sans-serif">
+  <title>四条认证路径 → 统一 AuthContext</title>
+  <desc>DeerFlow 治理卷示意图</desc>
   <text x="500" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">四条认证路径 → 统一 AuthContext</text>
   <text x="500" y="52" text-anchor="middle" font-size="12" fill="#475569">每条路径的来源、凭据形态、失败行为各不相同，但下游只看到一个 AuthContext</text>
   <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>

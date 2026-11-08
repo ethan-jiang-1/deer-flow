@@ -28,7 +28,7 @@ topics: [governance, sandbox, execution, isolation]
 
 ## 宪章与约定
 
-- 本目录无独立宪章；父级卷宪章为 [../PLAN.md](../PLAN.md)，审计修复记录见 [../AUDIT-FIX-PLAN.md](../AUDIT-FIX-PLAN.md)。
+- 本目录无独立宪章；父级卷宪章为 [../PLAN.md](../PLAN.md)。
 - 写作纪律沿用 [根 README](../../README.md)：判断性段落附 `file:line`，基线 v2.2.0。
 - 阅读约定：缺口按「无 / 有但不覆盖 / 部分闭合」三态标注，每处写明边界条件。
 

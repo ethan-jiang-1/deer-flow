@@ -15,6 +15,7 @@ TOOLS = [
     os.path.join(HERE, "check_structure.py"),
     os.path.join(HERE, "check_freshness.py"),
     os.path.join(HERE, "check_coverage.py"),
+    os.path.join(HERE, "check_figures.py"),
 ]
 
 

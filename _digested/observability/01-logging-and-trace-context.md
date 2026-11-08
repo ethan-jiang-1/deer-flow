@@ -11,6 +11,11 @@ last_verified: 2026-11-08
 
 # 日志体系与 trace_id 请求关联
 
+![请求经过 TraceMiddleware、ContextVar 到日志、响应头与 run metadata 的链路](figures/trace-context-flow.svg)
+
+> **图读法**：ContextVar 是唯一源；响应头、日志、run metadata 都是派生输出。
+
+
 DeerFlow 的日志本身是朴素的 Python `logging`，真正的价值在一个可选的 **trace 关联增强**：打开 `logging.enhance` 后，一次请求的 `trace_id` 会同时出现在日志、HTTP 响应头、Langfuse metadata 三处，靠一个 `ContextVar` 串起来——这是"出问题时从日志 grep 到同一次请求"的关键。
 
 ## 源文件

@@ -12,6 +12,11 @@ last_verified: 2026-11-08
 
 # 配置接入概览
 
+![环境变量、config.yaml、extensions_config.json 与运行时快照的覆盖关系](figures/config-layers.svg)
+
+> **图读法**：环境变量 > config.yaml > 默认值；extensions_config.json 是 API 可写面。
+
+
 > 从接入/运维视角看 DeerFlow 的配置体系。字段级参考见 [配置全景 00-config-overview.md](00-config-overview.md)。
 
 ## 两份配置文件
