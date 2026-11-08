@@ -8,6 +8,7 @@
 
 只做「行号存在性」校验（文件存在、行号在范围内），不做语义校验。
 语义校验仍需人工抽查——但这一步能挡掉绝大多数手误。
+`--strict-lines` 额外提示锚点落在空行/纯注释行的情况（只警告，不影响退出码）。
 """
 
 from __future__ import annotations
@@ -67,6 +68,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("files", nargs="*")
     ap.add_argument("--quiet", "-q", action="store_true")
+    ap.add_argument("--strict-lines", action="store_true", help="提示锚点落在空行/纯注释行")
     args = ap.parse_args()
 
     targets = [BASE / f for f in args.files] if args.files else sorted(BASE.rglob("*.md"))
@@ -96,6 +98,16 @@ def main() -> int:
                 errors.append((rel_md, m.group(0), f"起点 {start} > 终点 {end}"))
             elif not args.quiet and f.stat().st_size == 0:
                 warnings.append((rel_md, m.group(0), "目标文件为空"))
+            if args.strict_lines:
+                try:
+                    with f.open(encoding="utf-8", errors="replace") as fh:
+                        for _ in range(start):
+                            target_line = fh.readline()
+                    stripped = target_line.strip()
+                    if not stripped or stripped.startswith("#"):
+                        warnings.append((rel_md, m.group(0), "指向空行或纯注释行（需人工确认语义）"))
+                except OSError:
+                    pass
 
     print(f"校验 {len(targets)} 篇，{checked} 个锚点")
     for md, anchor, msg in errors:

@@ -9,7 +9,7 @@
 检查项（对应 PLAN §9）：
   §9.2 evidence   —— 每篇 ≥3 处 file:line
   §9.3 gap_tristate —— 缺口表述含边界词（"不覆盖"/"未闭合"/"部分"），禁止裸"有"/"无"
-  §9.4 consistency —— 已知数字型事实全文一致（扫描矛盾值）
+  §9.4 consistency —— 旧值残留、README 文件覆盖、重复章节号
   §9.6 style      —— frontmatter 三项齐全、单篇 60–200 行、单 `#`
   §9.7 compliance —— compliance/ 每篇有免责声明
   §9.8 无采购建议  —— 禁止「贵司应该」
@@ -33,6 +33,12 @@ STALE_VALUES = {
     "subagent 并发旧值": re.compile(r"MAX_CONCURRENT_SUBAGENTS\s*=\s*3|并发\s*[≤<]\s*3\b"),
     "无 per-run 预算（旧断言）": re.compile(r"无\s*per-run\s*预算"),
     "guardrail 不写 journal（旧断言）": re.compile(r"(?:Guardrail|guardrail)\s*deny\s*不写\s*RunJournal"),
+    "11 个权限（旧值）": re.compile(r"11\s*个\s*[`\w]*权限"),
+    "全部 6 个权限（旧值）": re.compile(r"全部\s*6\s*个权限|获得全部\s*6\s*项权限"),
+    "PAT 无过期（旧断言）": re.compile(r"PAT[^\n]{0,20}无过期|令牌本身不设过期"),
+    "subagent 超时 900s（旧值）": re.compile(r"(?:Subagent|subagent)[^\n]{0,20}900s"),
+    "回收站只在启动清扫（旧断言）": re.compile(r"只在\s*(?:Gateway\s*)?启动时?(?:跑|清扫)"),
+    "run 事件不随 thread 删除（旧断言）": re.compile(r"run\s*事件[^\n]{0,10}不随\s*thread\s*删除"),
 }
 
 # ── 缺口表述边界词（§9.3 第三态要求）
@@ -42,8 +48,6 @@ GAP_BOUNDARY_WORDS = ("不覆盖", "未闭合", "部分", "仅", "只覆盖", "�
 ADVICE_PATTERNS = [re.compile(r"贵司应"), re.compile(r"建议贵公司"), re.compile(r"您应该采购")]
 
 EVIDENCE_RE = re.compile(r"`[A-Za-z0-9_./-]+\.(?:py|ts|tsx|yml|yaml|json|md):\d+")
-# 判断性段落标题（这些节内论据密度要求更高）
-JUDGMENT_SECTION_RE = re.compile(r"^##+\s*(?:.*(?:缺口|矩阵|结论|判断|风险|成熟度|自评|边界|限制|覆盖))", re.M)
 
 
 @dataclass
@@ -103,13 +107,17 @@ def body_of(text: str) -> str:
     return text[end + 4 :] if end != -1 else text
 
 
+def is_index_name(name: str) -> bool:
+    return name in ("README.md", "PLAN.md") or name.endswith("-PLAN.md")
+
+
 def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
     text = path.read_text(encoding="utf-8")
     body = body_of(text)
     lines = body.splitlines()
     nlines = len(lines)
     fm = parse_frontmatter(text)
-    is_index = path.name in ("README.md", "PLAN.md")
+    is_index = is_index_name(path.name)
 
     # ── §9.2 evidence
     evidence = EVIDENCE_RE.findall(body)
@@ -118,11 +126,6 @@ def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
         rep.add("block", "evidence", rel, "零处 file:line 证据（§9.2 要求 ≥3）")
     elif not is_index and n_ev < 3:
         rep.add("warn", "evidence", rel, f"仅 {n_ev} 处 file:line（§9.2 目标 ≥3）")
-
-    # 判断性段落内是否有证据
-    if not is_index and JUDGMENT_SECTION_RE.search(body):
-        # 粗略判断：若存在判断节但全文无证据，已由上面捕获
-        pass
 
     # ── §9.3 gap_tristate：出现"缺口"表述的表格行/句子里要看边界词
     if not is_index:
@@ -135,8 +138,8 @@ def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
                         rep.add("warn", "gap_tristate", rel,
                                 f"缺口表述缺边界词：{line.strip()[:70]}")
 
-    # ── §9.4 consistency：旧值残留
-    for name, pat in STALE_VALUES.items():
+    # ── §9.4 consistency：旧值残留（index/meta 文件不参与）
+    for name, pat in (STALE_VALUES.items() if not is_index else []):
         for m in pat.finditer(body):
             # 允许在"⚠️ 变更"提示中出现旧值（作为对照）
             start = max(0, m.start() - 300)
@@ -167,6 +170,10 @@ def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
             rep.add("warn", "style", rel, f"{nlines} 行 > 200（§9.6 建议拆分）")
         elif nlines < 40:
             rep.add("warn", "style", rel, f"{nlines} 行 < 40（§9.6 建议合并）")
+        section_nums = re.findall(r"^## (\d+)\. ", strip_fences(body), re.M)
+        dup_nums = sorted({n for n in section_nums if section_nums.count(n) > 1})
+        if dup_nums:
+            rep.add("warn", "style", rel, f"重复章节号：{', '.join(dup_nums)}")
 
     # ── §9.7 compliance 免责声明
     if rel.startswith("compliance/") and path.name != "README.md":
@@ -193,6 +200,17 @@ def check_file(path: Path, rel: str, rep: Report, verbose: bool) -> int:
     return n_ev
 
 
+def check_readme_coverage(rep: Report) -> None:
+    """Every md file in a domain directory must be listed in its README."""
+    for readme in sorted(BASE.glob("*/README.md")):
+        text = readme.read_text(encoding="utf-8")
+        for md in sorted(readme.parent.glob("*.md")):
+            if md.name == "README.md":
+                continue
+            if md.name not in text:
+                rep.add("block", "readme", str(readme.relative_to(BASE)), f"未列出 {md.name}")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--verbose", "-v", action="store_true")
@@ -212,9 +230,11 @@ def main() -> int:
     for p in targets:
         rel = str(p.relative_to(BASE))
         n_ev = check_file(p, rel, rep, args.verbose)
-        if p.name not in ("README.md", "PLAN.md"):
+        if not is_index_name(p.name):
             total_ev += n_ev
             n_content += 1
+
+    check_readme_coverage(rep)
 
     if args.verbose:
         print()
