@@ -41,12 +41,12 @@ topics: [governance, audit]
 | `deny_tool_call` | 决策为 deny（policy 拒绝、本地预检拒绝、fail-closed 合成拒绝） |
 | `allow_tool_call_after_provider_error` | provider 抛错但 `fail_closed=False`，按放行执行 |
 
-**allow 决策仍然不落库**——正常放行不产生事件，这是有意的（每个 tool call 都写一条会把 journal 淹掉）。所以"某个时间段内 agent 被拒绝了哪些操作"这个问题现在**可以查 RunJournal**，但"被允许了哪些"仍然只能从 tracing/usage 侧推。
+**正常 allow 决策仍然不落库**——正常放行不产生事件，这是有意的（每个 tool call 都写一条会把 journal 淹掉）；但 provider 报错后的 fail-open 放行会写 `allow_tool_call_after_provider_error`。所以"某个时间段内 agent 被拒绝了哪些操作"这个问题现在**可以查 RunJournal**，但"被允许了哪些"仍然只能从 tracing/usage 侧推。
 
 记录的 `changes` 字段：`tool_name`、`tool_call_id`、`agent_id`、`is_subagent`、`user_role`、`allow`、`policy_id`、`reason_codes`、`reason_messages`（截断到 `_REASON_MESSAGE_LIMIT`）、`fail_closed`、`provider_error`。
 
 **两条边界**：
-- **best-effort**：`record_middleware` 抛异常只记 warning，**绝不改变 tool 执行行为**（docstring 原话："audit persistence is best-effort and must never change tool execution behavior"）。
+- **best-effort**：`record_middleware` 抛异常只记 warning，**绝不改变 tool 执行行为**（`guardrails/middleware.py:140-146` 的 `_record_guardrail_event` docstring 原话："audit persistence is best-effort and must never change tool execution behavior"）。
 - **没有 `__run_journal` 的运行时不写**：embedded client 与 subagent 执行都跳过持久化（注释原文："Native subagents do not currently inherit `__run_journal`"）。所以 **subagent 里的 guardrail 拒绝没有 `middleware:guardrail` 决策字段**；但拒绝的 ToolMessage 会作为 `subagent.step` 落库，可按 `task_id` 查到文本——不是完全不可见。
 
 ### 🆕 Completed-run evidence（2.2.0 的只读投影面）

@@ -106,6 +106,11 @@ CONVERTIBLE_EXTENSIONS = {
 | `fail_closed: true` | 阻断写入 |
 | `fail_closed: false` | 放行（仅告警） |
 
+**两条边界**：`fail_closed: false` 仍会 block **可执行文件**（`security_scanner.py:176-177`）；
+配置键是 `skill_evolution.security_fail_closed`。静态层可被 `skill_scan.enabled: false` 关闭
+（`config.example.yaml:2182-2187`），关闭后仍有归档安全检查与 LLM 层；
+分析器内部错误只 warn（`skills/skillscan/orchestrator.py:239-240`）。
+
 ## 5. 数据保留（与 06 对齐）
 
 当前只有**项目回收站**的 `trash_retention_days`（启动 + 列表惰性清扫），

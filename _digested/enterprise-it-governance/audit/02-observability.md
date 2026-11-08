@@ -112,6 +112,6 @@ DeerFlow 的内建 OTel 支持是 **Monocle**（可选，默认关，`tracing_co
 
 ## 6. 与其他章节的关系
 
-- 三层审计总览：[01-audit-chain.md](01-audit-chain.md)
-- 事件覆盖矩阵：[03-event-coverage.md](03-event-coverage.md)
+- 审计链路总览：[01-audit-chain.md](01-audit-chain.md)
+- 事件覆盖矩阵：[04-event-coverage.md](04-event-coverage.md)
 - 多实例与 Redis 后端：[../cost/04-multi-instance.md](../cost/04-multi-instance.md)

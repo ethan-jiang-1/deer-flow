@@ -84,7 +84,7 @@ except Exception:
 
 **这是企业必须显式决定的开关**：`false` 时授权服务的任何故障都退化成「人人全权」。
 
-逐权限求值时的失败处理（`app/gateway/authz.py:335-341`）同样遵循这个语义。
+逐权限求值时的失败处理（`app/gateway/authz.py:336-342`）同样遵循这个语义。
 
 ## 4. 装饰器表达不了的权限：`runs:cancel`
 

@@ -80,11 +80,11 @@ Agent 在用户上下文里跑，继承用户全部权限。
 
 ### 4.2 「有审计」不等于「能查」
 
-三条具体的盲区（详见 [audit/03-event-coverage.md](audit/03-event-coverage.md)）：
+三条具体的盲区（详见 [audit/04-event-coverage.md](audit/04-event-coverage.md)）：
 
 | 盲区 | 后果 |
 |---|---|
-| subagent 的 guardrail 拒绝 | journal 里**看不见** |
+| subagent 的 guardrail 拒绝 | 无**决策字段**；拒绝文本在 `subagent.step` 里 |
 | allow 决策 | **不留痕**——「证明被授权」比「证明被拒绝」难 |
 | bash 之外的工具 | 文件读写等**不走**审计 |
 

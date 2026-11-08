@@ -32,9 +32,9 @@ def mask_local_paths_in_output(output: str, thread_data: ThreadDataState | None)
 
 | 顺序 | 类别 | host 前缀 | 替换为 | 证据 |
 |---|---|---|---|---|
-| 1 | 全局 skills | `_get_skills_host_path()` | `/mnt/skills` | `packages/harness/deerflow/sandbox/tools.py:880-881` |
-| 2 | per-user 自定义技能 | `user_custom_skills_dir(user_id)` | `/mnt/skills/custom` | `packages/harness/deerflow/sandbox/tools.py:890-894` |
-| 3 | 受管集成技能 | `integration_skills_dir()` | `/mnt/skills/integrations` | `packages/harness/deerflow/sandbox/tools.py:891`、`:895-897` |
+| 1 | 全局 skills | `_get_skills_host_path()` | `/mnt/skills` | `packages/harness/deerflow/sandbox/tools.py:875-877` |
+| 2 | 受管集成技能 | `integration_skills_dir()` | `/mnt/skills/integrations` | `packages/harness/deerflow/sandbox/tools.py:891`、`:895-897` |
+| 3 | per-user 自定义技能 | `user_custom_skills_dir(user_id)` | `/mnt/skills/custom` | `packages/harness/deerflow/sandbox/tools.py:890-894` |
 | 4 | ACP workspace | `_get_acp_workspace_host_path(...)` | ACP 虚拟路径 | `packages/harness/deerflow/sandbox/tools.py:901-903` |
 | 5 | user-data | `_thread_actual_to_virtual_mappings(...)` | `/mnt/user-data/*` | `packages/harness/deerflow/sandbox/tools.py:905-908` |
 
@@ -72,8 +72,8 @@ def mask_local_paths_in_output(output: str, thread_data: ThreadDataState | None)
 
 | 防 | 不防 |
 |---|---|
-| Agent 输出里出现 `~/.deer-flow/users/{user_id}/threads/{thread_id}/...` | PII（手机号、身份证号等）——见 [05-pii-redaction.md](05-pii-redaction.md) |
-| 工具的异常消息泄露 host 目录结构 | 凭据（API key、token） |
+| Agent 输出里出现 `{project_root}/.deer-flow/users/{user_id}/threads/{thread_id}/...` | PII（手机号、身份证号等）——见 [05-pii-redaction.md](05-pii-redaction.md) |
+| 工具的异常消息泄露 host 目录结构 | 凭据（API key、token）；bash 输出另有 `mask_secret_values` 额外擦除密钥（`sandbox/tools.py:2913`、`:2942-2946`） |
 | 沙箱与 host 路径不一致导致的困惑 | 业务敏感词 |
 
 **定位**：这是**信息暴露面**收敛，不是合规意义上的数据脱敏。

@@ -60,14 +60,15 @@ bash 不经过第 5 层，只受第 1 层挂载替换和 SandboxAudit 正则约�
 
 ## 4. Bash 子命令审计
 
-SandboxAuditMiddleware 把命令按 `&&` / `||` / `;` 切分后**逐条**匹配，
-防止用 `ls /safe/path && rm -rf /` 这种拼接绕过。
+SandboxAuditMiddleware 先对**整条命令**做 high-risk 扫描，再按 `&&` / `||` / `;`
+（以及管道 `|`）切分后逐条匹配，防止用 `ls /safe/path && rm -rf /` 这种拼接绕过。
+（`_classify_command` 的两遍逻辑见 `sandbox_audit_middleware.py:425-433`。）
 
 `_classify_command`（`sandbox_audit_middleware.py:414`）的短路逻辑：
 一旦某条子命令判定为 `block`，整个命令就被拒，不再看后续
 （`:437-438` 的注释："can't get worse"）。
 
-展开见 [../audit/02-sandbox-audit.md](../audit/02-sandbox-audit.md)。
+展开见 [../audit/03-sandbox-audit.md](../audit/03-sandbox-audit.md)。
 
 ## 5. 六层之后仍然存在的路径
 
@@ -97,6 +98,6 @@ SandboxAuditMiddleware 把命令按 `&&` / `||` / `;` 切分后**逐条**匹配�
 ## 7. 与其他章节的关系
 
 - 沙箱模式与隔离强度：[01-sandbox-modes.md](01-sandbox-modes.md)
-- 命令审计细节：[../audit/02-sandbox-audit.md](../audit/02-sandbox-audit.md)
+- 命令审计细节：[../audit/03-sandbox-audit.md](../audit/03-sandbox-audit.md)
 - 输出脱敏：[../data/02-redaction.md](../data/02-redaction.md)
 - 存储布局：[../data/01-storage-and-isolation.md](../data/01-storage-and-isolation.md)

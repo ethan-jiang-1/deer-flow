@@ -79,7 +79,7 @@ return SimpleNamespace(id=effective_id, system_role=INTERNAL_SYSTEM_ROLE)
 | 机制 | 限制了什么 | 证据 |
 |---|---|---|
 | 沙箱路径隔离 | agent 只能碰 `user × thread` 的目录 | `batch_acceptance.py:18-20` |
-| Guardrail | **开启后**可在工具调用层拦截特定工具（示例配置默认关闭） | `guardrails/middleware.py:171` |
+| Guardrail | **开启后**可在工具调用层拦截特定工具（示例配置默认关闭） | `guardrails/middleware.py:182-229` |
 | PAT 路由默认拒绝 | PAT 自己只能打白名单路由；run 建立后 agent 的工具调用不再携带 PAT | `app/gateway/auth/pat.py:60` |
 | 内部角色剔除 | internal 不是 RBAC 角色，无法借它提权 | `app/gateway/authz.py:300-308` |
 | `runs:cancel` 条件下检查 | 只有 `runs:create` 的凭据不能靠 `multitask_strategy` 终止运行 | `app/gateway/authz.py:139` |

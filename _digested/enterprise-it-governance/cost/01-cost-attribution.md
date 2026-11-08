@@ -109,4 +109,4 @@ prompt 缓存命中会显著降低成本：`token_collector.py:50-57` 把 `cache
 
 - 限额与预算：[03-budgets-and-limits.md](03-budgets-and-limits.md)
 - 多实例的成本影响：[04-multi-instance.md](04-multi-instance.md)
-- 用量事件是否入 journal：[../audit/03-event-coverage.md](../audit/03-event-coverage.md) §1
+- 用量事件是否入 journal：[../audit/04-event-coverage.md](../audit/04-event-coverage.md) §1

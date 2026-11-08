@@ -12,7 +12,7 @@ MCP server 的会话是有状态的：连接、认证、OAuth token 都挂在会
 ## 1. 三重绑定
 
 `packages/harness/deerflow/mcp_scope.py` 只有 95 行，但定义了完整的会话身份模型。
-`mcp_scope.py:30-50` 的 `mcp_session_scope_key` 生成三种形态的键：
+`mcp_scope.py:23-45` 的 `mcp_session_scope_key` 生成三种形态的键：
 
 | 形态 | 键格式 | 何时用 |
 |---|---|---|
@@ -22,7 +22,7 @@ MCP server 的会话是有状态的：连接、认证、OAuth token 都挂在会
 
 ### 1.1 为什么需要 incarnation
 
-`mcp_scope.py:34-37` 的解释：
+`mcp_scope.py:31-32` 的解释：
 
 > A legacy NULL incarnation retains the pre-activation scope so rolling upgrades do
 > not split an existing legacy session.
@@ -36,7 +36,7 @@ MCP server 的会话是有状态的：连接、认证、OAuth token 都挂在会
 
 ### 1.2 v2 编码为什么用 JSON 元组
 
-`mcp_scope.py:44-46`：
+`mcp_scope.py:39-40`：
 
 > A JSON tuple is an unambiguous, versioned encoding even when an opaque
 > user/thread id contains the delimiter used by the legacy scope.
@@ -47,8 +47,8 @@ legacy 编码用 `:` 分隔。如果 `user_id` 本身含冒号（不透明 ID �
 
 ## 2. 归属判定的宽容与精确
 
-`mcp_scope.py:53-78` 的 `mcp_scope_belongs_to_thread` 决定「这个会话键属于当前
-user/thread 吗」。它同时接受两种编码，但**故意不比较 incarnation**（`mcp_scope.py:57-60`）：
+`mcp_scope.py:48-71` 的 `mcp_scope_belongs_to_thread` 决定「这个会话键属于当前
+user/thread 吗」。它同时接受两种编码，但**故意不比较 incarnation**（`mcp_scope.py:53-56`）：
 
 > The incarnation is deliberately *not* compared — a caller tearing down a whole
 > thread has to invalidate every generation of it, and the current generation cannot
@@ -59,7 +59,7 @@ user/thread 吗」。它同时接受两种编码，但**故意不比较 incarnat
 
 ### 2.1 legacy 前缀冲突：只会过度关闭，不会泄露
 
-`mcp_scope.py:62-66` 是一段罕见的**主动披露缺陷**的注释：
+`mcp_scope.py:58-61` 是一段罕见的**主动披露缺陷**的注释：
 
 > The legacy branch is a prefix-free string compare, so a crafted `user_id`
 > containing `:` can collide with another owner's legacy key. That can only
@@ -75,7 +75,7 @@ user/thread 吗」。它同时接受两种编码，但**故意不比较 incarnat
 
 ## 3. stale incarnation 的防御
 
-`mcp_scope.py:80-95` 的 `runtime_thread_incarnation` 在读取 incarnation 时做两层校验：
+`mcp_scope.py:74-95` 的 `runtime_thread_incarnation` 在读取 incarnation 时做两层校验：
 
 | 检查 | 条件 | 失败行为 |
 |---|---|---|
@@ -86,7 +86,7 @@ user/thread 吗」。它同时接受两种编码，但**故意不比较 incarnat
 `mcp_scope.py:93-94` 的报错是 "received a stale thread incarnation"——
 防的是**上下文与持久化状态不同步**的场景（例如恢复的 thread 带着旧的 incarnation 值继续跑）。
 
-**例外**：直接调用工具（`runtime is None`）保留 legacy 作用域（`mcp_scope.py:82-85`），
+**例外**：直接调用工具（`runtime is None`）保留 legacy 作用域（`mcp_scope.py:76-79`），
 因为它没有 Agent 的 thread 生命周期。
 
 ## 4. 企业视角的结论
@@ -96,7 +96,7 @@ user/thread 吗」。它同时接受两种编码，但**故意不比较 incarnat
 | 用户 A 能复用用户 B 的 MCP 会话吗？ | **不能** | 作用域键首元素是 `user_id`，JSON 解码后精确比对 |
 | 同一 thread 的两次运行能复用会话吗？ | **不能**（有 incarnation 时） | v2 键含 incarnation |
 | thread 删除时旧会话会被清吗？ | **会**，含所有代 | 故意不比 incarnation |
-| 冒号攻击能窃取会话吗？ | **不能**，最坏是过度关闭 | `mcp_scope.py:62-66` |
+| 冒号攻击能窃取会话吗？ | **不能**，最坏是过度关闭 | `mcp_scope.py:58-61` |
 
 ## 5. personal MCP 的管理员授权规则
 
@@ -151,9 +151,9 @@ if requires_admin(server) and not await _is_current_admin(owner):
 
 | 项 | 实现 | 证据 |
 |---|---|---|
-| 判定函数 | `user is not None and user.system_role == "admin"` | `personal_mcp_access.py:16-17` |
-| auth 关闭时 | 只有 `AUTH_DISABLED_USER_ID` 被当作 admin | `personal_mcp_access.py:14-15` |
-| 跨事件循环 | 同步工具发现跑在 assembly worker 的独立 loop 上，用 `run_coroutine_threadsafe` 把查询送回 Gateway 的 loop | `personal_mcp_access.py:24-28` |
+| 判定函数 | `user is not None and user.system_role == "admin"` | `personal_mcp_access.py:14-15` |
+| auth 关闭时 | 只有 `AUTH_DISABLED_USER_ID` 被当作 admin | `personal_mcp_access.py:12-13` |
+| 跨事件循环 | 同步工具发现跑在 assembly worker 的独立 loop 上，用 `run_coroutine_threadsafe` 把查询送回 Gateway 的 loop | `personal_mcp_access.py:22-27` |
 
 最后一条是个容易出错的工程细节：**不能**在 worker 的 loop 上直接用共享数据库连接池
 （注释："Keep the shared database pool on the Gateway's owning loop"）。

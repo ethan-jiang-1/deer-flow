@@ -58,7 +58,7 @@ System prompt 里的原话是 "Excess calls are discarded and their work is lost
 
 ## Bash 参数级审计
 
-详见 [../audit/02-sandbox-audit.md](../audit/02-sandbox-audit.md)。策略是**硬编码的 regex**，
+详见 [../audit/03-sandbox-audit.md](../audit/03-sandbox-audit.md)。策略是**硬编码的 regex**，
 不可通过配置文件修改。
 
 **IT 管理含义：** 自定义高危命令列表需要 fork `sandbox_audit_middleware.py` 中的

@@ -70,7 +70,7 @@ topics: [governance, audit, events]
 按 `task_id` 可以查到拒绝文本；缺的是 `allow`/`policy_id`/`reason_codes` 这些**决策字段**。
 所以「完全看不见」是过度表述，「看不见决策」才准确。
 
-### 3.2 allow 决策不落库
+### 3.2 正常 allow 决策不落库
 
 `guardrails/middleware.py:131` 的 `_record_guardrail_event` 只在
 **deny** 与 **provider 报错后放行** 两种情形写事件。
@@ -86,7 +86,7 @@ topics: [governance, audit, events]
 
 ### 3.3 bash 之外的工具
 
-`SandboxAuditMiddleware` **只管 `bash`**（见 [02-sandbox-audit.md](02-sandbox-audit.md) §1）。
+`SandboxAuditMiddleware` **只管 `bash`**（见 [03-sandbox-audit.md](03-sandbox-audit.md) §1）。
 `read_file` / `write_file` / `str_replace` 等文件工具**不走这条命令分类审计**；
 但它们的调用与结果会以 `llm.ai.response` / `llm.tool.result` 落 journal
 （`runtime/journal.py:887-896`），不是「完全无审计」，而是「有工具结果、无命令级分类」。
@@ -134,7 +134,7 @@ topics: [governance, audit, events]
 
 ## 7. 与其他章节的关系
 
-- 三层审计总览：[01-audit-chain.md](01-audit-chain.md)
-- 沙箱命令审计细节：[02-sandbox-audit.md](02-sandbox-audit.md)
+- 审计链路总览：[01-audit-chain.md](01-audit-chain.md)
+- 沙箱命令审计细节：[03-sandbox-audit.md](03-sandbox-audit.md)
 - 可观测性：[02-observability.md](02-observability.md)
 - SOC 2 的审计要求：[../compliance/03-soc2-iso27001.md](../compliance/03-soc2-iso27001.md) §3

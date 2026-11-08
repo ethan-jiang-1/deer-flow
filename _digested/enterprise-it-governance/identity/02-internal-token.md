@@ -18,9 +18,9 @@ Gateway 与内部调用方（IM channel worker、scheduler、MCP assembly worker
 | Header 名 | `X-DeerFlow-Internal-Token` | `app/gateway/internal_auth.py:14` |
 | 环境变量 | `DEER_FLOW_INTERNAL_AUTH_TOKEN` | `app/gateway/internal_auth.py:16` |
 | 未设 env 时 | `secrets.token_urlsafe(32)`，进程启动随机生成 | `app/gateway/internal_auth.py:21-24` |
-| Owner 头 | `X-DeerFlow-Owner-User-Id` | `app/gateway/internal_auth.py:13` |
+| Owner 头 | `X-DeerFlow-Owner-User-Id` | `app/gateway/internal_auth.py:15` |
 | 停用检查 | owner 被停用即 401 | `app/gateway/auth_middleware.py:129-136` |
-| 认证来源标记 | `"internal"` | `app/gateway/auth_disabled.py:17` |
+| 认证来源标记 | `"internal"` | `app/gateway/internal_auth.py:17` |
 
 ## 2. 每进程随机：多副本的核心约束
 

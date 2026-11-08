@@ -15,17 +15,17 @@ topics: [governance, identity, design]
 
 | 层 | 实现 | 证据 |
 |---|---|---|
-| cookie | `csrf_token`，随机 64 字节 URL-safe | `app/gateway/csrf_middleware.py:24`、`:28`、`:36-38` |
+| cookie | `csrf_token`，随机 64 字节 URL-safe | `app/gateway/csrf_middleware.py:24`、`:26`、`:36-38` |
 | header | `X-CSRF-Token` | `app/gateway/csrf_middleware.py:25` |
 | cookie 属性 | `samesite="strict"` | `app/gateway/routers/auth.py:888` |
-| 比对 | 常数时间比较 | `app/gateway/csrf_middleware.py:20` `constant_time_equals` |
-| 生效方法 | POST / PUT / DELETE / PATCH | `app/gateway/csrf_middleware.py:26` |
-| 豁免 | GET / HEAD / OPTIONS / TRACE（RFC 7231） | `app/gateway/csrf_middleware.py:41-45` |
+| 比对 | 常数时间比较 | `app/gateway/csrf_middleware.py:249` `constant_time_equals` |
+| 生效方法 | POST / PUT / DELETE / PATCH | `app/gateway/csrf_middleware.py:27` |
+| 豁免 | GET / HEAD / OPTIONS / TRACE（RFC 7231） | `app/gateway/csrf_middleware.py:41-56` |
 | CSRF cookie 可读性 | `httponly=False`（注释："Must be JS-readable for Double Submit Cookie pattern"） | `routers/auth.py:886` |
 
 ### 1.1 豁免清单
 
-`app/gateway/csrf_middleware.py:27` 只有一个精确路径豁免：
+`app/gateway/csrf_middleware.py:28` 只有一个精确路径豁免：
 
 ```python
 _CSRF_EXEMPT_EXACT_PATHS: frozenset[str] = frozenset({"/api/v1/auth/me"})
@@ -109,7 +109,7 @@ subagent 批次直接从 `batch["user_id"]` 取值，所以**整棵 agent 树共
 
 ## 5. 状态变更方法白名单
 
-`csrf_middleware.py:26` 只对四个方法做 CSRF 检查：
+`csrf_middleware.py:27` 只对四个方法做 CSRF 检查：
 
 ```python
 _CSRF_STATE_CHANGING_METHODS = frozenset({"POST", "PUT", "DELETE", "PATCH"})
@@ -125,7 +125,7 @@ CSRF 会自动放行——所以「用 GET 做写操作」在这套设计里是*
 | PAT 随改密失效 | **无** | `token_version` 只影响 JWT（见 §4 边界） |
 | 会话级的「踢出单个设备」 | **无** | `token_version` 是全体递增，不能按设备 |
 | Internal token 轮转 | **无** | 只能换 env 值并重启全部进程 |
-| CSRF 豁免的可配置性 | **无** | 豁免清单硬编码（`csrf_middleware.py:27`） |
+| CSRF 豁免的可配置性 | **无** | 豁免清单硬编码（`csrf_middleware.py:28`） |
 
 ## 7. 与其他章节的关系
 

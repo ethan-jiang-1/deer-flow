@@ -52,7 +52,7 @@ user_id 提供时： {base_dir}/users/{user_id}/threads/{thread_id}/
 
 ### 2.1 与 MCP 作用域的对比
 
-MCP 的 legacy 作用域键（`mcp_scope.py:62-66`）允许 `user_id` 含冒号并主动披露
+MCP 的 legacy 作用域键（`mcp_scope.py:58-61`）允许 `user_id` 含冒号并主动披露
 「只会过度关闭、不会泄露」。那是不透明字符串比较的场景；
 **文件路径**这一层则严格拒绝不安全字符——两者防线强度不同，因为风险不同。
 

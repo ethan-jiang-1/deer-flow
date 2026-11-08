@@ -166,9 +166,9 @@ _digested/
 
 | 文件 | 现有 | 目标 | 内容 |
 |---|---:|---:|---|
-| `01-audit-chain.md` | 107 | 210 | 三层审计；**订正 guardrail 已入 journal**（带字段清单）+ **承接** guardrail 审计缺口（只覆盖 `wrap_tool_call`）——见 §4.3 |
+| `01-audit-chain.md` | 107 | 210 | 审计链路；**订正 guardrail 已入 journal**（带字段清单）+ **承接** guardrail 审计缺口（只覆盖 `wrap_tool_call`）——见 §4.3 |
 | `02-observability.md` | 45 | 120 | SSE、心跳、OTEL、**承接**「聚合仪表盘/内置告警」两条缺口——见 §4.3 |
-| `03-event-coverage.md` | — | **160** | 🆕 **事件覆盖矩阵** + **承接** `observability/07` 搬来的 4 条证据缺口（SandboxAudit 结构化、操作完整性、终态原子性、删除即失效）+ `observability/02` 的「已知缺口」节——见 §4.3 |
+| `04-event-coverage.md` | — | **160** | 🆕 **事件覆盖矩阵** + **承接** `observability/07` 搬来的 4 条证据缺口（SandboxAudit 结构化、操作完整性、终态原子性、删除即失效）+ `observability/02` 的「已知缺口」节——见 §4.3 |
 
 ### 3.6 `cost/` — 成本与容量
 
@@ -227,7 +227,7 @@ _digested/
 | 文件 | 行数 | 性质 | 处置 |
 |---|---:|---|---|
 | `observability/07-production-checklist.md` | 95 | **混合体** | **切分**（见 4.3） |
-| `observability/02-run-events-and-journal.md` 的「已知缺口」节 | ~15 | 治理 | **搬** 到 `audit/03-event-coverage.md` |
+| `observability/02-run-events-and-journal.md` 的「已知缺口」节 | ~15 | 治理 | **搬** 到 `audit/04-event-coverage.md` |
 | `orchestration-ladder/03-资源预算与公平性-*.md` 的「不理想化清单」节 | ~10 | 治理 | **搬** 到 `cost/05-concurrency-and-scheduling.md` §2 |
 | `observability/04-console-and-cost.md` | 89 | 机制（Console 端点 + 计价） | **留**，成本治理判断在本卷 |
 | `internals/runtime/04-journal.md` | — | 机制 | **留** |
@@ -253,8 +253,8 @@ _digested/
 | 缺口 | 搬到 |
 |---|---|
 | 聚合仪表盘、内置告警 | `audit/02-observability.md` §5 |
-| guardrail deny 审计（只覆盖 `wrap_tool_call`） | `audit/03-event-coverage.md` §3 |
-| SandboxAudit 结构化（已是 JSON，只写日志） | `audit/02-sandbox-audit.md` |
+| guardrail deny 审计（只覆盖 `wrap_tool_call`） | `audit/04-event-coverage.md` §3 |
+| SandboxAudit 结构化（已是 JSON，只写日志） | `audit/03-sandbox-audit.md` |
 | agent 级 SLO / error budget | `cost/02-deployment-and-ops.md` §5 |
 | 实时成本预算告警 | `cost/03-budgets-and-limits.md` §5 |
 | Agent 操作完整性验证（部分改善未闭合） | `audit/01-audit-chain.md` |
@@ -310,9 +310,9 @@ _digested/
 | 原内容 | 现位置 |
 |---|---|
 | 聚合仪表盘、内置告警 | `audit/02-observability.md` §5 |
-| guardrail deny 审计 | `audit/03-event-coverage.md` |
+| guardrail deny 审计 | `audit/04-event-coverage.md` |
 | 操作完整性验证、终态事件原子性 | `audit/01-audit-chain.md` |
-| SandboxAudit 是否结构化 | `audit/02-sandbox-audit.md` |
+| SandboxAudit 是否结构化 | `audit/03-sandbox-audit.md` |
 | agent 级 SLO、实时成本预算告警 | `cost/02-deployment-and-ops.md` §5 |
 | 成本预算与限额 | `cost/03-budgets-and-limits.md` |
 | 六条「无限制」事实 | `cost/05-concurrency-and-scheduling.md` §2 |
@@ -382,8 +382,8 @@ _digested/
 | 原文档断言 | 核实结果 | 影响篇目 |
 |---|---|---|
 | 「无 per-run 预算上限」 | **错**。`token_budget` 存在，双阈值（0.8 warn / 1.0 hard-stop），默认关闭 | `cost/03` |
-| 「无自动数据保留策略」 | **部分错**。项目回收站有 `trash_retention_days`（默认 30 天），但**只在启动时清扫** | `data/06` |
-| 「凭证以明文存在」 | **不完整**。落库凭据是 Fernet 加密（`DEER_FLOW_CREDENTIALS_KEY`），多实例未设该 env 会拒绝启动 | `data/04` |
+| 「无自动数据保留策略」 | **部分错**。项目回收站有 `trash_retention_days`（默认 30 天），启动 + 回收站列表惰性触发，**无周期定时器** | `data/06` |
+| 「凭证以明文存在」 | **不完整**。落库凭据是 Fernet 加密（`DEER_FLOW_CREDENTIALS_KEY`）；单实例未设 env 自动生成 key，multi_instance + 凭据消费者才拒绝启动 | `data/04` |
 | 「上传只有类型白名单」 | **遗漏三项配额**：10 文件 / 50MB 单文件 / 100MB 总量 | `data/03` |
 | 「Skills 扫描只有 LLM 一层」 | **错**。静态规则 + LLM 两层，且无法解析时 fail-closed 为 block | `data/03` |
 | 「SandboxAudit 非结构化」 | **错**。已是结构化 JSON，但**只写 gateway.log、不落库** | `audit/02` |
@@ -391,7 +391,7 @@ _digested/
 
 同时新增三条**盲区**发现（已写入 `audit/03`）：
 1. subagent 内的 guardrail 拒绝在 journal 里不可见（无 `__run_journal`）
-2. allow 决策不落库（有意设计），导致「证明被授权」比「证明被拒绝」更难
+2. 正常 allow 决策不落库（有意设计；provider 报错放行有事件），导致「证明被授权」比「证明被拒绝」更难
 3. 文件类工具（`read_file`/`write_file`）完全不走 SandboxAudit
 
 ## 8. 风险
@@ -495,7 +495,7 @@ done
 | 循环检测默认状态 | **开启** | `config.example.yaml:1504` | ✅ |
 | 沙箱模式数 | 7（6 provider 类） | `concepts/sandbox/*` | ✅ |
 | PII 脱敏覆盖 | 有，**不覆盖**记忆提取出口 | `config.example.yaml:2372` | ✅ |
-| kill switch | **无** | 全库 grep 零命中 | ✅ |
+| kill switch | **无全局 agent 开关** | per-channel 开关存在（`channels.github.enabled` 等） | ✅ |
 
 ### 9.6 闸门四：可读性与体例
 
@@ -541,8 +541,8 @@ done
 
 | 项 | 结果 |
 |---|---|
-| `check_quality.py` | exit 0（54 篇 / 43 内容篇 / 524 证据） |
-| `verify_anchors.py` | exit 0（562 锚点全部存在且在范围内） |
+| `check_quality.py` | exit 0（54 篇 / 43 内容篇 / 532 证据） |
+| `verify_anchors.py` | exit 0（570 锚点全部存在且在范围内） |
 | `check_digest.py` | exit 0 |
 | 三目录铁律 | `0` |
 | 源码 diff（`v2.2.0..HEAD`，除三目录） | 空 |

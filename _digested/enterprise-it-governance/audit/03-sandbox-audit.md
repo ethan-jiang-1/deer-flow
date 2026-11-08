@@ -179,11 +179,11 @@ logger.info("[SandboxAudit] %s", json.dumps(record, ensure_ascii=False))
 
 最后一条容易漏：**这个中间件只覆盖 `bash`**。
 文件读写、MCP 调用等其他工具不走这条审计路径
-（覆盖矩阵见 [03-event-coverage.md](03-event-coverage.md)）。
+（覆盖矩阵见 [04-event-coverage.md](04-event-coverage.md)）。
 
 ## 8. 与其他章节的关系
 
 - 全链路审计视图：[01-audit-chain.md](01-audit-chain.md)
-- 事件覆盖矩阵：[03-event-coverage.md](03-event-coverage.md)
+- 事件覆盖矩阵：[04-event-coverage.md](04-event-coverage.md)
 - 可观测性：[02-observability.md](02-observability.md)
 - 沙箱模式：[../execution/01-sandbox-modes.md](../execution/01-sandbox-modes.md)

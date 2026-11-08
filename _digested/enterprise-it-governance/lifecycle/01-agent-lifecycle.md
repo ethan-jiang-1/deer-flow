@@ -32,10 +32,10 @@ topics: [governance, lifecycle]
 
 ## 2. 配置热更新：两条路径
 
-### 2.1 可热更新的（mtime 签名）
+### 2.1 可热更新的（内容签名）
 
-`config/app_config.py:756` 用 `config_path.stat().st_mtime` 取时间戳；
-`config/file_signature.py:53-55` 组合成签名：
+`config/app_config.py:756` 有一条 mtime 快速路径；
+`config/file_signature.py:55` 的返回值才是完整签名 `(mtime, size, sha256)`：
 
 ```python
 return (stat_result.st_mtime, stat_result.st_size, digest.hexdigest())

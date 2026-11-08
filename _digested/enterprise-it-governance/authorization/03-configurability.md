@@ -49,7 +49,7 @@ def __init__(self, provider: GuardrailProvider, *, fail_closed: bool = True, pas
 
 ### 2.1 实际实现
 
-`guardrails/middleware.py:193-196`：
+`guardrails/middleware.py:191-197`：
 
 ```python
 except GraphBubbleUp:
@@ -84,7 +84,7 @@ except Exception:
 ### 3.1 事实
 
 在 `config.example.yaml` 与 `config` 模块下搜索 `sandbox_audit`：**零命中**。
-规则全部在 `sandbox_audit_middleware.py:27-60` 的正则族里。
+规则分散在 `sandbox_audit_middleware.py:27-60`、`:63-99`、`:113-120`、`:128-139`、`:177-185`，分类逻辑在 `:142-441`。
 
 ### 3.2 两侧的取舍
 
@@ -140,5 +140,5 @@ DeerFlow 的自治模型可以概括为四行：
 
 - Guardrail 全貌：[01-guardrail-layer.md](01-guardrail-layer.md)
 - 自治边界：[02-bounded-autonomy.md](02-bounded-autonomy.md)
-- 命令审计细节：[../audit/02-sandbox-audit.md](../audit/02-sandbox-audit.md)
+- 命令审计细节：[../audit/03-sandbox-audit.md](../audit/03-sandbox-audit.md)
 - 生命周期与变更管理：[../lifecycle/02-change-control.md](../lifecycle/02-change-control.md)

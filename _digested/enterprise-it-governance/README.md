@@ -38,7 +38,7 @@ IT 部门负责人关心的不是「middleware 怎么写的」，而是「这东
 | 怎么限制 agent 只能调某些 tool？ | [authorization/03-configurability.md](authorization/03-configurability.md) |
 | 名单门不够用，想要模型判定的风险门？ | [authorization/01-guardrail-layer.md](authorization/01-guardrail-layer.md) §2.2 |
 | 用户之间数据隔离吗？ | [identity/03-user-isolation.md](identity/03-user-isolation.md) |
-| agent 干了什么，事后能查吗？ | [audit/03-event-coverage.md](audit/03-event-coverage.md) 查询表 |
+| agent 干了什么，事后能查吗？ | [audit/04-event-coverage.md](audit/04-event-coverage.md) 查询表 |
 | 有没有防死循环 / 无限制消费？ | [cost/03-budgets-and-limits.md](cost/03-budgets-and-limits.md) |
 | **默认配置下，哪些防线其实是关着的？** | 见下节 |
 | 能对上 GDPR / SOC2 的哪些条款？ | [compliance/01-mapping.md](compliance/01-mapping.md) |

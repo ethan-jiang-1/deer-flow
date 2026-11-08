@@ -54,7 +54,7 @@ DeerFlow 的数据分散在**文件系统**与**关系库**两处，必须分开
 | 模式 | user_id |
 |---|---|
 | 认证开启 | session/JWT 解析 |
-| 内部调用带 owner 头 | 该 owner |
+| 内部调用带 owner 头 | 该 owner 经 `make_safe_user_id` 归一化后的 id（有损但确定性，`internal_auth.py:15`、`:43-68`） |
 | auth-disabled | `"default"`（`user_context.py:98`） |
 
 **没有 `user_id` 时落到 legacy 路径**，即 `{base}/threads/{tid}/`——
@@ -86,7 +86,7 @@ LangGraph Platform 兼容的只读 stub：`assistants_compat.py:1-10` 自述
 | `sqlite` | 单机 | 可用 |
 | `postgres` | 多实例 | 唯一被多实例闸门接受的值（见 [../cost/04-multi-instance.md](../cost/04-multi-instance.md) §2） |
 
-**关键约束**：`deployment_config.py:37` 的多实例闸门要求 `database.backend='postgres'`。
+**关键约束**：启动闸门要求 `database.backend='postgres'`（`deps.py:220-223`）。
 所以「想扩容」会倒逼存储后端升级，不能只加副本。
 
 ## 5. 缺口
@@ -96,7 +96,7 @@ LangGraph Platform 兼容的只读 stub：`assistants_compat.py:1-10` 自述
 | 文件与库的**一致性**备份 | **无** | 无跨两者的快照机制；分开备份会产生时间差 |
 | 按用户导出（数据可携带） | **无** | 无「导出某用户全部数据」的端点 |
 | 按用户删除（被遗忘权） | **部分** | 删用户会连带使 PAT 失效（`pat.py:224-228`）；但文件系统目录需自行清理 |
-| 加密存储 | **无** | 无字段级或目录级加密；依赖底层磁盘加密 |
+| 加密存储 | **部分** | 通道/集成凭据 Fernet 加密（见 [04-credentials.md](04-credentials.md)）；普通 thread/memory/上传文件无字段级或目录级加密，依赖底层磁盘加密 |
 | 数据驻留（按区域分库） | **无** | 单一后端，无按用户路由到不同地域的能力 |
 | 存储配额 | **无** | 无 per-user 或全局磁盘配额 |
 | memory.json 的版本化 | **无** | 单文件 JSON，无 schema 版本或迁移机制 |

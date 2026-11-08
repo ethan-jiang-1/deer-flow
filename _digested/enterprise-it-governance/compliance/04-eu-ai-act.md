@@ -140,4 +140,4 @@ DeerFlow 有记录能力，但**留存期与完整性都不由框架保证**。
 - 人类监督的实际能力：[../authorization/02-bounded-autonomy.md](../authorization/02-bounded-autonomy.md)
 - Guardrail 机制：[../authorization/01-guardrail-layer.md](../authorization/01-guardrail-layer.md)
 - Agent 身份缺口：[../identity/04-agent-identity-gap.md](../identity/04-agent-identity-gap.md)
-- 事件覆盖：[../audit/03-event-coverage.md](../audit/03-event-coverage.md)
+- 事件覆盖：[../audit/04-event-coverage.md](../audit/04-event-coverage.md)

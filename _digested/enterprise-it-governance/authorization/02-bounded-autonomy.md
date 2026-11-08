@@ -53,7 +53,7 @@ def __init__(self, provider: GuardrailProvider, *, fail_closed: bool = True, pas
 | 粒度 | 单条 bash 命令 |
 | 是否等人 | **否** |
 
-详见 [../audit/02-sandbox-audit.md](../audit/02-sandbox-audit.md)。
+详见 [../audit/03-sandbox-audit.md](../audit/03-sandbox-audit.md)。
 
 ## 3. `ask_clarification` 不是权限对话框
 
@@ -120,4 +120,4 @@ def __init__(self, provider: GuardrailProvider, *, fail_closed: bool = True, pas
 - Guardrail 机制：[01-guardrail-layer.md](01-guardrail-layer.md)
 - 哪些可配：[03-configurability.md](03-configurability.md)
 - AI Act 的监督要求：[../compliance/04-eu-ai-act.md](../compliance/04-eu-ai-act.md)
-- 命令审计：[../audit/02-sandbox-audit.md](../audit/02-sandbox-audit.md)
+- 命令审计：[../audit/03-sandbox-audit.md](../audit/03-sandbox-audit.md)

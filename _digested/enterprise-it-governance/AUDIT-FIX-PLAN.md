@@ -142,7 +142,7 @@ topics: [governance, plan, audit]
 - [ ] `audit/01:43`、`03:37` fail-open allow 例外
 - [ ] `audit/02-observability:16-23/23/67/99/82-89/100` SSE 事件名、end 载荷、Monocle OTel、console 聚合、Redis 续传
 - [ ] `audit/02-sandbox:140-144/169` 截断边界
-- [ ] `audit/README` 补 `02-sandbox-audit`、03 移出“规划中”；两个 `02-` 重编号
+- [x] `audit/README` 补 sandbox-audit、event-coverage；重编号为 03/04（02 重复前缀已消除）
 - [ ] `audit/01:48/57/59/60/111/115/34`、`03:17/24/40/91/106`、`02:27`、`02-sandbox:42/55-63/155`、`01:19/66/36` 修正
 - [ ] `PLAN:487` guardrail 6→12 字段
 
@@ -166,7 +166,7 @@ topics: [governance, plan, audit]
 ### WS2 结构与导航（P1）
 
 - [ ] 8 个域 README：已交付页从“规划中”移到“本篇目”，补链接
-- [ ] `audit/README` 补 `02-sandbox-audit`；`02-observability`/`02-sandbox-audit` 重编号（03/04 或 02/03）
+- [x] `audit/README` 补 sandbox-audit；重编号 02-observability / 03-sandbox-audit / 04-event-coverage
 - [ ] 卷根 `README.md` cost 5→6；与文件树核对全表
 - [ ] `00-overview.md` “全部结论都附 file:line” 降级为“判断性段落附证据”
 - [ ] `enterprise-operations/README.md` 标题与目录名对齐（`Operations`→`Enterprise Operations`）
