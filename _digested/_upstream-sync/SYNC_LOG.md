@@ -1,6 +1,6 @@
 ---
 title: "同步日志"
-description: "每次同步的记录：时间、锚点变化、变更摘要、影响的 digest 更新。"
+description: '每次同步的记录：时间、锚点变化、变更摘要、影响的 digest 更新。'
 type: index
 ---
 

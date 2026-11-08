@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "认证与授权"
 description: 'DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链。'
 topics: [security, auth, isolation-defense]

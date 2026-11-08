@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Agent-Friendly 仓库审计清单（60 条）"
 description: '把五维评估框架展开为 60 条可勾选检查项：每条含检查什么、怎么查、合格标准、依据来源。用于对 deer-flow 及任意仓库逐条打分。'
 verified_against: v2.2.0

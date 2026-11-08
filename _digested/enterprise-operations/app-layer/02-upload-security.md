@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "上传安全管道"
-description: '上传安全管道：架构、契约与源码锚点。'
+description: '上传安全管道：manager/companions 的所有权、扫描、限额与失败策略。'
 topics: [gateway, api, rest]
 verified_against: v2.2.0
 last_verified: 2026-11-08

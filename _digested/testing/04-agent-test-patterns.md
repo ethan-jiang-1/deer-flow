@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Agent 测试模式"
 description: '从 DeerFlow 源码和社区提取的核心测试模式：FakeToolCallingModel、tool call 验证、sub-agent 测试、流式输出、prompt 生成、文件系统安全。'
 topics: [testing, agent, patterns, deterministic, fixtures]

@@ -1,6 +1,6 @@
 ---
 title: "Digest 更新计划"
-description: "基于 upstream 162fb214 → 4915b5e 的 323 commits 变更，逐目录规划 digest 更新内容和优先级。"
+description: '基于 upstream 162fb214 → 4915b5e 的 323 commits 变更，逐目录规划 digest 更新内容和优先级。'
 type: index
 ---
 

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Memory — Manager 契约面、工具面与后端客户端"
 description: '补齐 extract-queue-persist-pipeline.md 未写的契约：MemoryManager ABC 的分层/不变量/读失败策略/单例工厂与 host hook、get_memory_tools 的 5 个 JSON 工具（含 memory_get）、summarization 挂钩点与 locale 对齐，以及 deermem/mem0/honcho/openviking/noop 各 backend 的 client/config 初始化与失败模式。'
 topics: [memory, pluggable-backend, tool-mode, failure-policy, summarization-hook, honcho, mem0, openviking]

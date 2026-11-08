@@ -1,5 +1,4 @@
 ---
-
 title: "MCP scope 与 per-user 连接"
 description: 'mcp_scope.py 的会话身份编码与解析，以及 per-user MCP 连接从文件、runtime 名、权限准入到每次调用守卫的契约；session pool 与凭据缓存细节不在这里。'
 type: deep-dive

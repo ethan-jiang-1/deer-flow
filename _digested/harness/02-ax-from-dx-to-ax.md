@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "AX：从 Developer Experience 到 Agent Experience"
 description: '梳理「Agent Experience」概念的起源、厂商/社区的系统性论述，AX 与传统 DX/可维护性的异同，以及把仓库改造为 agent 友好环境的七条核心原则。以一手来源为准，每论断附链接。'
 verified_against: v2.2.0

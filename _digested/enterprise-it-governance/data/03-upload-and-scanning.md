@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "文件上传与 Skills 扫描"
 description: '上传的三项配额、7 类转换白名单、同名去重与原子落盘；Skills 的双层扫描（LLM 语义 + 静态规则）与 fail-closed 语义。'
 topics: [governance, data, upload]

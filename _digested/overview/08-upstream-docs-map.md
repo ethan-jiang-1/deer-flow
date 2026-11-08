@@ -1,6 +1,6 @@
 ---
 title: "上游文档地图：证据源，不是消化对象"
-description: "docs、backend/docs 与 frontend/src/content 的计数、分组和 digest 引用状态；只做证据地图，不复制正文，也不把用户手册改写成摘要。"
+description: 'docs、backend/docs 与 frontend/src/content 的计数、分组和 digest 引用状态；只做证据地图，不复制正文，也不把用户手册改写成摘要。'
 type: index
 topics: [upstream-docs, evidence, map, navigation]
 verified_against: v2.2.0

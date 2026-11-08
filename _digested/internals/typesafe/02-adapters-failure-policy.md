@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "TypeSafe 适配器与失败策略：fail-closed vs fail-soft"
 description: '同一套传输层上的三个消费者并排对比：工具风险门（一个问题、异常即拒绝）、memory 预筛（概率低于阈值就跳过提取）、memory 信号（两个方向、问题级降级、hint 标签）。带完整失败路径：GuardrailMiddleware 的 oap.evaluator_error 拒绝分支 vs coordinator 的 request_failed 照常提取；外加 openai_decisions dialect 的五个覆写 seam 与线上评估脚本。'
 topics: ["typesafe", "适配器", "fail-closed", "fail-soft", "memory", "guardrails", "dialect"]

@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "共享 Utils 契约"
-description: '共享 Utils 契约：架构、契约与源码锚点。'
+description: '共享 utils 契约：事件双发、文件/装配线程池、消息身份与 thread_id 不变量。'
 topics: [internals, utils, contract]
 verified_against: v2.2.0
 last_verified: 2026-11-08

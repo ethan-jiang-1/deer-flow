@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "日志体系与 trace_id 请求关联"
 description: 'DeerFlow 的日志是标准 Python logging + 一个可选的 trace 关联增强。logging.enhance 打开后，trace_id 同时进日志、HTTP 响应头、Langfuse metadata 三处，靠一个 ContextVar 串起来。'
 topics: [logging, trace-id, observability, correlation]

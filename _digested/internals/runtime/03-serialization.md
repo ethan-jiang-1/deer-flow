@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "序列化层"
-description: '序列化层：架构、契约与源码锚点。'
+description: 'runtime/serialization.py 与 runtime/converters.py — LangGraph/LangChain 对象到 JSON 的唯一规范序列化入口，以及 OpenAI 线路格式转换'
 topics: [runtime, streaming, checkpointer]
 verified_against: v2.2.0
 last_verified: 2026-11-08

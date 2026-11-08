@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "各 Harness 如何消费仓库：注入时机、预算上限与失败模式"
 description: '深挖 Claude Code、Codex CLI、Cursor、Aider、Gemini CLI 及 DeerFlow harness 自身如何发现、注入、预算化仓库级指引：AGENTS.md 合并算法、repo map 的 tree-sitter+图排序、skills 惰性加载、hooks 与 permissions 的强制层。'
 verified_against: v2.2.0

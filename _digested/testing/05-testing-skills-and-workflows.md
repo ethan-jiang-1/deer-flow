@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "测试 Skills 和 Agent Workflow"
 description: '怎么测一个 SKILL.md 被正确加载和执行、agent 在 workflow 中的行为序列、trajectory testing、单步评测。'
 topics: [testing, skills, workflow, trajectory, evaluation]

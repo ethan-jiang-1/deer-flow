@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "写 DeerFlow 应用的可观测最佳实践"
 description: '你自己的代码怎么挂到 DeerFlow 的同一条观测轨道上：日志带 trace_id、自定义事件走 emit_custom_event、审计走 journal.record_middleware、独立 LLM 调用接追踪。三条铁律 + 每个原语的准确用法 + 反模式。'
 topics: [observability, best-practices, developer, logging, tracing]

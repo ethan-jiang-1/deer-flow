@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "RBAC 权限全表"
 description: '13 个 resource:action 权限常量、默认关闭的路由授权开关、外部 AuthorizationProvider 接口。以及装饰器表达不了的条件下权限——runs:cancel 的多入口问题。'
 topics: [governance, authorization, rbac]

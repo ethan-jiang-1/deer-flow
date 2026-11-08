@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "系统全景"
-description: '![Agent Runtime 同心圆分层](figures/agent-runtime-overview.svg)'
+description: '系统全景：四层同心圆、进程拓扑、关键组件与请求入口边界。'
 topics: [architecture, system-overview]
 verified_against: v2.2.0
 last_verified: 2026-11-08
@@ -77,7 +74,7 @@ Agent Loop 直接调用 Ring 1 的服务（Sandbox.execute、tool invocation、m
 
 Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python async 函数调用。
 
-![Core Services Hook Points](../overview/figures/agent-runtime-overview.svg)
+![Core Services Hook Points](../internals/agent-loop/figures/core-services-hook-points.svg)
 
 **图上能看到的：**
 - 左列：Skills 和 Tools 在图构建时（编译期）装配。虚线 = 编译期绑定，不参与 loop 运行时。

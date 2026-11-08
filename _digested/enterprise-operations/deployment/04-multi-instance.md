@@ -1,5 +1,4 @@
 ---
-
 title: "多实例部署：前置、启动门与运行语义"
 description: '跨 Pod 与多 worker 的部署前置和运行语义：本地双 Gateway 试验台、Helm 副本与 Service、启动门、Redis stream bridge、频道 leader lease 与 ExecutionFence；不替代治理判断。'
 type: deep-dive

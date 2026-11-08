@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "OpenAI Decisions 线上契约 — 请求 envelope、问题编码与答案解析"
-description: 'OpenAI Decisions 线上契约 — 请求 envelope、问题编码与答案解析：架构、契约与源码锚点。'
+description: 'openai_decisions/client.py 拥有整条线：input 是文本不是 state 对象、questions 是数组不是映射、noul 变 predicate 且没有 criteria 字段所以细则必须折进 instructions、refusal 是一种答案 type 不是 HTTP 失败。本页逐函数核对请求构造（107-167 行）、响应解析（114-145、170-206 行）与信封级/问题级失败的分界。'
 topics: [openai-decisions, typesafe, dialect, wire-protocol, decision-provider]
 verified_against: v2.2.0
 last_verified: 2026-11-08

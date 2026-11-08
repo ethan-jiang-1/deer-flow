@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "打包扩展（packaged extensions）：贡献点、CLI 管理与信任边界"
-description: '打包扩展（packaged extensions）：贡献点、CLI 管理与信任边界：架构、契约与源码锚点。'
+description: '打包扩展的三信任面、9 个注册方法、CLI 事务与加载回滚。'
 topics: [extension, plugin-system, contribution-points]
 verified_against: v2.2.0
 last_verified: 2026-11-08

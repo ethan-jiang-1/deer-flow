@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "测试体系全景"
-description: '规模数字、四类 22 层测试地图、四个 Makefile 入口与执行路由表、真 API 用例清单、每层''''不证明什么''''，以及体系自评的已知缺口。'
+description: '规模数字、四类 22 层测试地图、四个 Makefile 入口与执行路由表、真 API 用例清单、每层''不证明什么''，以及体系自评的已知缺口。'
 topics: [testing, ci, quality-assurance]
 verified_against: v2.2.0
 last_verified: 2026-11-08
@@ -11,7 +8,7 @@ last_verified: 2026-11-08
 
 # 测试体系全景
 
-![静态边界、单元、确定性 LLM、契约跨栈、门禁元治理五层测试阶梯](figures/test-ladder.svg)
+![静态边界、单元、确定性 LLM、契约跨栈、门禁五级证明成本阶梯](figures/test-ladder.svg)
 
 > **图读法**：越往下越慢；能用上层证明的，不要下沉到 E2E。
 

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "多实例部署"
 description: '声明多实例后启动闸门会强制 4 项要求、拒绝 4 类配置。以及 GATEWAY_WORKERS 只覆盖单进程树的盲区——K8s 多 Pod 部署必须显式声明。'
 topics: [governance, cost, multi-instance, deployment]

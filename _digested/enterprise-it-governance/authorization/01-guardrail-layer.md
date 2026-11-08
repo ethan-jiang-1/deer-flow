@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "工具级授权：Guardrail 层"
 description: 'Tool 级授权，可插拔 provider，2.2.0 三个内置门同一协议。'
 topics: [governance, authorization]

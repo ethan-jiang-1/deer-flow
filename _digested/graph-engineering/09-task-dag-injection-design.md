@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "task_dag 注入设计 — 在全部运行时契约内的落地草图"
 description: '把 04 的五个生长点变成可实施设计:分层架构(状态/决策/执行/门/预算)、三种交付形态、与 delta/full·回滚·压缩·流式的兼容矩阵、MVP 切片与验收判据。'
 topics: [task-dag, injection, design, middleware, roadmap]

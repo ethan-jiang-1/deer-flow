@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "SSO / OIDC 接入"
 description: '企业 SSO 的完整契约：discovery、授权码流、PKCE S256、nonce、provisioning 四策略、sso_failed 失败契约。以及它与本地注册之间的政策断点。'
 topics: [governance, identity, sso, oidc]

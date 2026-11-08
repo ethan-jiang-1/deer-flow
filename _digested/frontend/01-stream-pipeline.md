@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "SSE → React 流式管线"
-description: 'DeerFlow 的流式渲染建立在 LangGraph SDK 的 `useStream` hook 之上，在它上面叠加了消息合并、乐观更新、token 计数、subtask 追踪和历史加载。'
+description: 'DeerFlow 的流式渲染建立在 LangGraph SDK 的 useStream hook 之上，在它上面叠加了消息合并、乐观更新、token 计数、subtask 追踪和历史加载。'
 topics: [frontend, nextjs, react]
 verified_against: v2.2.0
 last_verified: 2026-11-08

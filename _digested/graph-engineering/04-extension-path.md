@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "扩展路线 — 缺口即路线图"
-description: '若要长出''''数据任务 DAG''''半边:五个生长点的最小落点、对研究层注入方案的批判性判读,以及明确不做什么。'
+description: '若要长出''数据任务 DAG''半边:五个生长点的最小落点、对研究层注入方案的批判性判读,以及明确不做什么。'
 topics: [graph, dag, roadmap, extension]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "快速启动"
-description: '快速启动：架构、契约与源码锚点。'
+description: '从零启动：依赖、安装、配置与 make dev 的最短路径。'
 topics: [setup, configuration, quickstart]
 verified_against: v2.2.0
 last_verified: 2026-11-08

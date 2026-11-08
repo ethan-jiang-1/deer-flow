@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "OpenAI Decisions 的三个消费者与失败策略"
-description: '同一份 `AnswerSet`、同一个 refusal，在工具风险门上等于拒绝、在 memory 两条路线上等于「这一题没意见」。三个适配器都只覆写三个 seam（`_resolve_connection` / `_build_client` / `_judge_state`|`_state`）和一组类属性；阈值、评分、缓存、模式与失败方向全部留在基类。外加 `sharing_key` 为什么必然让 Decisions 侧无法与 Jev 侧合并成一个请求，以及离线测试钉住的行为清单。'
+description: '同一份 AnswerSet、同一个 refusal，在工具风险门上等于拒绝、在 memory 两条路线上等于「这一题没意见」。三个适配器都只覆写三个 seam（_resolve_connection / _build_client / _judge_state|_state）和一组类属性；阈值、评分、缓存、模式与失败方向全部留在基类。外加 sharing_key 为什么必然让 Decisions 侧无法与 Jev 侧合并成一个请求，以及离线测试钉住的行为清单。'
 topics: [openai-decisions, typesafe, guardrails, memory, fail-closed, fail-soft, sharing-key]
 verified_against: v2.2.0
 last_verified: 2026-11-08

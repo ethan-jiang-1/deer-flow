@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "执行限制"
 description: '循环检测、subagent 并发上限、超时控制——防止 agent 无限跑下去。'
 topics: [governance, execution]

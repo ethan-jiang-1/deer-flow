@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Agent Loop 解剖：谁在循环、怎么循环、边界在哪"
-description: 'Agent Loop 解剖：谁在循环、怎么循环、边界在哪：架构、契约与源码锚点。'
+description: 'DeerFlow 没有手写 while 循环。 loop 由 LangGraph 的 compiled graph 驱动——model node 和 tools node 交替执行，直到 model 不再输出 tool_call'
 topics: [agent-loop, langgraph, execution-model]
 verified_against: v2.2.0
 last_verified: 2026-11-08

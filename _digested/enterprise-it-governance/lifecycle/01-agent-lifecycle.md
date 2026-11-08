@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Agent 生命周期"
 description: '五类 agent 的创建方式与存储位置、配置热更新的两条路径（mtime 签名 vs 必须重启），以及「没有版本管理」这一实际含义。'
 topics: [governance, lifecycle]

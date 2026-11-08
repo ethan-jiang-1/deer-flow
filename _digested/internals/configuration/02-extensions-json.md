@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "ExtensionsConfig — MCP 与 Skills 配置"
-description: 'ExtensionsConfig — MCP 与 Skills 配置：架构、契约与源码锚点。'
+description: 'extensions_config.json 是独立的 JSON 配置文件，管理 MCP server 连接和 skills 启用/禁用状态。与 config.yaml 不同，它是可选的 — 找不到就返回空配置。'
 topics: [configuration, hot-reload, yaml-config]
 verified_against: v2.2.0
 last_verified: 2026-11-08

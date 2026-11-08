@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "审计链路"
 description: '审计链路：SandboxAudit、RunJournal（run 生命周期 + guardrail 决策）、completed-run evidence、tracing。'
 topics: [governance, audit]

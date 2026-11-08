@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Scheduled Tasks 定时任务"
 description: 'Cron 和一次性定时任务：配置、REST API、lease 分布式锁、执行生命周期、启动协调、调试指南。'
 topics: [scheduler, cron, automation, background-tasks]

@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Tracing — 追踪系统"
-description: 'Tracing — 追踪系统：架构、契约与源码锚点。'
+description: 'LangSmith/Langfuse provider 配置与注入语义；trace id/机制 canonical 在 observability。'
 topics: [tracing, observability, langsmith]
 verified_against: v2.2.0
 last_verified: 2026-11-08

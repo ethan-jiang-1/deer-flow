@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "持久化与流式"
-description: 'backend: sqlite # memory | sqlite | postgres'
+description: '持久化与流式：SQLite/Postgres 双后端、checkpointer/Store、迁移链与 blob 存储。'
 topics: [persistence, database, sqlite]
 verified_against: v2.2.0
 last_verified: 2026-11-08

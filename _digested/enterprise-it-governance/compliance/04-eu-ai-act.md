@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "EU AI Act 对照"
 description: '透明度、人类监督、自主性控制、日志留存四类义务对应的技术原语。重点说明 clarification 不等于合规审批、bounded autonomy 的边界在哪。'
 topics: [governance, compliance, ai-act]

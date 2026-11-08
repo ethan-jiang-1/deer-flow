@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Gateway 一致性测试"
-description: 'Gateway 一致性测试：架构、契约与源码锚点。'
+description: 'Gateway 一致性测试：SDK 返回 dict 交给 Gateway Pydantic 模型解析，钉住跨栈形状。'
 topics: [testing, ci, quality-assurance]
 verified_against: v2.2.0
 last_verified: 2026-11-08

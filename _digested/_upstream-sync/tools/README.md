@@ -21,7 +21,7 @@ topics: [digest, validation, tooling]
 | 文件 | 主题 | 深度 |
 |---|---|---|
 | [check_digest.py](check_digest.py) | 十项机械检查 + 两项启发式；默认只读、有问题时退出码 1 | 深入 |
-| [check_structure.py](check_structure.py) | 53+ README 六段/type、content description、`verified_against`、根阅读路径 | 深入 |
+| [check_structure.py](check_structure.py) | 54 README 六段/type、content description、`verified_against`、根阅读路径 | 深入 |
 | [check_freshness.py](check_freshness.py) | 从源码重算迁移/ORM/权限/测试/契约/手册等事实，扫描已知旧值 | 深入 |
 | [check_coverage.py](check_coverage.py) | 用脚本顶部常量校验每个 surface 的 owner 页存在且被父 README 收录 | 深入 |
 | [check_figures.py](check_figures.py) | 页面图片引用 ↔ `figures/*.svg` 双向校验；新图 house style；孤儿图 fail | 深入 |

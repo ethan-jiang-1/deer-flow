@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Harness / App 两层分层"
 description: 'DeerFlow 后端最核心的架构决策：严格的两层拆分。'
 topics: [architecture, system-overview]

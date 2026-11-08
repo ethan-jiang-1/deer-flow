@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "架构即测试与元治理"
 description: 'harness/app import 防火墙、compose/Helm/版本钉住、CI 工具链版本被测试钉住、AGENTS.md 尺寸预算门禁、skill-review 豁免清单的信任边界、门禁自身的自测——规矩变成可执行回归的地方。'
 topics: [testing, governance, ci, architecture]

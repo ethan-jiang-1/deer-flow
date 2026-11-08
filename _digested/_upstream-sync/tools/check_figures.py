@@ -96,6 +96,18 @@ def main() -> int:
             errors.append(f"{os.path.relpath(svg, ROOT)}: house width is not 1000")
         if 'font-family="PingFang SC, sans-serif"' not in text:
             errors.append(f"{os.path.relpath(svg, ROOT)}: non-house font-family")
+        page_text = open(page, encoding="utf-8").read()
+        marker = f"]({spec['file']})"
+        pos = page_text.find(marker)
+        if pos < 0:
+            errors.append(f"{spec['page']}: missing image reference")
+        else:
+            alt_start = page_text.rfind("![", 0, pos)
+            alt = page_text[alt_start + 2:pos] if alt_start >= 0 else ""
+            if not alt.strip():
+                errors.append(f"{spec['page']}: empty image alt text")
+            if "图读法" not in page_text[pos:pos + 400]:
+                errors.append(f"{spec['page']}: missing 图读法 caption")
 
     if errors:
         print(f"❌ figures: {len(errors)} problem(s)")

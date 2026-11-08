@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Guardrail 与安全防御 — 全链路 Defense-in-Depth"
 description: 'DeerFlow 2.2 的安全模型从 guardrail 拦截升级为全链路 defense-in-depth：input sanitization → output sanitization → static exfil 检测 → framework tag 阻断 → 可插拔风险门（Allowlist / TypeSafe Jev / OpenAI Decisions）fail-closed → secrets redaction。'
 topics: [security, guardrail, prompt-injection, defense-in-depth, CVE, sanitization, typesafe, openai-decisions]

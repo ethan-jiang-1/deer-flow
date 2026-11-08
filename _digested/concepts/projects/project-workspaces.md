@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Projects — 项目工作区"
 description: 'v2.1.0-rc0 全新子系统：把 threads 组织进项目，注入 instructions 与 document shelf。'
 topics: [projects, threads, context]

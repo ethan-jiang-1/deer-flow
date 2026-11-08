@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "MessageBus pub/sub + ChannelManager worker pool"
 description: 'IM 频道消息总线：有界入站准入、双向 pub/sub、去重占坑与暂存清理，以及 manager 的固定 worker pool。'
 topics: [channels, im, messaging]

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "企业 IT 治理卷 — 重构计划"
 description: '把 _digested 里的企业视角从『运维的一个子话题』提升为独立一卷：8 个治理域、27 篇、目标约 3200 行。本文件是待审阅的执行计划。'
 topics: [governance, plan]
@@ -546,8 +543,8 @@ done
 
 | 项 | 结果 |
 |---|---|
-| `check_quality.py` | exit 0（54 篇 / 43 内容篇 / 532 证据） |
-| `verify_anchors.py` | exit 0（570 锚点全部存在且在范围内） |
+| `check_quality.py` | exit 0（当时 54 篇 / 43 内容篇 / 532 证据；删除 AUDIT-FIX-PLAN 后现为 53 篇） |
+| `verify_anchors.py` | exit 0（当时 570 锚点；删除审计底稿后现为 563） |
 | `check_digest.py` | exit 0 |
 | 三目录铁律 | `0` |
 | 源码 diff（`v2.2.0..HEAD`，除三目录） | 空 |
@@ -561,7 +558,7 @@ done
 - 数据：run 事件随 thread 删除、回收站惰性清扫、blob/knowledge 驻留、PII fail-open。
 - 审计：SandboxAudit 是 JSON、证据摘要是「部分」而非「防篡改」、事件覆盖不止六个方法。
 - 生命周期/合规：kill switch 三态、自定义 agent 删除 API、版本闸门改为版本告警、合规映射四列。
-- 结构：8 个域 README 与文件树对齐；13 张 SVG 全部嵌入；`cost/03 §7` 指路改为 `cost/05 §2`。
+- 结构：8 个域 README 与文件树对齐；当时 13 张 SVG 全部嵌入（后续新增 2 张，现 15 张）；`cost/03 §7` 指路改为 `cost/05 §2`。
 - 工具：`check_quality.py` 增加 README 覆盖/章节编号/旧值检查，并在声明中降级为「形状层」；
   `verify_anchors.py` 增加 `--strict-lines` 语义提示。
 

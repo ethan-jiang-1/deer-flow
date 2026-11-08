@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "自定义 Sandbox 镜像"
 description: '如何构建和使用自定义 Docker sandbox 镜像：预装额外包、配置 image 字段、运行时 pip install、BoxLite 自定义。'
 topics: [sandbox, docker, deployment, customization]

@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 516" font-family="PingFang SC, sans-serif" data-house="v1">
-  <title>测试阶梯：从静态边界到跨栈 E2E</title>
-  <desc>越往下越慢；能用上层证明的，不要下沉到 E2E。</desc>
+  <title>证明成本的阶梯：从静态到 E2E</title>
+  <desc>这是成本阶梯，不是 22 层测试地图；分类学见正文的“四类 22 层”。</desc>
   <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
   <rect width="1000" height="516" fill="#ffffff"/>
-  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">测试阶梯：从静态边界到跨栈 E2E</text>
-  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">越往下越慢；能用上层证明的，不要下沉到 E2E。</text>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">证明成本的阶梯：从静态到 E2E</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">这是成本阶梯，不是 22 层测试地图；分类学见正文的“四类 22 层”。</text>
 <rect x="150" y="96" width="700" height="64" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
 <text x="168" y="122" font-size="13" font-weight="700" fill="#0c4a6e">静态 / 边界</text>
 <text x="168" y="143" font-size="10" fill="#075985">import 边界、blocking IO、版本锁步、文档契约</text>

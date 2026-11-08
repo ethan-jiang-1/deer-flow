@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "选择决策语义全景：DeerFlow 原语边界句逐字盘点与空白登记"
 description: '盘点每个编排原语在 DeerFlow 的模型可见选择语义（tool description / prompt 节逐字引用 + path:line），汇总跨原语路由规则与升级阶梯，并登记矛盾与空白。核心发现：goal 与 scheduler 没有模型可见工具——它们根本不在模型的选择集里。'
 topics: [orchestration, selection-semantics, tools, routing]

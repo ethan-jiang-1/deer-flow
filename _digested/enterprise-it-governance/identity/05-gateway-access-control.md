@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "Gateway API 层访问控制"
-description: '扩展面的身份投影、插件管理路由的 resolver 语义。'
+description: 'Gateway API 层访问控制：CORS、CSRF、限速、PAT 与扩展面的身份投影。'
 topics: [governance, identity]
 verified_against: v2.2.0
 last_verified: 2026-11-08

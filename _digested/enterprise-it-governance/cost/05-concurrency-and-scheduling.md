@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "并发与调度"
 description: '两个并发维度的区别（执行并发默认 3 vs 响应级截断 64）、调度层事实、六条默认「无限制」的容量维度。'
 topics: [governance, cost, capacity]

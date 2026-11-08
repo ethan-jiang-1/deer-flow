@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "链装配：Middleware 是怎么串起来的"
-description: '两阶段组装：共享基础层 19 + lead-only 20（共 39 个条目位）。声明式分层构建器 + `extensions/ordering.py` 的最终顺序校验。理解这个才能把自定义 middleware 挂到正确位置。'
+description: '两阶段组装：共享基础层 19 + lead-only 20（共 39 个条目位）。声明式分层构建器 + extensions/ordering.py 的最终顺序校验。'
 topics: [middleware, hooks, interceptor-chain]
 verified_against: v2.2.0
 last_verified: 2026-11-08

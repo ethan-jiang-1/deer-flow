@@ -1,6 +1,6 @@
 ---
 title: "Digest 更新计划 #7"
-description: "基于 upstream v2.1.0-rc0 (769589e8) → v2.1.0 (345f08be) 的 10 commits，逐文件规划 digest 更新与校正项。"
+description: '基于 upstream v2.1.0-rc0 (769589e8) → v2.1.0 (345f08be) 的 10 commits，逐文件规划 digest 更新与校正项。'
 type: index
 ---
 

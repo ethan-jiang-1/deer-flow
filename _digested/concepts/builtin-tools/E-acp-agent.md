@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "E. 外部 Agent 集成"
-description: 'E. 外部 Agent 集成：架构、契约与源码锚点。'
+description: 'E. 外部 ACP Agent 集成：`invoke_acp_agent` 的配置、调用与失败边界。'
 topics: [tools, builtin, sandbox-tools]
 verified_against: v2.2.0
 last_verified: 2026-11-08

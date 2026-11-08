@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "Goal 自动续跑"
-description: 'Thread goal 的自动续跑循环：evaluator 模型判断、blocker 类型、no-progress breaker（文本签名 + 成功操作哈希）、stand-down 原因、`goal_outcome` 记录与并发控制。'
+description: 'Thread goal 的自动续跑循环：evaluator 模型判断、blocker 类型、no-progress breaker（文本签名 + 成功操作哈希）、stand-down 原因、goal_outcome 记录与并发控制。'
 topics: [goal, continuation, runtime, evaluation]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "Image Search"
-description: 'DeerFlow 有三个 image search provider：DuckDuckGo（默认，无 key）、Brave Image（BRAVE_API_KEY，返回尺寸与来源）、InfoQuest（字节内部）。所有 provider 返回的图片 URL 都过 url_safety 过滤，`view_image` 是唯一让模型真正「看到」图片的通道。'
+description: 'DeerFlow 有三个 image search provider：DuckDuckGo（默认，无 key）、Brave Image（BRAVE_API_KEY，返回尺寸与来源）、InfoQuest（字节内部）。所有 provider 返回的图片 URL 都过 url_safety 过滤，view_image 是唯一让模型真正「看到」图片的通道。'
 topics: [tools, community, external-integration]
 verified_against: v2.2.0
 last_verified: 2026-11-08

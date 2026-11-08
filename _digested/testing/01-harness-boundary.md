@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Harness/App 边界测试"
-description: 'Harness/App 边界测试：架构、契约与源码锚点。'
+description: 'Harness/App 两层 import 边界：CI 静态扫描与 blocking IO 的职责。'
 topics: [testing, ci, quality-assurance]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "GitHub 集成"
 description: 'GitHub App webhook 接收、per-agent binding 配置、事件分发、安装 token 认证、gh CLI 集成。'
 topics: [github, webhook, integration, agent-binding]

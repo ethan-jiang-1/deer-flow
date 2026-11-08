@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "部署与运维的成本视角"
 description: '两个健康端点（/health 静态、/health/ready 真探测）、50 个迁移版本、多实例的成本含义，以及为什么「运维成本」和「token 成本」要分开看。'
 topics: [governance, cost, ops]

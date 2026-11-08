@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "七种沙箱模式"
-description: '从 Local 路径映射到 K8s Provisioner，三种隔离级别。'
+description: '七种沙箱运行模式归入三种隔离级别：Local、容器/命名空间、K8s Provisioner。'
 topics: [governance, execution]
 verified_against: v2.2.0
 last_verified: 2026-11-08

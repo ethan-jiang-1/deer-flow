@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "F. Plan Mode"
-description: 'F. Plan Mode：架构、契约与源码锚点。'
+description: 'F. Plan Mode：`write_todos` 与 TodoMiddleware 的状态/触发条件。'
 topics: [tools, builtin, sandbox-tools]
 verified_against: v2.2.0
 last_verified: 2026-11-08

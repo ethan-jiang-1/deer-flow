@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "诊断与观察全景"
 description: 'DeerFlow 有五层观测栈（日志 → 事件流 → 追踪 → 控制台 → 实时流），全部是组件级、无聚合仪表盘。这里画一次 run 从请求到 trace 的完整数据流。'
 topics: [observability, logging, tracing, debugging]

@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "确定性 LLM 替身谱系"
-description: 'DeerFlow 如何在不调真实模型的前提下跑完整 agent 栈：FakeToolCallingModel 剧本模型、ReplayChatModel 内容寻址回放、Monocle trace 断言、手动录制层——以及''''响亮失败''''如何穿透中间件的吞错。'
+description: 'DeerFlow 如何在不调真实模型的前提下跑完整 agent 栈：FakeToolCallingModel 剧本模型、ReplayChatModel 内容寻址回放、Monocle trace 断言、手动录制层——以及''响亮失败''如何穿透中间件的吞错。'
 topics: [testing, deterministic, replay, agent]
 verified_against: v2.2.0
 last_verified: 2026-11-08

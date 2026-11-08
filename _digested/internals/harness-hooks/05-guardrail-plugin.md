@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Guardrail 插件：Protocol 协议 + 策略模式 + fail_closed"
-description: 'Guardrail 插件：Protocol 协议 + 策略模式 + fail_closed：架构、契约与源码锚点。'
+description: 'GuardrailProvider Protocol、策略模式与 fail_closed 边界。'
 topics: [hooks, extension, plugin-system]
 verified_against: v2.2.0
 last_verified: 2026-11-08

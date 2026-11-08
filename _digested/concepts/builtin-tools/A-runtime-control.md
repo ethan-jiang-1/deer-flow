@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "A. Agent 运行时控制"
-description: 'A. Agent 运行时控制：架构、契约与源码锚点。'
+description: 'A. Agent 运行时控制：`present_files` 等工具的参数、返回与装配条件。'
 topics: [tools, builtin, sandbox-tools]
 verified_against: v2.2.0
 last_verified: 2026-11-08

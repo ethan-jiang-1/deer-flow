@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "MCP Durable Task — 持久化长任务子系统"
 description: '把 MCP 长任务从请求/响应变成持久化任务对象：submit 立即返回本地 ID，后台 poller 在 Agent 循环之外轮询/取消/通知，靠 SQL 租约恢复。'
 topics: [mcp, tasks, persistence, notifications, auth]

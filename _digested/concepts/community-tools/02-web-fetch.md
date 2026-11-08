@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "Web Fetch：7 种 URL→Markdown 管线"
-description: '所有 7 个 fetch provider 都暴露同名函数 `web_fetch_tool`，装饰为 `@tool("web_fetch", parse_docstring=True)`。都接受 `url: str` 参数，返回 markd'
+description: '所有 7 个 fetch provider 都暴露同名函数 web_fetch_tool，装饰为 @tool("web_fetch", parse_docstring=True)。都接受 url: str 参数，返回 markd'
 topics: [tools, community, external-integration]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Knowledge 证据链 — 引用语法、证据信封与预算裁剪"
-description: 'Knowledge 证据链 — 引用语法、证据信封与预算裁剪：架构、契约与源码锚点。'
+description: 'Knowledge 证据链：引用语法、证据信封与预算裁剪。'
 topics: [knowledge, citations, budget, artifact, subagent, contract]
 verified_against: v2.2.0
 last_verified: 2026-11-08

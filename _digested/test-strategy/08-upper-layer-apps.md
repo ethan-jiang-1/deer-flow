@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "上层应用测试面"
 description: '建在 DeerFlow 之上的东西怎么测：Python 扩展、技能、MCP 集成、IM 渠道、custom agents、下游 agent 应用——每层已有什么资产、你该怎么测。'
 topics: [testing, extensions, skills, mcp, channels]

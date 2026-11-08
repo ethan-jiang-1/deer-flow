@@ -1,23 +1,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 434" font-family="PingFang SC, sans-serif" data-house="v1">
-  <title>配置的四层：谁覆盖谁、何时生效</title>
-  <desc>环境变量 &gt; config.yaml &gt; 默认值；extensions_config.json 是 API 可写面。</desc>
+  <title>配置接入：路径解析、值替换与合并</title>
+  <desc>路径解析决定读哪个文件；值替换/合并决定文件里的值怎么生效。</desc>
   <defs><marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 z" fill="#64748b"/></marker></defs>
   <rect width="1000" height="434" fill="#ffffff"/>
-  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">配置的四层：谁覆盖谁、何时生效</text>
-  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">环境变量 &gt; config.yaml &gt; 默认值；extensions_config.json 是 API 可写面。</text>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">配置接入：路径解析、值替换与合并</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">路径解析决定读哪个文件；值替换/合并决定文件里的值怎么生效。</text>
 <rect x="150" y="96" width="700" height="64" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>
-<text x="168" y="122" font-size="13" font-weight="700" fill="#0c4a6e">环境变量</text>
-<text x="168" y="143" font-size="10" fill="#075985">AUTH_JWT_SECRET、DEER_FLOW_*；部署身份与密钥优先</text>
+<text x="168" y="122" font-size="13" font-weight="700" fill="#0c4a6e">路径解析</text>
+<text x="168" y="143" font-size="10" fill="#075985">CLI &gt; DEER_FLOW_CONFIG_PATH &gt; cwd &gt; home &gt; default</text>
 <line x1="500.0" y1="161" x2="500.0" y2="174" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="150" y="178" width="700" height="64" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"/>
-<text x="168" y="204" font-size="13" font-weight="700" fill="#14532d">config.yaml</text>
-<text x="168" y="225" font-size="10" fill="#166534">operator 控制；模型、沙箱、scheduler、plugins</text>
+<text x="168" y="204" font-size="13" font-weight="700" fill="#14532d">值替换</text>
+<text x="168" y="225" font-size="10" fill="#166534">config.yaml 内 $VAR 展开；缺变量按 AppConfig/ExtensionsConfig 各自失败</text>
 <line x1="500.0" y1="243" x2="500.0" y2="256" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="150" y="260" width="700" height="64" rx="10" fill="#fef9c3" stroke="#ca8a04" stroke-width="1.5"/>
-<text x="168" y="286" font-size="13" font-weight="700" fill="#713f12">extensions_config.json</text>
-<text x="168" y="307" font-size="10" fill="#854d0e">MCP / skills / middlewares；Gateway API 可写</text>
+<text x="168" y="286" font-size="13" font-weight="700" fill="#713f12">extensions 合并</text>
+<text x="168" y="307" font-size="10" fill="#854d0e">config.yaml 显式字段 &gt; extensions_config.json</text>
 <line x1="500.0" y1="325" x2="500.0" y2="338" stroke="#64748b" stroke-width="1.5" marker-end="url(#a)"/>
 <rect x="150" y="342" width="700" height="64" rx="10" fill="#ede9fe" stroke="#7c3aed" stroke-width="1.5"/>
 <text x="168" y="368" font-size="13" font-weight="700" fill="#4c1d95">运行时快照</text>
-<text x="168" y="389" font-size="10" fill="#5b21b6">restart-required 字段在 lifespan 读一次；热字段按请求读</text>
+<text x="168" y="389" font-size="10" fill="#5b21b6">restart-required 在 lifespan 读一次；热字段按请求读</text>
 </svg>

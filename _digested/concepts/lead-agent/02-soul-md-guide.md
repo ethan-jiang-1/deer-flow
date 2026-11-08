@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "SOUL.md 编写指南"
 description: '如何为自定义 Agent 编写有效的 SOUL.md：模板、最佳实践、示例、常见错误。'
 topics: [agent, soul, prompt-engineering, custom-agent]

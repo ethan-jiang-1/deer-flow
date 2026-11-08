@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "Agent Package（agent 包导入/导出）"
-description: 'v2.2.0 新增的 `deerflow.custom-agent` v1 交换文档：把一个 custom agent 定义在部署之间搬运。哪些字段可移植、哪些必须留在原部署？导入为什么只能 create-only？'
+description: 'v2.2.0 新增的 deerflow.custom-agent v1 交换文档：把一个 custom agent 定义在部署之间搬运。哪些字段可移植、哪些必须留在原部署？导入为什么只能 create-only？'
 topics: [gateway, api, agents, migration]
 verified_against: v2.2.0
 last_verified: 2026-11-08

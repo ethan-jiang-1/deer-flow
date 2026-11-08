@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "反向借鉴：DSH 编排原语对 DeerFlow 的可吸收点"
-description: '把 DSH orchestration-ladder 的九级原语阶梯逐个对照 DeerFlow 的现有缝，回答''''DSH 的哪个做法值得 DeerFlow 吸收、从哪里进、代价是什么''''。纯综合页：DeerFlow 侧锚点回链 01-09，DSH 侧引用其 digest。'
+description: '把 DSH orchestration-ladder 的九级原语阶梯逐个对照 DeerFlow 的现有缝，回答''DSH 的哪个做法值得 DeerFlow 吸收、从哪里进、代价是什么''。纯综合页：DeerFlow 侧锚点回链 01-09，DSH 侧引用其 digest。'
 topics: [cross-pollination, dsh, primitives, design-ideas]
 topic: orchestration-ladder/10
 repo: /Users/bowhead/deer-flow

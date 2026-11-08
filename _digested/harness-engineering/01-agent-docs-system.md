@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Agent 文档体系"
 description: 'DeerFlow 如何为 coding agent 组织文档：分层 AGENTS.md、上下文预算强制、可执行文档测试，以及一个真实的编号漂移案例。'
 topics: [agents-md, context-budget, documentation, ci]

@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "AIO Sandbox：Docker/Apple Container/K3s 沙箱"
-description: 'AIO Sandbox：Docker/Apple Container/K3s 沙箱：架构、契约与源码锚点。'
+description: 'AioSandboxProvider 是 Local sandbox 之外的容器化沙箱实现，提供真正的进程隔离。位于 community/aio_sandbox/。'
 topics: [tools, community, external-integration]
 verified_against: v2.2.0
 last_verified: 2026-11-08

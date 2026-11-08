@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "环境变量全参考"
-description: 'DeerFlow 读取的全部环境变量：来源、读取点、默认值。真值 = `.env.example` + 代码中的 `os.getenv` + compose 的 `${VAR}`。'
+description: 'DeerFlow 读取的全部环境变量：来源、读取点、默认值。真值 = .env.example + 代码中的 os.getenv + compose 的 ${VAR}。'
 topics: [setup, configuration, quickstart]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "认证模型"
 description: '四条并行认证路径：本地密码、SSO/OIDC、个人访问令牌、内部服务 token。它们共享同一套 Gateway 中间件，但准入条件与生命周期完全不同。'
 topics: [governance, identity]

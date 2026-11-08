@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "可验证性与测试基建：让 agent 能自主闭环"
 description: 'agent 时代的测试基建设计原则：确定性、快速子集、隔离与 sandbox、record-replay、可单测入口、本地与 CI 一致性。以一手来源论述，并用本仓库 backend/frontend 的真实测试布局印证。'
 verified_against: v2.2.0

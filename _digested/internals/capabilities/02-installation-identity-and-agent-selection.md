@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Installation identity 与 Agent 工具选择"
-description: 'Installation identity 与 Agent 工具选择：架构、契约与源码锚点。'
+description: 'runtime.py（38 行）的两件事：给每个 MCP 安装一个跨改名/改凭据/改地址都稳定的 ID（显式 capability.id 或 uuid5 兜底），并把 Agent 的 mcp_plugins 三态选择翻译成按「源 server」而不是「工具名前缀」的工具过滤。含三处写入门与 GET 的 fail-closed 投影。'
 topics: [capabilities, identity, agent-selection, mcp, fail-closed]
 verified_against: v2.2.0
 last_verified: 2026-11-08

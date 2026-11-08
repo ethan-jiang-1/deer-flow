@@ -1,6 +1,6 @@
 ---
 title: "上游同步追踪"
-description: "main 分支是上游镜像。main HEAD = 我们消化内容的基准代码版本。ethan 只加 _digested/ 和 _faq_on_digested/，不碰源码。"
+description: 'main 分支是上游镜像。main HEAD = 我们消化内容的基准代码版本。ethan 只加 _digested/ 和 _faq_on_digested/，不碰源码。'
 type: index
 ---
 

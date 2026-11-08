@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "速度与隔离工程"
 description: '时长基线分片与只读防竞态、make test 的 -j4 并行编排、node/dom 成本分流、collection-only CI job、conftest 的五个 autouse 重置、sys.modules 破循环导入、bench 纪律与跨平台可移植性——让 2.3 万个测试跑得快且互相不污染的工程。'
 topics: [testing, ci, performance, isolation]

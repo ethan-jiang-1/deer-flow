@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "支持度地图 — 12 项三档判定"
 description: '以研究层四大支柱 + 议题 09 两分 + 两层自愈为标尺,逐项判定 DeerFlow 的支持档位,附源码锚点。'
 topics: [graph, dag, assessment]

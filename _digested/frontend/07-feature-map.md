@@ -1,5 +1,4 @@
 ---
-
 title: "前端功能面地图"
 description: '把 frontend/src/core 的 41 个目录逐项映射到职责、关键入口与后端 owner digest 页，作为 00–06 深挖之前的架构导航。'
 type: deep-dive

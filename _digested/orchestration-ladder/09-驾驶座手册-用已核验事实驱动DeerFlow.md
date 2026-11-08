@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "驾驶座手册：用已核验事实驱动 DeerFlow 的实践守则"
-description: '把 00-08 的源码结论压成可操作守则：怎么选原语、怎么写才算''''完成''''、预算陷阱、恢复预期、多 worker 升级清单。面向使用者（驾驶座视角），全部结论回链已核验锚点。'
+description: '把 00-08 的源码结论压成可操作守则：怎么选原语、怎么写才算''完成''、预算陷阱、恢复预期、多 worker 升级清单。面向使用者（驾驶座视角），全部结论回链已核验锚点。'
 topics: [playbook, practitioner, orchestration, recipes]
 topic: orchestration-ladder/09
 repo: /Users/bowhead/deer-flow

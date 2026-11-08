@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "事件覆盖矩阵"
 description: '哪些事件真的被记录下来：RunJournal 六个记录方法、Guardrail 决策、SandboxAudit 日志，以及三条明确的盲区（subagent、embedded、allow 决策）。'
 topics: [governance, audit, events]

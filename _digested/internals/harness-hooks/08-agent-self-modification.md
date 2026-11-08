@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Agent 自修改：update_agent / setup_agent + SOUL.md 原子写入"
-description: 'Agent 自修改：update_agent / setup_agent + SOUL.md 原子写入：架构、契约与源码锚点。'
+description: 'Agent 自修改：`update_agent` / `setup_agent` 的 SOUL.md 与 config 原子写入。'
 topics: [hooks, extension, plugin-system]
 verified_against: v2.2.0
 last_verified: 2026-11-08

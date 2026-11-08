@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Skill Review Core（skills/review/）"
 description: '只读快照 → 确定性 facts → 报告/readiness 的完整契约：readers / analyzer / resource_graph / eval_schema / digest / renderer / cli / models。'
 topics: [skills, review, contract]

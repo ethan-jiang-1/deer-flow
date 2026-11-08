@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Console API 与成本归属"
 description: 'GET /api/console/{stats,runs,usage} 是运营侧只读聚合层，直接查 runs/threads_meta 表。配 models[*].pricing 后按 cache-aware 计价。token 由 RunJournal 按 caller 分桶、subagent 用量回并到父 message。'
 topics: [observability, cost, console, token-usage]

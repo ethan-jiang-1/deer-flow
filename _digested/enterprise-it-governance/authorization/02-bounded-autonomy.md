@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Bounded Autonomy：自动 / 人工边界"
 description: 'DeerFlow 的边界形态是「预定义 + 事后拦截」，不是「执行前审批」。三个操作级别的实际行为，以及 ask_clarification 为什么不能当权限对话框。'
 topics: [governance, authorization]

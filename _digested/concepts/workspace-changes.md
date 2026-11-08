@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Workspace Changes — Agent 文件改动追踪"
 description: '记录 agent 每次 run 对 workspace/outputs 目录的文件改动，支持 diff 审查。'
 topics: [workspace, changes, diff, artifacts, frontend]

@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "ContextVar 运行时配置覆盖：push/pop 栈 + 测试注入"
-description: 'ContextVar 运行时配置覆盖：push/pop 栈 + 测试注入：架构、契约与源码锚点。'
+description: 'ContextVar 运行时配置覆盖：push/pop 栈、测试注入与多租户边界。'
 topics: [hooks, extension, plugin-system]
 verified_against: v2.2.0
 last_verified: 2026-11-08

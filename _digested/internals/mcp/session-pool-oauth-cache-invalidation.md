@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "MCP 深度解析 — Session Pool、OAuth、缓存"
-description: 'MCP 深度解析 — Session Pool、OAuth、缓存：架构、契约与源码锚点。'
+description: 'MCP session pool、OAuth、缓存失效与 per-user 连接。'
 topics: [mcp, tools, protocol-integration]
 verified_against: v2.2.0
 last_verified: 2026-11-08

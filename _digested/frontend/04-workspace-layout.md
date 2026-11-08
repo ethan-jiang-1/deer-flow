@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "工作区布局：Drag 面板、响应式、Command Palette"
-description: '工作区布局：Drag 面板、响应式、Command Palette：架构、契约与源码锚点。'
+description: '工作区布局：三栏 Shell、四态右面板、Projects/Trash/Command Palette 的入口与约束。'
 topics: [frontend, nextjs, react]
 verified_against: v2.2.0
 last_verified: 2026-11-08

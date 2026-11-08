@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "注册策略"
 description: 'allow_registration 这一个布尔值决定访客能否自建账号。它与 SSO provisioning 策略互不覆盖，是配置注释里用整段文字警告的陷阱。'
 topics: [governance, identity, registration]

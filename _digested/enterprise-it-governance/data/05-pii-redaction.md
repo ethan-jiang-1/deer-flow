@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "PII 脱敏"
 description: 'pii_redaction 默认关闭，开了之后覆盖哪五类、哪些路径不覆盖。以及 token_secret 为什么必须配、不配会怎样。'
 topics: [governance, data, pii]

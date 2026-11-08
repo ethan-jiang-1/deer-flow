@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "工程证据文化"
 description: 'DeerFlow 的契约文档、可复现实验包、基准测试与测试工程——以及它们对 coding agent 的实际价值。'
 topics: [contract-docs, experiments, benchmark, testing]

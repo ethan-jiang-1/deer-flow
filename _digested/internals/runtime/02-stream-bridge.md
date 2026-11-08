@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "StreamBridge — 流发布/订阅协议"
-description: 'StreamBridge — 流发布/订阅协议：架构、契约与源码锚点。'
+description: 'runtime/stream_bridge/{base,memory,async_provider,redis}.py — StreamBridge 抽象协议、memory 与 Redis 两后端、心跳/gap/生产者租约'
 topics: [runtime, streaming, checkpointer]
 verified_against: v2.2.0
 last_verified: 2026-11-08

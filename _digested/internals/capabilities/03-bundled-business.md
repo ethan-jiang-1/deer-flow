@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Bundled business 集成 — 自带 HTTP 客户端的三个 MCP provider"
-description: 'Bundled business 集成 — 自带 HTTP 客户端的三个 MCP provider：架构、契约与源码锚点。'
+description: 'Bundled business 集成：DingTalk/WeCom/HubSpot 作为开箱可用 MCP provider。'
 topics: [capabilities, business, mcp, notification, hubspot, security]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "可观测性"
 description: 'SSE 六类事件、心跳与断线续传的实现细节、tracing 的可选性，以及为什么「数据都在，但没有聚合视图」是当前的准确定位。'
 topics: [governance, audit]

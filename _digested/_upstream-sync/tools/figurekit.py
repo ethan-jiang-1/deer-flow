@@ -171,6 +171,44 @@ def panels(cards, title, sub, cols=2):
     return frame(title, sub, "\n".join(body), height)
 
 
+def hub(center, branches, title, sub, optional=None):
+    """One entry node with parallel branches; optional dashed bottom node."""
+    body = []
+    cx, cy, cw, ch = 370, 150, 260, 90
+    fill, stroke, strong, mid = PALETTES[2]
+    body.append(f'<rect x="{cx}" y="{cy}" width="{cw}" height="{ch}" rx="10" fill="{fill}" stroke="{stroke}" stroke-width="1.5"/>')
+    body.append(f'<text x="{cx+cw/2}" y="{cy+30}" text-anchor="middle" font-size="13" font-weight="700" fill="{strong}">{esc(center[0])}</text>')
+    for j,line in enumerate(wrap(center[1], 24)[:2]):
+        body.append(f'<text x="{cx+cw/2}" y="{cy+52+j*15}" text-anchor="middle" font-size="9.5" fill="{mid}">{esc(line)}</text>')
+    # left branch
+    if branches:
+        lx, ly, lw, lh = 50, 150, 240, 90
+        b = branches[0]
+        body.append(f'<rect x="{lx}" y="{ly}" width="{lw}" height="{lh}" rx="10" fill="#e0f2fe" stroke="#0284c7" stroke-width="1.5"/>')
+        body.append(f'<text x="{lx+lw/2}" y="{ly+32}" text-anchor="middle" font-size="13" font-weight="700" fill="#0c4a6e">{esc(b["label"])}</text>')
+        for j,line in enumerate(wrap(b["detail"], 18)[:2]):
+            body.append(f'<text x="{lx+lw/2}" y="{ly+54+j*15}" text-anchor="middle" font-size="9.5" fill="#075985">{esc(line)}</text>')
+        body.append(f'<line x1="{lx+lw+4}" y1="{ly+lh/2}" x2="{cx-4}" y2="{cy+ch/2}" stroke="{LINE}" stroke-width="1.5" marker-end="url(#a)"/>')
+    # right branches
+    rx, rw, rh = 710, 240, 82
+    for i, b in enumerate(branches[1:3]):
+        ry = 105 + i*120
+        fill2, stroke2, strong2, mid2 = PALETTES[i % len(PALETTES)]
+        body.append(f'<rect x="{rx}" y="{ry}" width="{rw}" height="{rh}" rx="10" fill="{fill2}" stroke="{stroke2}" stroke-width="1.5"/>')
+        body.append(f'<text x="{rx+rw/2}" y="{ry+28}" text-anchor="middle" font-size="12" font-weight="700" fill="{strong2}">{esc(b["label"])}</text>')
+        for j,line in enumerate(wrap(b["detail"], 22)[:2]):
+            body.append(f'<text x="{rx+rw/2}" y="{ry+48+j*14}" text-anchor="middle" font-size="9" fill="{mid2}">{esc(line)}</text>')
+        body.append(f'<line x1="{cx+cw+4}" y1="{cy+ch/2}" x2="{rx-4}" y2="{ry+rh/2}" stroke="{LINE}" stroke-width="1.5" marker-end="url(#a)"/>')
+    if optional:
+        ox, oy, ow, oh = 370, 330, 260, 72
+        body.append(f'<rect x="{ox}" y="{oy}" width="{ow}" height="{oh}" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="6 4"/>')
+        body.append(f'<text x="{ox+ow/2}" y="{oy+28}" text-anchor="middle" font-size="12" font-weight="700" fill="#334155">{esc(optional["label"])}</text>')
+        for j,line in enumerate(wrap(optional["detail"], 24)[:2]):
+            body.append(f'<text x="{ox+ow/2}" y="{oy+48+j*14}" text-anchor="middle" font-size="9" fill="#64748b">{esc(line)}</text>')
+        body.append(f'<line x1="{cx+cw/2}" y1="{cy+ch+2}" x2="{ox+ow/2}" y2="{oy-4}" stroke="{LINE}" stroke-width="1.5" stroke-dasharray="6 4" marker-end="url(#a)"/>')
+    return frame(title, sub, "\n".join(body), 450)
+
+
 def build(spec):
     kind = spec["kind"]
     if kind == "flow":
@@ -181,6 +219,8 @@ def build(spec):
         return matrix(spec["headers"], spec["rows"], spec["title"], spec["sub"])
     if kind == "panels":
         return panels(spec["cards"], spec["title"], spec["sub"], spec.get("cols", 2))
+    if kind == "hub":
+        return hub(spec["center"], spec["branches"], spec["title"], spec["sub"], spec.get("optional"))
     raise ValueError(f"unknown kind {kind}")
 
 
@@ -191,10 +231,10 @@ FIGURES = [
      "alt": "SSE 事件经过 useStream、stream-state、streamdown 到 React 提交的管线",
      "nodes": [("Gateway SSE", "values / messages / updates / custom / end"), ("useStream", "SDK 订阅；terminal run 短路"), ("stream-state", "reduce + message-order + gap 恢复"), ("streamdown", "增量 markdown / thinking / tool call"), ("React commit", "MessageList / Artifact / Todo / Goal")]},
     {"page": "_digested/frontend/03-state-management.md", "file": "figures/state-layers.svg", "kind": "matrix",
-     "title": "四层状态：谁拥有、活多久、从哪来", "sub": "不要把服务器状态塞进 localStorage，也不要把 UI 偏好塞进 Query cache。",
-     "alt": "TanStack Query、ThreadState、localStorage、URL 四层状态的拥有者与生命周期",
+     "title": "三层状态：谁拥有、活多久、从哪来", "sub": "不要把服务器状态塞进 localStorage，也不要把 UI 偏好塞进 Query cache。",
+     "alt": "TanStack Query、ThreadState、localStorage 三层状态的拥有者与生命周期",
      "headers": ["层", "拥有者", "生命周期", "事实源"],
-     "rows": [["TanStack Query", "core hooks", "请求 / 缓存", "Gateway API"], ["ThreadState", "workspace context", "run / thread", "SSE values"], ["localStorage", "settings/local.ts", "浏览器", "用户偏好"], ["URL / search", "Next.js router", "页面", "可分享状态"]]},
+     "rows": [["TanStack Query", "core hooks", "请求 / 缓存", "Gateway API"], ["ThreadState", "workspace context", "run / thread", "SSE values"], ["localStorage", "settings/local.ts", "浏览器", "用户偏好"]]},
     {"page": "_digested/frontend/04-workspace-layout.md", "file": "figures/workspace-layout.svg", "kind": "panels",
      "title": "工作区布局：三栏与右面板四态", "sub": "右面板同一时刻只开一个：sidecar > browser > artifacts > details。",
      "alt": "工作区侧栏、聊天区、右面板四态与路由页面",
@@ -205,13 +245,15 @@ FIGURES = [
      "cards": [("运行时 / 流", "threads · messages · streamdown · api · background-tasks"), ("工作区 / 布局", "projects · trash · scheduled-tasks · settings · workspace-changes"), ("能力 / 扩展", "capabilities · extensions · skills · mcp · agents"), ("知识 / 引用", "knowledge · citations · conversation-references · artifacts"), ("任务 / 子代理", "tasks · subagents · subagent-batches · todos · tools"), ("平台面", "auth · i18n · uploads · channels · notifications · voice-input")]},
     # getting-started
     {"page": "_digested/getting-started/02-configuration.md", "file": "figures/config-layers.svg", "kind": "layers",
-     "title": "配置的四层：谁覆盖谁、何时生效", "sub": "环境变量 > config.yaml > 默认值；extensions_config.json 是 API 可写面。",
-     "alt": "环境变量、config.yaml、extensions_config.json 与运行时快照的覆盖关系",
-     "items": [("环境变量", "AUTH_JWT_SECRET、DEER_FLOW_*；部署身份与密钥优先"), ("config.yaml", "operator 控制；模型、沙箱、scheduler、plugins"), ("extensions_config.json", "MCP / skills / middlewares；Gateway API 可写"), ("运行时快照", "restart-required 字段在 lifespan 读一次；热字段按请求读")]},
-    {"page": "_digested/getting-started/04-local-dev.md", "file": "figures/local-dev-topology.svg", "kind": "flow",
-     "title": "本地拓扑：一个入口，三个服务", "sub": "浏览器只认 2026；Gateway 与 Frontend 不直接暴露给用户。",
-     "alt": "浏览器、Nginx、Gateway、Frontend 与可选 Redis 的本地拓扑",
-     "nodes": [("Browser", "localhost:2026"), ("Nginx", "静态前端 + /api 反代 + SSE"), ("Gateway", "127.0.0.1:8001；/api/langgraph 重写"), ("Frontend", "127.0.0.1:3000；Next.js"), ("Redis (可选)", "多 worker / stream bridge 时才需要")]},
+     "title": "配置接入：路径解析、值替换与合并", "sub": "路径解析决定读哪个文件；值替换/合并决定文件里的值怎么生效。",
+     "alt": "config 路径解析、$VAR 值替换、extensions 合并与运行时快照四条链",
+     "items": [("路径解析", "CLI > DEER_FLOW_CONFIG_PATH > cwd > home > default"), ("值替换", "config.yaml 内 $VAR 展开；缺变量按 AppConfig/ExtensionsConfig 各自失败"), ("extensions 合并", "config.yaml 显式字段 > extensions_config.json"), ("运行时快照", "restart-required 在 lifespan 读一次；热字段按请求读")]},
+    {"page": "_digested/getting-started/04-local-dev.md", "file": "figures/local-dev-topology.svg", "kind": "hub",
+     "title": "本地拓扑：一个入口，两个并列上游", "sub": "浏览器只认 2026；Nginx 把 /api 转给 Gateway、其余转给 Frontend；Redis 按需。",
+     "alt": "浏览器经 Nginx 分流到 Gateway 与 Frontend，Redis 可选的本地拓扑",
+     "center": ("Nginx :2026", "静态前端 + /api 反代 + SSE"),
+     "branches": [{"label": "Browser", "detail": "localhost:2026"}, {"label": "Gateway :8001", "detail": "/api/* 与 /api/langgraph/*"}, {"label": "Frontend :3000", "detail": "Next.js 静态/SSR"}],
+     "optional": {"label": "Redis（可选）", "detail": "多 worker / stream bridge 才需要"}},
     # observability
     {"page": "_digested/observability/01-logging-and-trace-context.md", "file": "figures/trace-context-flow.svg", "kind": "flow",
      "title": "trace_id 的一条链：从请求到日志", "sub": "ContextVar 是唯一源；响应头、日志、run metadata 都是派生输出。",
@@ -223,8 +265,8 @@ FIGURES = [
      "nodes": [("LangChain callbacks", "chain / llm / tool / error"), ("RunJournal", "缓冲、分类、seq、evidence"), ("RunEventStore", "memory / db / jsonl"), ("SSE + Console", "实时流、历史、调试端点"), ("审计 / 回放", "thread 删除、subagent、workspace")]},
     # test-strategy
     {"page": "_digested/test-strategy/00-overview.md", "file": "figures/test-ladder.svg", "kind": "layers",
-     "title": "测试阶梯：从静态边界到跨栈 E2E", "sub": "越往下越慢；能用上层证明的，不要下沉到 E2E。",
-     "alt": "静态边界、单元、确定性 LLM、契约跨栈、门禁元治理五层测试阶梯",
+     "title": "证明成本的阶梯：从静态到 E2E", "sub": "这是成本阶梯，不是 22 层测试地图；分类学见正文的“四类 22 层”。",
+     "alt": "静态边界、单元、确定性 LLM、契约跨栈、门禁五级证明成本阶梯",
      "items": [("静态 / 边界", "import 边界、blocking IO、版本锁步、文档契约"), ("单元 / 属性", "pytest / rstest / hypothesis；纯函数优先"), ("确定性 LLM", "FakeToolCallingModel / ReplayChatModel / Monocle"), ("契约 / 跨栈", "contracts JSON 双端、Gateway conformance、replay E2E"), ("门禁 / 元治理", "CI 分片、label 声明、waiver 信任边界")]},
     {"page": "_digested/test-strategy/02-deterministic-llm.md", "file": "figures/deterministic-llm.svg", "kind": "flow",
      "title": "确定性 LLM 替身谱系", "sub": "同一条断言尽量在更便宜、更确定的一层证明。",

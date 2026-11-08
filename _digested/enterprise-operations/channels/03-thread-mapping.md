@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Channel→Thread ID 持久化与命令系统"
 description: 'ChannelStore 协议与两种实现（SQL 表 / 历史 JSON）、跨实例绑定收敛、用户连接映射，以及 IM 命令系统。'
 topics: [channels, im, messaging]

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Thinking & Vision"
 description: '两个 LLM 新能力，两套完全不同的启用机制。Thinking 在 model 层解决（修改传给 provider 的参数），Vision 在 middleware 层解决（在 model 调用前注入图片数据）。'
 topics: [models, llm, provider-factory]

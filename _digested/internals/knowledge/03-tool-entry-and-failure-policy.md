@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Knowledge 工具入口 — 执行时序、能力校验与失败策略"
-description: 'Knowledge 工具入口 — 执行时序、能力校验与失败策略：架构、契约与源码锚点。'
+description: 'Knowledge 工具入口：三个 StructuredTool、能力校验与失败策略。'
 topics: [knowledge, tools, failure-policy, scope, middleware, gateway]
 verified_against: v2.2.0
 last_verified: 2026-11-08

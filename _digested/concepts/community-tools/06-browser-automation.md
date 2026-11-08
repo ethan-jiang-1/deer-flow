@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Browser Automation — Playwright agentic 浏览器会话"
 description: '有状态的 navigate → observe → act 循环：进程内私有 loop-affine Playwright event-loop 线程，每步返回带稳定 [ref] 索引的页面快照，URL SSRF 过滤在浏览器请求边界生效。'
 topics: [tools, community, browser, playwright, ssrf, live-screencast]

@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "测试基建与平台工程"
 description: 'support/ 助手层与静态检测器族、测试依赖的 dev 组治理、pre-commit 与 CI 执行预算（并发取消/超时）、跨平台精确 skip 习语、按路径加载的跨包测试、无覆盖率门禁的取舍。'
 topics: [testing, infrastructure, ci, cross-platform]

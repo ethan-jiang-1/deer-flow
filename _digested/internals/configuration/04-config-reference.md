@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "config.yaml 全段参考"
-description: 'DeerFlow 有两个配置文件，都放在项目根目录。'
+description: 'config.yaml 与 extensions_config.json 的字段级参考、路径解析优先级与热加载边界。'
 topics: [configuration, hot-reload, yaml-config]
 verified_against: v2.2.0
 last_verified: 2026-11-08

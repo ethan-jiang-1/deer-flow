@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "单例传播：AppConfig → 12 个子配置的推送链"
-description: '单例传播：AppConfig → 12 个子配置的推送链：架构、契约与源码锚点。'
+description: 'AppConfig 到 12 个子配置单例的推送链、热/冷字段与失败隔离。'
 topics: [hooks, extension, plugin-system]
 verified_against: v2.2.0
 last_verified: 2026-11-08

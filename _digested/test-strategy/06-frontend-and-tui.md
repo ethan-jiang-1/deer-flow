@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "前端与 TUI 测试"
 description: 'rstest node/dom 成本分流、Playwright 四车道与 mock 层工程化、本地 SSE 服务器构造流式中间态、几何断言、Textual pilot + 纯 reducer 的无头 TUI。'
 topics: [testing, frontend, tui, playwright]

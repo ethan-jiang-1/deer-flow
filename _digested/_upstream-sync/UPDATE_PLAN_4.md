@@ -1,6 +1,6 @@
 ---
 title: "Digest 更新计划 #4"
-description: "基于 upstream cd34a1a5 → e5c62cab 的 234 commits 变更，逐目录规划 digest 更新内容和优先级。"
+description: '基于 upstream cd34a1a5 → e5c62cab 的 234 commits 变更，逐目录规划 digest 更新内容和优先级。'
 type: index
 ---
 

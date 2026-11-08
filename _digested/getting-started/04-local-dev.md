@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "本地开发：make dev"
-description: '本地开发：make dev：架构、契约与源码锚点。'
+description: 'make dev 启动 3 个本地服务（Gateway + Frontend + Nginx），用于个人开发环境。'
 topics: [setup, configuration, quickstart]
 verified_against: v2.2.0
 last_verified: 2026-11-08
@@ -12,9 +8,9 @@ last_verified: 2026-11-08
 
 # 本地开发：make dev
 
-![浏览器、Nginx、Gateway、Frontend 与可选 Redis 的本地拓扑](figures/local-dev-topology.svg)
+![浏览器经 Nginx 分流到 Gateway 与 Frontend，Redis 可选的本地拓扑](figures/local-dev-topology.svg)
 
-> **图读法**：浏览器只认 2026；Gateway 与 Frontend 不直接暴露给用户。
+> **图读法**：Nginx 是唯一入口；`/api` 转 Gateway，其余转 Frontend，两者是并列上游，不是串行。
 
 
 `make dev` 先跑 `scripts/check.py` 检查工具，再用 `scripts/serve.sh --dev` 启动 3 个本地服务（外加按需拉起的 AIO sandbox 容器）。

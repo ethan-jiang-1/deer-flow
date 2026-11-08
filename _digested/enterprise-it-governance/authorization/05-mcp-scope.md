@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "MCP 作用域与 personal MCP"
 description: 'MCP 会话按 用户:会话:incarnation 三重绑定。v2: 版本化编码、legacy 前缀冲突的过度关闭（不会泄露）、以及 stale incarnation 的防御。'
 topics: [governance, authorization, mcp, isolation]

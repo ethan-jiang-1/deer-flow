@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "Tracing — 中间件审计事件（运维侧补充）"
-description: 'loop detection / deferred tool promotion 的 run event 审计；trace id 与入口点绑定以 observability/01 为 canonical。'
+description: 'X-Trace-Id 无条件签发、非 HTTP 入口点绑定、loop detection / deferred tool promotion 审计事件的持久化。'
 topics: [tracing, observability, loop-detection, middleware]
 verified_against: v2.2.0
 last_verified: 2026-11-08

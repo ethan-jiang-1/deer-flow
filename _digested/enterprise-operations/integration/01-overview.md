@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "集成总览：4 种手段，一张图看懂"
-description: '![integration-methods](figures/integration-methods.svg)'
+description: '集成总览：API、Docker、IM 与 Lark CLI 四种接入手段的边界与选型。'
 topics: [integration, sdk, docker-deploy]
 verified_against: v2.2.0
 last_verified: 2026-11-08

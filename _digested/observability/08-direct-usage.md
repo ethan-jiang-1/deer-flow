@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "直接利用：从配置到命令"
-description: '不看原理，直接上手的实操层：日志到底落在哪、数据在哪、开什么、curl 什么、grep 什么。先回答''''日志放哪''''——不是 Workspace，是 stderr。'
+description: '不看原理，直接上手的实操层：日志到底落在哪、数据在哪、开什么、curl 什么、grep 什么。先回答''日志放哪''——不是 Workspace，是 stderr。'
 topics: [observability, usage, logging, operations]
 verified_against: v2.2.0
 last_verified: 2026-11-08

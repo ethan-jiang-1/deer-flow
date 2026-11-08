@@ -69,6 +69,8 @@ def main() -> int:
         if "/_upstream-sync/" in p or rel.endswith(("PLAN.md", "AUDIT-FIX-PLAN.md")):
             continue
         ref = read(p)
+        if ref.startswith("---\n\n"):
+            errors.append(f"{rel}: blank line immediately after front matter opener")
         fm = front_matter(ref)
         if not fm:
             errors.append(f"{rel}: missing front matter")
@@ -81,6 +83,18 @@ def main() -> int:
                 desc = desc[1:-1].strip() if len(desc) >= 2 and desc[-1] == desc[0] else desc
             if not desc or desc[0] in "#|-*`":
                 errors.append(f"{rel}: description looks like markdown/body text")
+            if "''''" in desc:
+                errors.append(f"{rel}: description has quote-escaping artifact")
+            if len(desc) < 25:
+                errors.append(f"{rel}: description is too short")
+            if desc.startswith(("app/", "backend/", "packages/", "deerflow/", "docker/", "scripts/", "frontend/", "- ", "* ")):
+                errors.append(f"{rel}: description starts with a source path/list")
+            if desc.endswith(("：", ":")):
+                errors.append(f"{rel}: description ends with a colon")
+            if "flowchart" in desc or "加载条件" in desc:
+                errors.append(f"{rel}: description looks like body text")
+            if "架构、契约与源码锚点" in desc:
+                errors.append(f"{rel}: generic placeholder description")
         if field(fm, "verified_against") != "v2.2.0":
             errors.append(f"{rel}: verified_against is not v2.2.0")
 

@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "变更控制"
-description: '扩展与插件授予、Skill mutation 七步流。'
+description: '变更控制：配置生效路径、扩展/插件授予、Skill mutation 与重启边界。'
 topics: [governance, lifecycle]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "沙箱隔离"
-description: '七种沙箱运行模式（六个 provider 类）提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射。'
+description: '七种沙箱运行模式（六个 provider 类）与三种隔离级别；Local 是路径映射。'
 topics: [security, auth, isolation-defense]
 verified_against: v2.2.0
 last_verified: 2026-11-08

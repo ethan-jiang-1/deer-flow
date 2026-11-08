@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Agent 身份：缺失的一环"
 description: 'DeerFlow 没有 non-human identity 概念：lead agent、subagent、ACP agent、内部调用者的全部操作都归因到触发它的用户。附带三条可核实的机制证据与五个具体后果。'
 topics: [governance, identity, nhi]

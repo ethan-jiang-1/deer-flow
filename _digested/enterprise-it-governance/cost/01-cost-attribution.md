@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "成本归属"
 description: 'token 用量在哪里产生、subagent 用量如何回溯到父消息、stream_usage 为什么默认打开，以及「能统计」与「能归因」之间的距离。'
 topics: [governance, cost]

@@ -1,6 +1,4 @@
 ---
-
-
 title: "public skills 目录：23 个内置技能包的地图"
 description: '把 skills/public/ 下 23 个已提交技能包按职责逐行编目，给出入口、测试与相关机制页，供选型、复用和二次开发时快速定位。'
 type: deep-dive

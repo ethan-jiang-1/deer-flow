@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "扩展点地图 — 往 DeerFlow 里加编排逻辑的六个入口"
 description: '按侵入深度排序的六个编排注入入口:prompt/skills、custom_agents、middleware、extension 包、SDK 直连、外部状态机——每个入口的契约、能力、部署面与选型决策。'
 topics: [extension, middleware, custom-agents, sdk, orchestration]

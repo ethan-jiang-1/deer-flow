@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "DeerFlow 设计理念：当前仓库的一手证据"
 description: '从产品定位、执行治理、上下文分层与完成证据，以及研发流程（SDLC）、发布与质量治理，理解 DeerFlow 的工程取舍。'
 type: research

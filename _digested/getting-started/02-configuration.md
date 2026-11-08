@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "配置接入概览"
-description: '配置接入概览：架构、契约与源码锚点。'
+description: '两份配置文件的职责、路径解析优先级与热加载/重启边界。'
 topics: [setup, configuration, quickstart]
 verified_against: v2.2.0
 last_verified: 2026-11-08
@@ -12,9 +8,9 @@ last_verified: 2026-11-08
 
 # 配置接入概览
 
-![环境变量、config.yaml、extensions_config.json 与运行时快照的覆盖关系](figures/config-layers.svg)
+![config 路径解析、$VAR 值替换、extensions 合并与运行时快照四条链](figures/config-layers.svg)
 
-> **图读法**：环境变量 > config.yaml > 默认值；extensions_config.json 是 API 可写面。
+> **图读法**：路径解析决定读哪个文件；值替换/合并决定文件里的值怎么生效。不要把“环境变量”简化成覆盖 YAML。
 
 
 > 从接入/运维视角看 DeerFlow 的配置体系。字段级参考见 [配置全景 00-config-overview.md](00-config-overview.md)。

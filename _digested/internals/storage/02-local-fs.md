@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "local_fs 后端 — 分片布局、原子发布与 sidecar 的三条“不是”"
-description: 'local_fs 后端 — 分片布局、原子发布与 sidecar 的三条“不是”：架构、契约与源码锚点。'
+description: 'local_fs_store.py（260 行）把 sha256 映射成 <root>/<kind>/<sha256[:2]>/<sha256> + .json sidecar：唯一临时文件 + os.replace 原子发布、并发写者收敛、Windows WinError 5 的同内容识别、64 MiB 单次上限，以及 sidecar 读不依赖 / 非引用计数 / 失败不毁 put 三条规则。附 state × 上一步 outcome 决策表。'
 topics: [storage, blob-store, local-fs, atomic-publish, sidecar]
 verified_against: v2.2.0
 last_verified: 2026-11-08

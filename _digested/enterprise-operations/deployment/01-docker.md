@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Docker Compose 部署"
-description: 'Docker Compose 部署：架构、契约与源码锚点。'
+description: 'Docker Compose 部署：5 服务拓扑、端口绑定与生产上线检查。'
 topics: [deployment, docker, kubernetes]
 verified_against: v2.2.0
 last_verified: 2026-11-08

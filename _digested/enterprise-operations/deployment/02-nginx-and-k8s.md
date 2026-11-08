@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Nginx 路由 + K3s Provisioner"
-description: 'Nginx 路由 + K3s Provisioner：架构、契约与源码锚点。'
+description: 'Nginx 路由/SSE 与 K3s Provisioner 的部署配置与边界。'
 topics: [deployment, docker, kubernetes]
 verified_against: v2.2.0
 last_verified: 2026-11-08

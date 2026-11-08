@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "代码路径追踪：从 `run_agent()` 到 Pregel `tick()` 的完整调用链"
-description: '读完前面三篇你可能有一个困惑：**agent loop 的代码到底在哪？** 答案是：它不在 DeerFlow 里，而是在 **LangChain + LangGraph** 的源码中。DeerFlow 做的是在 loop 的每一个 hoo'
+description: '读完前面三篇你可能有一个困惑：agent loop 的代码到底在哪？ 答案是：它不在 DeerFlow 里，而是在 LangChain + LangGraph 的源码中。DeerFlow 做的是在 loop 的每一个 hoo'
 topics: [agent-loop, langgraph, execution-model]
 verified_against: v2.2.0
 last_verified: 2026-11-08

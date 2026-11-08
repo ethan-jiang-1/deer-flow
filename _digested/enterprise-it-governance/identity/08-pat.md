@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "个人访问令牌（PAT）"
 description: '程序化访问的凭据模型：dfp_ 前缀、base62(32) 随机体、SHA-256 摘要存储、9 个作用域，以及默认拒绝的路由边界——PAT 只能缩小权限，不能放大。'
 topics: [governance, identity, pat, api]

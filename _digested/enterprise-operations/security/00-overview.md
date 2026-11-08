@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "安全全景"
-description: '一段用户 prompt 到 `rm -rf /` 被执行 — 中间到底隔了多少层防护？'
+description: '一段用户 prompt 到 rm -rf / 被执行 — 中间到底隔了多少层防护？'
 topics: [security, auth, isolation-defense]
 verified_against: v2.2.0
 last_verified: 2026-11-08

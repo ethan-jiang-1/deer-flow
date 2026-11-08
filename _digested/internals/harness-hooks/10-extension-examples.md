@@ -1,6 +1,4 @@
 ---
-
-
 title: "扩展示例目录：14 个 deerflow-extension-* 包的贡献点地图"
 description: '把 examples/ 下 14 个可安装扩展示例按 9 个 registry 注册方法归类，逐包给出贡献点、入口、测试与延伸阅读，作为 09 契约页与 security/06 授权页之间的选型地图。'
 type: deep-dive

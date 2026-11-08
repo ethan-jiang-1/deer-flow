@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Buzz 频道 — Nostr relay 上的身份验证与去重"
 description: 'Buzz 是 DeerFlow 的 Nostr（NIP-01/NIP-42）IM 通道：一条经 BIP-340 签名验证的 WebSocket 接入 relay，pubkey allowlist + 三重闸门入站，kind-40003 原地编辑流式出站。'
 topics: [channels, im, buzz, nostr, nip-01, nip-42, bip-340, dedupe]

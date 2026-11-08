@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "Work Orchestration Primitives Ladder · DeerFlow 编排原语阶梯"
 description: '借鉴 DSH orchestration-ladder 专题的挖掘方法，对 DeerFlow 做跨原语统一视角的深挖：原语阶梯全景、完成语义与崩溃窗口、状态三分法、资源预算叠加。'
 topics: [orchestration, primitives, completion, state, budget, langgraph]

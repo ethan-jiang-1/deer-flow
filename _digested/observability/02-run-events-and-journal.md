@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "结构化事件流：RunEventStore 与 RunJournal"
 description: 'DeerFlow 有一个 append-only 的 run 事件流：RunJournal 把 LangChain 回调标准化成 RunEvent，写入 RunEventStore。它是审计、回放、调试端点、subtask 卡片、workspace 审查的共同数据源。v2.2.0 起多了 run.terminal 权威终态事件、per-call LLM 遥测、证据封印链，以及跨删除不复用的 seq 水位。'
 topics: [observability, run-events, journal, audit, terminal-events]

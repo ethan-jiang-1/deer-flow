@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "前端架构"
-description: '前端架构：架构、契约与源码锚点。'
+description: '前端技术栈、目录结构、扩展运行时与 Pagefind 搜索的架构总览。'
 topics: [frontend, nextjs, react]
 verified_against: v2.2.0
 last_verified: 2026-11-08

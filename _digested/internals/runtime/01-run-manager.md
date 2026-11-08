@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "RunManager — 运行生命周期管理"
-description: 'RunManager — 运行生命周期管理：架构、契约与源码锚点。'
+description: 'RunManager：运行生命周期、状态迁移、取消/接管与资源预算。'
 topics: [runtime, streaming, checkpointer]
 verified_against: v2.2.0
 last_verified: 2026-11-08

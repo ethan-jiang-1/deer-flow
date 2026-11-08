@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "goal 驾驶座：续轮准入、评估熔断与收尾（DeerFlow 的宿主驱动形态）"
 description: '核验 DeerFlow goal 的真实形态：模型不可自报完成——裁决权在 run worker 的独立评估器模型；两个独立预算（continuation / no-progress）；evidence signature 熔断；checkpoint 实例身份门；stand_down_reason 收尾。全部结论带 path:line。'
 topics: [goal, orchestration, continuation, evaluation, worker]

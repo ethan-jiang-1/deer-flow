@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "反射加载：`resolve_variable` / `resolve_class` 动态模块系统"
-description: '反射加载：`resolve_variable` / `resolve_class` 动态模块系统：架构、契约与源码锚点。'
+description: '反射加载：resolve_variable / resolve_class 的动态 import 与类型校验。'
 topics: [hooks, extension, plugin-system]
 verified_against: v2.2.0
 last_verified: 2026-11-08

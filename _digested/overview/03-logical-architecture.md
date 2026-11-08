@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "DeerFlow 逻辑结构图"
-description: 'DeerFlow 逻辑结构图：架构、契约与源码锚点。'
+description: 'DeerFlow 的逻辑结构：同心圆分层、Agent Loop 与 Middleware Chain。'
 topics: [architecture, system-overview]
 verified_against: v2.2.0
 last_verified: 2026-11-08

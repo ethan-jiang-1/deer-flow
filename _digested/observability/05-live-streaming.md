@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "实时观测：SSE 事件流与 StreamBridge"
-description: 'StreamBridge 通过 SSE 把一次 run 的实时增量推给前端/IM channel。事件类型、心跳/续传、memory vs redis 后端、v2.2.0 的 producer lease 与 SSE 反压缩响应头。这是唯一''''活着''''的观测面，但保留上限决定了它不是完整回放。'
+description: 'StreamBridge 通过 SSE 把一次 run 的实时增量推给前端/IM channel。事件类型、心跳/续传、memory vs redis 后端、v2.2.0 的 producer lease 与 SSE 反压缩响应头。这是唯一''活着''的观测面，但保留上限决定了它不是完整回放。'
 topics: [observability, sse, streaming, stream-bridge, producer-lease]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "RunJournal — LLM 调用日志与 Token 统计"
-description: 'RunJournal — LLM 调用日志与 Token 统计：架构、契约与源码锚点。'
+description: 'runtime/journal.py (1977 行，v2.2.0 实测；v2.1.0 为 1300 行) — LangChain CallbackHandler → RunEventStore 的事件日志、token 统计、写入缓冲/隔离（quarantine）与证据结算'
 topics: [runtime, streaming, checkpointer]
 verified_against: v2.2.0
 last_verified: 2026-11-08

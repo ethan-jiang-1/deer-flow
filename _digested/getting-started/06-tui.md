@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "TUI 终端工作台"
-description: 'TUI 终端工作台：架构、契约与源码锚点。'
+description: 'deerflow CLI：安装、五种启动模式（TUI / headless print / headless JSON / 降级 help / 透明背景）、命令全集与别名、键位真值、会话持久化与输入历史、流式渲染与滚动语义。'
 topics: [tui, cli, terminal]
 verified_against: v2.2.0
 last_verified: 2026-11-08

@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "沙箱系统"
-description: 'DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 7 种运行模式 / 6 个具体 provider 类（Provisioner 是 AIO 的 remote backend）。2.2.0 的关键增量：可重试的 shutdown、bash 硬超时的 124 退出码、AIO 隔离记录（quarantine）、投机式 prewarm、统一下载/读文件契约。'
+description: 'DeerFlow 的沙箱系统提供统一的执行环境抽象，Agent 不感知底层是本地文件系统还是 Docker 容器。现有 7 种实现（Local/AIO/Provisioner/BoxLite/E2B/Tenki/OpenSandbox）。2.2.0 的关键增量：可重试的 shutdown、bash 硬超时的 124 退出码、AIO 隔离记录（quarantine）、投机式 prewarm、统一下载/读文件契约。'
 topics: [sandbox, isolation, filesystem]
 verified_against: v2.2.0
 last_verified: 2026-11-08

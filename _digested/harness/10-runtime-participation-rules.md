@@ -1,7 +1,4 @@
 ---
-
-
-
 title: "DeerFlow 的参与规则住在哪一层 —— 五个运行时问题的源码答案"
 description: '逐问盘点 DeerFlow 的参与规则住在哪一层：能力可见性、依赖未就绪、同名隔离、清理归属、配置到树。每个答案来自本仓库源码，缺答案的缺口如实登记。'
 topics: [harness, participation-rules, runtime, extensions, config]

@@ -1,9 +1,6 @@
 ---
-
-
-
 title: "DeerFlow 启动与请求处理全流程"
-description: '![Startup Sequence](figures/startup-sequence.svg)'
+description: '从命令到 `agent.astream`：启动六阶段、lifespan 与依赖初始化。'
 topics: [architecture, system-overview]
 verified_against: v2.2.0
 last_verified: 2026-11-08

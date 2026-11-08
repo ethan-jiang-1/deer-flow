@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "D. 任务委派 & 工具发现"
-description: 'D. 任务委派 & 工具发现：架构、契约与源码锚点。'
+description: 'D. 任务委派与工具发现：`task` / `tool_search` 的工具契约与延迟加载。'
 topics: [tools, builtin, sandbox-tools]
 verified_against: v2.2.0
 last_verified: 2026-11-08

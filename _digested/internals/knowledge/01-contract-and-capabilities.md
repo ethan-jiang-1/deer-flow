@@ -1,10 +1,6 @@
 ---
-
-
-
-
 title: "Knowledge 契约 — 数据模型、能力位与操作投影"
-description: 'Knowledge 契约 — 数据模型、能力位与操作投影：架构、契约与源码锚点。'
+description: 'Knowledge 契约：数据模型、能力位与操作投影。'
 topics: [knowledge, contract, capabilities, providers, extensions]
 verified_against: v2.2.0
 last_verified: 2026-11-08
