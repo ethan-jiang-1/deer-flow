@@ -53,9 +53,9 @@ agent 级 SLO、实时成本预算告警、操作完整性验证、终态事件�
 | 缺口 | 现位置 |
 |---|---|
 | 聚合仪表盘、内置告警 | [enterprise-it-governance/audit/02-observability.md](../enterprise-it-governance/audit/02-observability.md) §5 |
-| guardrail deny 审计、事件覆盖 | [enterprise-it-governance/audit/03-event-coverage.md](../enterprise-it-governance/audit/03-event-coverage.md) |
+| guardrail deny 审计、事件覆盖 | [enterprise-it-governance/audit/04-event-coverage.md](../enterprise-it-governance/audit/04-event-coverage.md) |
 | 操作完整性验证、终态事件原子性 | [enterprise-it-governance/audit/01-audit-chain.md](../enterprise-it-governance/audit/01-audit-chain.md) |
-| SandboxAudit 是否结构化 | [enterprise-it-governance/audit/02-sandbox-audit.md](../enterprise-it-governance/audit/02-sandbox-audit.md) |
+| SandboxAudit 是否结构化 | [enterprise-it-governance/audit/03-sandbox-audit.md](../enterprise-it-governance/audit/03-sandbox-audit.md) |
 | agent 级 SLO / error budget | [enterprise-it-governance/cost/02-deployment-and-ops.md](../enterprise-it-governance/cost/02-deployment-and-ops.md) §5 |
 | 实时成本预算告警 | [enterprise-it-governance/cost/03-budgets-and-limits.md](../enterprise-it-governance/cost/03-budgets-and-limits.md) §5 |
 | 成本预算与限额 | [enterprise-it-governance/cost/03-budgets-and-limits.md](../enterprise-it-governance/cost/03-budgets-and-limits.md) |
