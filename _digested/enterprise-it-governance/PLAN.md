@@ -295,15 +295,37 @@ _digested/
 
 ### 4.7 搬迁清单（执行时逐条打勾）
 
-| # | 动作 | 文件 |
+| # | 动作 | 文件 | 状态 |
+|---|---|---|---|
+| 1 | 从 `observability/07` 移除「已知缺口」整节 | `observability/07-production-checklist.md` | ✅ |
+| 2 | 将该节 9 条缺口按 4.3 表分落到本卷 4 篇 | `audit/01`、`audit/02`、`audit/03`、`cost/01`、`cost/03` | ✅ |
+| 3 | `observability/07` 开头加一句指向本卷缺口清单 | 同上 | ✅ |
+| 4 | 从 `orchestration-ladder/03` 移除「四、不理想化清单」节 | `orchestration-ladder/03-*.md` | ✅ |
+| 5 | 将「不理想化清单」内容并入本卷 `cost/03` | `cost/03-budgets-and-limits.md` | ✅ |
+| 6 | `orchestration-ladder/03` 开头加一句指向本卷治理归纳 | 同上 | ✅ |
+| 7 | 校验：搬动后原文件无断链、本卷无重复叙述 | `check_digest.py` | ✅ |
+
+**搬家承接位置（执行后实际落点）**
+
+| 原内容 | 现位置 |
+|---|---|
+| 聚合仪表盘、内置告警 | `audit/02-observability.md` §5 |
+| guardrail deny 审计 | `audit/03-event-coverage.md` |
+| 操作完整性验证、终态事件原子性 | `audit/01-audit-chain.md` |
+| SandboxAudit 是否结构化 | `audit/02-sandbox-audit.md` |
+| agent 级 SLO、实时成本预算告警 | `cost/02-deployment-and-ops.md` §5 |
+| 成本预算与限额 | `cost/03-budgets-and-limits.md` |
+| 六条「无限制」事实 | `cost/03-budgets-and-limits.md` §7 |
+
+原文件均保留一节**指路**（不是「内容仍在原处」），搬迁后 `check_digest.py` 无断链。
+
+### 4.7.x 搬迁中发现的事实订正
+
+| 断言 | 原说法 | 核实结果 |
 |---|---|---|
-| 1 | 从 `observability/07` 移除「已知缺口」整节 | `observability/07-production-checklist.md` |
-| 2 | 将该节 9 条缺口按 4.3 表分落到本卷 4 篇 | `audit/01`、`audit/02`、`audit/03`、`cost/01`、`cost/03` |
-| 3 | `observability/07` 开头加一句指向本卷缺口清单 | 同上 |
-| 4 | 从 `orchestration-ladder/03` 移除「四、不理想化清单」节 | `orchestration-ladder/03-*.md` |
-| 5 | 将「不理想化清单」内容并入本卷 `cost/03` | `cost/03-budgets-and-limits.md` |
-| 6 | `orchestration-ladder/03` 开头加一句指向本卷治理归纳 | 同上 |
-| 7 | 校验：搬动后原文件无断链、本卷无重复叙述 | `check_digest.py` |
+| 子代理并发默认值 | 「MAX_CONCURRENT_SUBAGENTS=3 是旧值，已改 64」 | **两个数字都对，但指的是不同维度**：`subagent_runtime.max_running` 默认 **3**（真正同时执行的）；`MAX_CONCURRENT_SUBAGENT_CALLS = 64` 是响应级截断的安全上限。经 `clamp_subagent_concurrency` 取较小值，**默认执行并发是 3**。原「旧值 3 已作废」的记法本身需要订正 |
+| agent 操作完整性 | 「当前没有」 | **过时**：Evidence Receipt/Seal + `content_sha256` 已存在。准确定位是「能证明事件未改、范围有界；不能证明意图与行为一致」 |
+| 事件删除 | 未提及 | 删除事件会把 `evidence_seal_state` 置 `partial`、revision +1、删 `CompletedRunSnapshotRow`（`events/store/db.py:410-413`），但**事件行本身真的没了** |
 
 ## 5. 写作纪律
 

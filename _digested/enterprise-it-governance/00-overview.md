@@ -19,7 +19,7 @@ DeerFlow 不是 IT 管理平台。但它内建了一批治理原语。
 | 2 | **沙箱隔离** | Agent 能碰系统文件吗？ | 3 种沙箱模式 + 路径防穿透 + per-thread 隔离 | Local 模式共享宿主内核 |
 | 3 | **工具授权** | 谁能决定 agent 调什么工具？ | GuardrailMiddleware（可插拔 provider）+ 三道门（名单 / 风险概率 / decisions 接口） | 无 per-thread 策略；未探测的工具是绕过路径 |
 | 4 | **命令审计** | bash 里能写危险命令吗？ | SandboxAuditMiddleware：高危 block + 中危 warn | 规则硬编码；**只写日志不落库** |
-| 5 | **执行限额** | Agent 能无限跑下去吗？ | 循环检测 + 并发上限 64 + `token_budget`（默认关）+ `recursion_limit` 100 | **无货币预算**；token 预算默认关闭 |
+| 5 | **执行限额** | Agent 能无限跑下去吗？ | 循环检测 + 并发上限（默认执行 3 / 截断 64） + `token_budget`（默认关）+ `recursion_limit` 100 | **无货币预算**；token 预算默认关闭 |
 | 6 | **内容安全** | Agent 输出有害内容怎么办？ | SafetyFinishReasonMiddleware（被动清除被污染的 tool_calls） | 无主动输出扫描；无独立输入 guardrail |
 | 7 | **审计追溯** | 出事了能查到谁干的吗？ | SandboxAudit 日志 + RunJournal + tracing | subagent 的 guardrail 事件不可见；allow 决策不留痕 |
 | 8 | **成本归属** | Agent 花了多少钱？ | TokenUsageMiddleware + subagent 用量合并 + per-model `stream_usage` | 无实时成本仪表盘；无单价表 |
@@ -34,7 +34,7 @@ DeerFlow 不是 IT 管理平台。但它内建了一批治理原语。
 
 | 旧说法 | 订正后 | 证据 |
 |---|---|---|
-| 子代理并发「≤3」 | **64** | `packages/harness/deerflow/config/subagents_config.py:17` |
+| 子代理并发「≤3」 | **默认执行并发仍是 3**（`config/subagent_runtime_config.py:12`）；「64」是响应级截断上限（`subagents_config.py:17`）。两者经 `clamp_subagent_concurrency` 取小值，所以**默认仍是 3** |
 | 「无 per-run 预算上限」 | **有 `token_budget`**（双阈值，默认关闭） | `config.example.yaml:105-111` |
 | 「Guardrail deny 不写 RunJournal」 | **会写**，落 `middleware:guardrail` 事件 | `packages/harness/deerflow/guardrails/middleware.py:171` |
 
@@ -93,7 +93,7 @@ Agent 在用户上下文里跑，继承用户全部权限。
 |---|---|
 | token 总量 | 是（默认关闭） |
 | 递归步数 | 是（100 步） |
-| 并发 | 是（64） |
+| 并发 | 是（默认执行 3）；响应级截断上限 64 |
 | **金额** | **否** |
 
 框架不知道模型单价，所以「每个 run 最多花 X 元」无法表达。

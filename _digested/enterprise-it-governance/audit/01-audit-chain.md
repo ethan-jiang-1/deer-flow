@@ -103,5 +103,24 @@ Trace 属性映射：
 
 ### Agent 操作完整性验证
 
-**当前没有。** 无法确认 agent 是否只做了它声称要做的操作。MCP/ACP 等外部集成增加了验证难度。
+这里有两件不同的事，必须分开说：
+
+| 问题 | 能否回答 | 依据 |
+|---|---|---|
+| **事件有没有被篡改** | **能** | Evidence Receipt/Seal + `content_sha256` 逐条摘要素 |
+| **范围是否完整** | **部分** | `evidence_seal_state` 可检出「证据被删过」（`events/store/db.py:410-413`） |
+| **agent 是否只做了它声称的操作** | **不能** | 无法证明意图与行为一致 |
+
+**中间一行是 v2.2.0 的实质改善**：删除事件会把该 run 的
+`evidence_seal_state` 置为 `partial`（`events/store/db.py:412`）、
+`evidence_retention_revision` +1、并删除对应的 `CompletedRunSnapshotRow`。
+
+所以要「删了就能赖掉审计」在**证据层**是做不实的——
+但要注意：**事件行本身真的没了**。
+
+### 终态事件的原子性缺口
+
+`run.terminal` 的单例插入与 `RunRow` 终态提交是**两个事务**。
+两者之间崩溃且无 takeover claim 时，会出现「有终态行、没有 `run.terminal`」。
+上游明确写着需要 durable outbox / 对账才能闭合，不在当前范围。
 

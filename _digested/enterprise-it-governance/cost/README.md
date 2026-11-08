@@ -24,8 +24,9 @@ v2.2.0 已补上 per-run 预算（max_total_per_run + token_budget），但实�
 
 | 文件 | 主题 | 内容 |
 |------|------|------|
-| 03-budgets-and-limits.md | 预算与上限 | token_budget、max_total_per_run、并发 64 |
+| 03-budgets-and-limits.md | 预算与上限 | token_budget、max_total_per_run、执行并发 3 与截断 64 的区别 |
 | 04-multi-instance.md | 多实例 | multi_instance 的 8 条拒绝规则、共享状态要求 |
+| 05-concurrency-and-scheduling.md | 并发与调度 | 执行并发 3 vs 截断 64、调度层事实、六条默认「无限制」 |
 
 ---
 

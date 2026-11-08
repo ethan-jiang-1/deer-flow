@@ -91,7 +91,7 @@ DeerFlow 是**通用 agent 框架**，不内置任何面向特定用途的风险
 
 | 控制项 | 机制 | 边界 |
 |---|---|---|
-| 并发子代理数 | `MAX_CONCURRENT_SUBAGENT_CALLS = 64`（`subagents_config.py:17`） | 上限很高 |
+| 并发子代理数 | 执行并发默认 3（`config/subagent_runtime_config.py:12`）；截断上限 `MAX_CONCURRENT_SUBAGENT_CALLS = 64`（`subagents_config.py:17`） | 截断上限高，实际并发受执行槽位约束 |
 | 单次运行的子代理总数 | `max_total_per_run`（`subagents_config.py:179`） | 可配 |
 | 工具级允许/拒绝 | Guardrail 策略 | 可配 |
 | 循环检测 | `tool_progress`（`config.example.yaml`） | 可配 |

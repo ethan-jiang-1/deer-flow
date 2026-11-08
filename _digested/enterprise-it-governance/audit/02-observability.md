@@ -94,7 +94,7 @@ Langfuse / LangSmith 通过 callback 接入：
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| 集群级聚合视图 | **无** | 无跨 agent / 跨用户的界面 |
+| 集群级聚合视图 | **无** | 无跨 agent / 跨用户的界面；RunJournal / tracing / SSE / Console 数据都能支撑，缺的是 UI |
 | 行为异常检测 | **无** | 无基线、无阈值、无告警规则 |
 | 内置 OTEL 导出 | **无** | 仅 callback 形式支持 Langfuse/LangSmith |
 | 跨副本的事件续传 | **部分** | 内存缓冲；重启即丢 |

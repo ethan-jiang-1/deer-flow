@@ -34,9 +34,11 @@ topics: [governance, execution]
 
 `SubagentLimitMiddleware` — 限制 lead agent 一次派发的 subagent 数量。
 
-> ⚠️ **v2.2.0 变更**：此前文档记为 `MAX_CONCURRENT_SUBAGENTS=3`（限幅 [2,4]）。2.2.0 的
-> `packages/harness/deerflow/config/subagents_config.py:17` 是 `MAX_CONCURRENT_SUBAGENT_CALLS = 64`。总数另由
-> `subagents.max_total_per_run` 兜底（见 [成本与容量](../cost/01-cost-attribution.md)）。
+> ⚠️ **两个数字别混**：此前文档记为 `MAX_CONCURRENT_SUBAGENTS=3`，2.2.0 的
+> `config/subagents_config.py:17` 是 `MAX_CONCURRENT_SUBAGENT_CALLS = 64`——但 **64 是响应级截断的安全上限**。
+> 真正同时执行的并发由 `subagent_runtime.max_running` 决定，**默认仍是 3**
+> （`config/subagent_runtime_config.py:12`），两者经 `clamp_subagent_concurrency` 取较小值（`subagents_config.py:20-25`）。
+> 总数另由 `subagents.max_total_per_run` 兜底。展开见 [预算与限额](../cost/03-budgets-and-limits.md) §3。
 
 ```
 LLM 产出 N 个 task tool_call → SubagentLimitMiddleware 截断到上限 → 多出的被静默丢弃

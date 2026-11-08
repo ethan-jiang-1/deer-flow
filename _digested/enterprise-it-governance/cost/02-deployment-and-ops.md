@@ -92,7 +92,7 @@ topics: [governance, cost, ops]
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| Agent 级 SLO / error budget | **无** | 只有进程级健康 |
+| Agent 级 SLO / error budget | **无** | 只有进程级健康；`LLMErrorHandlingMiddleware` 是 per-call retry + 断路器，无 agent 级熔断 |
 | Agent 级熔断 | **无** | `LLMErrorHandlingMiddleware` 有 per-call retry + circuit breaker，但作用域仅单次调用 |
 | 灰度发布 | **无** | 配置全量生效 |
 | Chaos engineering 支持 | **无** | — |

@@ -84,17 +84,7 @@ max_recursion_limit: 1000
 
 **这是「可覆盖但不可越界」的模式**：灵活性给客户端，安全性留给服务端。
 
-## 3. 并发与总量
-
-| 控制 | 默认 | 位置 |
-|---|---|---|
-| 并发子代理数 | **64** | `subagents_config.py:17`（`MAX_CONCURRENT_SUBAGENT_CALLS`） |
-| 单 run 子代理总数 | 可配 | `subagents_config.py:179`（`max_total_per_run`） |
-
-**64 是个很高的默认值**。它意味着单个 run 理论上可以同时派发 64 个子代理，
-每个都在调 LLM。真正约束开销的是 `max_total_per_run` 与 token 预算。
-
-## 4. 最根本的边界：没有货币预算
+## 2. 最根本的边界：没有货币预算
 
 | 维度 | 是否可限 | 单位 |
 |---|---|---|
@@ -110,7 +100,7 @@ DeerFlow 只统计和限制 token，**不知道价格**。
 所以「每个 run 最多花 X 元」这件事在框架层无法表达，
 只能通过「选便宜模型 + 限 token 数」间接近似。
 
-### 4.1 成本归属是事后统计
+### 2.1 成本归属是事后统计
 
 `TokenUsageMiddleware` 在 AIMessage 上标注 `usage_metadata`，
 subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md](01-cost-attribution.md)）。
@@ -121,7 +111,7 @@ subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md
 | 是否实时 | 运行中可累积 |
 | 是否能换算货币 | **不能**（框架不知道单价） |
 
-## 5. 三个维度的组合效果
+## 3. 三个维度的组合效果
 
 | 场景 | 是否被挡住 |
 |---|---|
@@ -133,7 +123,7 @@ subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md
 
 **第 3–5 行是「有 token 限制 ≠ 有成本控制」的具体体现。**
 
-## 6. 缺口
+## 4. 缺口
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
@@ -148,9 +138,9 @@ subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md
 **最后一条值得注意**：`hard_stop_threshold` 触发时剥离 tool_calls，
 但这个动作**不产生结构化事件**——事后无法从 journal 里看出「这次 run 是被预算掐停的」。
 
-## 7. 与其他章节的关系
+## 5. 与其他章节的关系
 
 - 成本归属与 token 统计：[01-cost-attribution.md](01-cost-attribution.md)
 - 多实例部署的成本影响：[04-multi-instance.md](04-multi-instance.md)
-- 执行层限额：[../execution/05-execution-limits.md](../execution/05-execution-limits.md)
+- 并发与调度：[05-concurrency-and-scheduling.md](05-concurrency-and-scheduling.md)
 - 自主性边界：[../authorization/02-bounded-autonomy.md](../authorization/02-bounded-autonomy.md)

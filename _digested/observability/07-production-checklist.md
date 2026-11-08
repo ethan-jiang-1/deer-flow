@@ -44,21 +44,23 @@ DeerFlow 给的是观测**原料**，不是现成的聚合仪表盘和告警。�
   └─ 要丢给上游/社区 → make support-bundle（脱敏）
 ```
 
-## 已知缺口（诚实版）
+## 已知缺口的治理含义
 
-DeerFlow 当前**没有**的，得你自己补或接受：
+本节的九条缺口（聚合仪表盘、内置告警、guardrail deny 审计、SandboxAudit 结构化、
+agent 级 SLO、实时成本预算告警、操作完整性验证、终态事件原子性、事件删除即证据失效）
+**已迁移到 IT 治理卷**——它们是治理判断而非运维步骤，放在本清单里会两头不靠：
 
-| 缺口 | 现状 |
-|------|------|
-| 聚合仪表盘 | 无 agent 级 dashboard；数据（RunJournal/tracing/SSE/Console）能支撑，只是无内建 UI |
-| 内置告警 | 无；需 cron 打 Console + Langfuse threshold 告警 + 断路器兜底 |
-| guardrail deny 审计 | ~~只走 `logger.warning()`，不写 RunJournal~~ —— **v2.2.0 实测这条是错的**：`middleware:guardrail` 已接入（`guardrails/middleware.py:170-177` 调 `journal.record_middleware(tag=MIDDLEWARE_GUARDRAIL_TAG, hook="wrap_tool_call", ...)`，`changes` 带 `allow` / `policy_id` / `reason_codes` / `reason_messages` / `fail_closed` / `provider_error`）。注意它**只覆盖 `wrap_tool_call`**，模型输入侧的 guardrail 决策不在事件流里 |
-| SandboxAudit 结构化 | 纯文本日志，非 JSON；接 SIEM/SOAR 需额外解析 |
-| agent 级 SLO / error budget | 无；`LLMErrorHandlingMiddleware` 是 per-call retry + 断路器，无 agent 级熔断 |
-| 实时成本预算告警 | 有 per-run token 统计，无预算上限 + 实时告警 |
-| Agent 操作完整性验证 | 部分改善但**未闭合**：🆕 v2.2.0 有 `run.terminal` + Evidence Receipt/Seal（`RunRow.evidence_seal_state`）+ `content_sha256` 逐条摘要素，能校验「事件没被改、范围有界」；但**不**能证明 agent 只做了它声称的操作 |
-| 🆕 终态事件的原子性 | `run.terminal` 单例插入与 `RunRow` 终态提交是**两个事务**；两者之间崩溃且无 takeover claim → 有终态行、没有 `run.terminal`。上游明确写"需要 durable outbox / 对账才能闭合，不在本次范围" |
-| 🆕 事件删除即证据失效 | 删 thread/run 事件会让该 run 的 `evidence_seal_state` 变 `partial`、`evidence_retention_revision` +1、并删 `CompletedRunSnapshotRow`——所以"删了就能赖掉审计"只在证据层做实，**事件行本身真的没了** |
+| 缺口 | 现位置 |
+|---|---|
+| 聚合仪表盘、内置告警 | [enterprise-it-governance/audit/02-observability.md](../enterprise-it-governance/audit/02-observability.md) §5 |
+| guardrail deny 审计、事件覆盖 | [enterprise-it-governance/audit/03-event-coverage.md](../enterprise-it-governance/audit/03-event-coverage.md) |
+| 操作完整性验证、终态事件原子性 | [enterprise-it-governance/audit/01-audit-chain.md](../enterprise-it-governance/audit/01-audit-chain.md) |
+| SandboxAudit 是否结构化 | [enterprise-it-governance/audit/02-sandbox-audit.md](../enterprise-it-governance/audit/02-sandbox-audit.md) |
+| agent 级 SLO、实时成本预算告警 | [enterprise-it-governance/cost/02-deployment-and-ops.md](../enterprise-it-governance/cost/02-deployment-and-ops.md) §5 |
+| 成本预算与限额 | [enterprise-it-governance/cost/03-budgets-and-limits.md](../enterprise-it-governance/cost/03-budgets-and-limits.md) |
+
+本页只留「上线前开什么、日常看什么、排障走哪条路、告警怎么自己补」这些**可操作**内容。
+
 
 ## 告警配方（自己补）
 
