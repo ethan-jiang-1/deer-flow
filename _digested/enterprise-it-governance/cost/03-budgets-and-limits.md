@@ -6,12 +6,12 @@ topics: [governance, cost, limits]
 
 # 预算与限额
 
-DeerFlow 的用量控制有**三个维度**：token、递归步数、并发。
-它们都能限制开销，但**没有一个是货币单位**——这个区别必须讲清楚。
+DeerFlow 的用量控制有**三个可限额维度**：token、递归步数、并发。
+它们都能限制开销，但**金额没有对应的执行层限额**——这个区别必须讲清楚。
 
 ## 1. token 预算（默认关闭）
 
-![四个限额维度](figures/limit-dimensions.svg)
+![三个可限额维度与金额缺口](figures/limit-dimensions.svg)
 
 
 `config.example.yaml:105-111`：
@@ -28,7 +28,7 @@ token_budget:
 
 | 键 | 默认 | 作用 |
 |---|---|---|
-| `enabled` | **`false`** | 出厂**不做任何 token 限制** |
+| `enabled` | **`false`** | 顶层**不做任何 token 限制**；子代理层 `subagents.token_budget` 默认开启（2M/1M） |
 | `max_tokens` | 200000 | 单次 run 的总量（输入 + 输出） |
 | `max_input_tokens` | `null` | 可选的单独输入上限 |
 | `max_output_tokens` | `null` | 可选的单独输出上限 |
@@ -84,23 +84,27 @@ max_recursion_limit: 1000
 
 **这是「可覆盖但不可越界」的模式**：灵活性给客户端，安全性留给服务端。
 
-## 2. 最根本的边界：没有货币预算
+> 调度器创建的 run 使用 `scheduler.recursion_limit`，默认 **1000**（`config.example.yaml:2872`），
+> 不受这里的 100 约束。
+
+## 3. 最根本的边界：没有货币预算
 
 | 维度 | 是否可限 | 单位 |
 |---|---|---|
 | token 总量 | 是（`token_budget`） | token |
 | 输入/输出分别 | 是（`max_input_tokens`/`max_output_tokens`） | token |
 | 递归步数 | 是（`recursion_limit`） | 超级步 |
-| 并发 | 是（`max_total_per_run`） | 个数 |
+| 子代理执行并发 | 是（`subagent_runtime.max_running`，默认 3） | 个 |
+| 每 run 子代理总派发量 | 是（`max_total_per_run`，默认 6） | 个 |
 | **金额** | **否** | — |
 
 **为什么这是根本边界**：不同模型单价差几十倍，同样的 token 数花费完全不同。
-DeerFlow 只统计和限制 token，**不知道价格**。
-
-所以「每个 run 最多花 X 元」这件事在框架层无法表达，
+DeerFlow 统计和限制 token；**执行层不做货币预算**。框架本身不内置价目表，
+但 Console 侧支持 `models[*].pricing` 做**事后** cache-aware 计价——
+所以「每个 run 最多花 X 元」仍然无法在执行层表达，
 只能通过「选便宜模型 + 限 token 数」间接近似。
 
-### 2.1 成本归属是事后统计
+### 3.1 成本归属是事后统计
 
 `TokenUsageMiddleware` 在 AIMessage 上标注 `usage_metadata`，
 subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md](01-cost-attribution.md)）。
@@ -111,19 +115,19 @@ subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md
 | 是否实时 | 运行中可累积 |
 | 是否能换算货币 | **不能**（框架不知道单价） |
 
-## 3. 三个维度的组合效果
+## 4. 三个维度的组合效果
 
 | 场景 | 是否被挡住 |
 |---|---|
 | 单个 run 无限循环调 LLM | **是**（`recursion_limit` 100 步） |
-| 单个 run 塞入超长上下文 | **是**（`token_budget` ≥200k 时触发） |
-| 一次派发 64 个子代理 | **不挡**——这是默认允许的 |
+| 单个 run 塞入超长上下文 | **开启后是**（顶层 `token_budget` 默认关闭；开启后 ≥200k 触发） |
+| 一次派发 64 个子代理 | **截断**——默认只保留 `min(max_running=3, remaining_total=6)` 个，64 只是响应级安全上限 |
 | 同一用户开 100 个 thread 同时跑 | **不挡**——无 per-user 并发限制 |
 | 用最贵的模型跑 200k token | **不挡**——token 限得住，钱限不住 |
 
 **第 3–5 行是「有 token 限制 ≠ 有成本控制」的具体体现。**
 
-## 4. 缺口
+## 5. 缺口
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
@@ -133,12 +137,12 @@ subagent 用量由 `SubagentTokenCollector` 合并（见 [01-cost-attribution.md
 | 预算耗尽的告警 | **部分** | 有 warn 上下文警告（给模型），无运维告警 |
 | 跨 run 的累计上限 | **无** | 每个 run 独立计数 |
 | 模型级单价配置 | **无** | 无价格字段 |
-| 预算执行的事件留痕 | **无** | 触发 hard stop 不写 journal |
+| 预算执行的 journal 事件 | **无** | 触发 hard stop 会写 `runs.stop_reason`（`backend/packages/harness/deerflow/agents/middlewares/token_budget_middleware.py:303-314`），但没有 journal 事件与运维告警 |
 
 **最后一条值得注意**：`hard_stop_threshold` 触发时剥离 tool_calls，
 但这个动作**不产生结构化事件**——事后无法从 journal 里看出「这次 run 是被预算掐停的」。
 
-## 5. 与其他章节的关系
+## 6. 与其他章节的关系
 
 - 成本归属与 token 统计：[01-cost-attribution.md](01-cost-attribution.md)
 - 多实例部署的成本影响：[04-multi-instance.md](04-multi-instance.md)

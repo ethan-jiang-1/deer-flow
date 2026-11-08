@@ -26,7 +26,7 @@ token 预算与递归上限见 [03-budgets-and-limits.md](03-budgets-and-limits.
 | **响应级截断**（一次派发的 ceil） | **64** | `config/subagents_config.py:17`（`MAX_CONCURRENT_SUBAGENT_CALLS`） | 模型单次响应里最多保留多少个 task tool_call |
 | **排队上限** | 64 | `subagent_runtime_config.py:18`（`max_queued`） | 等待执行槽位的数量 |
 | **排队超时** | 300 秒 | `subagent_runtime_config.py:28`（`queue_timeout_seconds`） | 等不到槽位就失败 |
-| **单 run 总数** | 6（区间 1–50） | `subagents_config.py:13`（`DEFAULT_MAX_TOTAL_SUBAGENTS_PER_RUN`） | 一个 run 累计可派发的总数 |
+| **单 run 总数** | 6（区间 1–50） | `subagents_config.py:13`（`DEFAULT_MAX_TOTAL_SUBAGENTS_PER_RUN`） | 一个 run 累计可派发的普通 `task` 总数；durable `batch_task` 另有独立预算（`subagent_batches_config.py:9-23`） |
 
 ### 1.1 两个数字怎么配合
 
@@ -52,7 +52,16 @@ return max(MIN_CONCURRENT_SUBAGENT_CALLS, min(upper, value))
 | `admission_policy` 默认 `queue` | 满了排队而不是直接拒绝；失败形态是**延迟**而非报错 |
 | 跨层没有全局公平调度器 | 子代理按「谁先 `_acquire`」服务，多 run 混序 |
 | 每层内部都是 FIFO + 有界等待 | 不存在无界排队或优先级倒置 |
-| `max_running` 只在启动快照生效 | 热改对已创建的 controller 无效（见 §3.3） |
+| `max_running` 只在启动快照生效 | 热改对已创建的 controller 无效（见 §1.3） |
+
+### 1.2.1 scheduler 的容量旋钮
+
+| 旋钮 | 默认 | 含义 |
+|---|---|---|
+| `scheduler.max_concurrent_runs` | 3 | 跨实例的已调度 run 全局上限（`config.example.yaml:2870`） |
+| `max_concurrent_runs_per_user` | 2 | 单 owner 上限 |
+| `queue_timeout_seconds` | 3600 | 调度 occurrence 排队超时 |
+| `recursion_limit` | 1000 | 调度 run 的超级步上限（是交互 run 的 10 倍） |
 
 ### 1.3 热改不生效的那一项
 
@@ -73,8 +82,8 @@ return max(MIN_CONCURRENT_SUBAGENT_CALLS, min(upper, value))
 | 2 | **LLM 并发默认无限制** | `llm_call.max_concurrent_calls` 默认 `0` = 关闭上限（`config/app_config.py:112-114`）；且为**进程级**，`GATEWAY_WORKERS > 1` 时实际上限要乘 worker 数 |
 | 3 | **RPM 配速默认关闭** | `request_admission` 整块被注释（`config.example.yaml:33`） |
 | 4 | **嵌套深度无计数器** | 深度 = 1 靠工具剔除实现，custom agent 配置疏漏时无第二道深度闸 |
-| 5 | **每 run 总量上限区间宽松** | 默认 6，schema 允许到 50；截断是**静默**的，模型侧只有一条可见提示 |
-| 6 | **子代理容量热改只在启动快照生效** | `max_running` 对已创建的 controller 无效（见 §3.3） |
+| 5 | **每 run 总量上限区间宽松** | 默认 6，schema 允许到 50；响应级截断不追加提示，只有 per-run 总量耗尽才追加一条可见提示 |
+| 6 | **子代理容量热改只在启动快照生效** | `max_running` 对已创建的 controller 无效（见 §1.3） |
 
 ### 2.1 第 2 条值得展开
 
@@ -88,13 +97,13 @@ return max(MIN_CONCURRENT_SUBAGENT_CALLS, min(upper, value))
 ### 2.2 六条的共同点
 
 都不是 bug，而是「默认不限制、需要时自行收紧」的设计取向。
-直接影响：**默认部署在容量维度上是敞口的**，上线前必须逐项显式决定取值。
+直接影响：**默认部署在容量维度上是敞口的**，上线前需要逐项显式决定取值。
 
 ## 3. 缺口
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| 跨 thread 的 run 数上限 | **无** | Gateway 不限制同时 run 数 |
+| 跨 thread 的交互式 run 数上限 | **无** | Gateway 不限制同时 run 数；scheduler 的 `max_concurrent_runs` 只管已调度 occurrence |
 | 集群级 LLM 并发限制 | **无** | `max_concurrent_calls` 是进程级，多副本需乘 worker 数 |
 | 集群级 RPM 配速 | **无** | `request_admission` 默认不配 |
 | 嵌套深度计数器 | **无** | 深度=1 靠工具剔除，配置疏漏时无第二道闸 |

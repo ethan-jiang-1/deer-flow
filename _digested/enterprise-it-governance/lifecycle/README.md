@@ -9,7 +9,7 @@ topics: [governance]
 
 Agent 怎么上线、怎么改、怎么回滚、怎么下架。
 
-变更控制是企业区别于个人的关键：插件授予要重启、skill mutation 走七步流、配置有版本闸门。但 kill switch、灰度发布、agent 版本管理仍是缺口。
+变更控制是企业区别于个人的关键：插件授予要重启、skill mutation 走七步流、配置版本只有告警没有闸门。但全局 kill switch、灰度发布、agent 版本管理仍是缺口。
 
 > **约束：不修改项目源代码。** 本 `_digested/` 下所有内容仅作研究记录。详见 [根 README](../../README.md)。
 

@@ -18,13 +18,12 @@ topics: [governance]
 | 文件 | 主题 | 内容 |
 |------|------|------|
 | [01-audit-chain.md](01-audit-chain.md) | **审计链路** | SandboxAudit、RunJournal、completed-run evidence |
-| [02-observability.md](02-observability.md) | **可观测** | SSE、心跳、OTEL、缺失的 Fleet Dashboard |
+| [02-observability.md](02-observability.md) | **可观测** | SSE、心跳、OTEL、单用户 Console 视图 |
+| [02-sandbox-audit.md](02-sandbox-audit.md) | **SandboxAudit 细节** | bash 命令分类、结构化 JSON、只写日志不落库 |
+| [03-event-coverage.md](03-event-coverage.md) | **事件覆盖矩阵** | 哪些决策有结构化证据、哪些只有日志 |
 
-## 规划中
-
-| 文件 | 主题 | 内容 |
-|------|------|------|
-| 03-event-coverage.md | 事件覆盖矩阵 | 哪些决策有结构化证据、哪些只有日志 |
+> 两篇 `02-` 是并行的两个子主题（可观测 vs 沙箱审计），不是重复编号笔误；
+> 按顺序读建议 01 → 02-observability → 02-sandbox-audit → 03。
 
 ---
 

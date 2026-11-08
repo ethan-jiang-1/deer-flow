@@ -18,14 +18,9 @@ topics: [governance]
 | 文件 | 主题 | 内容 |
 |------|------|------|
 | [01-mapping.md](01-mapping.md) | **合规对照总表** | GDPR / SOC2 / ISO27001 / EU AI Act 逐条映射 |
-
-## 规划中
-
-| 文件 | 主题 | 内容 |
-|------|------|------|
-| 02-gdpr.md | GDPR | 数据主体权利、删除、跨境传输 |
-| 03-soc2-iso27001.md | SOC2 / ISO27001 | 访问控制、日志留存、变更管理 |
-| 04-eu-ai-act.md | EU AI Act | 2026-08 生效项、透明度义务 |
+| [02-gdpr.md](02-gdpr.md) | **GDPR** | 数据主体权利、删除、跨境传输 |
+| [03-soc2-iso27001.md](03-soc2-iso27001.md) | **SOC2 / ISO27001** | 访问控制、日志留存、变更管理 |
+| [04-eu-ai-act.md](04-eu-ai-act.md) | **EU AI Act** | 透明度、人类监督、自主性控制、日志留存 |
 
 ---
 

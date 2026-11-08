@@ -79,8 +79,8 @@ return SimpleNamespace(id=effective_id, system_role=INTERNAL_SYSTEM_ROLE)
 | 机制 | 限制了什么 | 证据 |
 |---|---|---|
 | 沙箱路径隔离 | agent 只能碰 `user × thread` 的目录 | `batch_acceptance.py:18-20` |
-| Guardrail | 可在工具调用层拦截特定工具 | `guardrails/middleware.py:171` |
-| PAT 路由默认拒绝 | PAT 触发的 agent 只能打白名单路由 | `app/gateway/auth/pat.py:60` |
+| Guardrail | **开启后**可在工具调用层拦截特定工具（示例配置默认关闭） | `guardrails/middleware.py:171` |
+| PAT 路由默认拒绝 | PAT 自己只能打白名单路由；run 建立后 agent 的工具调用不再携带 PAT | `app/gateway/auth/pat.py:60` |
 | 内部角色剔除 | internal 不是 RBAC 角色，无法借它提权 | `app/gateway/authz.py:300-308` |
 | `runs:cancel` 条件下检查 | 只有 `runs:create` 的凭据不能靠 `multitask_strategy` 终止运行 | `app/gateway/authz.py:139` |
 
@@ -92,8 +92,8 @@ return SimpleNamespace(id=effective_id, system_role=INTERNAL_SYSTEM_ROLE)
 | 缺口 | 状态 | 边界 |
 |---|---|---|
 | Agent 独立身份（可认证的 NHI） | **无** | 无 agent 凭据、无 agent id 参与认证 |
-| Agent 级权限 | **无** | 权限按 user 解析（`authz.py:278`），无 agent 维度 |
-| Agent 归因的审计字段 | **无** | RunJournal 记 `user_role` / `policy_id`，但不记 agent 身份 |
+| Agent 级权限 | **无** | 权限按 user 解析（`authz.py:288-290`），无 agent 维度 |
+| Agent 归因的审计字段 | **部分** | guardrail / loop_detection 等事件记 `agent_id`、`is_subagent`；但不是每个工具调用都带 agent 身份，native subagent 也没有 `__run_journal` |
 | Agent 级撤销 | **无** | 只能停用户或停整个 thread |
 | 临时授权（每次操作申请） | **无** | 无逐操作的授权申请/批准流（除工具级 approval） |
 | Subagent 身份传递 | **部分** | 继承了 user_id 与授权属性，但无自身标识 |

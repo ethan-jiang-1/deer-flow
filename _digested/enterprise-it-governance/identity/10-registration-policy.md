@@ -24,7 +24,9 @@ topics: [governance, identity, registration]
 
 ## 1.1 密码本身的防线
 
-注册与改密共用 `_validate_strong_password`（`app/gateway/routers/auth.py:117` 起），它只做两件事：
+注册与改密共用 `_validate_strong_password`（`app/gateway/routers/auth.py:117-127`），
+该函数只检查常见密码黑名单；最小长度由两个请求模型的 `Field(min_length=8)` 保证
+（`:134` 注册、`:144` 改密），不在该函数内。
 
 | 检查 | 值 | 证据 |
 |---|---|---|
@@ -112,7 +114,7 @@ auth:
 | 部署形态 | `allow_registration` | 理由 |
 |---|---|---|
 | 纯 SSO（账号从 IdP 来） | **`false`** | 否则绕过 IdP 的域名/验证策略 |
-| 纯本地账号（无 SSO） | 按需；生产建议 `false` + 手工建号 | 默认 `true` 意味着能访问即能开号 |
+| 纯本地账号（无 SSO） | 按需；生产通常设 `false`，由管理员建号 | 默认 `true` 意味着能访问即能开号 |
 | SSO + 部分本地账号 | **`false`** | 本地账号由管理员建，不开自助注册 |
 | 公网可访问的 Demo | `true` 可接受 | 但需配合限速与资源配额 |
 
@@ -146,4 +148,4 @@ auth:
 
 - SSO provisioning 四策略的完整说明：[07-sso-and-oidc.md](07-sso-and-oidc.md) §4、§5
 - 登录限速：[09-login-throttle.md](09-login-throttle.md)
-- 三条认证路径：[01-authentication-model.md](01-authentication-model.md)
+- 四条认证路径：[01-authentication-model.md](01-authentication-model.md)

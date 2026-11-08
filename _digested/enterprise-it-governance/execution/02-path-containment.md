@@ -13,7 +13,7 @@ topics: [governance, execution]
 
 | 层 | 位置 | 机制 |
 |----|------|------|
-| **1. 虚拟路径体系** | `sandbox/local/local_sandbox.py:263`（`class PathMapping`） | agent 只看到 `/mnt/user-data/{workspace,uploads,outputs}` |
+| **1. 虚拟路径体系** | `sandbox/local/local_sandbox.py:263`（`class PathMapping`） | agent 主要看到 `/mnt/user-data/{workspace,uploads,outputs}`；还映射 `/mnt/skills`（只读）与 `/mnt/acp-workspace`（`local_sandbox_provider.py:138-182`） |
 | **2. 工具层路径翻译** | `backend/packages/harness/deerflow/sandbox/tools.py:754`（`replace_virtual_path`） | 每个文件工具把虚拟路径转成宿主路径 |
 | **3. `allow_host_bash` 开关** | `sandbox/security.py:35`（`is_host_bash_allowed`） | Local 模式下默认**禁止**宿主 bash |
 | **4. CWD 注入** | `backend/packages/harness/deerflow/sandbox/tools.py:2917` | 命令前注入 `cd {VIRTUAL_PATH_PREFIX}/workspace;` |
@@ -35,11 +35,12 @@ command = f"cd {VIRTUAL_PATH_PREFIX}/workspace; {command}"
 | 写法 | 语义 | 后果 |
 |---|---|---|
 | `cd X && cmd` | cd 失败则**不执行** cmd | 更严格 |
-| **`cd X; cmd`（实际）** | cd 失败也**继续执行** cmd | 若 workspace 不存在，命令在**原 CWD** 执行 |
+| **`cd X; cmd`（实际）** | cd 失败也**继续执行** cmd | 若 workspace 不存在且未被 `ensure_thread_directories_exist` 创建，命令在**原 CWD** 执行 |
 
 **这不是漏洞，但改变了防线的作用方式**：
 第 4 层保证的是「默认工作目录」，而不是「命令被限制在 workspace 内」。
-真正限制目录的是第 1、2、5 层。
+真正限制目录的是第 1、2 层（虚拟挂载）与**文件工具**的第 5 层；
+bash 不经过第 5 层，只受第 1 层挂载替换和 SandboxAudit 正则约束。
 
 ## 3. 第 6 层：为什么要擦输出
 
@@ -72,8 +73,8 @@ SandboxAuditMiddleware 把命令按 `&&` / `||` / `;` 切分后**逐条**匹配�
 
 | 场景 | 是否被挡 |
 |---|---|
-| `cat /etc/passwd` | **挡**（第 5 层拒绝系统绝对路径） |
-| `cat ../../../../etc/passwd` | **挡**（第 5 层拒绝 `..`） |
+| `cat /etc/passwd` | **不挡**——第 5 层只校验文件工具的 path 参数；bash 不走它（`sandbox/tools.py:1019`、`local_sandbox.py:706-738`） |
+| `cat ../../../../etc/passwd` | **不挡**——`..` 只在文件工具参数校验；bash 的 `..` 原样交给 shell。Local + `allow_host_bash: true` 时可越出 thread 目录 |
 | 符号链接指向外部 | **取决于实现**——第 5 层声明拒绝，实际覆盖需实测 |
 | 通过 `bash -c` 执行未分类命令 | **可能漏**（正则盲区） |
 | 通过 Python 代码读写任意路径 | **可能漏**——这是沙箱模式的根本边界 |

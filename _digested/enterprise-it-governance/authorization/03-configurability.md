@@ -14,26 +14,28 @@ topics: [governance, authorization]
 | 策略 | 配置方式 | 热生效 |
 |---|---|---|
 | Guardrails allow/deny | `config.yaml` | 下一次 agent invocation |
-| Guardrails `fail_closed` | `config.yaml` | **重启** |
-| Guardrails provider | `config.yaml` | **重启** |
+| Guardrails `fail_closed` | `config.yaml` | 下一次 agent invocation |
+| Guardrails provider | `config.yaml` | 下一次 agent invocation |
 | SandboxAudit 高危命令 | **改代码**（`sandbox_audit_middleware.py` 的正则族） | **重启** |
 | Loop detection | `config.yaml` | 下一次 agent invocation |
-| Subagent 并发上限 | **改代码**（`subagents_config.py:17`） | **重启** |
+| Subagent 执行并发 | `config.yaml` 的 `subagent_runtime.max_running`（默认 3） | **启动快照/重启** |
 | Subagent 超时 | `config.yaml` | 下一次 agent invocation |
 | `allow_host_bash` | `config.yaml` | **重启** |
 
 ### 1.1 矩阵里的关键结论
 
-**三项安全关键配置需要重启才生效**：
+**真正需要重启的是三类**：
 
 | 项 | 为什么重要 |
 |---|---|
-| `fail_closed` | 决定 provider 故障时是拒还是放 |
-| SandboxAudit 高危命令 | 决定哪些命令被阻断 |
-| 并发上限 | 决定资源与成本上限 |
+| SandboxAudit 高危命令 | 决定哪些命令被阻断；规则硬编码，只能改代码 |
+| `allow_host_bash` | sandbox 启动期选项 |
+| `subagent_runtime.max_running` | 启动快照，热改对已创建的 controller 无效 |
 
-这意味着「**发现新的攻击模式 → 调整策略 → 生效**」中间有一个重启窗口。
-不停机的部署里，这个窗口等于「下次发布才生效」。
+`fail_closed` 与 provider 不在重启清单里——它们在下一次 agent invocation
+重新装配（`tool_error_handling_middleware.py:467-487`）。
+这意味着「**发现新的攻击模式 → 调整 SandboxAudit 规则 → 生效**」才需要重启窗口；
+纯配置层的 allow/deny、fail_closed、provider 不需要。
 
 ## 2. `fail_closed` 的默认值
 
@@ -123,7 +125,7 @@ DeerFlow 的自治模型可以概括为四行：
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| 安全策略热更新 | **无** | 三项需重启；无 reload 信号 |
+| 安全策略热更新 | **部分** | Guardrails allow/deny、fail_closed、provider 下一次 invocation 生效；SandboxAudit（改代码）、`allow_host_bash`、`subagent_runtime` 需重启 |
 | SandboxAudit 规则可配 | **无** | 设计上不可配，换取可证明性 |
 | 规则盲区的运行时披露 | **无** | 盲区只写在代码注释里（`:49-51`） |
 | 配置改动的生效确认 | **无** | 无「当前生效配置」查询端点 |

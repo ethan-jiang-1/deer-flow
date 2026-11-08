@@ -13,9 +13,9 @@ topics: [governance, identity]
 | 控制 | 机制 |
 |------|------|
 | **CORS** | `GATEWAY_CORS_ORIGINS` 环境变量（默认 same-origin） |
-| **CSRF** | CSRFMiddleware，检查 Origin/Referer header |
-| **API rate limiting** | 无内置——需在 nginx 层配置 |
-| **API key auth** | 无——依赖 JWT + CSRF |
+| **CSRF** | CSRFMiddleware，检查 `Origin` header（不读 Referer，`csrf_middleware.py:190`） |
+| **API rate limiting** | 登录接口有内置限速（5 次/300s，见 [09](09-login-throttle.md)）；通用 API rate limiting 无内置，需在 nginx 层配置 |
+| **API key auth** | 无独立 API key；程序化访问用 PAT（`dfp_` Bearer，见 [08](08-pat.md)） |
 
 ### 🆕 2.2.0：扩展面的身份投影与两处独立否决
 

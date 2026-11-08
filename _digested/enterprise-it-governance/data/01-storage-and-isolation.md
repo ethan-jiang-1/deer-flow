@@ -17,11 +17,17 @@ DeerFlow 的数据分散在**文件系统**与**关系库**两处，必须分开
 | 类别 | 存放 | 说明 |
 |---|---|---|
 | **用户记忆** | `{base}/users/{id}/memory.json` | 从对话提取的事实与偏好 |
+| **用户画像** | `{base}/users/{id}/USER.md` | per-user profile（`paths.py:199-205`） |
+| **per-user skills** | `{base}/users/{id}/skills/` | 用户自定义 skill（`paths.py:284-295`） |
 | **thread 数据** | `{base}/users/{id}/threads/{tid}/user-data/` | workspace / uploads / outputs |
 | **自定义 agent** | `{base}/users/{id}/agents/{name}/` | `SOUL.md` + `config.yaml` |
 | **会话与运行元数据** | 关系库（sqlite / postgres） | thread 记录、run、事件、PAT、用户 |
 
 前三类在**文件系统**，第四类在**数据库**。备份与删除策略必须两处都覆盖。
+
+**`{base}` 默认是 `{project_root}/.deer-flow`**（`config/runtime_paths.py:23-27`；
+可用 `DEER_FLOW_HOME` 覆盖）。PLAN §0.1 订正过的「`backend/.deer-flow/users/`」旧说法，
+指的是早期版本；当前以 `Paths` 的权威树为准（`paths.py:131-152`）。
 
 ### 1.1 目录布局的权威定义
 
@@ -55,18 +61,20 @@ DeerFlow 的数据分散在**文件系统**与**关系库**两处，必须分开
 这条路没有用户维度，升级后未迁移的旧数据就走在这里
 （详见 [../identity/03-user-isolation.md](../identity/03-user-isolation.md) §3）。
 
-## 3. OpenAI Assistants API 兼容层
+## 3. Assistants 兼容层：一个只读 stub
 
-Gateway 实现了 OpenAI Assistants 兼容接口，外部 OpenAI SDK 可直接对接。
+Gateway 的 `/api/assistants` **不是**完整的 OpenAI Assistants API，而是
+LangGraph Platform 兼容的只读 stub：`assistants_compat.py:1-10` 自述
+"minimal stub"，只提供 search/get/graph/schemas 四条路由（`:89`、`:109`、`:118`、`:136`），
+数据来自 `langgraph.json` 与 `config.yaml` 的 agent 定义。
 
 | 项 | 行为 |
 |---|---|
-| 身份验证 | 同样走 JWT / session |
-| thread 归属 | 遵循同一套 per-user 隔离规则 |
-| 数据落盘 | 同样进 `users/{user_id}/threads/{thread_id}/` |
+| 身份验证 | 走同一套 JWT/session 中间件 |
+| 数据落盘 | **无**——stub 只读注册表，不写 thread/run 数据 |
+| 隔离规则 | **没有第二份实现**，但也没有完整的 Assistants 语义（无 create/run/thread 端点） |
 
-**含义**：兼容层不是旁路——它复用同一套中间件与同一套 `paths` helper，
-所以隔离规则没有第二份实现（也就没有第二份漏洞）。
+**含义**：它不会成为「第二条数据路径」，但也不能被当成 OpenAI Assistants 的完整替代。
 
 ## 4. 存储后端的选择
 

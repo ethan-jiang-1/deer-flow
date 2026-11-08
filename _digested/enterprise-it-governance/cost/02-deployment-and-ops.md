@@ -1,6 +1,6 @@
 ---
 title: "部署与运维的成本视角"
-description: "两个健康端点（/health 静态、/health/ready 真探测）、51 个迁移版本、多实例的成本含义，以及为什么「运维成本」和「token 成本」要分开看。"
+description: "两个健康端点（/health 静态、/health/ready 真探测）、50 个迁移版本、多实例的成本含义，以及为什么「运维成本」和「token 成本」要分开看。"
 topics: [governance, cost, ops]
 ---
 
@@ -46,19 +46,20 @@ topics: [governance, cost, ops]
 （docstring: "Targets come from the startup snapshot recorded by `langgraph_runtime`"）。
 所以改了 `database:` 之后，就绪探针仍然探旧目标，直到重启。
 
-## 2. 迁移：51 个版本
+## 2. 迁移：50 个版本
 
-`persistence/migrations/versions/` 下有 **51** 个 Alembic 版本文件，head 是
+`persistence/migrations/versions/` 下有 **50** 个 Alembic 版本文件，head 是
 `0048_extension_execution_leases.py`。
 
 | 事实 | 含义 |
 |---|---|
-| 51 个版本文件 | 升级路径长，跨版本升级要跑完整链条 |
-| 有 `migrate_user_isolation.py` | 用户隔离是一次性的数据迁移，不是纯 schema 变更 |
-| 迁移的副本串行化 | **未文档化**，多副本同时启动时的行为需自行实测 |
+| 50 个版本文件 | 升级路径长，跨版本升级要跑完整链条 |
+| `migrate_user_isolation.py` 不在版本表内 | 一次性数据迁移脚本，位于 `backend/scripts/`，由运维单独执行 |
+| 迁移的副本串行化 | **有**：Postgres 用 session advisory lock 串行化，SQLite 单进程串行（`persistence/bootstrap.py:52-96`） |
 
-**第三行是风险来源**：多实例部署时，若 N 个副本同时启动并各自尝试迁移，
-要么框架内部有锁，要么就需要运维侧保证只有一个副本跑迁移。
+**第三行不再是未知项**：`persistence/bootstrap.py` 的 "Concurrency safety" 明确写了
+Postgres 的 advisory lock 与 SQLite 的 30s busy_timeout/幂等 revision。多副本同时启动
+会排队等锁，第二个实例观察到 head 后 no-op。
 
 ## 3. 多实例的成本含义
 
@@ -69,8 +70,8 @@ topics: [governance, cost, ops]
 | 数据库连接数 | 每副本一套连接池 |
 | Redis 占用 | stream bridge 每副本连 |
 | 迁移并发风险 | 见 §2 |
-| 凭据密钥一致性 | `DEER_FLOW_CREDENTIALS_KEY` 未设时**拒绝启动**（`config/credentials_key.py:10-13`） |
-| 登录限速失效 | N 副本 = 攻击者有 N 倍尝试额度（`auth_config.py:139-140`） |
+| 凭据密钥一致性 | 未设时单实例自动生成 `{base_dir}/.credentials_key`；只有声明 multi_instance 且有凭据消费者时才拒绝启动（`config/credentials_key.py:9`、`app/gateway/deps.py:333-377`） |
+| 登录限速失效 | 默认 `throttle_storage=auto`：有 sqlite/postgres 时共享 db 表；只有显式 `memory` 才 N 副本 = N 倍额度（`config/auth_config.py:81-96`） |
 
 最后一行是安全成本而非金钱成本，但同样由「多实例」这个决定带来。
 展开见 [04-multi-instance.md](04-multi-instance.md)。
@@ -79,10 +80,10 @@ topics: [governance, cost, ops]
 
 | 类型 | 生效方式 | 运维成本 |
 |---|---|---|
-| 策略字段（model / tool / memory / prompt） | mtime 检测 → 下次请求 | 低 |
+| 策略字段（model / tool / memory / prompt） | 内容签名（mtime + size + sha256）→ 下次请求 | 低 |
 | MCP servers / Skills 开关 | API 保存 → 立即 | 低 |
 | 基础设施（database / sandbox / channels） | **重启** | 中——需安排窗口 |
-| guardrails `fail_closed` / provider | **重启** | 中 |
+| guardrails `fail_closed` / provider | 下一次 agent invocation 重新装配 | 低 |
 | `allow_host_bash` | **重启** | 中 |
 
 热加载的实现是文件签名（`config/app_config.py:756`、`config/file_signature.py:53-55`），
@@ -92,12 +93,21 @@ topics: [governance, cost, ops]
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| Agent 级 SLO / error budget | **无** | 只有进程级健康；`LLMErrorHandlingMiddleware` 是 per-call retry + 断路器，无 agent 级熔断 |
-| Agent 级熔断 | **无** | `LLMErrorHandlingMiddleware` 有 per-call retry + circuit breaker，但作用域仅单次调用 |
+| Agent 级 SLO / error budget | **无** | 只有进程级健康；`LLMErrorHandlingMiddleware` 是 per-call retry + 实例级断路器 |
+| Agent 级熔断 | **无** | 断路器挂在 middleware 实例上，跨 run 共享；没有按 agent 维度的 SLO/预算 |
 | 灰度发布 | **无** | 配置全量生效 |
 | Chaos engineering 支持 | **无** | — |
-| 迁移的副本串行化保证 | **有但不覆盖** | 框架有迁移机制，但副本间串行化未文档化 |
+| 迁移的副本串行化保证 | **有** | Postgres advisory lock 强制串行；SQLite 单进程串行 + 30s busy_timeout（`persistence/bootstrap.py:52-96`） |
 | 就绪探针的含义说明 | **有但不覆盖** | docstring 写清了，但没有面向运维的说明页 |
+
+## 5.1 成本可观测性：有后视镜，没有刹车
+
+- **有**：`/api/console/stats|runs|usage` 按当前用户聚合 token、per-model 用量和成本
+  （`app/gateway/routers/console.py:289-360`、`:448-457`），前提是配置了 `models[*].pricing`。
+- **无**：跨用户/集群视图、实时告警、按 agent 预算、货币预算执行。
+
+所以「实时成本预算告警」的准确表述是「有事后成本视图，无实时预算告警」，
+不是「连价格都不知道」。
 
 ## 6. 与其他章节的关系
 

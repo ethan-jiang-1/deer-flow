@@ -51,7 +51,7 @@ return secrets.token_urlsafe(32)
 
 | 情况 | 解析出的用户 | 效果 |
 |---|---|---|
-| 带 owner 头，用户存在且**未停用** | 该用户（真实身份） | **完全获得该用户权限** |
+| 带 owner 头，用户存在且**未停用** | `id=owner`，`system_role="internal"` | **run 层继承 owner 的 user_id/上下文；路由授权仍按 `internal` → `default_role`** |
 | 带 owner 头，用户**已停用** | — | **401 `ACCOUNT_DISABLED`** |
 | 带 owner 头，用户无 users 行 | 允许通行 | 不存在的账号无法被停用 |
 | 不带 owner 头 | `internal` 合成用户 | 走 `default_role` |
@@ -59,6 +59,12 @@ return secrets.token_urlsafe(32)
 `app/gateway/auth_middleware.py:101-103` 的注释说明这是为了让
 `get_effective_user_id()` 与 per-user 路径（custom skills、memory、thread data）
 解析到正确的 owner，而不是回落 `"default"`。
+
+**关键边界**：owner 头改变的是 `user.id`，不是 `system_role`——
+`get_internal_user()` 无论有无 owner 都返回 `system_role="internal"`
+（`internal_auth.py:64-68`），路由授权又把 internal 剔除成 `default_role`
+（`authz.py:306-308`、`:466-468`）。所以**路由层拿不到 owner 的 RBAC 角色**；
+owner 的 `user_role` 只在 run context 层被继承（`services.py:1171-1185`）。
 
 ### 3.1 停用检查为什么放在这里
 
@@ -104,7 +110,7 @@ return SimpleNamespace(id=effective_id, system_role=INTERNAL_SYSTEM_ROLE)
 | 场景 | 生效角色 |
 |---|---|
 | 内部调用，无 owner | `config.default_role` |
-| 内部调用，有 owner | 该 owner 的 `system_role` |
+| 内部调用，有 owner | 路由层仍是 `internal` → `default_role`；run context 继承 owner 的 `user_role` |
 | 外部用户 | 他自己的 `system_role` |
 
 **企业含义**：不能靠「给 internal 分配一个角色」来管控后台任务权限——
@@ -141,6 +147,6 @@ return SimpleNamespace(id=effective_id, system_role=INTERNAL_SYSTEM_ROLE)
 
 ## 7. 与其他章节的关系
 
-- 四条认证路径总览：[01-authentication-model.md](01-authentication-model.md) §4
+- 四条认证路径总览：[01-authentication-model.md](01-authentication-model.md) §1
 - 多实例部署的完整要求：[../cost/04-multi-instance.md](../cost/04-multi-instance.md)
 - internal 角色如何影响授权：[../authorization/04-rbac-permissions.md](../authorization/04-rbac-permissions.md) §5

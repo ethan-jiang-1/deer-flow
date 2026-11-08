@@ -54,19 +54,22 @@ if config.enabled is not True:
 
 ### 2.1 启用方式
 
-必须实现外部 `AuthorizationProvider`（`app/gateway/authz.py:289` `_get_cached_route_provider`）：
+**不必自己实现 provider**：仓库自带 `RbacAuthorizationProvider`
+（`deerflow/authz/rbac.py:78-101`），在 `config.yaml` 里配 `roles` 即可
+（完整样例见 `config.example.yaml:3389-3444`）。也可以实现自定义
+`AuthorizationProvider`，由 `_get_cached_route_provider`（`app/gateway/authz.py:293`）加载：
 
 ```python
 provider = _get_cached_route_provider(config)
 ```
 
 provider 实例按配置签名缓存（docstring 说 "hot-reload safe"），
-所有 13 个权限**并行求值**（`app/gateway/authz.py:345` `asyncio.gather`），
+所有 13 个权限并行求值（`app/gateway/authz.py:336-342`），
 单个 provider 失败只影响那一个权限，不拖垮整次请求。
 
 ## 3. `fail_closed` 语义
 
-provider 抛异常时（`app/gateway/authz.py:295-298`）：
+provider 抛异常时（`app/gateway/authz.py:296-298`）：
 
 ```python
 except Exception:
@@ -127,11 +130,11 @@ except Exception:
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| 内置 RBAC 角色 | **无** | 无「角色 → 权限集」的内建映射；只有 `admin`/`user` 两个 `system_role`，且不映射到这 13 个权限 |
+| 内置 RBAC 角色 | **有** | `RbacAuthorizationProvider` 支持 role→routes/tools/models/sandbox 映射（`authz/rbac.py:78-101`；样例 `config.example.yaml:3389-3444`） |
 | 资源级授权（如「只能读自己 project」） | **无** | provider 收到 `target=permission` 与 `principal`，但框架不传具体资源 ID |
 | 默认启用 | **无** | 默认关闭（`enabled is not True` 即全放行） |
-| 权限的配置化 | **无** | 13 个常量硬编码在 `authz.py`；增删需改代码 |
-| 前端可见的权限提示 | **部分** | `GET /auth/me` 返回用户信息，但不返回权限列表；前端无法据此隐藏按钮 |
+| 权限的配置化 | **部分** | 13 个权限常量硬编码在 `authz.py`；角色→权限映射可配，增删权限本身需改代码 |
+| 前端可见的权限提示 | **有** | `GET /auth/me` 返回用户信息与 `permissions`（`auth/models.py:52-55`、`routers/auth.py:592-614`）；前端是否消费另说 |
 
 ## 7. 与其他章节的关系
 

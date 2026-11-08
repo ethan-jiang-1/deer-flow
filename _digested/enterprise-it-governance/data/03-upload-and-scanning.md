@@ -106,13 +106,14 @@ CONVERTIBLE_EXTENSIONS = {
 | `fail_closed: true` | 阻断写入 |
 | `fail_closed: false` | 放行（仅告警） |
 
-## 5. 数据保留（原样保留，但补上边界）
+## 5. 数据保留（与 06 对齐）
 
-当前**无自动保留/清理策略**：
+当前只有**项目回收站**的 `trash_retention_days`（启动 + 列表惰性清扫），
+没有 thread/memory/上传的自动过期：
 
 | 操作 | 清理范围 |
 |---|---|
-| `DELETE /api/threads/{id}` | LangGraph thread + 本地 thread 目录 |
+| `DELETE /api/threads/{id}` | LangGraph thread + 本地 thread 目录 + runs + run 事件（并置证据 `partial`） |
 | 删除用户 | 使 PAT 失效（`pat.py:224-228`）；文件目录需自行清理 |
 | memory 过期 | **无**——没有 TTL 或自动归档 |
 

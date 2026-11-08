@@ -19,15 +19,9 @@ Agent 真正动手的地方。沙箱、路径、资源、并发——出事的�
 |------|------|------|
 | [01-sandbox-modes.md](01-sandbox-modes.md) | **七种沙箱模式** | 从 Local 路径映射到 K8s Provisioner |
 | [02-path-containment.md](02-path-containment.md) | **路径防穿透** | 6 层校验 + Bash 子命令审计 |
-| [03-resource-limits.md](03-resource-limits.md) | **资源管控与隔离** | CPU/内存/磁盘、per-thread |
-| [04-gaps-and-comparison.md](04-gaps-and-comparison.md) | **还担心什么** | 剩余风险、行业对比、Docker 注意 |
+| [03-resource-limits.md](03-resource-limits.md) | **资源管控与隔离** | 输出截断、并发、磁盘与 cgroup 边界 |
+| [04-gaps-and-comparison.md](04-gaps-and-comparison.md) | **还担心什么** | 剩余风险、出站网络、资源配额边界 |
 | [05-execution-limits.md](05-execution-limits.md) | **执行限制** | 循环检测、并发上限、超时 |
-
-## 规划中
-
-| 文件 | 主题 | 内容 |
-|------|------|------|
-| 06-extension-execution-lease.md | 扩展执行租约 | extension_execution_leases、MCP durable task |
 
 ---
 

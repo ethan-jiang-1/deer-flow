@@ -87,10 +87,12 @@ def __init__(self, provider: GuardrailProvider, *, fail_closed: bool = True, pas
 | 运营方 | `config.yaml` 的 guardrails 段 |
 | 运营方 | 外部 provider 的策略内容 |
 | 框架（不可改） | SandboxAudit 的正则族 |
-| **用户** | **不参与**——用户不能为自己设边界 |
+| **用户** | **不直接设策略**；但 per-user 的 personal MCP、授权属性会进入 provider 判定（见 [05-mcp-scope.md](05-mcp-scope.md)） |
 
-**最后一行值得注意**：「per-thread 策略」「per-user 策略」都不存在。
-边界是按部署定义的全局边界。
+**最后一行值得注意**：没有**开箱即用**的「per-thread 策略」「per-user 策略」配置项，
+边界按部署定义。但 provider 接口能拿到 `thread_id` / `user_id` / `user_role`
+（`01-guardrail-layer.md` §2），自定义 provider 可以在判定里使用这些维度——
+所以准确说法是「无配置项，有扩展点」，不是「不可能」。
 
 ## 5. 能力与缺口的准确表述
 
@@ -100,7 +102,7 @@ def __init__(self, provider: GuardrailProvider, *, fail_closed: bool = True, pas
 | 命令级实时阻断 | **有**（SandboxAudit） |
 | 会话中向用户求助 | **有**（clarification） |
 | **执行前强制人工审批** | **无** |
-| per-thread / per-user 策略 | **无** |
+| per-thread / per-user 策略 | **部分**——无开箱配置项，provider 接口可做 |
 | 按风险分级的差异化审批 | **无** |
 
 ## 6. 缺口的边界条件
@@ -109,7 +111,7 @@ def __init__(self, provider: GuardrailProvider, *, fail_closed: bool = True, pas
 |---|---|---|
 | 强制人工审批闸门 | **无** | 无「等人批准才能执行」的状态机 |
 | 模型是否求助的可控性 | **无** | 模型自主决定，无强制触发 |
-| 用户自设边界 | **无** | 边界只能由运营方在部署层定义 |
+| 用户自设边界 | **部分** | 无全局用户策略；per-user 的 personal MCP 等局部开关由用户配置（见 [05](05-mcp-scope.md)） |
 | 审批留痕 | **无** | clarification 不产生结构化审批事件 |
 | 时效性授权 | **无** | 无「给 5 分钟临时权限」的机制 |
 

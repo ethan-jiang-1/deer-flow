@@ -1,6 +1,6 @@
 ---
 title: "多实例部署"
-description: "声明多实例后启动闸门会强制 4 项要求、拒绝 3 类配置。以及 GATEWAY_WORKERS 只覆盖单进程树的盲区——K8s 多 Pod 部署必须显式声明。"
+description: "声明多实例后启动闸门会强制 4 项要求、拒绝 4 类配置。以及 GATEWAY_WORKERS 只覆盖单进程树的盲区——K8s 多 Pod 部署必须显式声明。"
 topics: [governance, cost, multi-instance, deployment]
 ---
 
@@ -67,18 +67,20 @@ _FALSY = frozenset({"", "0", "false", "no", "off"})
 
 任何一条不满足，**Gateway 拒绝启动**。这不是警告，是硬闸门。
 
-## 3. 三类被拒绝的配置
+## 3. 四类被拒绝的配置
 
 | # | 被拒配置 | 原因 | 证据 |
 |---|---|---|---|
-| 1 | 显式 `memory` 沙箱归属存储 | 归属需跨实例可见 | `deployment_config.py:39` |
-| 2 | 进程内 browser 工具 | 浏览器会话绑进程 | `deployment_config.py:40` |
-| 3 | `scheduler.enabled: true` 但 `scheduler.multi_instance: false` | 调度器默认单实例 | `deployment_config.py:40` |
+| 1 | 显式 `memory` 沙箱归属存储 | 归属需跨实例可见 | `deps.py:248-252` |
+| 2 | 进程内 browser 工具 | 浏览器会话绑进程 | `deps.py:215-219` |
+| 3 | `scheduler.enabled: true` 但 `scheduler.multi_instance: false` | 调度器默认单实例 | `deps.py:213` |
+| 4 | `channels.leader_lease.enabled: false` 且启用了非 GitHub IM 通道 | 每个实例会各开一条平台连接 | `deps.py:255-259` |
 
 第 3 条最容易被忽略：**调度器默认单实例**（`config.example.yaml:2836`：
 "The scheduler is single-instance by default"），需要显式
 `scheduler.multi_instance: true`（`config.example.yaml:2854`、`:2865`）
-才能在多实例下安全启用。它用的是 lease-aware recovery 机制（`config.example.yaml:2914`）。
+才能在多实例下安全启用。第 4 条的 `auto` 跟随 `multi_process_deployment()` 信号
+（`deps.py:269-277`），默认会把每个 provider 的连接交给持 lease 的那一个实例。
 
 ## 4. 由多实例倒逼的其他配置
 
@@ -88,7 +90,7 @@ _FALSY = frozenset({"", "0", "false", "no", "off"})
 |---|---|---|---|
 | `auth.local.throttle_storage` | `memory` 可接受 | **必须** `auto`(有库) 或 `db` | `memory` 下 N 副本 = N× 次猜测机会 |
 | `stream_bridge.producer_lease_recovery_enabled` | 无所谓 | 需决定 | 只在所有 writer 升级后才开 |
-| `channel_leader_lease` | 自动关 | 随 `multi_instance` 自动开 | `deployment_config.py:46` 引用自 `channel_leader_lease_config.py` |
+| `channel_leader_lease` | 自动关 | 随 `multi_instance` 自动开 | `deps.py:269-277` 的 `multi_process_deployment()` |
 | `agent_storage` | 本地可接受 | 需共享 catalog | `agent_storage_config.py:35` |
 
 `agent_storage_config.py:33-37` 对 agent catalog 的要求：

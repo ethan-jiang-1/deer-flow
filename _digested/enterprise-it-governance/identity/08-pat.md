@@ -69,7 +69,7 @@ topics: [governance, identity, pat, api]
 | 检查 | 行为 | 证据 |
 |---|---|---|
 | 归属用户已删除 | 令牌**即使行还在也失效** | `app/gateway/auth/pat.py:224-228` |
-| 账号被停用（`disabled`） | 令牌在磁盘上仍有效，但解析不到任何权限 | `app/gateway/auth/pat.py:229-233` |
+| 账号被停用（`disabled`） | 令牌认证直接返回 401，不是「认证成功但零权限」 | `app/gateway/auth/pat.py:229-233` |
 
 `app/gateway/auth/pat.py:224-228` 的注释说明了设计意图：
 
@@ -117,10 +117,23 @@ topics: [governance, identity, pat, api]
 | `/api/threads/{id}/state` | GET, POST |
 | `/api/threads/{id}/compact\|history\|branches` | POST |
 | `/api/threads/{id}/move` | POST |
-| `/api/projects/...` | 仅 projects router 实现的方法 |
+| `/api/threads/{id}/runs` | GET, POST |
+| `/api/threads/{id}/runs/(stream\|wait\|regenerate/prepare\|edit-regenerate/prepare)` | POST |
+| `/api/threads/{id}/runs/{run_id}` | GET（排除 stream/wait/regenerate/edit-regenerate） |
+| `/api/threads/{id}/runs/{run_id}/cancel` | POST |
+| `/api/threads/{id}/runs/{run_id}/(join\|messages\|events\|workspace-changes)` | GET |
+| `/api/threads/{id}/runs/{run_id}/artifacts/archive` | GET, POST |
+| `/api/threads/{id}/runs/{run_id}/stream` | GET, POST |
+| `/api/runs/(stream\|wait)` | POST |
+| `/api/runs/{run_id}/(messages\|feedback)` | GET |
+| `/api/projects`、`/api/projects/{id}`、`/api/projects/{id}/(archive\|restore)` | 见 `pat.py:80-96` |
+| `/api/projects/{id}/threads`、`/thread-files` | GET |
+| `/api/projects/{id}/documents`、`/documents/{doc_id}/(content\|attach-to-thread/…\|from-thread)` | 见 `pat.py:97-112` |
+| `/api/trash/documents`、`/documents/{id}/(restore\|purge)`、`/api/trash/purge` | 见 `pat.py:113-118` |
 
-**默认拒绝的收益**：将来新增的路由**自动**对 PAT 不可见，直到被显式加入白名单。
-新路由忘记考虑 PAT 时，默认是安全的。
+**默认拒绝的收益与边界**：**不匹配任何既有 pattern** 的新路由默认对 PAT 不可见；
+但匹配既有 pattern 的新子路径仍可能被放行——「默认拒绝」不是「所有未来路由都自动安全」，
+安全评审仍需在新增路由时检查 `_PAT_ROUTE_RULES`。
 
 强制点在 `app/gateway/auth_middleware.py:165` 与 `app/gateway/app.py:1210`（后者额外压掉 PAT 的 admin 能力）。
 
@@ -140,7 +153,7 @@ topics: [governance, identity, pat, api]
 |---|---|---|
 | 吊销单个令牌 | **有** | `DELETE /api/v1/auth/pats/{pat_id}`（`app/gateway/routers/auth.py:729`） |
 | 批量吊销 / 管理员吊销他人 | **无** | 无「全部吊销」或按用户批量吊销的管理面；admin 也只能管自己的 |
-| 过期时间 | **无（但有账号级联动）** | 令牌本身不设过期；但**删用户即失效**、**停用账号即阻断**（见 §2.3） |
+| 过期时间 | **有** | 可设 `expires_in_days`（1–365 天）；缺省 `None` 表示不过期（`app/gateway/routers/auth.py:636`、`:701`；读取时判 `expires_at`） |
 | 使用审计 | **部分** | 有 `last_used_at`（300s 节流，`app/gateway/auth/pat.py:26-27`）；**无**每次调用的来源 IP / UA 记录 |
 | 组织级令牌 | **无** | PAT 绑定到具体用户账号，无 service account 概念 |
 | 作用域粒度 | **粗** | 9 个作用域是路由级；无「只读某个 project」这类资源级限定 |
@@ -148,6 +161,6 @@ topics: [governance, identity, pat, api]
 
 ## 6. 与其他章节的关系
 
-- 三条认证路径的分工：[01-authentication-model.md](01-authentication-model.md)
+- 四条认证路径的分工：[01-authentication-model.md](01-authentication-model.md)
 - RBAC 的 13 个权限与 PAT 的 9 个作用域的区别：[../authorization/04-rbac-permissions.md](../authorization/04-rbac-permissions.md)
 - Agent 无独立身份的问题：[04-agent-identity-gap.md](04-agent-identity-gap.md)

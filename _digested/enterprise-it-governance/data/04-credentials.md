@@ -49,11 +49,11 @@ topics: [governance, data, credentials]
 
 | 项 | 行为 |
 |---|---|
-| 密钥来源 | **仅**环境变量 `DEER_FLOW_CREDENTIALS_KEY`，逗号分隔的 Fernet key（32 随机字节的 urlsafe base64） |
+| 密钥来源 | 环境变量优先 `DEER_FLOW_CREDENTIALS_KEY`（逗号分隔的 Fernet key，32 随机字节的 urlsafe base64）；未设时走下行文件回退 |
 | 加密方式 | 第一个 key 加密，**所有** key 都能解密 |
 | 轮转步骤 | "prepend a new key, re-encrypt with `CredentialsCipher.rotate_text`, then drop the old key" |
 | 与 JWT 的关系 | **从不**从 `AUTH_JWT_SECRET` 或其他 secret 派生 |
-| 未设 env 时 | 单实例会生成 `{base_dir}/.credentials_key`（独占创建，`0600`），同一 runtime home 的 uvicorn worker 收敛到同一 key |
+| 未设 env 时 | 单实例会生成 `{base_dir}/.credentials_key`（独占创建，`0600`），同一 runtime home 的 uvicorn worker 收敛到同一 key；声明的 multi_instance + 凭据消费者则拒绝启动（`deps.py:333-377`） |
 | 密文格式 | `fernet:v2:<Fernet token>`；`fernet:v1:` 与裸 token 是旧格式，仍可解密 |
 | **密钥丢失** | 用它加密的所有值不可读，消费方当作「缺失」处理 —— 有回退，恢复路径**未闭合** |
 
@@ -84,7 +84,9 @@ A Pod 加密的值 B Pod 解不开。
 > Losing the key makes every value encrypted with it unreadable; consumers treat
 > such values as missing rather than failing.
 
-「当作缺失」意味着**不报错、只是功能静默失效**——比报错更难排查。
+「当作缺失」意味着**功能不可用，但进程不一定退出**——消费方会记 ERROR 日志
+（`runtime_config_store.py:372-374`、`:382`；`oauth_store.py:169-173`），
+比硬失败更难排查，但不是完全静默。
 
 ## 4. 明文的那一部分
 

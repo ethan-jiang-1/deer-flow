@@ -173,8 +173,8 @@ if requires_admin(server) and not await _is_current_admin(owner):
 | 缺口 | 状态 | 边界 |
 |---|---|---|
 | 组织级 MCP 的强制启用 | **无** | 用户可自行增删 personal MCP，无「必须使用公司指定的 MCP」约束 |
-| MCP 调用的细粒度授权 | **无** | 会话级隔离有，但无「这个 MCP 的哪个 tool 允许被调用」的路由级控制 |
-| MCP server 白名单 | **无** | 无域名/URL 白名单限制 personal MCP 能连哪里 |
+| MCP 调用的细粒度授权 | **部分** | 工具级 Guardrail 与 RBAC `tools` 策略可按工具名 allow/deny（含 MCP 工具，`authz/tool_filter.py:22-72`）；缺的是 per-server 命名空间/资源级 ACL |
+| MCP server 白名单 | **部分** | 非 admin 的 personal server 必须过 `validate_public_http_url`（`routers/personal_mcp.py:58-61`），只允许公网 HTTP(S)；无运营方域名白名单 |
 | 会话审计 | **部分** | 有 session pool 与 OAuth cache 失效机制（`session-pool-oauth-cache-invalidation.md`），无「谁在何时连了哪个 MCP」的结构化事件 |
 
 ## 7. 与其他章节的关系

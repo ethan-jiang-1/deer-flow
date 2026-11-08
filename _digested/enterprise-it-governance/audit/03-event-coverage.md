@@ -9,24 +9,26 @@ topics: [governance, audit, events]
 「有审计」这句话必须细化到**哪类事件、记在哪、能不能查**。
 本页把这个问题摊开成矩阵。
 
-## 1. RunJournal 的六个记录入口
+## 1. RunJournal 的记录入口（不只六个）
 
 ![审计事件的三条链路](figures/audit-three-planes.svg)
 
 
-`packages/harness/deerflow/runtime/journal.py` 定义了全部结构化记录方法：
+`packages/harness/deerflow/runtime/journal.py` 的 `record_*` 方法只是一部分；
+`run.start`/`run.end`/`run.terminal`/`run.error`、`llm.ai.response`/`llm.tool.result`、
+`subagent.*`、`workspace_changes` 也由 journal 落库（`runtime/events/catalog.py:56-88`）。
 
 | 方法 | 行 | 记录什么 |
 |---|---|---|
 | `record_middleware` | `:1520` | 中间件决策（含 guardrail） |
 | `record_skill_usage` | `:819` | 技能使用 |
 | `record_interrupted_ai_responses` | `:898` | 被中断的 AI 回复 |
-| `record_external_llm_usage_records` | `:1450` | 外部 LLM 用量 |
+| `record_external_llm_usage_records` | `:1450` | 外部 LLM 用量（累加进 RunRow，不是 journal 事件） |
 | `record_memory_context` | `:1585` | 记忆上下文 |
 | `record_delivery` | `:1646` | 投递事件 |
 
-**六个方法就是「结构化审计」的全部范围**。不在这张表里的事件，
-要么走日志，要么根本不留痕。
+**这六个方法不是「结构化审计」的全部范围**——`run.*`、`llm.*`、`subagent.*`、
+`workspace_changes`、`middleware:*` 同样落库。把它们漏掉，覆盖矩阵就会低估审计面。
 
 ## 2. 覆盖矩阵
 
@@ -34,16 +36,16 @@ topics: [governance, audit, events]
 |---|---|---|---|
 | **bash 命令** | `SandboxAuditMiddleware` → `logger.info` | **否**（只进 gateway.log） | 需查日志 |
 | **Guardrail deny** | `journal.record_middleware(tag="guardrail")` | 是 | journal |
-| **Guardrail allow** | — | **否**（有意） | 不可查 |
+| **Guardrail allow** | — | **否**（正常 allow 有意不写；provider 报错放行写 `allow_tool_call_after_provider_error`） | 不可查 / 部分 |
 | **run 状态变更** | RunJournal | 是 | journal |
 | **技能使用** | `record_skill_usage`（`:819`） | 是 | journal |
-| **LLM 用量** | `record_external_llm_usage_records`（`:1450`） | 是 | journal |
+| **LLM 用量** | `record_external_llm_usage_records`（`:1450`） | 累加进 **RunRow** | RunRow / Console |
 | **记忆上下文** | `record_memory_context`（`:1585`） | 是 | journal |
 | **投递** | `record_delivery`（`:1646`） | 是 | journal |
 | **登录/认证** | 标准日志 | **否** | 需查日志 |
 | **配置变更** | — | **否** | 不可查 |
-| **文件读写** | — | **否** | 不可查 |
-| **MCP 调用** | 视 tracing 配置 | 视配置 | 视配置 |
+| **文件读写** | 不走 SandboxAudit；`llm.tool.result` 记录 ToolMessage | **部分** | journal 可查 |
+| **MCP 调用** | 走 `on_tool_end`；`llm.tool.result` | 是 | journal |
 
 ### 2.1 记录方法的完整路径
 
@@ -62,10 +64,11 @@ topics: [governance, audit, events]
 `audit/01-audit-chain.md` 已记录这条：
 
 > **没有 `__run_journal` 的运行时不写**：embedded client 与 subagent 执行都跳过持久化。
-> 所以 **subagent 里的 guardrail 拒绝在 journal 里是看不见的**。
+> 所以 **subagent 里的 guardrail 拒绝没有 `middleware:guardrail` 决策字段**。
 
-**这是最需要标注的一条**：主代理的拒绝有记录，子代理的拒绝没有。
-而子代理恰恰是并行执行大量操作的地方。
+**准确的边界**：拒绝的 ToolMessage 会被 executor 捕获并作为 `subagent.step` 落库，
+按 `task_id` 可以查到拒绝文本；缺的是 `allow`/`policy_id`/`reason_codes` 这些**决策字段**。
+所以「完全看不见」是过度表述，「看不见决策」才准确。
 
 ### 3.2 allow 决策不落库
 
@@ -84,11 +87,13 @@ topics: [governance, audit, events]
 ### 3.3 bash 之外的工具
 
 `SandboxAuditMiddleware` **只管 `bash`**（见 [02-sandbox-audit.md](02-sandbox-audit.md) §1）。
-`read_file` / `write_file` / `str_replace` 等文件工具**不走这条审计路径**。
+`read_file` / `write_file` / `str_replace` 等文件工具**不走这条命令分类审计**；
+但它们的调用与结果会以 `llm.ai.response` / `llm.tool.result` 落 journal
+（`runtime/journal.py:887-896`），不是「完全无审计」，而是「有工具结果、无命令级分类」。
 
 ## 4. best-effort 语义
 
-`record_middleware` 的 docstring 原话（引自 `audit/01-audit-chain.md`）：
+`guardrails/middleware.py:140-146` 的 `_record_guardrail_event` docstring 原话：
 
 > audit persistence is best-effort and must never change tool execution behavior
 
@@ -103,13 +108,13 @@ topics: [governance, audit, events]
 
 | 要回答的问题 | 查哪里 | 覆盖完整性 |
 |---|---|---|
-| 这个 thread 跑了什么 | journal | 完整 |
+| 这个 thread 跑了什么 | journal | **部分**（缺 subagent guardrail 决策、配置变更、认证事件） |
 | 谁执行了危险命令 | gateway.log 的 `[SandboxAudit]` | 需 thread_id 反查人 |
 | 为什么这个工具调用被拒 | journal 的 `middleware:guardrail` | 完整（主代理） |
-| 子代理被拒了吗 | **查不到** | **盲区** |
-| 允许了哪些操作 | **查不到**（用 tracing 推） | **盲区** |
+| 子代理被拒了吗 | journal 无决策字段；`subagent.step` 有拒绝文本 | **部分** |
+| 允许了哪些操作 | 正常 allow 查不到；provider 报错放行可查 | **部分** |
 | 谁改了配置 | **查不到** | **盲区** |
-| 谁读了哪个文件 | **查不到** | **盲区** |
+| 谁读了哪个文件 | `llm.tool.result` 有 ToolMessage；无统一查询 | **部分** |
 | 花了多少 token | journal 的 usage 记录 | 完整 |
 
 ## 6. 缺口汇总

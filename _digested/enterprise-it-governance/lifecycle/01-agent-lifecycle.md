@@ -53,14 +53,18 @@ return (stat_result.st_mtime, stat_result.st_size, digest.hexdigest())
 | 变更 | 生效方式 |
 |------|---------|
 | `config.yaml` 基础设施字段（database / sandbox / channels） | **需要重启** |
-| guardrails `fail_closed` / provider | **需要重启** |
 | `allow_host_bash` | **需要重启** |
+| `subagent_runtime.max_running` | **启动快照**（热改对已创建 controller 无效） |
+| SandboxAudit 规则 | 改代码 + 重启 |
+
+> `guardrails.fail_closed` / `provider` **不在**这张表里：它们在下一次 agent
+> invocation 重新装配（`tool_error_handling_middleware.py:467-487`），不需要重启。
 
 展开与取舍见 [02-change-control.md](02-change-control.md)。
 
-### 2.3 mtime 签名的一个实际后果
+### 2.3 内容签名的一个实际后果
 
-签名只看 **mtime + size + 内容摘要**。这意味着：
+签名看 **mtime + size + 内容摘要**。这意味着：
 
 | 场景 | 是否触发重载 |
 |---|---|
@@ -87,10 +91,10 @@ return (stat_result.st_mtime, stat_result.st_size, digest.hexdigest())
 
 | 动作 | 机制 | 残留 |
 |---|---|---|
-| 删除 custom agent | 删目录 | 无专门清理流程 |
+| 删除 custom agent | `DELETE /api/agents/{name}`（`agents.py:765-825`）；`agents_api.enabled` 默认 `false` | 删 config/SOUL/memory；无回收站 |
 | 停用用户 | `disabled` + `token_version` | 用户数据保留 |
 | 删除用户 | PAT 立即失效（`pat.py:224-228`） | **`users/{id}/` 目录需手工清理** |
-| 删除 thread | `delete_thread_data`（`routers/threads.py:758`） | 项目回收站另有 30 天 TTL |
+| 删除 thread | `delete_thread_data`（`routers/threads.py:758`） | thread 立即删；**项目文档**回收站另有 30 天 TTL（不同对象） |
 
 **第三行是最容易漏的**：删用户后账号确实用不了了，
 但该用户的 agent 定义、记忆、thread 数据仍在磁盘上。
@@ -103,8 +107,8 @@ return (stat_result.st_mtime, stat_result.st_size, digest.hexdigest())
 | 变更审计（谁改了什么） | **无** | `update_agent` 不产生结构化事件 |
 | 版本回滚 | **无** | 依赖外部 git / 备份 |
 | 灰度发布 | **无** | 配置全量生效 |
-| kill switch | **无** | `grep -r kill_switch backend/` 零命中 |
-| 用户级 agent 的集中治理 | **无** | 用户可自建、自改，运营方无聚合视图 |
+| kill switch | **无全局 agent 开关** | per-channel 开关存在：`channels.github.enabled` 是 operator kill-switch（`github_webhooks.py:303`、`channels/service.py:1144`）；没有「一键停掉所有 agent/run」的全局开关 |
+| 用户级 agent 的集中治理 | **部分** | `AgentRow` 有 UUID/id/user_id 索引、`list_all()` 可列全部 owner（`persistence/agents/base.py:106-110`）；缺的是运行实例视图与管理员 HTTP 聚合端点 |
 | 删除用户后的文件残留清理 | **无** | 只有账号层失效，目录需手工处理 |
 
 **第一行与第六行是同一件事的两面**：没有版本实体，也就没有集中视图。

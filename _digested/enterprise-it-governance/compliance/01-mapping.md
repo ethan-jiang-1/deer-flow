@@ -27,6 +27,23 @@ topics: [governance, compliance]
 > 不判定任何系统是否满足某项标准，也不替代法律或审计意见。
 > 每条结论都附 `file:line` 供自行复核。
 
+## 1.1 控制项 → 机制 → 证据 → 状态（摘录）
+
+| 标准 | 控制项 | DeerFlow 机制 | 证据 | 状态 |
+|---|---|---|---|---|
+| GDPR | Art.15 访问权 | per-user 存储可导出，但无导出端点 | `paths.py:344` | **部分** |
+| GDPR | Art.17 删除权 | thread/run 事件删除；事件删除置证据 `partial` | `routers/threads.py:758`、`:850-854` | **部分** |
+| GDPR | Art.30 处理记录 | RunJournal（run.*、llm.*、middleware:*） | `runtime/journal.py:1520` | **有但不覆盖** |
+| GDPR | Art.5 最小化 | PII 脱敏，默认关闭 | `config.example.yaml:1538` | **有但不覆盖** |
+| GDPR | Art.5 存储限制 | 项目回收站 30 天 TTL | `projects_config.py:49-53` | **部分** |
+| GDPR | Ch.V 跨境 | 取决于 provider endpoint 与部署地域 | — | **取决于部署** |
+| SOC 2 | CC6 访问控制 | 13 个 RBAC 权限，默认关闭 | `authz.py:161-175` | **有（默认关）** |
+| SOC 2 | CC7 日志 | RunJournal + SandboxAudit | `journal.py:1520` | **部分** |
+| SOC 2 | CC8 变更管理 | 配置热加载边界 + 迁移版本 | `reload_boundary.py:52-100` | **部分** |
+| ISO 27001 | A.8 资产/访问 | 同 SOC 2 技术控制 | 同上 | **部分** |
+| EU AI Act | 透明度 | guardrail 决策可查 | `guardrails/middleware.py:131` | **部分** |
+| EU AI Act | 人类监督 | clarification，模型自主触发 | `clarification_middleware.py:75-92` | **有但不覆盖** |
+
 ## 2. GDPR 一句话现状
 
 详细见 [02-gdpr.md](02-gdpr.md)。
@@ -51,7 +68,8 @@ topics: [governance, compliance]
 
 详细见 [04-eu-ai-act.md](04-eu-ai-act.md)。
 
-DeerFlow 是通用框架，不直接落入高风险类别；但它提供的人工监督原语
+DeerFlow 是通用框架，**本身不做风险分级**；某个用途是否落入高风险类别，
+由部署方 + 法律判断（[04-eu-ai-act.md](04-eu-ai-act.md) §1）。它提供的人工监督原语
 （clarification、approval）**不等于**高风险系统要求的「人在回路审批」。
 两者的差别在展开篇里逐条对照。
 

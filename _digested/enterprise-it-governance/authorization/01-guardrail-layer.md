@@ -10,17 +10,17 @@ Tool 级授权，可插拔 provider，2.2.0 三个内置门同一协议。
 
 ## 第一层：Guardrails（Tool 级授权）
 
-详见 `_digested/security/03-guardrail.md`。这里从 IT 管理视角总结关键点：
+详见 `_digested/enterprise-operations/security/03-guardrail.md`。这里从 IT 管理视角总结关键点：
 
 ### ⚠ 首先要知道：这一层默认不存在
 
-`config.example.yaml` 里 guardrails 的**四种配置方式全部是注释掉的**
-（`config.example.yaml:3272-3301`，从 `# --- Option 1` 到 `# --- Option 4`）。
+`config.example.yaml` 里 guardrails 的**五种配置方式全部是注释掉的**
+（`config.example.yaml:3271-3344`，从 `# --- Option 1` 到 `# --- Option 4b`）。
 
 | 事实 | 含义 |
 |---|---|
 | 示例配置中 guardrails 整块被注释 | 复制示例文件后，**这一层不启用** |
-| 没有 provider 就没有判定 | 所有工具调用直接执行 |
+| 没有 provider 就没有 Guardrail 判定 | 但 SandboxAudit 仍在链上，会 block 高危 bash（`tool_error_handling_middleware.py:489-491`） |
 | 代码层 `fail_closed` 默认 `True`（`packages/harness/deerflow/guardrails/middleware.py:34`） | 但只在 provider 存在时才有意义 |
 
 **这是评估顺序上的第一步**：先确认 `guardrails.enabled` 与 `provider.use` 是否配了，
@@ -66,7 +66,7 @@ v2.1 只有名单门。v2.2 增加两个**模型判定的风险门**，都实现
 
 1. **`tools` 是探测范围，不是安全边界。** 只列 `["bash"]` 是冒烟配置，不是生产建议——操作可以挪到未探测的工具、MCP 工具或 subagent 上。要覆盖就得把**每个能造成副作用的工具**都列进去。
 2. **风险门会把工具参数原样出网，且不做脱敏。** 参数里可能带用户内容、路径、shell 命令、密钥；`pii_redaction_middleware` 在这条路径上不生效。启用前必须把这条 egress 通道过一遍数据保护评审。
-3. **失败方向一致但影响面不同。** TypeSafe 不可达时，只有"被探测且缓存未命中"的调用受影响（`fail_closed: true` 下被阻断）；未探测的工具和缓存命中照常工作。每一次失败都抛错，**从不静默降级成 allow**。
+3. **失败方向由 `fail_closed` 决定，不是永远拒绝。** TypeSafe 不可达时，只有"被探测且缓存未命中"的调用受影响。`fail_closed: true` 下被阻断；`fail_closed: false` 下**合成 allow 并继续执行**，同时记 `allow_tool_call_after_provider_error` 事件（`guardrails/middleware.py:208-217`、`:258-266`）——不是静默降级，但确实放行。
 
 **`allowed_tools` 与 `tools` 的分工**：前者答"这个工具能不能跑"，后者答"哪些调用要送去问模型"。前者先检查——表外工具即使在探测范围外也照样被拒，避免"不在探测范围"顺带赠送一个 allow。
 

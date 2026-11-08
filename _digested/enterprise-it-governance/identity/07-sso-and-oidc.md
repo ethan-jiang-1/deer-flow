@@ -47,14 +47,15 @@ auth:
 | 键 | 必填 | 说明 |
 |---|---|---|
 | `issuer` | 是 | discovery 起点，拼 `/.well-known/openid-configuration` |
-| `client_id` / `client_secret` | 是 | `client_secret` 支持 `$ENV_VAR` 引用 |
+| `client_id` | 是 | IdP 分配的 client ID |
+| `client_secret` | 视 auth method | `client_secret_post`/`basic` 需要；public client 用 `none` 可空（`auth_config.py:19`、`:25-28`） |
 | `redirect_uri` | 推荐 | 缺省时按请求自推导；**生产必须显式设**并与 IdP 侧一致 |
-| `frontend_base_url` | 生产必填 | 回调后重定向的前端地址；否则失败重定向可能指向 localhost |
-| `scopes` | 是 | 至少含 `openid` |
+| `frontend_base_url` | 生产推荐 | 回调后重定向的前端地址；缺省时错误重定向用相对 `/login?error=...`，不会指向 localhost |
+| `scopes` | 有默认值 | 默认 `["openid", "email", "profile"]`；建议显式确认含 `openid`（`auth_config.py:21-24`） |
 | `token_endpoint_auth_method` | 否 | Keycloak confidential client 用 `client_secret_post` |
 
 回调 URL 形如 `https://<gateway>/api/v1/auth/callback/<provider>`，
-需在 IdP 侧登记为合法 redirect URI（`config.example.yaml:3528` 给的例子是
+需在 IdP 侧登记为合法 redirect URI（`config.example.yaml:3523` 给的例子是
 `http://localhost:8001/api/v1/auth/callback/keycloak`）。
 
 ## 3. 安全机制
@@ -67,7 +68,7 @@ auth:
   `compute_code_challenge` 实现 S256。
 - **nonce 校验**：ID token 必须回带授权请求里的 nonce，防重放。
 
-这两项是配置契约里的默认值，**不是可选的加固建议**——企业评审时可直接作为证据引用。
+这两项是配置契约里的默认值，**不是可选的加固建议**。
 
 ### 3.2 state 的存储与时限
 
@@ -80,22 +81,24 @@ OIDC_STATE_MAX_AGE = 300  # 5 minutes
 
 state 存在**签名 cookie**里（`app/gateway/auth/oidc_state.py:39` `_sign_state_payload`），
 不落服务端存储——所以多副本部署无需共享 session。代价是 state 有效期固定 5 分钟，
-不适合多跳 IdP 链路（企业常见于跨域联邦），超时会得到 `sso_failed`。
+不适合多跳 IdP 链路（企业常见于跨域联邦）。超时/缺失返回 **403 JSON**，不是 `?error=sso_failed`。
 
 ### 3.3 失败契约
 
-OIDC 错误统一走**重定向**而非裸 500（`app/gateway/auth/oidc.py:74` 注释明确这是设计意图）：
+OIDC 错误**不是统一走重定向**，按失败点分四类（`app/gateway/routers/auth.py`）：
 
-```python
-# routers/auth.py:1118
-error_code = error_map.get(exc.status_code, "sso_failed")
-```
+| 失败点 | 行为 | 证据 |
+|---|---|---|
+| provider error / token 或 ID token 的 `OIDCError` / provisioning `HTTPException` | 302 到 `/login?error=<code>`（`sso_failed`、`sso_not_allowed`、`sso_account_exists`） | `routers/auth.py:1051`、`:1107`、`:1118` |
+| state cookie 缺失/过期、state 不匹配 | **403 JSON（仅此路径，不走重定向）** | `routers/auth.py:1069-1073` |
+| discovery 失败 | **502 JSON** | `routers/auth.py:1002-1003`、`:1088-1090` |
+| 缺 code/state 参数 | **400 JSON** | `routers/auth.py:1064-1065` |
 
-`app/gateway/auth/oidc.py:69` 的 `_json_object` 在 provider 返回非 JSON 时抛 502 而非 500，
-同样是为了「keep the `sso_failed` redirect contract」（`app/gateway/auth/oidc.py:377`、`:383`）。
+`app/gateway/auth/oidc.py:69` 的 `_json_object` 在 provider 返回非 JSON 时抛 `OIDCError`，
+不是直接 502；502 是 discovery 路由把该异常映射出来的结果。
 
-**对企业运维的含义**：SSO 故障表现为前端 `?error=sso_failed`，而非 5xx
-——监控要盯这个查询参数，不能只盯 HTTP 状态码。
+**对企业运维的含义**：监控既要看 `?error=sso_failed` 等重定向码，
+也要看 400/403/502——只盯查询参数会漏掉 state 与 discovery 故障。
 
 ## 4. Provisioning 策略
 
@@ -104,10 +107,10 @@ error_code = error_map.get(exc.status_code, "sso_failed")
 
 | # | 策略 | 默认 | 行为 | 证据 |
 |---|---|---|---|---|
-| 1 | `require_verified_email` | **true** | 邮箱未验证直接拒绝 | `:52` |
-| 2 | `allowed_email_domains` | 无（不限制） | 域名不在表内拒绝 | `:67-69` |
-| 3 | `auto_create_users` | **true** | 首次登录自动建号；关掉则仅限已有账号 | `:87` |
-| 4 | `admin_emails` | `[]` | 命中的邮箱直接授 admin | `:93`、`:117-120` |
+| 1 | `require_verified_email` | **true** | 邮箱未验证直接拒绝 | `auth_config.py:35-39`；执行 `user_provisioning.py:52` |
+| 2 | `allowed_email_domains` | 空（不限制） | 域名不在表内拒绝 | `auth_config.py:40-44`；执行 `:67-69` |
+| 3 | `auto_create_users` | **true** | 首次登录自动建号；关掉则仅限已有 OAuth 链接 | `auth_config.py:30-34`；执行 `:87` |
+| 4 | `admin_emails` | `[]` | 命中的邮箱在**首次建号**时授 admin | `auth_config.py:45-48`；`:93`、`:117-120` |
 
 ### 4.1 企业部署的实际形态
 
@@ -116,7 +119,7 @@ error_code = error_map.get(exc.status_code, "sso_failed")
 | 场景 | `auto_create_users` | `allowed_email_domains` | 效果 |
 |---|---|---|---|
 | 全公司开放 | `true` | `["corp.example.com"]` | 本公司邮箱自动开号 |
-| 邀请制 | `false` | 任意 | 只有管理员先建好账号的人能进 |
+| 邀请制 | `false` | 任意 | **不可用**：管理员预建的本地账号 `oauth_provider=NULL`，该邮箱走 SSO 会 409；没有「预建后再绑定」的管理端点 |
 | 强管控 | `false` | `["corp.example.com"]` | 双重限制 |
 
 ### 4.2 `admin_emails` 是启动特权通道
@@ -127,9 +130,10 @@ error_code = error_map.get(exc.status_code, "sso_failed")
 return "admin" if any(e.lower() == email_lower for e in admin_emails) else "user"
 ```
 
-**没有**「首次登录后取消」机制——只要邮箱还在列表里，每次登录都重新授 admin。
+**没有**「每次登录重算角色」机制——`_resolve_role` 只在**首次自动建号**时调用
+（`user_provisioning.py:93`）；已有 OAuth 链接在 `:39-49` 直接返回，不会重算。
 移除列表项后，已授的 admin 角色**不会被自动降级**（角色存在库里，
-provisioning 只管登录时的赋值）。
+provisioning 只管首次建号时的赋值）。
 
 ## 5. 政策断点：SSO 策略不约束本地注册
 
@@ -162,12 +166,12 @@ provisioning 只管登录时的赋值）。
 | SCIM 自动置备/回收 | **无** | 只有登录时（JIT）provisioning；离职需手工停用，无 IdP 驱动的账号销毁 |
 | 组/角色映射 | **无** | 角色只有 `admin`/`user` 两档，`admin_emails` 是邮箱硬比对，不读 IdP 的 group claim |
 | 后端登出（RP-initiated logout） | **无** | 本地登出清 cookie，不回跳 IdP 的 `end_session_endpoint`；IdP 侧会话仍存活 |
-| 多 IdP 的租户归属 | **部分** | 支持多 provider 并存，但账号与 provider 无绑定关系——同一邮箱从两个 IdP 登录会落到同一账号 |
+| 多 IdP 的租户归属 | **部分** | 支持多 provider 并存；账号按 `(provider, oauth_id)` 唯一索引绑定（`persistence/user/model.py:61-65`），同一邮箱从第二个 IdP 登录会得到 409 `sso_account_exists`，不会落到同一账号。真实缺口是**一个账号只能绑一对身份、无账号合并** |
 | state 有效期 | **固定 5 分钟** | `app/gateway/auth/oidc_state.py:21`，不可配；长链路联邦 IdP 可能超时 |
 
 ## 7. 与其他章节的关系
 
 - 本地注册与密码策略：[10-registration-policy.md](10-registration-policy.md)
 - 登录限速（含多副本共享锁禁）：[09-login-throttle.md](09-login-throttle.md)
-- 三条认证路径的分工：[01-authentication-model.md](01-authentication-model.md)
+- 四条认证路径的分工：[01-authentication-model.md](01-authentication-model.md)
 - 运维操作手册（IdP 侧建 client 的步骤）：`backend/docs/SSO.md`

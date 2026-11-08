@@ -69,8 +69,10 @@ MCP 的 legacy 作用域键（`mcp_scope.py:62-66`）允许 `user_id` 含冒号�
 新版本不会自动迁移它们。仓库提供 `scripts/migrate_user_isolation.py`
 做一次性搬迁。
 
-**企业含义**：升级后如果没跑迁移脚本，旧 thread 仍可访问（走 legacy 路径），
-但**不享受 per-user 隔离**——它们的路径里没有 `user_id`。
+**企业含义**：升级后如果没跑迁移脚本，旧 thread 的**元数据行**仍可列出/访问，
+但请求路径固定使用 effective user（`paths.py:358-362`），不会再从 `base/threads/`
+读取旧文件——**旧文件实际成为孤儿**，可访问性取决于 metadata 行而不取决于文件。
+所以迁移脚本必须跑，不能把「还能打开列表」当成「数据还在」。
 
 ## 4. user_id 从哪来
 
@@ -98,13 +100,14 @@ def is_auth_disabled() -> bool:
 | 合成用户 id | `default` | `auth_disabled.py:12` |
 | 合成用户邮箱 | `default@test.local` | `auth_disabled.py:13` |
 | 生产环境抑制 | `DEER_FLOW_ENV`/`ENVIRONMENT` 为 `prod`/`production` 时**忽略该开关** | `auth_disabled.py:20-21`、`:26-27` |
+| 合成用户角色 | **`admin`**——RBAC 完全失效 | `auth_disabled.py:49-58` |
 | 启动告警 | 有 WARNING | `auth_disabled.py:38-44` |
 
 | 后果 | 影响 |
 |---|---|
 | 所有人共享 `default` 用户 | thread、memory、sandbox workspace 全部混在 `users/default/` 下 |
 | 无操作溯源 | 审计无法区分是哪个真人触发的操作 |
-| 无权限边界 | 任何人都能看到并操作所有 thread |
+| 无权限边界 | 合成用户是 `admin`；任何人都能看到并操作所有 thread |
 | CSRF 检查跳过 | `csrf_middleware.py` 在 auth-disabled 时提前返回 |
 
 **生产环境的自动保护**：`is_explicit_production_environment()`（`auth_disabled.py:26-27`）
@@ -116,7 +119,7 @@ def is_auth_disabled() -> bool:
 | 缺口 | 状态 | 边界 |
 |---|---|---|
 | legacy 数据的自动迁移 | **无** | 需手工跑 `scripts/migrate_user_isolation.py`；不迁移则不隔离 |
-| 组织/租户层隔离 | **无** | 只有 user × thread 两层，无 project/org 维度的路径分段 |
+| 组织/租户层隔离 | **无** | 路径有 user × project × thread 三层（`paths.py:388-394`），无 org/tenant 维度 |
 | 跨用户共享 thread | **无** | 无「把这个 thread 共享给同事」的机制 |
 | 存储配额按用户 | **无** | 无 per-user 磁盘配额 |
 | workspace 的加密隔离 | **无** | 同一主机上的目录权限隔离，无 per-user 加密 |

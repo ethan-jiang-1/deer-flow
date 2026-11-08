@@ -17,7 +17,7 @@ topics: [governance, identity]
 |---|---|---|---|---|
 | **本地密码** | HttpOnly session cookie | `POST /api/v1/auth/login/local`（`app/gateway/routers/auth.py:431`） | JWT 过期 | 改密 → `token_version` +1 |
 | **SSO / OIDC** | 同上（回调后发 cookie） | `GET /api/v1/auth/callback/{provider}`（`app/gateway/routers/auth.py:1030`） | 同上 | 同上 |
-| **个人访问令牌** | `Authorization: Bearer dfp_...` | 任意已枚举路由 | **无过期** | `DELETE /auth/pats/{id}` 或停用账号 |
+| **个人访问令牌** | `Authorization: Bearer dfp_...` | 白名单路由（见 [08 §3](08-pat.md)） | 可设 1–365 天；缺省不过期 | `DELETE /auth/pats/{id}` 或停用账号 |
 | **内部服务 token** | `X-DeerFlow-Internal-Token` | 内部 HTTP 调用 | 不过期 | 换 env 值重启 |
 
 **共同点**：四条最终都解析成一个 `user`，后续授权一视同仁。
@@ -73,12 +73,13 @@ PAT 由 `auth_middleware.py` 单独分支处理，核心逻辑在 `app/gateway/a
 
 ## 5. 统一解析与授权
 
-四条路径在中间件后段收敛成同一个 `AuthContext`，后续 11 个
+四条路径在中间件后段收敛成同一个 `AuthContext`，后续 13 个
 `resource:action` 权限由 `@require_permission` 装饰器检查（`app/gateway/authz.py:63-86`）。
 
-**对企业的含义**：认证方式的差异不会传导到授权层——不管用哪条路进来，
-能做什么都由同一个 RBAC 表决定。这简化了评审，但也意味着
-**PAT 的特殊路由边界是唯一的例外**（见 [08-pat.md](08-pat.md) §3）。
+**对企业的含义**：认证方式的差异大部分不传导到授权层——不管用哪条路进来，
+能做什么都由同一个 RBAC 表决定。但有两个例外：**PAT 的 scope 会直接收窄路由权限**
+（见 [08-pat.md](08-pat.md) §2），**内部 token 带 owner 头时 run 层会继承 owner 上下文**
+（路由层仍是 `internal`/`default_role`，见 [02-internal-token.md](02-internal-token.md) §3）。
 
 ## 6. 缺口
 

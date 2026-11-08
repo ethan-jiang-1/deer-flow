@@ -16,15 +16,21 @@ topics: [governance, audit]
 | 事件类型 | 内容 |
 |---------|------|
 | `metadata` | run_id / thread_id / assistant_id |
-| `updates` | State 值（title、artifacts、todos） |
-| `events` | 自定义事件（见下） |
-| `messages-tuple` | 逐 chunk 的消息增量 |
+| `values` | State 值（title、artifacts、todos） |
+| `messages` | 逐 chunk 的消息增量（`messages-tuple` 的 stream_mode 映射） |
+| `custom` | 自定义事件 |
 | `error` | 错误信息 |
-| `end` | run 结束（携带累计 token usage） |
+| `end` | run 结束；Gateway SSE 的 `data` 为 `null`，**不携带**累计 usage |
+| `gap` | 事件缺口标记 |
+
+**注意 stream_mode 与 SSE 事件名不是一回事**：`messages-tuple` 在
+`stream_modes.py:46` 映射为 `messages`；`updates` 在 worker 里发布为 `values`。
+`end` 的 usage 只在嵌入式 `client.py:1312` 有，Gateway SSE 的 `end` 是空 data。
 
 ### 1.1 subagent 的六种 `task_*` 事件
 
-`subagents/step_events.py` 定义了子代理生命周期的全部事件：
+`subagents/step_events.py` 负责把 `task_*` 映射为 `subagent.*`，**不是发射点**；
+实际发射在 `tools/builtins/task_tool.py:1121`、`:1165`、`:1183`。
 
 | 事件 | 行 | 性质 |
 |---|---|---|
@@ -64,29 +70,32 @@ topics: [governance, audit]
 
 ## 3. Tracing 是可选的
 
-DeerFlow **不内建** OpenTelemetry 导出。
-Langfuse / LangSmith 通过 callback 接入：
+DeerFlow 的内建 OTel 支持是 **Monocle**（可选，默认关，`tracing_config.py:164-168`、
+`monocle.py:24-49`）。Langfuse / LangSmith 通过 LangChain callback 接入：
 
 | 状态 | 后果 |
 |---|---|
 | 配了 tracing | 有 span 树，可看 LLM/tool/graph node 的耗时与嵌套 |
 | **没配**（默认） | **这一层完全不存在** |
+| 启用 Monocle | 走 OTel exporter；不是默认 |
 
-所以「三层审计」中的 tracing 层，在默认部署里是**空的**。
+所以「审计链路」中的 tracing 层，在默认部署里是**空的**。
 这是评估时必须先确认的一点。
 
-## 4. 准确的能力定位：数据有，视图无
+## 4. 准确的能力定位：有单用户视图，无跨用户/集群视图
 
 | 想要的能力 | 数据是否已产生 | 是否有现成视图 |
 |---|---|---|
-| 活跃 agent 状态 | **是**（SSE + journal） | **否** |
+| 活跃 agent 状态 | **是**（SSE + journal） | **部分**（Console `/stats` 的 `active_runs`，当前用户） |
 | tool 调用成功率 | **是**（journal） | **否** |
 | 策略违规趋势 | **是**（journal 的 guardrail 事件） | **否** |
-| token 消耗趋势 | **是**（usage_metadata） | **否** |
+| token 消耗趋势 | **是**（usage_metadata） | **部分**（Console `/usage` 按日 + per-model） |
 | 异常行为检测 | **否** | **否** |
 | 跨层联合视图 | 分散在三个地方 | **否** |
 
-**前四行是「能算但没界面」**：数据都在各自的存储里，需要外部系统（Grafana、BI、自建服务）去读并聚合。
+**前四行不是「完全没视图」**：Console 提供**当前用户**的 stats/runs/usage 聚合
+（`routers/console.py:289-360`、`:448-457`），但**没有跨用户/集群视图**，
+也没有前端仪表盘。要集群级聚合，仍需外部系统去读并聚合。
 
 **第五行不同**：异常行为检测需要基线建模，不是简单聚合，DeerFlow 完全没有。
 
@@ -94,10 +103,10 @@ Langfuse / LangSmith 通过 callback 接入：
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| 集群级聚合视图 | **无** | 无跨 agent / 跨用户的界面；RunJournal / tracing / SSE / Console 数据都能支撑，缺的是 UI |
+| 集群级聚合视图 | **无** | 无跨 agent / 跨用户的界面；Console 只做单用户，RunJournal / tracing / SSE 数据都能支撑 |
 | 行为异常检测 | **无** | 无基线、无阈值、无告警规则 |
-| 内置 OTEL 导出 | **无** | 仅 callback 形式支持 Langfuse/LangSmith |
-| 跨副本的事件续传 | **部分** | 内存缓冲；重启即丢 |
+| 内置 OTEL 导出 | **部分** | Monocle OTel 可选（默认关）；无通用 OTLP 导出 |
+| 跨副本的事件续传 | **有但不覆盖** | redis bridge 支持 `Last-Event-ID`；memory bridge 才重启即丢 |
 | 告警 | **无** | 没有任何内建告警通道 |
 | 就绪/存活区分 | **有但不覆盖** | 有两个端点（见 [../cost/02-deployment-and-ops.md](../cost/02-deployment-and-ops.md) §1），但无运维说明 |
 

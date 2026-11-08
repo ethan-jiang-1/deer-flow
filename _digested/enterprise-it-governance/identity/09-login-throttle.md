@@ -17,7 +17,7 @@ topics: [governance, identity, brute-force, multi-instance]
 | `auth.local.lockout_seconds` | `300.0`（5 分钟） | `gt=0` | `packages/harness/deerflow/config/auth_config.py:125` |
 | `auth.local.throttle_storage` | `auto` | `auto` / `memory` / `db` | `packages/harness/deerflow/config/auth_config.py:131` |
 
-默认值是「保留历史上的硬编码策略」（`packages/harness/deerflow/config/auth_config.py:114`、`:126` 两处注释都这么说）。
+默认值是「保留历史上的硬编码策略」（`packages/harness/deerflow/config/auth_config.py:115`、`:129` 两处注释都这么说）。
 
 ## 2. `max_login_attempts` 为什么不能是 1
 
@@ -89,7 +89,7 @@ Docker 栈默认信任自带的 nginx（注释里写 "the Docker stack trusts it
 
 ## 5. 热生效语义
 
-这部分容易出错，`config.example.yaml:3546-3555` 写得很细：
+这部分容易出错，`config.example.yaml:3550-3555` 写得很细：
 
 > Live-read per login, so a config reload applies without a Gateway restart:
 > lowering `lockout_seconds` releases an active lock early and tightening
@@ -112,8 +112,8 @@ Docker 栈默认信任自带的 nginx（注释里写 "the Docker stack trusts it
 | 按用户 id 限速 | **无** | 只按客户端 IP；同一用户从多个 IP 尝试不受累计约束 |
 | 渐进式延迟 | **无** | 只有「未达阈值 → 放行 / 达阈值 → 锁定」二元行为，无指数退避 |
 | CAPTCHA / MFA | **无** | 密码正确即放行；无第二因子 |
-| 未授权告警 | **无** | 锁禁事件无结构化事件或 webhook，需从日志提取 |
-| 锁禁的白名单豁免 | **无** | `auth.local` 下只有 §1 的三个键，没有 IP 白名单/豁免配置；被误锁的运维只能等 `lockout_seconds` 到期或改配置重启 |
+| 未授权告警 | **无** | 锁禁事件无结构化事件、webhook 或专门日志；登录失败只返回 429 |
+| 锁禁的白名单豁免 | **无** | `auth.local` 下没有 IP 白名单/豁免配置（只有 throttle 三键 + `allow_registration`）；被误锁的运维可调低 `lockout_seconds`（live-read，立即提前释放），不需要重启 |
 | 按账号锁定（防撞库跨 IP） | **无** | 攻击者换 IP 即可绕过 |
 
 ## 7. 与其他章节的关系

@@ -14,9 +14,9 @@ topics: [governance, execution]
 |------|------|------|
 | **Local 模式宿主 bash** | `allow_host_bash` 默认 `false`（`config.example.yaml:1720`），可被显式打开 | 打开后路径校验是唯一屏障 |
 | **容器逃逸** | Docker / K3s 依赖容器运行时安全 | 框架层无能为力 |
-| **资源耗尽** | 无 CPU / 内存 / 磁盘配额 | 需在容器/主机层限制 |
-| **出站网络** | **有策略**（见 §2） | 受限模式仅 Docker 28+ |
-| **Skills 注入** | 静态扫描 + LLM 扫描两层（`skills/security_scanner.py:97`） | 扫描是启发式，非形式化证明 |
+| **资源耗尽** | AIO 本地 Docker 默认 **2 CPU / 2G 内存 / pids 512**（`community/aio_sandbox/local_backend.py:240-242`，可用 `DEER_FLOW_SANDBOX_*` 调整）；Local 模式无 cgroup；**磁盘无配额** | 需在容器/主机层再限制 |
+| **出站网络** | **部分**：AIO 本地 Docker 有受限模式；默认 `LocalSandboxProvider` 无策略（见 §2.2） | 受限模式仅 Docker 28+ |
+| **Skills 注入** | 静态扫描（`skills/skillscan/orchestrator.py`）+ LLM 扫描（`skills/security_scanner.py:97`）两层 | 扫描是启发式，非形式化证明 |
 
 ## 2. 出站网络策略：一处此前被漏掉的机制
 
@@ -62,9 +62,11 @@ network:
 | 本地 Docker 沙箱（Docker 28+） | **是** |
 | Apple Container | **否** |
 | provisioner（K3s） | **否** |
+| 默认 `LocalSandboxProvider` | **否**——无出站策略，`curl` 直连宿主网络 |
 
-**最后一行是最需要知道的**：用 K8s Provisioner 做多租户时，
-恰好吃不到这套出站策略，网络限制需在 K8s 层（NetworkPolicy）自行实现。
+**最后一行是最需要知道的**：这套出站策略只在 **AIO 本地 Docker 后端**成立；
+用默认 Local 或 K8s Provisioner 做多租户时吃不到它，网络限制需在主机/K8s 层
+（NetworkPolicy）自行实现。
 
 实现位置：`sandbox/sandbox_provider.py:118`（`sandbox_network_mode`）、
 `:122`（`sandbox_network_temporary_grant_ttl`），

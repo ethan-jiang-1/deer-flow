@@ -85,13 +85,17 @@ pii_redaction:
 
 | 环节 | 是否脱敏 | 证据 |
 |---|---|---|
-| 发往模型的内容 | **是** | `config.example.yaml:1525-1526` |
-| `/goal` 续写（隐藏） | **是**（存之前） | `config.example.yaml:1527` |
-| 排队的 memory-extraction 载荷 | **是** | `config.example.yaml:1528` |
-| 压缩（compaction）输入 | **是** | `config.example.yaml:1529-1531` |
-| 配置的 LLM 标题生成输入 | **是** | `config.example.yaml:1529` |
-| `/goal` 评估器输入 | **是** | `config.example.yaml:1529` |
-| **thread state 中的原始文本（供 UI 显示）** | **否** | `config.example.yaml:1527-1528`（"Raw text stays in thread state for the UI"） |
+| 发往模型的内容 | **是** | `config.example.yaml:1525-1530` |
+| `/goal` 续写（隐藏） | **是**（存之前） | `config.example.yaml:1532` |
+| 排队的 memory-extraction 载荷 | **是** | `config.example.yaml:1533-1534` |
+| 压缩（compaction）输入 | **是** | `config.example.yaml:1534-1535` |
+| 配置的 LLM 标题生成输入 | **是** | `config.example.yaml:1534-1535` |
+| `/goal` 评估器输入 | **是** | `config.example.yaml:1534-1535` |
+| **thread state 中的原始文本（供 UI 显示）** | **否** | `config.example.yaml:1533`（"Raw text stays in thread state for the UI"） |
+
+**“发往模型的内容”不是全部消息**：只覆盖 genuine user messages 与远程工具结果
+（`web_fetch`/`web_search`/`image_search`/`web_capture`/MCP）；assistant 消息与本地工具结果
+不在这一层。见 `pii_redaction_middleware.py:425-427`、`:499-511`。
 
 ### 4.1 占位符是「值派生」的
 
@@ -133,6 +137,13 @@ pii_redaction:
 所以脱敏是**发往模型时**做的，不是**存储时**做的。
 
 **含义**：数据库里存的是原文。数据库访问权限 = 原始 PII 的访问权限。
+
+### 5.3 意外的 fail-open
+
+`pii_redaction_middleware.py:396-402` 的 docstring 明确：
+"Unexpected errors fail open (the original content reaches the model)"。
+脱敏器本身报错时，原文仍会到达模型；这是有意的 trade-off（一行坏数据不该中断 run），
+但企业评审要知道**它不是 fail-closed**。
 
 ## 6. 三条独立结论
 

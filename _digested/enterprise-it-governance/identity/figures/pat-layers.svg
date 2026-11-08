@@ -17,11 +17,11 @@
   <g font-size="10">
     <rect x="140" y="208" width="170" height="44" rx="6" fill="#dcfce7" stroke="#16a34a"/>
     <text x="225" y="226" text-anchor="middle" font-weight="700" fill="#14532d">✓ 允许</text>
-    <text x="225" y="243" text-anchor="middle" fill="#166534">threads / runs / agents 读写</text>
+    <text x="225" y="243" text-anchor="middle" fill="#166534">threads / runs 生命周期</text>
 
     <rect x="325" y="208" width="170" height="44" rx="6" fill="#dcfce7" stroke="#16a34a"/>
     <text x="410" y="226" text-anchor="middle" font-weight="700" fill="#14532d">✓ 允许</text>
-    <text x="410" y="243" text-anchor="middle" fill="#166534">models / skills 只读</text>
+    <text x="410" y="243" text-anchor="middle" fill="#166534">projects / trash（同 scope）</text>
 
     <rect x="510" y="208" width="170" height="44" rx="6" fill="#fee2e2" stroke="#dc2626"/>
     <text x="595" y="226" text-anchor="middle" font-weight="700" fill="#991b1b">✗ 不在表内</text>
@@ -38,10 +38,10 @@
   <text x="490" y="314" text-anchor="middle" font-weight="700" font-size="13" fill="#0c4a6e">第二层 · Scope 校验（9 个可选 scope）</text>
   <text x="490" y="335" text-anchor="middle" font-size="11" fill="#075985">validate_scopes · 路由要求的 scope 必须在令牌的 scope 集合里</text>
   <g font-size="10" fill="#075985">
-    <text x="215" y="358">threads:read / threads:write</text>
-    <text x="215" y="374">runs:read / runs:write / runs:cancel</text>
-    <text x="420" y="358">agents:read / agents:write</text>
-    <text x="420" y="374">models:read / skills:read</text>
+    <text x="215" y="358">threads:read / write / delete</text>
+    <text x="215" y="374">runs:create / read / cancel</text>
+    <text x="500" y="358">projects:read / write / delete</text>
+    <text x="500" y="374">9 个，与 authz 的 resource:action 同名</text>
   </g>
   <path d="M490,388 v24" stroke="#64748b" stroke-width="1.5" marker-end="url(#p)"/>
 

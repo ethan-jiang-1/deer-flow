@@ -13,7 +13,7 @@ Agent 蔓延（sprawl）指一个部署里 agent 定义与实例的数量脱离�
 
 | 路径 | 谁触发 | 是否可数 |
 |---|---|---|
-| **Subagent dispatch** | lead agent 自主决定 | 单次 run 内可数（`MAX_CONCURRENT_SUBAGENT_CALLS = 64`，`subagents_config.py:17`；总数由 `max_total_per_run` 兜底，`:179`） |
+| **Subagent dispatch** | lead agent 自主决定 | 单次 run 内可数（执行并发默认 3；响应级上限 `MAX_CONCURRENT_SUBAGENT_CALLS = 64`，`subagents_config.py:17`；总数由 `max_total_per_run` 兜底，`:179`） |
 | **Custom agent 创建** | **终端用户**（`setup_agent` tool） | 需遍历用户目录才知道 |
 | **ACP agent 调用** | agent 自主决定 | 受 `acp_agents` 配置数量限制 |
 | **Skills** | 用户在 settings 页自行开启 | 公共 skills 现为 **23** 个 |
@@ -25,15 +25,15 @@ Agent 蔓延（sprawl）指一个部署里 agent 定义与实例的数量脱离�
 
 | 想回答的问题 | 需要什么 | 有无 |
 |---|---|---|
-| 这个部署里有多少个 agent 定义？ | 遍历所有用户目录 | **无现成接口** |
-| 昨天新建了哪些？ | 文件 mtime + 遍历 | **无现成接口** |
-| 谁建的？ | 目录归属 | **无现成接口** |
+| 这个部署里有多少个 agent 定义？ | `AgentRow` + `list_all()`（`persistence/agents/base.py:106-110`） | **有服务端方法，无 HTTP 端点** |
+| 昨天新建了哪些？ | `created_at` 列（`model.py:31-38`） | **有字段，无查询接口** |
+| 谁建的？ | `user_id` 索引 | **有字段，无聚合视图** |
 
 ## 2. 五项缺失的控制
 
 | 风险 | 现状 |
 |------|------|
-| **Agent 清单** | **无集中 inventory**。subagent 类型可由代码/配置枚举，但用户自建的 custom agent 与运行中实例没有注册表 |
+| **Agent 清单** | **有持久化清单，缺运行实例视图**。`AgentRow` 有 UUID/id/user_id/created_at，`list_all()` 可列全部 owner（`persistence/agents/base.py:106-110`、`sql.py:137-142`）；缺的是运行实例视图与管理员 HTTP 聚合端点，不是索引能力 |
 | **Shadow agent 检测** | **无**。经 SDK 自建的 agent 不进 Gateway，Gateway 看不到 |
 | **权限衰减** | **无**。subagent 继承 lead agent 的 sandbox 与 thread_data，拥有与 lead 相同的访问权 |
 | **全局紧急终止** | **部分**。有 cooperative cancellation（`cancel_event` 在 astream 边界检查）；`ExecutionFence`（`deerflow_extension_api/agent_runs.py:22`）用单调递增 epoch + 行锁，接管时推进 epoch 使旧持有者的 admission/cancel 失效 |

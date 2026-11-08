@@ -47,7 +47,7 @@ topics: [governance, compliance, gdpr]
 | thread（库记录 + 目录） | 是 | `DELETE /api/threads/{id}`（`routers/threads.py:758`） |
 | memory.json | 是 | 手工删文件；无 API |
 | 上传文件 | 是 | 随 thread 删除 |
-| **run 事件 / journal** | **部分** | 不随 thread 删除 |
+| **run 事件 / journal** | **是** | 随 thread 删除（`routers/threads.py:850-854`）；删除会把证据置 `partial` |
 | **已发出的 LLM 请求** | **做不到** | 已离开部署边界 |
 
 ### 3.1 用户级删除的连带效果
@@ -82,7 +82,7 @@ topics: [governance, compliance, gdpr]
 | 机制 | 状态 |
 |---|---|
 | PII 脱敏 | **默认关闭**（`config.example.yaml:1538`） |
-| 脱敏作用范围 | 仅用户消息 + 远程工具结果（`config.example.yaml:1526-1528`） |
+| 脱敏作用范围 | 用户消息 + 远程工具结果 + memory/compaction/title//goal 的出站；assistant 与本地工具结果不覆盖（`config.example.yaml:1525-1536`） |
 | TypeSafe 出站 | **不覆盖**（`config.example.yaml:2372`） |
 | 存储层脱敏 | **无**（原文留在 thread state） |
 
@@ -101,8 +101,8 @@ topics: [governance, compliance, gdpr]
 | 上传 | 无 |
 | run 事件 | 无 |
 
-且回收站清扫**只在 Gateway 启动时跑**（`app.py:327`）——
-不停机的部署实际上不清理。详见 [../data/06-retention-and-residency.md](../data/06-retention-and-residency.md) §2。
+且回收站清扫是**启动 + `GET /api/trash/documents` 惰性触发**（`app.py:327-331`、`routers/trash.py:146-158`）——
+没有周期定时器，无人访问时不保证按时。详见 [../data/06-retention-and-residency.md](../data/06-retention-and-residency.md) §2。
 
 ## 7. 跨境传输（Chapter V）
 
@@ -117,7 +117,8 @@ topics: [governance, compliance, gdpr]
 | IM channels | 运营方 |
 
 **没有机制层面的地域约束**：单一 `base_dir`、单一 `database.backend`、
-无按区域路由能力。
+无按区域路由能力。blob 与 knowledge 的驻留也分别由 `blob_storage` 后端
+和 provider 决定（见 [../data/06-retention-and-residency.md](../data/06-retention-and-residency.md) §5.1）。
 
 所以跨境合规完全依赖**部署选址**与**provider 选择**，框架不参与。
 
@@ -136,7 +137,7 @@ topics: [governance, compliance, gdpr]
 | 处理活动登记簿 | **无** | journal ≠ Art. 30 登记 |
 | PII 脱敏默认启用 | **无** | `enabled: false` |
 | thread/memory 的 TTL | **无** | 只有项目回收站有 |
-| 定时清扫 | **无** | 启动时一次 |
+| 定时清扫 | **无周期定时器** | 启动 + 回收站列表惰性触发 |
 | 地域路由 | **无** | 单后端 |
 | 已传输数据的撤回 | **做不到** | 架构边界，非缺陷 |
 

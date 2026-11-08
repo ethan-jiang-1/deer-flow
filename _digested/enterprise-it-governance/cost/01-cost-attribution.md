@@ -12,13 +12,14 @@ DeerFlow 对前者覆盖较全，对后者有限。
 ## 1. 用量在哪里产生
 
 `TokenUsageMiddleware`（`agents/middlewares/token_usage_middleware.py:327`）
-在每个 `AIMessage` 上标注 `usage_metadata`（`input_tokens` / `output_tokens` / `total_tokens`）。
+读取 provider 返回的 `usage_metadata`（`input_tokens` / `output_tokens` / `total_tokens`），
+并把 subagent 用量合并到父消息。
 
 | 特征 | 事实 |
 |---|---|
 | 收集粒度 | **每次 LLM 调用** |
 | 载体 | `AIMessage.usage_metadata` |
-| 是否聚合 | 否——聚合需自行做 |
+| 是否聚合 | **是（单用户）**——Console 提供按日/per-model 聚合；跨用户/集群视图需自行做 |
 
 ## 2. subagent 用量如何回溯
 
@@ -73,7 +74,7 @@ def _subagent_usage_from_tool_message(message: ToolMessage) -> dict[str, int] | 
 避免给不支持该参数的类塞入无效关键字。
 
 **这一条对成本归属是决定性的**：如果用了自建网关而没开这个，
-账单是真实发生的，但 DeerFlow 里统计到的是零。
+账单是真实发生的，但 DeerFlow 里会记为缺失（`missing_usage_calls`），成本显示为 `null` 而不是零。
 
 ## 4. 能统计 vs 能归因
 
@@ -82,27 +83,27 @@ def _subagent_usage_from_tool_message(message: ToolMessage) -> dict[str, int] | 
 | 每次调用 | **是** | `usage_metadata` |
 | 每个 run | **是** | 同一 run 的消息可汇总 |
 | 每个 subagent | **是** | 经上述归属链回到父消息 |
-| 每个用户 | **部分** | 需经 thread → user 关联，无现成视图 |
-| 每个 agent 定义 | **部分** | 同上，需自行聚合 |
-| 换算成金额 | **否** | 无单价表（见 [03-budgets-and-limits.md](03-budgets-and-limits.md)） |
+| 每个用户（当前登录用户） | **是** | Console `/api/console/usage` 按当前用户过滤（`routers/console.py:448-457`） |
+| 跨用户 / 管理员聚合 | **无** | 无管理员全局视图 |
+| 每个 agent 定义 | **部分** | 用量按模型聚合，不按 agent 定义 |
+| 换算成金额 | **有（事后）** | `models[*].pricing` + Console cache-aware 计价（`routers/console.py:153-228`）；无执行层货币预算 |
 
-第 4、5 行是「有数据、没有视图」：数据都在 `usage_metadata` 里，
-但要做「按用户排行」需要自己写查询。
+第 4 行是 Console 已有的单用户视图；第 5 行是跨用户缺口；第 6 行按 agent 定义仍缺。
 
 ## 5. 缺口
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| 实时成本仪表盘 | **无** | 只有数据，无现成视图 |
-| per-user / per-agent 聚合 | **无** | 需自行关联 thread → user |
-| 单价配置与金额换算 | **无** | 模型配置里无价格字段 |
-| 预算执行与告警 | **部分** | `token_budget` 有 warn/hard-stop，但默认关闭且告警只给模型不给运维 |
+| 实时成本仪表盘 | **部分** | Console 有单用户 stats/usage；无跨用户/集群视图、无前端仪表盘 |
+| per-user / per-agent 聚合 | **部分** | Console 有 per-user 聚合；per-agent 需自行按模型/agent 关联 |
+| 单价配置与金额换算 | **部分** | 有 `models[*].pricing` 与 Console 事后计价；无执行层货币预算 |
+| 预算执行与告警 | **部分** | 顶层 `token_budget` 默认关闭；子代理 `token_budget` 默认开启；告警只给模型不给运维 |
 | 跨 run 累计 | **无** | 每个 run 独立计数 |
-| 缓存命中与成本的关联 | **部分** | `cache_read_tokens` 被单独记录（`token_collector.py:76-77`），但不参与金额计算 |
+| 缓存命中与成本的关联 | **有** | `cache_read_tokens` 被记录并参与 Console cache-aware 计价（`routers/console.py:218-228`） |
 
-最后一行值得展开：prompt 缓存命中会显著降低成本，
-`token_collector.py:50-57` 特意把 `cache_read_tokens` 单独记下来，注释写着
-"needed for cache-aware cost accounting"——**数据留了，计算没做**。
+prompt 缓存命中会显著降低成本：`token_collector.py:50-57` 把 `cache_read_tokens`
+单独记下来，Console 的 `_token_cost` 再按 `input_cache_hit_per_million` 计价。
+**数据和计算都在，缺的是执行层的货币预算。**
 
 ## 6. 与其他章节的关系
 

@@ -91,13 +91,14 @@ def mask_local_paths_in_output(output: str, thread_data: ThreadDataState | None)
 |---|---|---|
 | PII / 凭据脱敏 | **无（在另一处）** | 见 [05-pii-redaction.md](05-pii-redaction.md)；且该处默认关闭 |
 | 自定义挂载的统一处理 | **部分** | 内置路径与本函数一致；自定义挂载由沙箱实现处理，两处逻辑 |
-| user_id 的替换 | **无** | 路径里的 `{user_id}` 段**不会被替换掉**——它能看出来是哪个用户 |
+| user_id 的替换 | **有（仅本 thread）** | 本 thread 的 `{user_id}` 段随映射替换成虚拟路径（`backend/packages/harness/deerflow/sandbox/tools.py:790-817`）；**他用户的绝对路径不在 map 里，会原样泄露** |
 | 输出长度截断 | 与脱敏无关 | 见 execution 卷的资源限制 |
 | 脱敏的日志留痕 | **无** | 脱敏动作不产生事件；无法统计「发生了多少次路径泄露尝试」 |
 
-第 3 条值得注意：脱敏后路径形如 `/mnt/user-data/workspace/x.txt`，
-但如果输出里出现了另一个用户的**绝对路径**（例如跨用户读取尝试），
-替换规则仍会把它映射成虚拟路径——**看不出发生了越权尝试**。
+第 3 条值得注意：映射表只由**当前 thread** 的 workspace/uploads/outputs 构造
+（`backend/packages/harness/deerflow/sandbox/tools.py:790-817`、`:905-908`）。所以本用户的 `{user_id}` 段会被替换，
+但**另一个用户的绝对路径不在 map 里，会原样出现在输出中**——
+这既暴露了越权读取的尝试，也是一条真实的路径泄露面。
 
 ## 7. 与其他章节的关系
 

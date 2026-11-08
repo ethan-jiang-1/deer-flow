@@ -27,9 +27,10 @@ ls_output_max_chars: 20000
 
 ### 1.1 为什么 bash 是中间截断
 
-`backend/packages/harness/deerflow/sandbox/tools.py` 里三处的取值都遵循「配置优先、否则 20000」的模式。
-bash 输出用**中间截断**而不是头部截断，原因是：命令的头部常是进度噪音，
-而**结尾**往往在报错信息里。截中间能同时保住两端。
+`backend/packages/harness/deerflow/sandbox/tools.py` 的截断回退值不是同一个：
+bash / `ls` 是 **20000**，`read_file` 是 **50000**（`:3300`、`:3302`），都支持配置覆盖。
+bash 输出用**中间截断**而不是头部截断，原因是 stdout/stderr 顺序不确定、
+错误可能出现在两端（`:2450-2451`）；截中间能同时保住两端。
 
 这对「用 bash 输出判断失败原因」这件事是必要的。
 
@@ -73,8 +74,8 @@ DEFAULT_MAX_CACHED_THREAD_SANDBOXES = 256
 ## 4. Per-thread 隔离的真实边界
 
 ```
-thread_1 → sandbox_id="local:thread_1" → users/alice/threads/t1/workspace
-thread_2 → sandbox_id="local:thread_2" → users/alice/threads/t2/workspace
+thread_1 → sandbox_id="local:alice:thread_1" → users/alice/threads/t1/user-data/workspace
+thread_2 → sandbox_id="local:alice:thread_2" → users/alice/threads/t2/user-data/workspace
 ```
 
 | 保证 | 强度 |
@@ -91,16 +92,17 @@ thread_2 → sandbox_id="local:thread_2" → users/alice/threads/t2/workspace
 
 | 缺口 | 状态 | 边界 |
 |---|---|---|
-| CPU / 内存 / 磁盘配额 | **无** | Local 模式下无 cgroup 限制 |
+| CPU / 内存 / 磁盘配额 | **部分** | AIO 本地 Docker 默认 2 CPU / 2G 内存 / pids 512（`community/aio_sandbox/local_backend.py:240-242`）；Local 模式无 cgroup；磁盘无配额 |
 | 单 thread 的磁盘用量上限 | **无** | 可无限写入直到磁盘满 |
-| 全局并发 run 上限 | **部分** | 取决于 scheduler 配置，非默认强制 |
+| 全局并发 run 上限 | **部分** | scheduler 有 `max_concurrent_runs=3`；交互式 run 无全局上限（见 [../cost/05](../cost/05-concurrency-and-scheduling.md)） |
 | per-user 资源配额 | **无** | 无按用户的汇总限制 |
 | 输出截断是否可配 | **有** | 三个键均可配（`config.example.yaml:1748-1750`） |
 | 命令校验是否可配 | **无**（有意） | 输入合法性校验，不可调 |
 
 **第一行与第二行是 Local 模式的实质短板**：
-一个 agent 跑一段 `yes > /tmp/big` 就能把磁盘写满，
-框架层没有任何机制阻止。这类资源必须由容器/主机层限制。
+AIO Docker 至少有 CPU/内存/pids 默认限，但**磁盘没有配额**；Local 模式连 cgroup 都没有——
+一个 agent 跑一段 `yes > /tmp/big` 就能把磁盘写满，框架层没有机制阻止。
+这类资源必须由容器/主机层限制。
 
 ## 6. 与其他章节的关系
 

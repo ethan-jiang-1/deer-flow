@@ -21,13 +21,8 @@ per-user 物理隔离是基础，但企业真正会追问的是：凭据怎么�
 | [02-redaction.md](02-redaction.md) | **输出与错误脱敏** | host 路径替换回虚拟路径 |
 | [03-upload-and-scanning.md](03-upload-and-scanning.md) | **文件上传与 Skills 扫描** | 上传控制矩阵、Skills 安全扫描 |
 | [04-credentials.md](04-credentials.md) | **凭证管理** | 加密、轮换、丢失后果 |
-
-## 规划中
-
-| 文件 | 主题 | 内容 |
-|------|------|------|
-| 05-pii-redaction.md | PII 脱敏 | pii_redaction_middleware |
-| 06-retention-and-residency.md | 保留期与数据驻留 | trash_retention_days、blob、knowledge |
+| [05-pii-redaction.md](05-pii-redaction.md) | **PII 脱敏** | pii_redaction_middleware、默认关闭、fail-open 边界 |
+| [06-retention-and-residency.md](06-retention-and-residency.md) | **保留期与数据驻留** | trash_retention_days、blob、knowledge |
 
 ---
 
