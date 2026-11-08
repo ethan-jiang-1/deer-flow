@@ -34,7 +34,7 @@ topics: [governance, audit]
 
 `deerflow/runtime/journal.py` — `RunJournal` 是 run 结构化事件的汇聚点。有 `record_middleware(event_type="middleware:...")` 方法，`"guardrail"` tag 由 `MIDDLEWARE_GUARDRAIL_TAG` 定义（`packages/harness/deerflow/runtime/events/catalog.py:80`，构成 `event_type="middleware:guardrail"`）。
 
-**🆕 guardrail 现在会写它**（v2.1 早期文档"guardrail 没有调用它"已不成立）：`GuardrailMiddleware._record_guardrail_event()`（`packages/harness/deerflow/guardrails/middleware.py:131`）在三种情形下落一条 `middleware:guardrail` 事件：
+**🆕 guardrail 现在会写它**（v2.1 早期文档"guardrail 没有调用它"已不成立）：`GuardrailMiddleware._record_guardrail_event()`（`packages/harness/deerflow/guardrails/middleware.py:131`）在两类 action（3 个调用点）下落一条 `middleware:guardrail` 事件：
 
 | `action` | 触发条件 |
 |----------|---------|

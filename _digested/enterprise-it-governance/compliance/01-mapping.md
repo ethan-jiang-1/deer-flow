@@ -54,7 +54,7 @@ topics: [governance, compliance]
 | 删除权 | thread 可删（`routers/threads.py:758`）；memory、上传无 TTL，需手工 |
 | 处理记录 | RunJournal + tracing 有记录能力；结构化程度见 [../audit/01-audit-chain.md](../audit/01-audit-chain.md) |
 | 数据最小化 | PII 脱敏**默认关闭**（`config.example.yaml:1538`） |
-| 存储限制 | 仅项目回收站有 30 天 TTL（`projects_config.py:49-52`） |
+| 存储限制 | 仅项目回收站有 30 天 TTL（`projects_config.py:49-53`） |
 | 跨境传输 | 取决于 provider endpoint 配置；另有 TypeSafe 出站不受脱敏覆盖 |
 
 ## 3. SOC 2 / ISO 27001 一句话现状
@@ -78,7 +78,7 @@ DeerFlow 是通用框架，**本身不做风险分级**；某个用途是否落�
 | # | 结论 | 依据 |
 |---|---|---|
 | 1 | **有技术控制，无合规证明** | 全部四篇 |
-| 2 | **默认配置偏宽松**（PII 脱敏关闭、注册开放、授权默认关闭） | `config.example.yaml:1538`、`auth_config.py:101`、`authz.py:287` |
+| 2 | **默认配置偏宽松**（PII 脱敏关闭、注册开放、授权默认关闭） | `config.example.yaml:1538`、`auth_config.py:101`、`authz.py:288-290` |
 | 3 | **缺口集中在数据生命周期**（保留期、导出、驻留） | [../data/06-retention-and-residency.md](../data/06-retention-and-residency.md) |
 
 第 2 条不是缺陷——默认值面向「快速跑起来」；但它意味着

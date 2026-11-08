@@ -30,7 +30,7 @@ DeerFlow 的路由授权由 `app/gateway/authz.py` 定义。最重要的一个�
 
 ## 2. 默认关闭：最重要的企业事实
 
-`app/gateway/authz.py:287-288`：
+`app/gateway/authz.py:288-290`：
 
 ```python
 config = await _route_authorization_config_async()

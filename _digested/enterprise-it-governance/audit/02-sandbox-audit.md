@@ -39,7 +39,7 @@ topics: [governance, audit, sandbox]
 | 结论 | 动作 | 例子 |
 |---|---|---|
 | **block** | 处理器**不被调用**，返回错误 `ToolMessage` | `rm -rf /`、`curl url \| bash` |
-| **warn** | 正常执行，在工具结果里追加警告 | `pip install`、`chmod 777` |
+| **warn** | 正常执行；结果是 `ToolMessage` 时追加警告（`Command` 与整段 silent exit marker 不追加） | `pip install`、`chmod 777` |
 | **pass** | 正常执行 | 普通命令 |
 
 ### 2.1 block 的行为
@@ -61,6 +61,10 @@ topics: [governance, audit, sandbox]
 
 **"so the LLM is aware"**——警告是给**模型**看的，不是给人看的。
 模型可以不理会它继续。
+
+**边界**：`_append_warn_to_result` 对 `Command` 直接返回（`:506-508`）；
+整段输出是 silent exit marker 时也不追加（`:515-518`），以免破坏证据消费者
+对 exit marker 的 fullmatch。所以「一定有警告」不成立。
 
 ## 3. 复合命令的短路规则
 

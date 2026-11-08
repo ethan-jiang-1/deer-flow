@@ -11,7 +11,7 @@ DeerFlow 对前者**只有一个机制**，对后者**没有任何机制**。
 
 ## 1. 唯一的自动保留机制：项目回收站
 
-`config.example.yaml` 的 projects 段与 `packages/harness/deerflow/config/projects_config.py:49-52`：
+`config.example.yaml` 的 projects 段与 `packages/harness/deerflow/config/projects_config.py:49-53`：
 
 | 项 | 值 |
 |---|---|

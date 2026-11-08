@@ -95,7 +95,7 @@ topics: [governance, compliance, gdpr]
 
 | 数据 | TTL |
 |---|---|
-| 项目回收站 | **30 天**（`projects_config.py:49-52`） |
+| 项目回收站 | **30 天**（`projects_config.py:49-53`） |
 | thread | 无 |
 | memory | 无 |
 | 上传 | 无 |

@@ -542,7 +542,7 @@ done
 | 项 | 结果 |
 |---|---|
 | `check_quality.py` | exit 0（54 篇 / 43 内容篇 / 524 证据） |
-| `verify_anchors.py` | exit 0（561 锚点全部存在且在范围内） |
+| `verify_anchors.py` | exit 0（562 锚点全部存在且在范围内） |
 | `check_digest.py` | exit 0 |
 | 三目录铁律 | `0` |
 | 源码 diff（`v2.2.0..HEAD`，除三目录） | 空 |
