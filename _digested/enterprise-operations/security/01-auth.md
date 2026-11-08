@@ -1,6 +1,6 @@
 ---
 title: "认证与授权"
-description: 'DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链。'
+description: 'DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链；IM channel 不单独算一条认证路径，它走 internal token，并在平台侧先验签。'
 topics: [security, auth, isolation-defense]
 verified_against: v2.2.0
 last_verified: 2026-11-08
@@ -8,7 +8,7 @@ last_verified: 2026-11-08
 
 # 认证与授权
 
-DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链。
+DeerFlow 有四条并行的认证路径（本地密码 / SSO-OIDC / PAT / 内部 token），共享同一套 Gateway 中间件链；IM channel 不单独算一条认证路径，它走 internal token，并在平台侧先验签。
 
 ## AuthMiddleware — 统一入口
 
@@ -196,6 +196,26 @@ agents:read · agents:write
 - **Session cookie**：`HttpOnly access_token` cookie。HTTPS/trusted-forwarded HTTPS 和 direct-host localhost 下持久化；public HTTP sandbox URL 降级为 session cookie
 - **"Keep me signed in"**：登录表单 `remember_me` flag。`SessionCookiePolicy` 持久化 cookie max_age；CSRF cookie 同步过期。小 `HttpOnly` preference cookie 保留用户选择
 - **Logout**：清除所有 auth cookie，不重新发放 CSRF cookie
+
+## 企业 IdP 对接：已经有和还没有的
+
+这一节是给「要接企业 IdP」的评审看的。前面讲的是 DeerFlow 怎么认证，这里只讲**还差什么**。
+
+| 能力 | 状态 | 事实 | 企业要做什么 |
+|------|------|------|--------------|
+| OIDC / SSO | ✅ | 通用 OIDC + Keycloak；`session_cookie.py` 管 HttpOnly session cookie；HTTPS 下持久化 | 配 issuer/client/redirect；在 IdP 侧强制 MFA |
+| SAML 2.0 | ❌ | 只有 OIDC；没有 SAML SP | IdP 只支持 SAML 时，需前置 broker（如 Keycloak/Azure AD 转 OIDC） |
+| SCIM 开通/停用 | ❌ | 无 SCIM 端点；账号靠注册/API | 用 IdP + 脚本/API 做生命周期；离职停用要另编排 |
+| MFA / WebAuthn | ❌ | 代码内无 TOTP/WebAuthn/2FA | 由 IdP 强制；或前置认证网关 |
+| 会话撤销 / 设备管理 | 🟡 | `token_version` 在改密时递增，旧 JWT 立即失效；无按设备/会话撤销，默认 7 天 | 缩短 TTL；高敏场景加外部会话管理 |
+| 注册策略 | 🟡 | `auth.local.allow_registration` **默认 true** | 生产设为 false；否则任何人可自助注册 |
+| 密码策略 | 🟡 | 最短 8 位；bcrypt v2（SHA-256 预哈希）；拒绝 40 个常见密码 | 复杂度/轮换/泄露库检查需外挂；SSO 用户不适用 |
+| 密码重置 | ❌ | 无 forgot/reset 端点 | 管理员手工重置或重建账号；或走 IdP 自助重置 |
+| 认证审计 | 🟡 | 登录失败计数写入 `login_throttle` 表；无结构化「登录成功/失败/登出」审计事件 | 接 SIEM 需从 gateway.log + 反向代理日志补 |
+
+> **一个容易漏的点**：OIDC 的 provisioning policy（`allowed_email_domains`、`require_verified_email`、`auto_create_users`）**不适用于本地注册**。如果同时开着本地注册和 OIDC，本地注册可能绕过域名限制；生产应关闭本地注册，或把注册收敛到受控流程。
+
+---
 
 ## AuthorizationProvider — 可插拔鉴权（已落地）🆕
 

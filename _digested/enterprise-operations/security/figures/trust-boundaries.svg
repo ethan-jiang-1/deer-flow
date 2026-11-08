@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 688" font-family="PingFang SC, sans-serif" data-house="v1">
+  <title>信任边界：谁在边界内，数据从哪里出去</title>
+  <desc>operator 可信、内容不可信、agent 继承用户身份——三条假设决定了所有控制的落点。</desc>
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#64748b"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#dc2626"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="9" markerHeight="9" refX="7" refY="3.5" orient="auto">
+      <path d="M0,0 L7,3.5 L0,7 z" fill="#16a34a"/>
+    </marker>
+  </defs>
+  <rect width="1000" height="688" fill="#ffffff"/>
+  <text x="500.0" y="30" text-anchor="middle" font-size="19" font-weight="700" fill="#0f172a">信任边界：谁在边界内，数据从哪里出去</text>
+  <text x="500.0" y="52" text-anchor="middle" font-size="12" fill="#475569">operator 可信、内容不可信、agent 继承用户身份——三条假设决定了所有控制的落点。</text>
+<rect x="30.0" y="100.0" width="160.0" height="450.0" rx="12" fill="#f5f3ff" stroke="#a78bfa" stroke-width="1.3"/>
+<rect x="30.0" y="100.0" width="160.0" height="30.0" rx="12" fill="#6d28d9" stroke="none" stroke-width="0"/>
+<rect x="30" y="118" width="160" height="12" fill="#6d28d9"/>
+<text x="42.0" y="120.0" font-size="11" fill="#ffffff" font-weight="700" text-anchor="start">身份 / 入口</text>
+<rect x="42.0" y="144.0" width="136.0" height="42.0" rx="8" fill="#ffffff" stroke="#a78bfa" stroke-width="1"/>
+<text x="54.0" y="161.0" font-size="9.2" fill="#6d28d9" font-weight="400" text-anchor="start">Browser JWT + CSRF</text>
+<rect x="42.0" y="196.0" width="136.0" height="42.0" rx="8" fill="#ffffff" stroke="#a78bfa" stroke-width="1"/>
+<text x="54.0" y="213.0" font-size="9.2" fill="#6d28d9" font-weight="400" text-anchor="start">OIDC / SSO 登录</text>
+<rect x="42.0" y="248.0" width="136.0" height="42.0" rx="8" fill="#ffffff" stroke="#a78bfa" stroke-width="1"/>
+<text x="54.0" y="265.0" font-size="9.2" fill="#6d28d9" font-weight="400" text-anchor="start">PAT dfp_… / CI</text>
+<rect x="42.0" y="300.0" width="136.0" height="42.0" rx="8" fill="#ffffff" stroke="#a78bfa" stroke-width="1"/>
+<text x="54.0" y="317.0" font-size="9.2" fill="#6d28d9" font-weight="400" text-anchor="start">IM Channel</text>
+<rect x="42.0" y="352.0" width="136.0" height="42.0" rx="8" fill="#ffffff" stroke="#a78bfa" stroke-width="1"/>
+<text x="54.0" y="369.0" font-size="9.2" fill="#6d28d9" font-weight="400" text-anchor="start">Internal token</text>
+<rect x="42.0" y="404.0" width="136.0" height="42.0" rx="8" fill="#ffffff" stroke="#a78bfa" stroke-width="1"/>
+<text x="54.0" y="421.0" font-size="9.2" fill="#6d28d9" font-weight="400" text-anchor="start">IM 用户 → default（缺映射）</text>
+<rect x="220.0" y="100.0" width="330.0" height="450.0" rx="12" fill="#eff6ff" stroke="#60a5fa" stroke-width="1.5"/>
+<rect x="220.0" y="100.0" width="330.0" height="30.0" rx="12" fill="#1d4ed8" stroke="none" stroke-width="0"/>
+<rect x="220" y="118" width="330" height="12" fill="#1d4ed8"/>
+<text x="232.0" y="120.0" font-size="11" fill="#ffffff" font-weight="700" text-anchor="start">Gateway / 控制面（可信）</text>
+<rect x="236.0" y="150.0" width="298.0" height="44.0" rx="8" fill="#ffffff" stroke="#60a5fa" stroke-width="1"/>
+<text x="248.0" y="168.0" font-size="10" fill="#1d4ed8" font-weight="700" text-anchor="start">AuthMiddleware / CSRF</text>
+<text x="248.0" y="183.0" font-size="8.8" fill="#1e3a8a" font-weight="400" text-anchor="start">JWT、PAT、internal、IM；失败 401/403</text>
+<rect x="236.0" y="206.0" width="298.0" height="44.0" rx="8" fill="#ffffff" stroke="#60a5fa" stroke-width="1"/>
+<text x="248.0" y="224.0" font-size="10" fill="#1d4ed8" font-weight="700" text-anchor="start">RBAC / owner check</text>
+<text x="248.0" y="239.0" font-size="8.8" fill="#1e3a8a" font-weight="400" text-anchor="start">13 个路由权限 + thread 归属；默认全放行</text>
+<rect x="236.0" y="262.0" width="298.0" height="44.0" rx="8" fill="#ffffff" stroke="#60a5fa" stroke-width="1"/>
+<text x="248.0" y="280.0" font-size="10" fill="#1d4ed8" font-weight="700" text-anchor="start">Agent loop</text>
+<text x="248.0" y="295.0" font-size="8.8" fill="#1e3a8a" font-weight="400" text-anchor="start">输入 → Guardrail → SandboxAudit → 结果转义</text>
+<rect x="236.0" y="352.0" width="298.0" height="44.0" rx="8" fill="#ffffff" stroke="#60a5fa" stroke-width="1"/>
+<text x="248.0" y="370.0" font-size="10" fill="#1d4ed8" font-weight="700" text-anchor="start">Plugin authz / grants</text>
+<text x="248.0" y="385.0" font-size="8.8" fill="#1e3a8a" font-weight="400" text-anchor="start">action/management；读 body 前鉴权</text>
+<rect x="236.0" y="408.0" width="298.0" height="44.0" rx="8" fill="#ffffff" stroke="#60a5fa" stroke-width="1"/>
+<text x="248.0" y="426.0" font-size="10" fill="#1d4ed8" font-weight="700" text-anchor="start">Output / secrets</text>
+<text x="248.0" y="441.0" font-size="8.8" fill="#1e3a8a" font-weight="400" text-anchor="start">HTML 转义；trace/checkpoint 脱敏；LLM 出网</text>
+<rect x="580.0" y="100.0" width="180.0" height="450.0" rx="12" fill="#f0fdf4" stroke="#4ade80" stroke-width="1.3"/>
+<rect x="580.0" y="100.0" width="180.0" height="30.0" rx="12" fill="#15803d" stroke="none" stroke-width="0"/>
+<rect x="580" y="118" width="180" height="12" fill="#15803d"/>
+<text x="592.0" y="120.0" font-size="11" fill="#ffffff" font-weight="700" text-anchor="start">Sandbox / 执行面</text>
+<rect x="592.0" y="144.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#4ade80" stroke-width="1"/>
+<text x="604.0" y="161.0" font-size="9.2" fill="#15803d" font-weight="400" text-anchor="start">Docker / K3s Pod</text>
+<rect x="592.0" y="196.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#4ade80" stroke-width="1"/>
+<text x="604.0" y="213.0" font-size="9.2" fill="#15803d" font-weight="400" text-anchor="start">bash / file ops</text>
+<rect x="592.0" y="248.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#4ade80" stroke-width="1"/>
+<text x="604.0" y="265.0" font-size="9.2" fill="#15803d" font-weight="400" text-anchor="start">6 层路径防护</text>
+<rect x="592.0" y="300.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#4ade80" stroke-width="1"/>
+<text x="604.0" y="317.0" font-size="9.2" fill="#15803d" font-weight="400" text-anchor="start">egress allowlist（Docker 28+）</text>
+<rect x="592.0" y="352.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#4ade80" stroke-width="1"/>
+<text x="604.0" y="369.0" font-size="9.2" fill="#15803d" font-weight="400" text-anchor="start">Local = 零隔离</text>
+<rect x="790.0" y="100.0" width="180.0" height="450.0" rx="12" fill="#fffbeb" stroke="#fbbf24" stroke-width="1.3"/>
+<rect x="790.0" y="100.0" width="180.0" height="30.0" rx="12" fill="#b45309" stroke="none" stroke-width="0"/>
+<rect x="790" y="118" width="180" height="12" fill="#b45309"/>
+<text x="802.0" y="120.0" font-size="11" fill="#ffffff" font-weight="700" text-anchor="start">外部 / 数据出口</text>
+<rect x="802.0" y="144.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#fbbf24" stroke-width="1"/>
+<text x="814.0" y="161.0" font-size="9.2" fill="#b45309" font-weight="400" text-anchor="start">Model provider</text>
+<rect x="802.0" y="196.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#fbbf24" stroke-width="1"/>
+<text x="814.0" y="213.0" font-size="9.2" fill="#b45309" font-weight="400" text-anchor="start">Web fetch / search</text>
+<rect x="802.0" y="248.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#fbbf24" stroke-width="1"/>
+<text x="814.0" y="265.0" font-size="9.2" fill="#b45309" font-weight="400" text-anchor="start">MCP server</text>
+<rect x="802.0" y="300.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#fbbf24" stroke-width="1"/>
+<text x="814.0" y="317.0" font-size="9.2" fill="#b45309" font-weight="400" text-anchor="start">Tracing / TypeSafe</text>
+<rect x="802.0" y="352.0" width="156.0" height="42.0" rx="8" fill="#ffffff" stroke="#fbbf24" stroke-width="1"/>
+<text x="814.0" y="369.0" font-size="9.2" fill="#b45309" font-weight="400" text-anchor="start">DB / files</text>
+<line x1="200" y1="92" x2="200" y2="562" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="5 5"/>
+<text x="200" y="86" font-size="9" fill="#64748b" text-anchor="middle" font-weight="700">凭据边界</text>
+<line x1="560" y1="92" x2="560" y2="562" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="5 5"/>
+<text x="560" y="86" font-size="9" fill="#64748b" text-anchor="middle" font-weight="700">执行边界</text>
+<line x1="770" y1="92" x2="770" y2="562" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="5 5"/>
+<text x="770" y="86" font-size="9" fill="#64748b" text-anchor="middle" font-weight="700">数据出口边界</text>
+<line x1="192" y1="325" x2="216" y2="325" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+<line x1="552" y1="325" x2="576" y2="325" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+<line x1="762" y1="325" x2="786" y2="325" stroke="#64748b" stroke-width="1.6" marker-end="url(#arrow)"/>
+<text x="566" y="315" font-size="8.5" fill="#475569" text-anchor="middle">tool call</text>
+<text x="776" y="315" font-size="8.5" fill="#475569" text-anchor="middle">egress</text>
+<path d="M786 566 L558 566 L558 554" fill="none" stroke="#b91c1c" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrowRed)"/>
+<text x="672" y="582" font-size="8.5" fill="#b91c1c" text-anchor="middle">tool result（不可信，需中性化）</text>
+<rect x="30.0" y="600.0" width="940.0" height="66.0" rx="10" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1"/>
+<text x="46.0" y="623.0" font-size="10.5" fill="#0f172a" font-weight="700" text-anchor="start">三条信任假设</text>
+<text x="46.0" y="643.0" font-size="9.2" fill="#475569" font-weight="400" text-anchor="start">① operator 可信：能写 config、装插件、注册 stdio MCP ≈ 代码执行  ② web/MCP/上传内容不可信：结果要中性化  ③ agent 没有独立身份：继承触发它的用户</text>
+</svg>

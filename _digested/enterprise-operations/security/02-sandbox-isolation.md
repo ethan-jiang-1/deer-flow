@@ -1,6 +1,6 @@
 ---
 title: "沙箱隔离"
-description: '七种沙箱运行模式（六个 provider 类）与三种隔离级别；Local 是路径映射。'
+description: '七种沙箱运行模式（六个 provider 类）覆盖从零隔离到容器/Pod/microVM/云沙箱；Local 是路径映射，不是沙箱。'
 topics: [security, auth, isolation-defense]
 verified_against: v2.2.0
 last_verified: 2026-11-08
@@ -8,7 +8,7 @@ last_verified: 2026-11-08
 
 # 沙箱隔离
 
-七种沙箱运行模式（六个 provider 类）提供三种完全不同的隔离级别。Local 不是沙箱 — 是路径映射；Provisioner 是 AIO 的 remote backend 模式，不是独立 provider 类。
+七种沙箱运行模式（六个 provider 类）覆盖从「零隔离」到容器、Pod、microVM、云沙箱的多种隔离级别。Local 不是沙箱 — 是路径映射；Provisioner 是 AIO 的 remote backend 模式，不是独立 provider 类。本页重点展开默认的 Local、Docker、K3s 三种，其余四种只给安全边界。
 
 > **交叉引用：** Sandbox ABC 抽象 + 七种运行模式（六个 provider 类）架构见 [concepts/sandbox/abstract-interface-and-seven-impls.md](../../concepts/sandbox/abstract-interface-and-seven-impls.md)。IT 治理视角（策略执行、审计可观测性）见 [../../enterprise-it-governance/execution/README.md](../../enterprise-it-governance/execution/README.md)。
 
@@ -64,6 +64,28 @@ Agent Loop 每轮 step 开始
 
 **关键设计决策：** sandbox 和 thread 是 1:1 绑定，不是 1:1 per tool call。这意味同一 thread 内的所有 tool call 共享同一个文件系统，Agent 可以在多轮 tool call 之间积累状态（写文件 → bash 操作 → 读结果）。
 
+## 七种模式的安全边界
+
+| # | 模式 / provider | 隔离边界 | 安全要点 |
+|---|-----------------|----------|----------|
+| 1 | **LocalSandboxProvider**（默认） | host 进程 | **零隔离**；`allow_host_bash: false` 只关 shell，文件操作仍是 host 路径映射 |
+| 2 | **AioSandboxProvider**（Docker） | 容器 namespace | cap-drop=ALL + no-new-privileges；seccomp 默认 unconfined；容器用户未固定；egress 可 allowlist（Docker 28+） |
+| 3 | **Provisioner**（K3s Pod） | Pod namespace | 有 requests/limits；`allowPrivilegeEscalation: true`、无 NetworkPolicy、无 readOnlyRootFilesystem |
+| 4 | **BoxLiteProvider** | 本地 microVM（KVM / Hypervisor.framework） | 内核级隔离强于容器；仍需管镜像、warm pool 与挂载；不是「无风险」 |
+| 5 | **E2BSandboxProvider** | 云端沙箱 | 数据离开你的 VPC；看 E2B 的区域、保留、egress 与 DPA；释放时回传 outputs |
+| 6 | **TenkiSandboxProvider** | 云端 microVM | 以非特权 `tenki` 用户运行；数据离开 VPC；workspace 作用域要核对 |
+| 7 | **OpenSandboxProvider** | 云端沙箱 | 数据离开 VPC；`use_server_proxy` 只解决连通性，不是隔离；API key 要进 KMS/secret 管理 |
+
+**怎么选**：
+
+- **单用户开发**：Local 够用，但不要开 `allow_host_bash` 给不可信输入。
+- **团队/生产、数据不出域**：Docker 或 K3s，并把 seccomp、非 root、NetworkPolicy、egress 补齐；高安全场景用 BoxLite 或外部 microVM。
+- **要托管、不想运维沙箱**：E2B / Tenki / OpenSandbox 省事，但**信任边界转移到供应商**；企业评审要补数据驻留、子处理者、退出与删除。
+
+> **一个常见误判**：把「用了云沙箱」当成「隔离更强」。云沙箱的隔离可能更强，但数据出了你的边界；安全评审要同时看「隔离」和「数据去向」，两者不是一回事。
+
+---
+
 ## 三维度对比
 
 | 维度 | Local | Docker (AIO) | K3s (Provisioner) |
@@ -76,11 +98,13 @@ Agent Loop 每轮 step 开始
 | **存储限制** | 无 | 无 | 500Mi ephemeral-storage |
 | **seccomp** | host 默认 | **`unconfined`（显式禁用）** | host 默认 |
 | **特权模式** | N/A（已是 host） | 非特权 | `privileged: false` |
-| **setuid** | N/A | Docker 默认 | **`allowPrivilegeEscalation: true`** |
-| **网络出站** | 全通 | 全通（无限制） | 全通（无 NetworkPolicy） |
+| **setuid / 提权** | N/A | **`no-new-privileges` + `cap-drop=ALL`**（加回 5 个必需 cap；容器用户未固定） | **`allowPrivilegeEscalation: true`** |
+| **网络出站** | 全通 | 默认全通；**Docker 28+ 可 `isolated`/`allowlist`** | 全通（无 NetworkPolicy） |
 | **AppArmor/SELinux** | 无 | 无 | 无 |
 | **只读 rootfs** | N/A | 未配置 | 未配置 |
-| **no-new-privileges** | N/A | 未配置 | 未配置 |
+| **no-new-privileges** | N/A | **已配置** | 未配置 |
+| **cap-drop** | N/A | **`ALL` + 5 个必需 cap** | 未配置 |
+| **容器用户** | host 用户 | **未固定**（镜像决定；可配 `DEER_FLOW_SANDBOX_CONTAINER_USER`） | Pod 默认（未设 `runAsNonRoot`） |
 
 ---
 
@@ -116,15 +140,42 @@ Gateway 容器本身在 Docker 里时，通过挂载 host 的 `/var/run/docker.s
 Gateway 容器 → docker.sock → Host Docker Daemon → 沙箱容器
 ```
 
+### ⚠️ Docker socket 等于 host root
+
+Gateway 容器挂载 `/var/run/docker.sock` 后，任何能调用 Docker API 的代码——包括被注入的 agent、恶意插件、或拿到 Gateway 权限的攻击者——都能创建 `--privileged` 容器、挂载 host 根目录、读取其他容器的文件。**它不是「部署方便」，是 host root 等价物。**
+
+生产优先级：
+
+1. **Provisioner / K3s 模式**：Gateway 不直接碰 Docker socket，由独立 provisioner 用受限 ServiceAccount 创建 Pod；代价是要维护 K8s。
+2. **Rootless Docker / Podman + socket proxy**：只暴露 create/start/stop/inspect 等必要 API，禁止 `--privileged`、host mount、host network；socket proxy 本身也要限制。
+3. **至少不要**把 docker.sock 挂给插件或不可信扩展；插件与 Gateway 同进程，拿到 socket 就等于拿到 host。
+
+### 镜像与运行时供应链
+
+- **pin digest**：沙箱镜像用 `@sha256:...`，不要 `latest`；升级前跑镜像扫描。
+- **非 root**：用 `DEER_FLOW_SANDBOX_CONTAINER_USER` 指定 uid/gid，并核对挂载权限；默认不传 `--user`。
+- **最小镜像**：只装 agent 需要的工具；镜像越大，漏洞面越大。
+- **seccomp**：用 `DEER_FLOW_SANDBOX_SECCOMP_PROFILE` 提供 Chromium 兼容的受限 profile；不要长期停在 `unconfined`。
+- **只读 rootfs**：在镜像/运行时允许的前提下加 `--read-only` + tmpfs；AIO 镜像可能需要额外验证。
+
 ### 关键安全设置
 
-`local_backend.py:508` — 容器启动参数：
+`local_backend.py:1985-2034` — 容器启动参数（节选）：
 
 ```
-docker run --rm -d -p <port>:8080 --security-opt seccomp=unconfined ...
+docker run --rm -d -p <port>:8080 \
+  --cap-drop=ALL \
+  --cap-add=CHOWN --cap-add=FOWNER --cap-add=SETUID \
+  --cap-add=SETGID --cap-add=DAC_OVERRIDE \
+  --security-opt no-new-privileges \
+  --security-opt seccomp=unconfined \
+  ...
 ```
 
-**seccomp=unconfined 是最大的安全妥协。** Docker 默认的 seccomp profile 禁用了约 44 个系统调用（包括很多内核漏洞利用常用的）。显式设为 unconfined 是为了 AIO sandbox 功能完整性，但显著扩大了内核攻击面。
+两件事要分开说：
+
+- **已经做的**：`--cap-drop=ALL` 后只加回 AIO 镜像启动必需的 5 个 cap，并显式加 `no-new-privileges`。这两项比旧版文档写的「未配置」要强。
+- **仍然弱的**：默认 `seccomp=unconfined`，移除约 44 个系统调用过滤；默认不传 `--user`，容器内用户由镜像决定（可能不是非 root）。前者可用 `DEER_FLOW_SANDBOX_SECCOMP_PROFILE` 换成 Chromium 兼容的受限 profile，或用 `DEER_FLOW_SANDBOX_SECCOMP_UNCONFINED=0` 退回 Docker 内置 profile；后者可用 `DEER_FLOW_SANDBOX_CONTAINER_USER` 显式指定。
 
 ### LRU 淘汰 + 空闲回收
 
@@ -156,7 +207,7 @@ securityContext:
   allowPrivilegeEscalation: true   # ← setuid 程序可用
 ```
 
-未配置 `no-new-privileges`、`readOnlyRootFilesystem`、NetworkPolicy。
+未配置 `no-new-privileges`、`readOnlyRootFilesystem`、`runAsNonRoot`、NetworkPolicy；`allowPrivilegeEscalation: true` 是明确的提权面。
 
 ---
 

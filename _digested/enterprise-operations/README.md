@@ -12,7 +12,7 @@ topics: [operations, deployment, security, observability]
 
 ## 阅读路径
 
-1. **先看**：[security/00-overview.md](security/00-overview.md) — 纵深防御同心圆、认证凭据路径与已知缺陷。
+1. **先看**：[security/00-overview.md](security/00-overview.md) — 8 道关口、认证凭据路径与已知缺陷；要评估企业就绪度直接跳 [security/07-enterprise-readiness.md](security/07-enterprise-readiness.md)。
 2. **再看**：[deployment/00-overview.md](deployment/00-overview.md) — 4 种部署模式对比与选型决策树。
 3. **深入**：[app-layer/01-api-reference.md](app-layer/01-api-reference.md) — 221 条 Gateway 端点穷举与「领域异常 → HTTP」映射。
 
@@ -28,7 +28,7 @@ topics: [operations, deployment, security, observability]
 
 | 目录 | 主题 |
 |---|---|
-| [security/](security/README.md) | 纵深防御、认证、沙箱隔离、Guardrail、扩展边界 |
+| [security/](security/README.md) | 纵深防御、认证、沙箱隔离、Guardrail、扩展边界、企业级 Agent 安全基准 |
 | [deployment/](deployment/README.md) | 4 种部署模式、Docker Compose、Nginx、K3s Provisioner |
 | [tracing/](tracing/README.md) | LangSmith + Langfuse 双 provider、请求级 trace id |
 | [channels/](channels/README.md) | 9 个 IM 平台、有界消息总线、两种 stream 策略 |

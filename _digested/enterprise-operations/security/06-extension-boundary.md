@@ -308,6 +308,28 @@ docstring（`:39`）如实声明边界："This is a supported capability boundar
 
 ---
 
+## 八点五、扩展供应链：四类东西、四种信任
+
+「扩展安全」不只是插件授权。企业真正会问的是：**这个包是谁做的、改过没有、装进来能干什么、出事能不能撤**。按四类扩展拆开看：
+
+| 类型 | 入口 | 现有信任机制 | 缺什么 |
+|------|------|--------------|--------|
+| **Python 插件** | `config.yaml -> plugins:`（operator 独占） | 包检查 CI、加载器校验、`host_access` 逐项 grant、重启绑定 | 无签名/SBOM/SLSA；插件与 Gateway 同进程同权限；依赖树未审计 |
+| **Skill 包** | `skills/public`、`skills/custom`、集成包 | SkillScan 静态扫描、`skill-reviewer` + CI、安装时扫描 | 启发式；custom skill 不在 public review 范围；无签名/版本固定 |
+| **MCP server** | `extensions_config.json`（API 可写）或个人配置 | stdio 启动白名单（npx/uvx）、header 校验、OAuth token 加密、结果中性化 | 不审计 server 本身；工具描述原样进 prompt；版本/来源审核靠人 |
+| **前端插件页面/资产** | `BrowserAssets`、`plugin_page` | 路径/大小/symlink 校验、CSP sandbox、强制附件 | `plugin_page` 授权尚未接线；页面内容仍由插件提供 |
+
+**供应链评审的四个动作**（不管用不用 DeerFlow 都适用）：
+
+1. **来源固定**：插件/skill/MCP 只用内部 registry 或固定 commit；不要 `latest`。
+2. **构建可复现**：锁文件 + hash + 内部构建；发布 SBOM（CycloneDX/SPDX）。
+3. **签名与验证**：cosign/Sigstore 签名，安装时验签；至少做到内部 registry 的 digest pin。
+4. **依赖审计**：`uv.lock`/`pnpm-lock.yaml` 进 SCA；插件自己的依赖也要扫——它和 Gateway 同进程，依赖漏洞就是 Gateway 漏洞。
+
+> **一句话**：DeerFlow 的「授权」做得比「供应链」好。授权解决「装进来之后能干什么」，供应链解决「装进来的到底是不是你以为的东西」。企业评审两者都会问。
+
+---
+
 ## 九、仍然存在的缺口
 
 | 缺口 | 说明 |

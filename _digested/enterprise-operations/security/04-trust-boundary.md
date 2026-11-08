@@ -10,6 +10,10 @@ last_verified: 2026-11-08
 
 从外部请求到 agent 工具在沙箱中执行，经过的**每一个**安全检查点和它所保护的对象。
 
+![信任边界：身份、控制面、执行面与数据出口](figures/trust-boundaries.svg)
+
+> **图读法**：三条竖虚线是信任边界，不是网络拓扑。左边是「谁在调用」，中间是「谁在做决定」，右边是「数据去了哪里」；红色虚线是**不可信内容回流**，它必须经过中性化才能重新进入 prompt。图下的三条假设（operator 可信、内容不可信、agent 无独立身份）是所有控制的起点。
+
 ## 完整链路
 
 ```
@@ -103,10 +107,10 @@ Browser / IM / Internal
   │
   ▼
 ┌─ OS / Kernel ───────────────────────────────────────────────┐
-│  seccomp: host默认 / unconfined(显式禁用) / host默认          │
+│  seccomp: host默认 / unconfined(可收紧) / host默认            │
 │  AppArmor/SELinux: 未配置                                    │
-│  no-new-privileges: 未配置                                   │
-│  egress firewall: 无                                         │
+│  no-new-privileges: Docker 已配置 / K3s 未配置                │
+│  egress: Docker 28+ 可选 / K3s 无 NetworkPolicy               │
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -136,6 +140,24 @@ Browser / IM / Internal
 | 🆕 16 | 插件管理路由授权 | `deerflow_extension_api/auth.py:87` | 越权管理插件 | 插件权限面被改写 |
 
 > **行号维护约定**：这张表里的行号是 v2.2.0 树上的**起点行**（函数/类定义行），只有前 6 行与第 13 行保留了行号——其余条目由多条调用点构成，写单个行号会长期不成立，故只钉文件。后续同步时优先核对函数名，行号只作辅助。
+
+## 16 层之外：四条不在表里的出口
+
+16 层表按「请求进入 → tool 执行」排列，有四条**数据离开**的路径不在里面，评审时要单独看：
+
+| 出口 | 目的地 | 控制 | 缺口 |
+|------|--------|------|------|
+| **模型调用** | LLM provider（可能境外/第三方） | API key、provider 配置、`model name allowlist` | 数据驻留/零留存取决于 provider 合同；prompt 里的 PII 是否脱敏取决于 `pii_redaction` |
+| **工具出网** | web_fetch/web_search、MCP server、bash `curl` | Docker 本地沙箱 `open/isolated/allowlist`；私网/元数据地址始终拒绝 | 仅 Docker 28+；K3s/Local/Apple 无内置策略；MCP server 自身出网不受控 |
+| **审计/追踪** | LangSmith/Langfuse/OTel、TypeSafe/OpenAI Decisions | secrets redaction；风险门参数不脱敏 | 外部 tracing 与风险门都是 egress 通道，需与数据保护对齐 |
+| **浏览器自动化** | 任意网页/内部服务 | `browser_navigate` 的 `allow_private_addresses` 默认 false；CDP `allow_unguarded_cdp` 默认 false；各路径共用 egress 策略 | 允许域名内的钓鱼/恶意下载；浏览器 profile/cookie 隔离取决于部署 |
+
+另外两条经常被漏掉的边界：
+
+- **IM channel**：平台签名 + internal token + CSRF，但所有 IM 用户共享 `"default"` user_id；per-IM-user 隔离要额外改造。
+- **插件 action**：在 Gateway 路由层鉴权，不在 middleware 链里；读 body 之前鉴权，但它与 Gateway 同进程，不是沙箱。
+
+---
 
 ## 信任边界
 
