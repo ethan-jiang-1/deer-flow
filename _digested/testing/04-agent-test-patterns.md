@@ -263,15 +263,29 @@ def isolated_env(tmp_path, monkeypatch):
 
 ## 关键源码
 
+计数为 v2.2.0 实测 `def test` 数（v2.1.0 的旧值在括号里）。
+
 | 文件 | 内容 |
 |------|------|
-| `backend/tests/_agent_e2e_helpers.py` | FakeToolCallingModel |
-| `backend/tests/test_create_deerflow_agent.py` | 中间件链装配测试（42 个） |
-| `backend/tests/test_subagent_executor.py` | Sub-agent 执行测试（45 个） |
-| `backend/tests/test_task_tool_core_logic.py` | task() 工具测试（27 个） |
-| `backend/tests/test_sandbox_tools_security.py` | 路径安全测试（93 个） |
-| `backend/tests/test_client.py` | 流式输出测试（143 个） |
+| `backend/tests/_agent_e2e_helpers.py` | `FakeToolCallingModel`（`:20`）+ `build_single_tool_call_model`（`:40`） |
+| `backend/tests/test_create_deerflow_agent.py` | 中间件链装配测试（**59**，v2.1.0 为 42） |
+| `backend/tests/test_subagent_executor.py` | Sub-agent 执行测试（**183**，v2.1.0 为 45——这一份涨了 4 倍） |
+| `backend/tests/test_task_tool_core_logic.py` | task() 工具测试（**82**，v2.1.0 为 27） |
+| `backend/tests/test_sandbox_tools_security.py` | 路径安全测试（**148**，v2.1.0 为 93） |
+| `backend/tests/test_client.py` | 流式输出测试（**227**，v2.1.0 为 143；全文 5594 行） |
 | `backend/tests/conftest.py` | 全局 fixture：单例重置、circular import mock |
+
+**解释（`test_subagent_executor.py` 从 45 涨到 183 说明了什么）**：subagent 在 v2.2.0 从"一次性的委派"变成了"有生命周期、有并发名额、有状态继承的运行体"——它的测试增量几乎全在**边界条件**上：并发上限、取消传播、失败上报、状态回灌。这正是本篇开头的判断在 2.2 的验证：agent 测试的成本不在"验证正常路径"，而在"验证 agent 出错时系统怎么收场"。写完一个新中间件/新工具，正常路径通常 2-3 个用例就够；剩下几十个用例都在描述"它坏掉时"。
+
+## v2.2.0 新增的三个可复用件
+
+见 [08-testing-patterns-reference.md](08-testing-patterns-reference.md) §11，这里只列入口：
+
+| 件 | 位置 | 解决什么问题 |
+|---|---|---|
+| `MissSelectSession` 等竞态替身 | `backend/tests/_repository_race_helpers.py` | select-then-write 竞态无法靠 sleep 稳定复现 |
+| `_MutableDateTime` | `backend/tests/test_mcp_task_service.py:30` 一族 | 退避/租约/超时推进需要"时钟可拨" |
+| 9 个 `<失效模式><角色>` Fake | `backend/tests/test_mcp_task_service.py:38-186` | 每种失败只注入一种，测试名直接对应 |
 
 ---
 > **See also:** [Testing Skills & Workflows](05-testing-skills-and-workflows.md) · [CI & Automation](06-ci-and-automation.md) · [Pattern Reference](08-testing-patterns-reference.md)

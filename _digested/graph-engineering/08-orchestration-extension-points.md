@@ -18,8 +18,9 @@ topics: [extension, middleware, custom-agents, sdk, orchestration]
 
 | # | 入口 | 形态 | 能做什么 | 部署面 / 风险 |
 |---|------|------|---------|--------------|
-| ① | Prompt / Skills | 文本 | 教 lead 按流程走(skill 的流程化指令、验收标准措辞) | 零代码;纯软约束,无机器保证 |
+| ① | Prompt / Skills | 文本 | 教 lead 按流程走(skill 的流程化指令、验收标准措辞);**v2.2.0 起 `allowed-tools` 只是兼容元数据,不再过滤/授予/拒绝任何工具**(激活不再影响权限上限,由 agent 装配与执行授权统一持有) | 零代码;纯软约束,无机器保证 |
 | ② | Custom Agents | `config.yaml custom_agents` | 定义专职 worker(系统提示/工具白名单/skills/模型/预算) | YAML;每字段有 schema 校验;运行时可经 API 改 |
+| ④' | **Extension-first(先问插件)** | 根 `AGENTS.md` 的成文规则 | 加功能前先判定能否做成打包扩展;**只有 bug fix 和 agent loop / memory / 上下文压缩 / 认证这四类改动才留在 core**。现有钩子表达不了时,做法是**给扩展契约加一个通用钩子 + 一个用它的扩展**,不许把业务逻辑硬编码进核心 | 这是**流程规范而非机制**——但它把"该走 ③④ 还是直改 core"从品味问题变成了可判定的规则。v2.2.0 的六个参考实现在 `examples/deerflow-extension-{example,bookmarks,agent-teams,workflows,knowledge-management,knowledge-platform}/` |
 | ③ | Middleware | Python 类进 agent 链 | **每个 step 的钩子 + 状态通道贡献 + 工具/模型调用包裹** | 代码;随图编译,通道进 checkpoint |
 | ④ | Extension 包 | PEP 621 包 + `install(registry, config)` | ③ 的全部 + 生命周期观察者 + Gateway 服务 + HTTP 路由 | 独立发布/升级/启停;执行于 Gateway 权限,仅信任源 |
 | ⑤ | SDK 直连 | `create_deerflow_agent(subagent_runtime=...)` | 自有执行容量/批量提交器/中间件全替换,进程内嵌 | 代码;绕开 Gateway(无 HTTP/UI 面) |
@@ -27,7 +28,7 @@ topics: [extension, middleware, custom-agents, sdk, orchestration]
 
 ## 2. ③ Middleware 契约(最核心的编排注入点)
 
-基类是 **LangChain 的 `AgentMiddleware[State]`**(不是 DeerFlow 私有协议);DeerFlow 做的是选择与排序(37 条目位,见 `_digested/internals/middleware/03-catalog.md`)。
+基类是 **LangChain 的 `AgentMiddleware[State]`**(不是 DeerFlow 私有协议);DeerFlow 做的是选择与排序(**39 条目位**,见 `_digested/internals/middleware/03-catalog.md`;v2.1.0 是 37,`middlewares/AGENTS.md` 的合并口径是 36 → 39)。
 
 **六个 hook 点**(一轮 step 的管道):
 ```
@@ -38,8 +39,8 @@ before_agent → [before_model → (wrap_model_call 洋葱) → LLM → after_mo
 | 能力 | 说明 |
 |------|------|
 | `state_schema` **通道贡献** | middleware 自带 state schema,其通道**进图、进 checkpoint、经 state API 可写**(Overwrite 替换式;回滚/压缩均保留——有测试钉死)。**这是注入 `task_dag` 通道的合法机制** |
-| `wrap_tool_call` / `wrap_model_call` | 洋葱包裹:可改参、可短路、可重试;**上游限制:wrap_model_call 内不支持 `Command(goto=...)`**(langchain factory.py:201-203) |
-| `jump_to` | 紧急逃生口(`"tools"/"model"/"end"`,EphemeralValue 读一次即逝) |
+| `wrap_tool_call` / `wrap_model_call` | 洋葱包裹:可改参、可短路、可重试;**上游限制:wrap_model_call 内不支持 `Command` 的 `goto`/`resume`/`graph`**(venv 实测 `langchain/agents/factory.py:216`-`225` 三处 `NotImplementedError`,文案指向下面的 `jump_to`) |
+| `jump_to` | **上游官方替代品**(不是 DeerFlow 私有):钩子用 `hook_config(can_jump_to=...)` 声明目标,返回 `{"jump_to": "tools"/"model"/"end"}` 转场,**不需要新节点**——这正是议题 09 红线内侧拿局部控制流的合法口子。DeerFlow 已把它算进 turn 预算模型(`subagents/turn_budget.py:31`-`39`:任何 jump 让预算是下界),并对声明了 jump 的钩子告警;但 docstring 原话 "No middleware in today's subagent chain does"——**能力已识别,lead/subagent 链上均无消费者** |
 | 定位 | `@Next(X)` / `@Prev(X)` 锚定插入;冲突检测 + 循环依赖检测;不变量:ClarificationMiddleware 永远最后 |
 | 三条插入路径 | `extra_middleware`(create_deerflow_agent)/ `RuntimeFeatures` 实例替换(SDK)/ extension 贡献(带 `MiddlewarePlacement`) |
 
@@ -55,7 +56,7 @@ before_agent → [before_model → (wrap_model_call 洋葱) → LLM → after_mo
 
 装载:根 `config.yaml` 的 `plugins:` 列表(operator 控制,刻意不放 API 可写的 extensions_config.json);`required: true` 失败即拒绝启动(默认 false 容错降级)。分发:`deerflow extensions install/upgrade/list/enable/disable/remove`(uv 事务,失败回滚 pyproject+lock,本地目录是快照非软链)。
 
-**七个注册面**(`ExtensionRegistry` 协议,`extension-api/contracts.py:183`):
+**七个注册面**(`ExtensionRegistry` 协议,`extension-api/contracts.py:213`-`231`,七个 `def` 逐一对应下表):
 
 | 注册面 | 编排用途 |
 |--------|---------|

@@ -21,7 +21,7 @@ agent 系统测试的中心矛盾：**被测系统的核心组件（LLM）是非
 
 价值不在"假"，而在**真**：`langchain.agents.create_agent` 的完整图——中间件链、ToolNode、真实工具执行——全部照跑，只是模型输出被钉死。要验证"agent 收到 X 时会用参数 Y 调工具 Z"这类契约行为，这是毫秒级的手段。
 
-这个底座之上长出了一族测试内局部 fake（全树 23 个文件引用 `FakeMessagesListChatModel` / `GenericFakeChatModel`），替身边界始终不变：`RecordingModel`（`backend/tests/test_subagent_executor.py:731`，记录每轮 `bind_tools` 收到的工具名清单）测"工具可见性随轮次变化"的中间件；捕获中间件对消息改写的 capturing fake、多轮剧本驱动子代理预算语义的 scripted fake 等。**与 pi 无关的共性**：它们都是静态队列——"读上一轮真实上下文决定下一步"的需求交给级 2 的录制回放（真实上下文已经录在 fixture 里）。
+这个底座之上长出了一族测试内局部 fake（v2.2.0 全树 **42** 个文件引用 `FakeMessagesListChatModel` / `GenericFakeChatModel`，v2.1.0 为 23 —— 只换模型这条边界没有动摇，只是用的人翻了一倍），替身边界始终不变：`RecordingModel`（`backend/tests/test_subagent_executor.py:1008`，记录每轮 `bind_tools` 收到的工具名清单）测"工具可见性随轮次变化"的中间件；捕获中间件对消息改写的 capturing fake、多轮剧本驱动子代理预算语义的 scripted fake 等。**与 pi 无关的共性**：它们都是静态队列——"读上一轮真实上下文决定下一步"的需求交给级 2 的录制回放（真实上下文已经录在 fixture 里）。
 
 ## 级 2：ReplayChatModel——内容寻址的录制回放
 
@@ -39,7 +39,7 @@ agent 系统测试的中心矛盾：**被测系统的核心组件（LLM）是非
 
 ### 响亮失败，并穿透中间件的吞错
 
-miss 不会静默返回：`_match` 抛出带诊断的 `KeyError`（已知哈希清单 + 归一化输入前 800 字符预览，`backend/tests/replay_provider.py:344`）。但这里有个精巧的陷阱：**Gateway 的 `LLMErrorHandlingMiddleware` 会把模型异常吞成正常的 assistant 错误消息**——SSE 事件形状不变，Layer 1 的 shape-golden 依然全绿。所以测试侧维护一个进程级 `_replay_misses` 清单，`test_replay_golden.py` 在断言事件序列之外**专门断言这个清单为空**（`backend/tests/test_replay_golden.py:84`）——这是唯一可靠的"fixture 过期"信号。整个设计的态度写在 docstring 里："never pass silently"。
+miss 不会静默返回：`_match` 抛出带诊断的 `KeyError`（已知哈希清单 + 归一化输入前 800 字符预览，`backend/tests/replay_provider.py:344`）。但这里有个精巧的陷阱：**Gateway 的 `LLMErrorHandlingMiddleware` 会把模型异常吞成正常的 assistant 错误消息**——SSE 事件形状不变，Layer 1 的 shape-golden 依然全绿。所以测试侧维护一个进程级 `_replay_misses` 清单，`test_replay_golden.py` 在断言事件序列之外**专门断言这个清单为空**（`backend/tests/test_replay_golden.py:84`，紧跟在 `:76` 的 `reset_replay_misses()` 之后）——这是唯一可靠的"fixture 过期"信号。断言消息本身就写明了处置方式："the fixture is stale vs the current system prompt or agent graph. Re-record it"。源码注释（`:70-72`）把为什么必须单列这条断言说得更直白："The gateway swallows a hash-miss into a normal assistant error message, so the SSE *shapes* below stay green on a stale fixture — the miss list is the only reliable signal at this layer."整个设计的态度写在 docstring 里："never pass silently"。
 
 ### hermetic 配置：录制与回放的同一性
 
@@ -49,6 +49,8 @@ miss 不会静默返回：`_match` 抛出带诊断的 `KeyError`（已知哈希�
 
 - **Layer 1（后端 golden）**：`test_replay_golden.py` 进程内起真 Gateway（`create_app()` + 真注册/CSRF/建线程/发流），`sse_event_shapes`（`_replay_fixture.py:114`）把 SSE 流折叠为"事件名 + 排序后的顶层键"，与提交的 golden JSON 比对。**断言形状不断言值**——形状是前端消费的契约，值是易变的。golden 重生成用 `DEERFLOW_WRITE_GOLDEN=1`。
 - **Layer 2（跨栈渲染）**：`frontend/tests/e2e-real-backend/`，Playwright 起真 Next.js + 真 replay gateway（`playwright.real-backend.config.ts` 启两个 webServer），DOM 断言为门。跨栈的必要性见 `03-contract-e2e.md`。
+
+**v2.2.0 的一处加固**：`test_replay_golden.py` 在起 app 之前先调 `_reset_process_singletons(monkeypatch)`（`:26` 定义、`:63` 调用）——因为 `deerflow.config.app_config` 是模块级单例，同进程里跑过别的测试后配置会残留；不重置就变成"上一个测试的配置 + 这次的 fixture"，hash 全 miss 但形状照样对。这是"进程级单例必须可重置"这条纪律在 replay 层的一个具体落点。
 
 配套还有 `backend/tests/seed_runs_router.py`：一个**只在 replay gateway 挂载的 test-only FastAPI router**（`DEERFLOW_ENABLE_TEST_SEED=1` 时生效），通过 Gateway 自己的 run/event store 种出"无 checkpoint 的多 run 历史"——不需要模型、录制或 key，就能确定性地复现 #3352 那类前端重载排序 bug 的前置条件。
 
@@ -61,7 +63,7 @@ miss 不会静默返回：`_match` 抛出带诊断的 `KeyError`（已知哈希�
 `frontend/tests/e2e-record/`（`frontend/playwright.record.config.ts`）驱**真前端 + 真模型**网关，捕获浏览器实发的模型调用（保证输入与浏览器路径逐字节一致），经 `backend/scripts/build_fixture_from_jsonl.py` 缝合成 fixture（存 `backend/tests/fixtures/replay/`）。注释明言 "never run in CI"——录制是 dev 机器上的手动工序，产物 fixture 里不含 API key。机制三件套：
 
 1. `backend/scripts/record_gateway.py` 给 `create_chat_model` 打补丁装 callback handler：`on_chat_model_start`（`:39`）记录输入 + caller，`on_llm_end`（`:54`）把 `{caller, conversation_hash, input_hash, output}` 追加写入 JSONL——因为由真前端驱动，date system-reminder、suggestions/title 调用这些浏览器实际产物都被捕获，fixture 才能对浏览器路径干净回放；
-2. `frontend/tests/e2e-record/record-write-read-file.spec.ts` 驱动场景后 `waitForCaptureStable`（`:30`，12 秒稳定窗口、160 秒上限，超时硬失败）——"a recording must stabilize, or it is not trustworthy"；
+2. `frontend/tests/e2e-record/record-write-read-file.spec.ts` 驱动场景后 `waitForCaptureStable`（`:30`，默认 `stableMs = 12_000` / `maxMs = 160_000`，1 秒轮询，超时**抛错**而不是返回最后计数）——源码注释原话："returning the last count here would let a truncated/partial recording pass silently (captured > 0). A recording must stabilize, or it is not trustworthy."；这是全篇唯一一处把「不确定性」从断言阶段挪到**录制阶段**去处理的地方；
 3. `backend/scripts/build_fixture_from_jsonl.py` 把 JSONL + meta 缝合成 fixture JSON，产物不含 API key。
 
 ## 谱系选型原则（解释）

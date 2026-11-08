@@ -14,7 +14,9 @@ sibling: 00-map.md, 01-完成语义与崩溃窗口-接受可见静止处置.md
 
 > **分工声明**：上游 [_digested/graph-engineering/06-langgraph-capability-surface.md](../graph-engineering/06-langgraph-capability-surface.md) 回答"支持度判定"（已用 / 可用未用 / 结构不可用三分类）；本篇回答**榨取设计**——每个未用/未用满能力"接进现有阶梯的哪里、长成什么原语、与 ask_clarification / task / batch / scheduler / goal 冲突或互补在哪"。定位见 [00-map.md](00-map.md)，完成语义背景见 [01-完成语义与崩溃窗口](01-完成语义与崩溃窗口-接受可见静止处置.md)。理想化禁止：不可行就写清为什么，附代码证据。
 >
-> **版本事实（亲自核验）**：依赖钉在 `langgraph>=1.2.9,<1.3`（backend/packages/harness/pyproject.toml:30），`backend/uv.lock:2171` 解析为 1.2.9；但**本机 backend/.venv 实际安装的是 langgraph 1.1.9**（`backend/.venv/lib/python3.12/site-packages/langgraph-1.1.9.dist-info/METADATA`）。本文所有 site-packages 锚点基于 1.1.9 源码；本文涉及的 API（interrupt/Command/Send/update_state）语义自 0.x 起稳定，1.2 未变，但落地实现前应 `uv sync` 后复核行号。
+> **版本事实（亲自核验，2026-11-08 复核更新）**：依赖钉在 `langgraph>=1.2.9,<1.3`（`backend/packages/harness/pyproject.toml:31`），`backend/uv.lock` 解析为 1.2.9，**本机 `backend/.venv` 现在装的就是 langgraph 1.2.9**（`backend/.venv/lib/python3.12/site-packages/langgraph-1.2.9.dist-info/`）——**旧记录里"实装 1.1.9、与 pin 漂移"的情况已不存在**，`uv sync` 之后已对齐。因此本文所有 site-packages 锚点可在 1.2.9 源码上直接复核。
+>
+> 同一次复核还量到了上下游的其余实装版本：`langchain` **1.3.14**（依赖声明 `langchain>=1.3` 无上界）、`langchain-core` **1.4.9**、`langgraph-prebuilt` **1.1.0**。1.2.9 里 `interrupt()` 在 `SP/langgraph/types.py:811`、`class Command` 在 `:759`、`class Send` 在 `:664`——本文后续锚点按这些行号校准。
 > site-packages 根（下文简记 `SP/`）：`backend/.venv/lib/python3.12/site-packages/langgraph/`。
 
 ## 1. 候选能力真身核验
@@ -130,7 +132,7 @@ DeerFlow 的事件架构（custom-event 双发射 + RunJournal 回调）已覆�
 
 | 入口 | 路径 |
 |---|---|
-| langgraph site-packages（**实装 1.1.9**，lock 为 1.2.9） | backend/.venv/lib/python3.12/site-packages/langgraph/ |
+| langgraph site-packages（**实装 1.2.9，已与 pin 对齐**） | backend/.venv/lib/python3.12/site-packages/langgraph/ |
 | interrupt / Send / Command / Interrupt / StateSnapshot | SP/langgraph/types.py:705 / :574 / :652 / :444 / :553 |
 | NodeInterrupt / GraphInterrupt / ParentCommand | SP/langgraph/errors.py:96 / :84 / :111 |
 | interrupt 持久化（task pending write） | SP/langgraph/pregel/_runner.py:435-442 |

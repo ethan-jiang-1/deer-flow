@@ -56,7 +56,7 @@ topics: [subagent, delegation, task-tool, batch, acceptance]
 | 字段 | 内容 |
 |------|------|
 | `subagent_status` | 5 值枚举:completed / failed / cancelled / timed_out / polling_timed_out |
-| `subagent_stop_reason` | 3 值:token_capped / turn_capped / loop_capped(**护栏截停的分类学**,additive 字段而非新枚举——旧消费者不破) |
+| `subagent_stop_reason` | **4 值(v2.2.0 起)**:token_capped / turn_capped / loop_capped / **model_length_capped**。前三值是**护栏截停**的分类学;第四值是 v2.2.0 的 `#7355` 补上的——它记的不是"我们的预算掐断了",而是"**provider 自己因为输出长度上限截断了**",这是外部原因,归到同一字段但语义不同。加值方式仍是 additive:契约文件把它放在 `valid_stop_reason_values`,描述里明写旧消费者只读 `subagent_status` 时忽略它 |
 | `subagent_result_brief` + `subagent_result_sha256` | 有界结果摘要 + 全量结果摘要的 SHA-256 |
 | `subagent_error` | 有界错误 blob(非 completed 才携带) |
 | `subagent_token_usage` / `subagent_model_name` | 累计用量快照 + 实际模型 |

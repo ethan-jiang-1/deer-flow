@@ -11,51 +11,68 @@ topics: [frontend, nextjs, react]
 `app/workspace/workspace-content.tsx`（Server Component）：
 
 ```
-QueryClientProvider
-  SidebarProvider (cookie 持久化 open state)
-    WorkspaceSidebar (shadcn/ui Sidebar, collapsible="icon")
-      ├─ WorkspaceHeader (brand + "New Chat" 按钮)
-      ├─ WorkspaceNavChatList (聊天导航)
-      ├─ RecentChatList (sidebar 展开时显示)
-      ├─ WorkspaceNavMenu (settings 等，在 footer)
-      └─ SidebarRail (拖拽手柄)
-    SidebarInset
-      {children} — ChatPage
-  CommandPalette
-  Toaster (sonner, top-center)
+QueryClientProvider（按账号 owner 重建，见 03）
+  UserPreferencesBoundary（账号偏好同步）
+    ExtensionPageBootstrap（拉前端扩展清单，失败不阻塞工作区）
+      SidebarProvider (cookie "sidebar_state" 持久化 open state)
+        WorkspaceSidebar (useThreadActivity 只在这里调一次)
+          ThreadDeleteDialogProvider
+            WorkspaceSidebarFrame (collapsible="icon")
+              Header: WorkspaceHeader (brand + New Chat + WorkspaceSidebarTrigger)
+              Content:
+                ├─ WorkspaceNavChatList (聊天导航)
+                ├─ PluginNavigation (🆕 扩展插件页面，无页面时整组不渲染)
+                ├─ WorkspaceChannelsList (🆕 IM 渠道)
+                └─ sidebar 展开时：ProjectsSection + RecentChatList
+              Footer: WorkspaceNavMenu (settings 等)
+              SidebarRail (拖拽手柄)
+        SidebarInset
+          GatewayOfflineBanner / ModelLoadErrorBanner
+          {children} — ChatPage
+  CommandPalette / SettingsDialogHost / WorkspaceSettingsDeepLink
+  Toaster (sonner)
 ```
 
+`app/workspace/layout.tsx` 用 `dynamic = "force-dynamic"`，按认证状态分支渲染；`workspace-sidebar-frame.tsx` 负责三件容易做错的事：① 桌面"是否展开"的判断（`useWorkspaceSidebarExpanded`，只有 `md+` 且 `!collapsed`）与移动端抽屉开合分离，避免移动端也渲染桌面 rail；② 移动端点击导航链接后先关抽屉；③ 抽屉关闭后把焦点还给触发按钮（`RestoreSidebarFocus`）。移动端自定义了 collapsed rail（#3340），触发按钮带 `aria-haspopup="dialog"`。
+
 > **同步 #6**：最外层新增 `UserPreferencesBoundary`（账号偏好同步，见 03-state-management.md）。
+>
+> **同步 #8（2.2.0）**：新增 `ExtensionPageBootstrap`（前端扩展清单的启动拉取）、`PluginNavigation`（插件页面导航组）、`WorkspaceChannelsList`（IM 渠道入口），并把 thread 活动轮询收到 `WorkspaceSidebar` 一处调用。
 
 ### 🆕 新增工作区路由（同步 #6）
 
 | 路由 | 内容 |
 |------|------|
-| `/workspace/capabilities` | 🆕 Capability Center（#5468）：Plugins / Skills 双 tab + 搜索框；skill-gallery / plugin-gallery / mcp-plugin-manager / skill-export-dialog / lark-plugin-settings（原 `settings/integrations-settings-page` 迁移改名）都归入 `components/workspace/capabilities/`。**Settings 里的 skill/tool 设置页删除**（`skill-settings-page.tsx`、`tool-settings-page.tsx` 已删，settings-dialog 瘦身） |
+| `/workspace/capabilities` | Capability Center（#5468；🆕 2.2.0 改为 **Plugins / Skills / Extensions 三个 tab**）：tab 由 `?tab=` 决定（`skills` / `extensions` / 其余一律落到 `plugins`），切 tab 走 `router.replace(pathname?tab=…)` 并清空该页其它 query；搜索框在 `useSyncExternalStore` 水合门控前禁用；三个子模块都是 `dynamic()` 懒加载（`plugin-gallery` / `skill-gallery` / `extension-gallery`）。**Settings 里的 skill/tool 设置页删除**（`skill-settings-page.tsx`、`tool-settings-page.tsx` 已删，settings-dialog 瘦身） |
 | `/workspace/projects/[id]` | 🆕 项目详情页：Threads / Documents 双 tab（`projects/project-threads-section.tsx` + `project-documents-section.tsx`）；`move-to-project-menu.tsx`（会话移动菜单）与 `projects-section.tsx`（sidebar 分组）把项目接进现有导航 |
 | `/workspace/trash` | 🆕 回收站：`trash-view.tsx` 分页列表 + 恢复/彻底删除/清空；配合 `thread-delete-dialog.tsx`（权限门控见 03） |
-| `/workspace/chats` | 会话总览改为 Active / **Archived** 双 tab（`useThreadArchiveAction` + `thread-archive-status.tsx`） |
+| `/workspace/chats` | 会话总览改为 Active / **Archived** 双 tab（`useThreadArchiveAction` + `thread-archive-status.tsx`）；🆕 每行带 `ThreadOriginIcon`（clock=定时任务 / provider 图标=来自某个 IM 或 GitHub / 拼图=扩展）、`ThreadChannelBadge` 与 `ThreadUnreadDot`（`thread-channel-source.tsx` 一处收口三者的语义与无障碍名） |
+| 🆕 `/workspace/extensions/[namespace]/[surface_id]` | 扩展插件页面：server component 解出 `namespace`/`surfaceId` → `PluginPage`；`core/extensions/pages.ts::pluginPagePath()` 生成路径，`pluginPages()` 只取 `slot === "page"` 的 surface，`surface.navigation` 为真才进侧栏导航组 |
+| 🆕 `/workspace/scheduled-tasks` | 定时任务页重写为 **list-first**：任务列表 + 详情（目标、停止条件、次数/时间上限、run 历史分页）+ 续期/删除对话框；`?task=` 直接打开详情 |
 
 项目文档附件走跨路由交接：项目页 Documents tab 附加成功后，`core/projects/composer-attach.ts` 把**已完成的上传结果**（绝不在途上传）暂存 sessionStorage（`deerflow.project-attachment.{threadId}` pending list），跳转到目标线程后 composer 显示为已上传附件，发送或显式移除才清除。
 
 ## ChatBox — 可拖拽双面板
 
-`components/workspace/chats/chat-box.tsx` — 使用 `react-resizable-panels` v4：
+`components/workspace/chats/chat-box.tsx` — 使用 `react-resizable-panels` v4。2.2.0 起右侧不再是"artifact 面板"，而是**四选一的面板槽**：
 
 ```
-ResizablePanelGroup (direction="horizontal")
-  ├─ ResizablePanel (id="chat", defaultSize=100)
+ResizablePanelGroup (id = 由 pathname 净化出的 resizableIdBase + "-group")
+  ├─ ResizablePanel (chat, minSize 30%)
   │     {children} — MessageList + InputBox
-  ├─ ResizableHandle (不可见/禁用当 artifact panel 关闭时)
-  └─ ResizablePanel (id="artifacts", defaultSize=0)
-        Artifact 详情查看器 (CodeEditor / Markdown 预览)
+  ├─ ResizableHandle (disabled={!rightPanelOpen})
+  └─ ResizablePanel (side, collapsible, collapsedSize 0%, minSize 20%, defaultSize "40%")
+        RightPanelKind = sidecar | browser | artifacts | details
 ```
 
-两种布局模式：
-- **CLOSE_MODE**: `{ chat: 100, artifacts: 0 }`
-- **OPEN_MODE**: `{ chat: 60, artifacts: 40 }`
+| 面板 | 内容 | 触发 |
+|------|------|------|
+| `artifacts` | Artifact 查看器（CodeEditor / Markdown 预览） | `ArtifactsContext.open`、artifact 链接、`NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"` 时自动选中首个 artifact |
+| `browser` | 浏览器实时画面（WS `frame_format=binary`；10s 握手超时、指数退避 800ms→10s、最多 6 次重连；rAF 合帧 + blob URL 回收，`useSyncExternalStore` 暴露 `frameUrl`） | tool call 里的浏览器预览 |
+| `sidecar` | 侧聊（quoted follow-up） | 消息上的"就这段继续问" |
+| `details` | message-details 任意详情 | tool call / 消息里的详情项（`MessageDetailsProvider`） |
 
-通过 `ArtifactsContext.open` 自动切换。Artifact 面板使用 CSS transition 做滑入/滑出动画。
+优先级固定为 `sidecar > browser > artifacts > details`，同一时刻只开一个。动画时长 `RIGHT_PANEL_ANIMATION_MS = 280`；动画期间把内容宽度按 `cqw` 钉死，避免逐帧重排。移动端（`< md`）不开拖拽，改成右侧 `Sheet`。
 
 ## ChatPage — 两种视图模式
 
@@ -72,22 +89,24 @@ ResizablePanelGroup (direction="horizontal")
 │                                  │
 │   ┌──────────────────────────┐   │
 │   │       InputBox           │   │  ← 绝对居中垂直对齐
-│   │  (mode/model 选择器)      │   │     -translate-y-[calc(50vh-96px)]
-│   └──────────────────────────┘   │     --container-width-sm
-│                                  │
+│   │  (mode/model/🆕知识库 scope) │   │     sm: -translate-y-[calc(50vh-96px)]
+│   └──────────────────────────┘   │     窄屏 -translate-y-[calc(50vh-48px)]
+│                                  │     宽度 max-w-(--container-width-md) / sm 以上 --container-width-sm
 └──────────────────────────────────┘
 ```
+
+🆕 2.2.0 的 composer 上新增两个入口：知识库 scope 触发按钮（`data-testid="knowledge-scope-trigger"`，`aria-pressed`；只在 `GET /api/features → knowledge_base.scope_selection_enabled` 为真且非静态站点时出现），以及行内的 `/goal`、`/compact` 两个内置命令（`/` 菜单不再列其它命令）。
 
 ### Conversation Mode（有消息后）
 
 ```
 ┌──────────────────────────────────┐
 │ Sticky Header (backdrop-blur)    │
-│ ├─ ThreadTitle                   │
+│ ├─ ThreadTitle + 🆕 ThreadOriginIcon / 渠道徽章 │
 │ ├─ ThreadArchiveStatus (归档徽标 + 恢复按钮) │
-│ ├─ TokenUsageIndicator           │
+│ ├─ TokenUsageIndicator + 🆕 ContextUsageBadge │
 │ ├─ ExportTrigger                 │
-│ └─ ArtifactTrigger               │
+│ └─ ArtifactTrigger / 🆕 侧聊·浏览器·详情 触发 │
 ├──────────────────────────────────┤
 │                                  │
 │ MessageList                      │
@@ -142,14 +161,16 @@ grouped 模式用嵌套 `SidebarMenu` 缩进项目内的 thread 行，但 `Sideb
 
 `components/workspace/command-palette.tsx` — 基于 shadcn/ui `CommandDialog`（底层 `cmdk`）：
 
-全局快捷键：
+全局快捷键（`Cmd` 在非 mac 上对应 `Ctrl`）：
 | 快捷键 | 操作 |
 |--------|------|
 | `Cmd+K` | 打开/关闭 Palette |
-| `Cmd+Shift+N` | New Chat |
-| `Cmd+,` | Settings |
+| `Cmd+Shift+N` | New Chat（→ `/workspace/chats/new`） |
+| `Cmd+,` | Settings（appearance 分区） |
 | `Cmd+/` | 键盘快捷键帮助对话框 |
-| `Cmd+B` | 切换 Sidebar |
+| `Cmd+B` | 切换 Sidebar（`SIDEBAR_KEYBOARD_SHORTCUT = "b"`，`ui/sidebar.tsx:33` 的 keydown effect 处理） |
+
+`SettingsDialog` 的分区是固定 union：`models / users（仅 admin，紧跟 models）/ account / appearance / channels / memory / subagents / notification / about`。
 
 ## 主题系统
 

@@ -50,9 +50,25 @@ topics: [orchestration, selection-semantics, tools, routing]
 
 `[源码]` goal 的 set/get/clear 全是 API/命令面（`client.py:626`-`665`、Gateway `routers/threads.py:1329`-`1383`、TUI 命令），**模型侧零工具**。模型可见的 goal 面只有续轮时的隐藏 HumanMessage `<goal_continuation>`（`runtime/goal.py:393`-`410`，逐字引用与完整机制见 [12](12-goal驾驶座-续轮准入评估熔断与收尾.md)）。`[推断]` 路由含义：**goal 不在模型的选择集里**——"这个任务该不该设 goal"不是模型的决策，是宿主/用户的；模型收到的永远是"已在续轮中，继续干"。
 
-### scheduler：没有模型可见工具（同上）
+### scheduler：**v2.2.0 起有模型可见工具了**（本页旧结论已作废）
 
-`[源码]` harness 与 app 的 scheduler 代码里无任何 `@tool`（`scheduler/schedules.py` 只有 cron 数学；管理面是 Gateway API `routers/scheduled_tasks.py:176`-`505`）。唯一的模型可见影响是间接的：scheduled run 注入 `context.non_interactive=True`（`app/gateway/services.py:1831`），lead 工厂据此**剥离 `ask_clarification`**（`agent.py:80`），且该键仅内部认证调用方可设——"arbitrary HTTP/IM clients must not be able to force autonomous execution"（`services.py:521`-`524`）。`[推断]` 这是"定时自主性"的信任边界：自主运行的能力（无 HITL）只随宿主调度路径授予，不随客户端请求授予。
+`[源码·v2.2.0 更正]` **v2.1.0 时本节的判断是"scheduler 没有模型可见工具"，这在 v2.2.0 已不成立。** `scheduler.tool_enabled`（默认 `false`）现在会向对话提供**owner-bound 的 schedule 工具**：交互轮可以创建/管理自己的定时任务，scheduled 轮则只能请求停掉自己那一条（根 `AGENTS.md` 的 Scheduled-task note 原话："Interactive turns create/manage their schedules; scheduled turns can request stopping only their own schedule"）。
+
+但这**不是**"scheduler 进了模型选择集"的简单反例，权限模型值得逐条看清（`app/gateway/scheduled_task_access.py:603`-`632` 的 `prepare_scheduler_capability`）：
+
+| 门 | 判据 | 含义 |
+|---|---|---|
+| 双开关 | `scheduler_tools_enabled()` = `enabled AND tool_enabled`（`scheduler/runtime.py:23`-`26`） | operator 两处都开才有工具 |
+| 认证来源 | 只接受 `session` / `internal` / `auth_disabled` 三种 `auth_source`，且排除内部系统角色 | **API key 调用方拿不到** |
+| owner 绑定 | 以 `user.id` + `token_version` 构造 capability | 工具的能力被**钉在某个 owner 上**，不是全局权限 |
+| 私有宿主权威 | docstring 原话 "Bind private host authority; do not retain the Request or internal user" | 传给 Agent 的对象**不带 Request、不带 user**——工具拿不到可以用来越权的原料 |
+| 分轮收敛 | `SchedulerRunCapability.mode` ∈ `{interactive, scheduled}` | 同一套工具在 scheduled 轮里只剩 `stop_current_schedule` |
+
+传输上，capability 走 `context["__scheduler_capability"]` 这个**下划线前缀的私有键**，并在 `services.py:2090` 的白名单里、`:2124` 主动 `pop` 掉——**它不出现在发给客户端的响应里**。
+
+`[推断]` 所以准确的重述是：**"设置哪个 schedule、什么时候触发"仍不在模型的选择集里**（CRUD 的时间语义由用户的自然语言 + 工具参数表达，且只有 owner 能碰自己的），但 **"当前这轮对话要不要给自己挂一个定时任务"变成了模型的决策**——前提是 operator 显式打开了 `tool_enabled`。默认关闭，所以绝大多数部署里旧结论依然成立。
+
+scheduled run 的另一面没变：注入 `context.non_interactive=True`，lead 工厂据此**剥离 `ask_clarification`**（`agent.py:80`），且该键仅内部认证调用方可设——"arbitrary HTTP/IM clients must not be able to force autonomous execution"（`services.py:521`-`524`）。`[推断]` 自主运行的能力（无 HITL）只随宿主调度路径授予，不随客户端请求授予——这条与 v2.1.0 一致。
 
 ### 图级挂起 / 恢复 / 分叉：也不在模型的选择集里
 

@@ -181,12 +181,35 @@ def test_multi_turn_with_checkpointer():
 
 ## 关键源码
 
+计数为 v2.2.0 实测 `def test` 数。
+
 | 文件 | 内容 |
 |------|------|
-| `tests/test_lead_agent_prompt.py` | prompt 注入测试（29 个 `def test_`） |
-| `tests/test_lead_agent_skills.py` | skill 过滤测试（21 个 `def test_`） |
-| `tests/test_subagent_prompt_security.py` | sub-agent prompt 安全（9 个 `def test_`） |
-| `tests/test_deferred_promotion_integration.py` | 图级别 tool_search 测试（真跑 `create_agent`：turn 1 隐藏 MCP 工具 → `tool_search` 提升 → turn 2 schema 绑定） |
-| `tests/test_deferred_tool_promotion_real_llm.py` | 同一 hide/promote 回路的真实 LLM 版（`ONEAPI_E2E=1` 才跑） |
-| `tests/test_client_e2e.py` | 多轮对话 + 文件系统 e2e |
-| `tests/conftest.py` | SkillStorage + TitleConfig 单例自动重置 |
+| `backend/tests/test_lead_agent_prompt.py` | prompt 注入测试（**33** 个 `def test_`，v2.1.0 为 29） |
+| `backend/tests/test_lead_agent_skills.py` | skill 过滤测试（**20** 个 `def test_`） |
+| `backend/tests/test_subagent_prompt_security.py` | sub-agent prompt 安全（9 个 `def test_`） |
+| `backend/tests/test_deferred_promotion_integration.py` | 图级别 tool_search 测试（真跑 `create_agent`：turn 1 隐藏 MCP 工具 → `tool_search` 提升 → turn 2 schema 绑定） |
+| `backend/tests/test_deferred_tool_promotion_real_llm.py` | 同一 hide/promote 回路的真实 LLM 版（`:42` 的 skipif 明写 `os.getenv("ONEAPI_E2E") != "1"`，所以要 `ONEAPI_E2E=1 OPENAI_API_KEY=... OPENAI_API_BASE=...` 才跑；docstring 原话 "Skipped unless ``ONEAPI_E2E=1`` is set so this doesn't burn credits on every run"） |
+| `backend/tests/test_client_e2e.py` | 多轮对话 + 文件系统 e2e |
+| `backend/tests/conftest.py` | SkillStorage + TitleConfig 单例自动重置 |
+
+## 🆕 v2.2.0：skill 相关测试的规模与两道门
+
+| 指纹 | v2.1.0 | v2.2.0 |
+|---|---|---|
+| `backend/tests/test_skill*.py` / `test_skills*.py` | 37 | **86** |
+| `tests/skills/*.py`（仓库根，公开技能脚本回归） | 5 | **21** |
+| `backend/tests/blocking_io/test_skill*.py` | — | **10**（export / manage_tool / mutation_host / custom_router / install / listing_router / load / reload / router / update_router） |
+| `test_extension_*.py` | 20 | **31** |
+
+**第一道门（原有）**：`skills/public/skill-reviewer/` 内置的只读评审器通过 harness 工具 `review_skill_package`（实现 `tools/builtins/review_skill_package_tool.py`）评审技能包（契约在 `contracts/skill_review/` 的 4 个 schema），CI 侧由 `scripts/review_changed_public_skills.py` 执行；waiver 只能来自 trusted base revision，blocker 永不可豁免。
+
+**第二道门（2.2 新增）**：`skill-review-ci.yml` 里的 `skill-tests` job——单独 checkout 一个 job、单独装依赖，跑 `tests/skills/` 的 21 个文件。要点四条：
+
+1. 装完依赖先做一次**依赖探针**：`import duckdb, openpyxl, requests`——这三个是技能脚本的可选依赖，缺了它们测试会大面积 skip 而不是失败，探针把"静默 skip"变成"装机失败"；
+2. `uv run --locked python -m pytest ../tests/skills -q -rs`：`-rs` 把 skip 原因打到输出里，同样是防静默；`--locked` 保证不悄悄重解依赖；
+3. `PYTHONDONTWRITEBYTECODE: "1"`（job 级 env）：技能脚本会被 `importlib.util.spec_from_file_location` 按路径加载，不写 `.pyc` 免得污染被检查的目录——workflow 注释原话 "Test imports must not leave .pyc files in the reviewed skill packages."；
+4. `timeout-minutes: 10` + `if: ... draft == false`（与 backend 各 job 同构）；
+5. 这个 job **独立于 package review**——根 `AGENTS.md` 的 TDD 段原文："Public skill script regressions live in `tests/skills/` and run in Skill Review CI independently of package review."
+
+**解释**：`tests/skills/` 从"不进 CI 的手动套件"变成"独立 CI job"，是这个域里最典型的 v2.2 变化——不是新增了测试，而是**把已有的测试从"没人跑"挪到"每个 PR 都跑"**。技能脚本是会部署到沙箱里被 agent 执行的代码，它的回归成本比普通代码更高。

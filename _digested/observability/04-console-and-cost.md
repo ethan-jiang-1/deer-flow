@@ -21,7 +21,7 @@ topics: [observability, cost, console, token-usage]
 | `total_runs` / `active_runs` / `failed_runs` | run 计数（active=`pending|running`，failed=`error|timeout`） |
 | `total_threads` / `total_agents` | 线程数 / 自定义 agent 数 |
 | `total_tokens` | 累计 token |
-| `total_cost` / `currency` | 估算成本 / 展示货币（无 pricing 时为 `null`） |
+| `total_cost` / `currency` | 估算成本 / 展示货币（🆕 v2.2.0：**pricing 不可用、或任意一次调用显式缺 usage** 时为 `null`） |
 
 ### `GET /api/console/runs?limit=&offset=&status=`
 
@@ -50,6 +50,28 @@ models:
 - **单一货币**：混币 → 禁用成本报告，`cost`/`currency` 全 `null`（不产出无效聚合）
 - **per-model 优先**：多模型 run（如 subagent 换模型）按 `token_usage_by_model` 逐模型计价；老行回退 run 级 `model_name`
 - **未定价模型**：`cost: null`
+- 🆕 **v2.2.0：显式缺 usage → 整条不可计价，`cost: null`**（详见下一节）
+
+## 🆕 v2.2.0：缺 usage 的调用让成本变 `null`（不再静默当 0）
+
+v2.1.0 的成本字段描述只有「无 pricing 时为 `null`」，于是**流式 provider 静默丢 usage** 时，那段 token 被当 0 吃掉，报出来的成本偏低却看起来正常。v2.2.0 把「这次调用到底有没有拿到 usage」变成一等信号：
+
+| 环节 | 机制 |
+|------|------|
+| 标记来源 | `RunJournal` 的外部 LLM 调用登记 `_record_external_usage` 支持 `usage_missing: 1`，在该模型桶里累加 `missing_usage_calls`（见 `02`） |
+| 判定 | `_usage_is_missing(usage)` = `missing_usage_calls > 0`（`console.py:231-232`）；`_has_missing_usage(token_usage_by_model)` = 任一桶为真（`console.py:235-236`） |
+| 单 run | `_run_cost()` 一进来就 `if _has_missing_usage(...): return None`（`console.py:255-256`）——**局部已知桶和 legacy 总量都不能把它救回来** |
+| 每日窗口 | 命中即 `bucket.cost = None` **且** `total_cost = None`（`console.py:498-500`） |
+| per-model | 先收集 `missing_models`（小写）+ `missing_model_prices`（用 `id(price)` 认「已配置的 name/provider-ID 别名共享同一价目」，**不能**拿「恰好同价的无关模型」当别名）；最后统一 `entry.cost = None`（`console.py:538-541`）——**后面的已知桶或 legacy 行也不能把它还原**（注释原话：「Do not restore its quote by treating None as zero」） |
+
+`total_cost` 在三处的模型字段描述同步改成「null when pricing is unavailable **or any call explicitly lacks usage**」（`ConsoleStatsResponse` / `ConsoleRunItem` / `ConsoleUsageResponse`），`ConsoleUsageDay.cost` 从 `float = 0.0` 改成 **`float | None`**（`console.py:92`）——这是**响应 schema 的变化**，写死 `day["cost"]` 数值的前端/脚本要处理 `null`。
+
+**运维读法**：`cost: null` 现在有两个截然不同的意思，必须分清——
+
+1. **没配定价**（`models[*].pricing` 缺）→ 去补配置；
+2. **配了定价但某次调用没回 usage** → 这是**数据质量问题**，不是配置问题。常见成因就是自定义 OpenAI-compatible gateway 丢了 usage（见下节 `stream_usage=True`），或流式中途断开。
+
+想把第 2 类降为零，得从 provider 侧修（开 `stream_usage`、换会回 usage 的 endpoint），Console 不会替你估。
 
 ## token 归属链
 
@@ -67,5 +89,5 @@ Lead Agent 第 N 轮 AIMessage（dispatch 3 个 subagent）
 ## 读法（生产）
 
 - `stats` 定时拉，`active_runs` 持续 > 0 可能卡死（见 `07` 告警配方）
-- `usage` 看每日成本趋势 + per-model 热点
+- `usage` 看每日成本趋势 + per-model 热点；**`cost` 大面积为 `null` 时先分清是「没定价」还是「缺 usage」**——`by_model` 里某个模型 `cost` 为 `null` 而 `tokens` 仍在涨，就是那个模型丢了 usage
 - `runs?status=failed` 拉失败 run，再拿 `run_id` 去 `/runs/{rid}/events` 看 `run.error` / `llm.error`

@@ -6,7 +6,7 @@ topics: [integration, lark-cli, sandbox, broker]
 
 # Lark CLI 托管集成（安装事务 / 凭据切换 / Pattern A-B）
 
-> 本文只写**契约级**内容，不抄实现细节。源码真值（tag `v2.1.0`，345f08be）：
+> 本文只写**契约级**内容，不抄实现细节。源码真值（tag `v2.2.0`；行号已按 v2.2.0 重核，v2.2.0 相对 v2.1.0 的重构见 §9）：
 > `backend/packages/harness/deerflow/integrations/lark_cli.py`（3709 行，下文记 `lark_cli.py`）、
 > `backend/packages/harness/deerflow/integrations/lark_broker.py`（554 行，下文记 `lark_broker.py`）。
 > IM 通道侧的 Feishu 聊天机器人是另一件事，见 [04-im-channels.md](04-im-channels.md)；
@@ -228,5 +228,50 @@ topics: [integration, lark-cli, sandbox, broker]
 
 ## 8. 已知的文档级观察（非契约，供后续核实）
 
-- `install_shim` 写入的 `.deerflow-lark-cli-runtime.json` 带 `kind: "shim"`（`lark_broker.py:421-423`），其 docstring 称「运行时校验器据此知道 `linux-*` 二进制刻意缺席」，但在本 tag 的树内 `kind` 只有写入方、没有读取方（`lark_cli.py:1420` 只读 `version`）。若要依赖 `kind` 做校验，需先补消费者。
-- guidance marker 的 bump 纪律（§1.4）无测试保护。（`operations/channels/00-overview.md` 的源码索引曾把 `lark_cli.py` 记为 1724 行——真值 **2846** 行，已在同一轮同步中修正。）
+- `install_shim` 写入的 `.deerflow-lark-cli-runtime.json` 带 `kind: "shim"`（`lark_broker.py:519`，docstring 在 `:500` 一带），其说明称「运行时校验器据此知道 `linux-*` 二进制刻意缺席」；但树内 `kind` 仍只有写入方、没有读取方——`lark_cli.py:1509-1510` 的消费者只比 `version`。若要依赖 `kind` 做校验，需先补消费者。
+- guidance marker 的 bump 纪律（§1.4）无测试保护。（历史记录：v2.1.0 基线时本文曾把 `lark_cli.py` 记为 1724 行，v2.1.0 实为 2846 行，v2.2.0 实为 **3709** 行。）
+
+## 9. v2.2.0 相对 v2.1.0 的实际改动（sync #8 复核）
+
+`git diff v2.1.0 v2.2.0 -- backend/packages/harness/deerflow/integrations/`：`lark_cli.py` 2846 → **3709** 行（+9819/−1195 域内计 +1037 行 diff），`lark_broker.py` 457 → **554** 行（+161 行 diff）。不是新特性，而是**四类加固**：
+
+### 9.1 原子发布与失败清理
+
+- `_publish_bytes_atomically()`（`lark_cli.py:1267`）：同目录 `mkstemp` → write → `flush` → `fsync` → `os.replace`，失败走 `cleanup_failed_atomic_write()` 并原样抛出。运行时二进制与 launcher 用 `0o755`；技能文件/manifest 由 `make_skill_tree_sandbox_readable()` 后续置只读。**父目录不 fsync**，所以该 helper 本身不保证掉电后仍可见。原先的 `destination.write_bytes(candidate)` 直写被替换。
+- broker 侧同名语义的实现是 `_write_text_atomically(path, content, *, mode)`（`lark_broker.py:470`）：**先在临时文件上 `chmod` 再 fsync 再 replace**，使"安装中断后留下不可执行的 launcher"在结构上不可能。shim body（0755）、launcher（0755）、runtime marker（0644）三处都改用它（`:519`）。
+- 安装锁在 Windows 上从阻塞 `msvcrt.LK_LOCK` 改为 `retry_until_locked()` + `_INSTALL_LOCK_TIMEOUT_SECONDS = 15 * 60`（`lark_cli.py:190`、调用点 `:1362`）：长时间安装不会被卡死的持有者无限期挂住。
+- 凭据树遍历容忍原子发布：某个后代在遍历中被 `os.replace` 移走会抛 `FileNotFoundError`，现在逐路径吞掉——**唯独根目录本身丢失仍上抛**（那是凭据边界破损）。
+
+### 9.2 子进程编码与输入完整性
+
+- `LARK_CLI_SUBPROCESS_ENCODING = "utf-8"`（`lark_cli.py:111`）替代宿主 locale 解码（`:1624`、`:1661`、`:2610` 等所有 capture 点）。原因写在注释里：`lark-cli` 是 Node wrapper 拉下来的原生二进制、npm 永远按 UTF-8 写管道；在 cp936 / cp1252 主机上按 locale 解码会静默搞坏 `auth status --json` 的 CJK `userName` 与文档标题，遇到非法字节序列还会**杀死 pipe reader 线程**，让 `stdout` 变成 `None`。
+- broker shim 的 stdin 读取重写为 `_read_stdin()`（`lark_broker.py:177`）：非 tty 时用 `select` 等待，空闲窗口 `STDIN_GRACE_SECONDS`（默认 2.0s）/ `STDIN_TAIL_SECONDS`（默认 2.0s，`DEERFLOW_LARK_BROKER_STDIN_GRACE_SECONDS` / `..._TAIL_SECONDS` 可覆盖，合法域 `0 < v ≤ 600`），超时 `_fail(..., 124)` **不执行命令**——绝不用"读到一半的 stdin"去跑 lark-cli。Windows 上 `select` 不能等管道，退回整读。
+
+### 9.3 broker 模式探测：从"TTL 布尔缓存"到"单飞 + fail-closed"
+
+`lark_cli.py` 重写了 `sandbox_lark_broker_active()`（`:1818`）：
+
+| 维度 | v2.1.0 | v2.2.0 |
+|------|--------|--------|
+| 缓存形状 | 函数属性 `_cache = (ts, bool)` 单槽 | `{(provisioner_url, api_key): _LarkBrokerModeCacheEntry}`，按**provisioner 身份**分键 |
+| 并发 | 每个调用各自探测 | **单飞**：`_LARK_BROKER_MODE_PROBES` 里一个 `Future`，成功与失败共享给所有等待者 |
+| 探测失败 | 当作"非 broker" | **unknown ≠ false**：失败只设 `retry_after` 退避，绝不授权 `False`，也不延长上一次观测的 TTL |
+| 过期负观测 | 直接返回 False | TTL 内才可信；过期或退避中一律 **fail closed**（`LarkBrokerCapabilityUnknownError`，`:1788`/`:1801`）——"没验证过的模式"不能拿来做挂载决定 |
+| TTL | 一个 TTL | 正 `LARK_BROKER_MODE_TTL_SECONDS = 60`、负 `LARK_BROKER_MODE_NEGATIVE_TTL_SECONDS = 300`、探测超时 `1.5s`、重试退避 `1.5s`（`:1766-1775`） |
+| 矛盾证据 | 无 | 宿主的 `observed_mode` 与缓存不一致时强制一次共享刷新，再做准入判定 |
+| 失效入口 | 无 | `invalidate_cached_lark_broker_mode(provisioner_url, api_key)`（`:1894`）：provisioner 用 `PROVISIONER_CAPABILITY_REFRESH_HEADER` 标记配置冲突（409/503）后，部署变更（broker 镜像增删）下一次 acquire 即生效，不必等满 TTL |
+| 能力载荷校验 | `bool(payload.get(k))` 宽容 | 两个 key 必须**都是** `bool`，否则视为畸形 = unknown（`:1788` 区域）；`get_app_config()` 失败也不再静默降级为"非 broker" |
+
+### 9.4 状态快照与登录单飞
+
+- **状态快照**：`_LarkCredentialSnapshot` / `_read_lark_credential_snapshot()`（`:1926`）在 `_lark_credential_lock` 内一次取齐 `app_config` + `auth`，然后**解锁**再跑较慢的 runtime 探测。所有 mutation 响应（`install`、`config/*`、`auth/*`）都走 `_get_lark_mutation_status()`，把凭据派生字段钉在这次提交上——否则并发 app 切换或 auth 流可能在探测窗口里把新 token 清掉、或把更新的 `app_id` 混进本次响应。代价（注释直言）：同用户并发 mutation 可能等一次 `lark-cli auth status` 子进程（最坏 8s）。
+- **device-login 单飞**（`:2300` 一带）：`lark-cli auth login --device-code` 是**非原子事务**（轮询 IdP → 兑换 device code → 取 user info → 落盘凭据）。兑换对外可见且不可逆（code 一次性），中途 kill 会留下"码已消费但什么都没存"，重试直接 `device_code is invalid`。所以进程生命周期归**flow generation** 所有，不归 HTTP 请求的等待预算：`(user_id, generation)` 一个 `_LarkLoginRun`（`:2341`），所有轮询 attach 到它。`GATEWAY_WORKERS > 1` 没有请求亲和性，于是同一单飞镜射到文件系统——owner 在 marker 文件里记录自己的 CLI，把结果原子写进 result 文件（先写者胜），再删 marker；落到非 owner worker 的轮询等这些文件而不是再起一个 CLI；supersession 会终止 marker 里的 CLI，保证被替换的流程无法继续写凭据。
+  - 边界常量：`_LARK_LOGIN_ATTEMPT_MAX_SECONDS = 600`（`:2319`，覆盖 device code 服务端寿命）、`_LARK_LOGIN_OWNER_ALIVE_GRACE_SECONDS = 10.0`、`_LARK_LOGIN_RUN_RETENTION_SECONDS = 120.0`、`_LARK_LOGIN_FOREIGN_POLL_SECONDS = 0.2`。
+  - CLI 以**独立 process group/session** 启动（`_spawn_lark_login_process()`，`:2593`），所以终止能围栏住 wrapper 子进程；POSIX 上先确认 `os.getpgid(pid) == pid` 才 `killpg`，避免 pid 回收后误杀本 worker 自己的进程组。
+  - 空槽风险的处理：result 写入失败但 code 已兑换时，终态回执写在**既有 marker** 上（`_publish_lark_login_outcome_locked`），而不是留一个别的 worker 可能填进第二个 CLI 的空位。
+- **denylist 匹配语义收紧**（`lark_broker.py:297`）：从"前 N 个非 flag token 精确前缀匹配"改为"规则 token 在非 flag token 中**按序子序列**匹配"。理由：broker 不知道哪个 `lark-cli` 选项吃值，`--profile work` 的 `work` 与子命令名不可区分，可能夹在命令路径中间；CLI 实际解析出的命令路径永远是这样一条子序列，所以 `--profile work config show` 与 `config --profile work show` 都能被 `config show` 规则拦住。代价是**误拒**（参数值恰好拼出被禁路径时 fail closed），注释明确接受。
+
+### 9.5 未变的部分
+
+- 27 个技能包清单（`LARK_SKILL_NAMES`，`lark_cli.py:159-186`）、27 个 `lark-*` 一个不缺的强校验、manifest 内容哈希、`FALLBACK_LARK_CLI_VERSION = "v1.0.65"`（`:101`）、砂箱固定路径常量（`:127-133`）、7 个 HTTP 端点与 `wait_timeout_seconds` 夹取区间（5..45）全部保持 v2.1.0 契约。
+- Pattern A/B 的镜像与 provisioner 开关（`LARK_CLI_INIT_IMAGE` / `LARK_CLI_BROKER_IMAGE`）不变；变的是 broker 模式的**判定可信度**（9.3）。

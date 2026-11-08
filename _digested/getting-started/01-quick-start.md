@@ -140,11 +140,16 @@ backend/.deer-flow/                  # DEER_FLOW_HOME 默认值（backend/Makefi
 ├── data/
 │   └── deerflow.db                 # SQLite：checkpointer 与应用数据共用同一个库
 │                                   # （config.example.yaml: database.sqlite_dir: .deer-flow/data）
+├── memory.json                     # 全局记忆（legacy 共享布局，只读回落）
+├── agents/
+│   └── {agent_name}/               # legacy 共享 Agent 布局（只读回落）
 ├── users/
 │   └── {user_id}/
+│       ├── USER.md                 # 🆕 每用户画像（走 user-profile 路由读写）
 │       ├── memory.json             # 用户记忆
 │       ├── agents/
-│       │   └── {agent_name}/       # 自定义 Agent (SOUL.md + config.yaml)
+│       │   └── {agent_name}/       # 自定义 Agent (SOUL.md + config.yaml) —— 现行布局
+│       ├── skills/                 # 每用户自定义 skill
 │       └── threads/
 │           └── {thread_id}/
 │               └── user-data/
@@ -155,6 +160,8 @@ backend/.deer-flow/                  # DEER_FLOW_HOME 默认值（backend/Makefi
 ```
 
 > 只有显式配置 legacy `checkpointer:` 段（例如 `connection_string: checkpoints.db`）时才会出现独立的 `checkpoints.db`；默认的统一 `database:` 段不产生该文件。
+>
+> 目录真值见 `deerflow/config/paths.py` 的 `Paths` 类 docstring（`config/paths.py:130-157`）。三档 `base_dir` 解析顺序：构造参数 → `DEER_FLOW_HOME` → `{project_root}/.deer-flow`。**`USER.md` 与 `agents/`、`skills/` 在 v2.2.0 是每用户一份**，顶层那份 `memory.json` / `agents/` 只作为 legacy 只读回落保留。
 
 ## 第一个对话
 

@@ -8,7 +8,9 @@ type: index
 
 Agent 上线之后，最难的不是"能不能跑"，而是"跑出问题时你怎么知道发生了什么"。这里分两层：**DeerFlow 自己带了哪些观测/诊断基建**（参考），以及**生产上线时怎么把它们用起来**（实操）。
 
-> 与 [testing/](../testing/) 互补：testing 管"上线前怎么测"，本目录管"上线后怎么观察、怎么诊断"。
+> 与 [testing/](../testing/) 互补：testing 管「上线前怎么测」，本目录管「上线后怎么观察、怎么诊断」。
+
+> 🆕 **本目录已对齐 v2.2.0**（`git diff v2.1.0 v2.2.0` 逐文件核对）。v2.2.0 观测域的变化集中在四处：① `run.terminal` 权威终态 + Evidence Receipt/Seal（`02`）；② redis producer lease + 统一 SSE 响应头（`05`）；③ URL 日志脱敏（`01`）与 Langfuse `model:` tag 改为有效模型名（`03`）；④ Console `cost: null` 新增「显式缺 usage」成因（`04`）。**算法、provider 装配、SSE 帧格式零变化。**
 
 ## DeerFlow 自带的观测基建
 
@@ -16,10 +18,10 @@ Agent 上线之后，最难的不是"能不能跑"，而是"跑出问题时你�
 |------|------|
 | `00-overview.md` | 五层观测栈：日志 → 事件流 → 追踪 → 控制台 → 实时流，一次 run 的完整数据流 |
 | `01-logging-and-trace-context.md` | 🔑 日志体系 + `trace_id` 请求关联（`logging.enhance`、JSON 结构化、`X-Trace-Id`） |
-| `02-run-events-and-journal.md` | 结构化事件流：`RunEventStore` 事件目录 + `RunJournal`（回调 → 事件的汇聚点） |
+| `02-run-events-and-journal.md` | 🔑/🆕 结构化事件流：`RunEventStore` 事件目录 + `RunJournal`（回调 → 事件的汇聚点）+ v2.2.0 的 `run.terminal` 权威终态、证据封印链、seq 水位、逐调用遥测 |
 | `03-tracing-providers.md` | LangSmith / Langfuse / Monocle 三 provider 综述 |
 | `04-console-and-cost.md` | 🔑 Console API 全端点参考 + token/成本归属 |
-| `05-live-streaming.md` | 实时观测：SSE 事件流、StreamBridge、心跳/重连 |
+| `05-live-streaming.md` | 实时观测：SSE 事件流、StreamBridge、心跳/重连、🆕 producer lease 与 SSE 反压缩头 |
 
 ## 生产上线实操
 

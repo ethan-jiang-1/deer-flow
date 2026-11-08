@@ -49,7 +49,10 @@ Subtask 状态通过 SSE 的 `custom` 事件流更新：
 
 2. Subagent 开始工作
    → SSE custom event: "task_running" (含 subagent 内部 tool call 信息)
-   → MessageList.onCustomEvent → updateSubtask({ latestMessage })
+   → useThreadStream.onCustomEvent（hooks.ts:2254）
+     ├─ taskEventToSubtaskUpdate(event)（core/tasks/lifecycle.ts）→ updateSubtask(...)
+     └─ task_running 额外：latestMessage + steps: [messageToStep(...)]
+        （#3779：累积完整步骤时间线，不再覆盖；latestMessage 只服务折叠态的提示行）
 
 3. Subagent 完成/失败
    → task tool 返回结果
@@ -149,6 +152,7 @@ Subtask 状态通过 SSE 的 `custom` 事件流更新：
 ## 与其他状态系统的交互
 
 - **Token 用量：** Subagent 的 token 消耗在流式结束时通过后端 `SubagentTokenCollector` 合并回父消息的 `token_usage_attribution`
+- 🆕 **流边界**：`sendMessage` 不再传 `streamSubgraphs`——开了 subgraph 帧会把被委派 subagent 的 `values`/`messages` 漏进主线程视图（#4399），所以 subtask 进度**只**走 root namespace 的 custom 事件
 - **Artifact：** Subagent 产出的文件通过 tool call 的 `present_files` 注册到 `ArtifactsContext`
 - **Todo：** Subagent 完成可以通过 `write_todos` tool 更新共享的 todo 列表
 
@@ -198,6 +202,41 @@ SubagentBatchItem // { id, batch_id, item_key, position, status: pending|queued|
 - **轮询**：列出至多 20 条本地任务；任一任务活跃时 3s 轮询，否则 15s；只在用户展开卡片时才拉取有界详情。
 - **展开视图**：展示 result/preview、artifact 元数据、input 请求、最近一次 poll/通知投递/取消错误，**不暴露持久化的远程 handle**。已请求取消的任务在 status 仍活跃时保持 "Cancelling…"；远程取消持续失败时卡片仍可展开并显示尝试次数 + 最近有界错误。
 - **通知投递失败**：暴露有界错误与尝试次数；可重试的失败走后端 backoff，永久拒绝或耗尽 5 次预算则显示为 stopped（而非暗示继续重试）。
+
+## 🆕 2.2.0：Subagent 注册表与设置页
+
+2.2.0 把"有哪些 subagent 可用"从纯 `config.yaml` 时代变成**三来源注册表**，前端第一次可以增删改：
+
+`core/subagents/types.ts`：
+
+```typescript
+type SubagentSource = "builtin" | "config" | "managed";
+
+interface Subagent {
+  name: string; display_name?: string; description: string;
+  system_prompt?: string;
+  tools?: string[] | null; disallowed_tools?: string[] | null;
+  skills?: string[] | null;
+  model: string;                    // "inherit" 表示继承调用者模型
+  max_turns: number; timeout_seconds: number;
+  enabled: boolean;
+  source: SubagentSource;
+  editable: boolean;
+  conflict: boolean;                // 与其它来源同名 → 已从运行时排除
+  config_overrides?: Record<string, unknown>;  // 被 config.yaml 覆盖的字段
+}
+```
+
+| 来源 | 含义 | UI 表现 |
+|------|------|---------|
+| `builtin` | 随 DeerFlow 发布、只读 | 标签「内置」 |
+| `config` | 来自 `config.yaml`，只读 | 标签「config.yaml」 |
+| `managed` | 设置页创建、持久化在 Gateway | 标签「设置页管理」，可编辑/启停/删除 |
+
+- **查询与变更**：`SUBAGENTS_QUERY_KEY = ["subagents"]`；`useSubagents()`、`useCreateManagedSubagent()`、`useUpdateManagedSubagent()`、`useDeleteManagedSubagent()`（`core/subagents/hooks.ts`），变更后失效 `["subagents"]`
+- **权限**：列表对所有登录用户可见，**只有 `system_role === "admin"` 且 `subagent.editable` 才渲染编辑入口**；`conflict` 为真的行禁用保存，并显示「名称冲突，已从运行时排除」
+- **表单**（`settings/subagent-settings-page.tsx`）：名称（仅字母数字与连字符）、显示名称、派遣说明、系统提示词、模型（默认 `inherit`）、工具/技能三态（`all` 继承全部 / `none` 全部禁用 / `selected` 仅指定，逗号分隔）、`max_turns`（默认 50）、`timeout_seconds`（默认 900）
+- **与批量执行的关系**：`subagent_type` 现在可以指向 `managed` 来源的名字，`batch_task` 的批量 UI（下一节）不变
 
 ## 同步 #6 小结
 

@@ -11,22 +11,22 @@ DeerFlow 有两个界面层，痛点各不相同：
 - **Web 前端**（Next.js + React）：核心痛点是 **SSE 流式渲染的时序**与**前后端契约漂移**——mock 掉后端的手写 JSON/SSE 会让后端 schema 变更"绿色通过"（fake green，`backend/docs/REPLAY_E2E.md` 开篇诊断，详见 `03-contract-e2e.md`）；
 - **TUI**（Textual 终端工作台，跑在内嵌 `DeerFlowClient` 上）：渲染、按键、滚动、CJK 光标。
 
-两层加起来 254 个前端测试文件（unit 202 + e2e 45 + auth 2 + real-backend 4 + record 1），另有 16 个 TUI 测试文件。
+两层加起来 **441** 个前端测试文件（unit **348** = node 202 + dom 146；e2e **85** + auth **3** + real-backend **4** + record **1**），另有 **19** 个 TUI 测试文件。**v2.1.0 是 254 / 16——总量涨 74%**，且 dom 文件从 57 涨到 146（2.5 倍），说明「要给真 React 行为写测试」在 2.2 从例外变成常态。
 
 ## 一、rstest node/dom 分流：按成本选环境
 
-分流不靠自觉，靠**文件名后缀路由**（`frontend/rstest.config.ts:22`）：
+分流不靠自觉，靠**文件名后缀路由**（`frontend/rstest.config.ts` 的两个 project）：
 
-- `*.test.ts(x)` → 纯 node project（145 个文件，几乎全部纯逻辑：流模式白名单、message-merge、stream-throttle、thread-branch-tree…）；
-- `*.dom.test.ts(x)` → happy-dom project（57 个文件，仅限"行为存在于真实 React 之下"的测试）。
+- `*.test.ts(x)` → 纯 node project（**202** 个文件，几乎全部纯逻辑：流模式白名单、message-merge、stream-throttle、thread-branch-tree…），include 在 `frontend/rstest.config.ts:28`；
+- `*.dom.test.ts(x)` → happy-dom project（**146** 个文件，仅限"行为存在于真实 React 之下"的测试），include 在 `:38`。node project 还用 `exclude: { patterns: ["**/*.dom.test.*"], override: false }`（`:32`）显式排除 dom 文件——**没有第三个 project，也没有「两边都跑」的文件**。
 
-配置注释把经济学写明："A DOM environment costs roughly 3x the runtime of this suite"（DOM 环境成本约 3 倍）。`frontend/AGENTS.md:43` 补充判据（原文）：
+配置注释把经济学写明："A DOM environment costs roughly 3x the runtime of this suite"（DOM 环境成本约 3 倍）。`frontend/AGENTS.md:36-37` 补充判据（原文；v2.1.0 页面引的 `:43` 已因文件扩写而下移）：
 
 > "A hook whose behavior only exists under real React (effect ordering, cleanup on unmount, re-render on store change) belongs in a `.dom.test.*` file rather than a node test that mocks `react` itself."
 
 即：只有真 React 行为（effect 顺序、卸载清理、store 变化重渲染）才配付 3 倍成本。**实践中**，仅需要渲染输出的测试直接用 `renderToStaticMarkup` 在 node 环境解决（如 `frontend/tests/unit/core/reasoning-trigger.test.ts`）——不引 DOM、不断言交互。
 
-单测无 MSW、无 vitest，全用 rstest 内建：`rs.mock()`（70 个文件）、`rs.stubGlobal("fetch", ...)`（18 个）、`rs.useFakeTimers()`（7 个，如 50ms 提交节流测试）。
+单测无 MSW、无 vitest，全用 rstest 内建：`rs.mock()`（**145** 个文件）、`rs.stubGlobal("fetch", ...)`（**29** 个）、`rs.useFakeTimers()`（**22** 个，如 50ms 提交节流测试）。**v2.2.0 值得注意**：整个 `frontend/tests/unit/` 里 `toMatchSnapshot` 出现 **0 次**——快照在这个仓库的前端单测层是被完全排除的手法。
 
 SSE 单测的代表模式——**流协议在单测层被降维成"函数调用序列"**：`frontend/tests/unit/core/threads/incremental-stream-state.dom.test.tsx` 用 `rs.mock("@langchain/langgraph-sdk/react")` 替换 `useStream`（`:47`）捕获 options，再手动调 `options.onUpdateEvent(...)` 注入流事件（`:102`、`:113`），断言增量状态合并。真实 SSE 在这里只是"会按序到达的事件数组"。
 
@@ -35,15 +35,17 @@ SSE 单测的代表模式——**流协议在单测层被降维成"函数调用�
 四套 config 对应四条车道，真实性递增、数量递减：
 
 ```
-e2e (45 spec / 214 test)          mock 后端，快而宽 —— 自认"不证明后端契约"
-  └─ e2e-auth (2 / 5)             认证开启路径（前端端口 3001 + 故意不可达的 gateway 127.0.0.1:65535）
+e2e (85 spec / 369 test)          mock 后端，快而宽 —— 自认"不证明后端契约"
+  └─ e2e-auth (3 / 10)            认证开启路径（前端端口 3001 + 故意不可达的 gateway 127.0.0.1:65535）
       └─ e2e-real-backend (4 / 4) 真前端 × 真 replay gateway，跨栈契约
           └─ e2e-record (1 / 1)   真前端 × 真模型，录制 fixture，"never run in CI"
 ```
 
+v2.1.0 时是 45 / 214、2 / 5；**mock 车道涨了 89% 的 spec、72% 的 test**，而三条「真实性更高」的车道几乎没动（auth 2→3，real-backend 与 record 一字未变）——**解释**：这印证了四车道的经济学，新增的 UI 面几乎全部先在 mock 车道拿到覆盖，只有真正跨栈的契约才升到上面几条车道。CI 侧 e2e 从单 job 改为 4 分片（`frontend/AGENTS.md:47`："CI runs four E2E shards; only shard 1 runs auth recovery."）。
+
 ### 1. mock 车道：有状态 mock 层的工程化
 
-`frontend/tests/e2e/utils/mock-api.ts` 是一个 2145 行的共享资产：`mockLangGraphAPI`（`:303`）注册 **59 条** `page.route()`，**闭包内可变状态**模拟后端（threads/projects/documents/trash 真正随 POST/PATCH/DELETE 变化），并刻意镜像后端契约细节——pin 排序 pinned-first、thread 重复 POST 幂等、双删 404 视为幂等成功。SSE 用 `handleRunStream`（`:2098`）拼一次性 `text/event-stream` body（`metadata → values → end`）。
+`frontend/tests/e2e/utils/mock-api.ts` 是一个 **2829 行**的共享资产：`mockLangGraphAPI`（`:570`）注册 **70 条** `page.route()`，**闭包内可变状态**模拟后端（threads/projects/documents/trash 真正随 POST/PATCH/DELETE 变化），并刻意镜像后端契约细节——pin 排序 pinned-first、thread 重复 POST 幂等、双删 404 视为幂等成功。SSE 用 `handleRunStream`（`:2775`）拼一次性 `text/event-stream` body（`metadata → values → end`）。**v2.1.0 时是 2145 行 / 59 条 / `:303` / `:2098`**——文件涨了 32%，route 只多了 11 条，说明 2.2 的增量主要花在**身份与状态机**（scheduled tasks、knowledge sources、thread goal、project trash）而不是新端点。
 
 ### 2. 本地 SSE 服务器：制造"挂住的流"
 
@@ -70,7 +72,7 @@ e2e (45 spec / 214 test)          mock 后端，快而宽 —— 自认"不证�
 
 ## 三、TUI 测试：把状态机做成纯函数
 
-DeerFlow 的 TUI 是 Textual 应用（`backend/packages/harness/deerflow/tui/`，15 个 `.py`）。它的测试策略建立在一个架构决定上：**除 `app.py` 与 `widgets/composer.py` 外，全部模块不依赖 Textual**。
+DeerFlow 的 TUI 是 Textual 应用（`backend/packages/harness/deerflow/tui/`，15 个 `.py`——v2.2.0 实测仍是 15，也就是说 2.2 的 TUI 增量全是**行为**而非**模块数量**）。它的测试策略建立在一个架构决定上：**除 `app.py` 与 `widgets/composer.py` 外，全部模块不依赖 Textual**。
 
 | 层 | 文件 | 可测性 |
 |----|------|--------|
@@ -88,10 +90,12 @@ DeerFlow 的 TUI 是 Textual 应用（`backend/packages/harness/deerflow/tui/`�
 
 > "A skipped-by-default live TUI smoke test can run only when a valid local config and credentials are present."（`:219`）
 
-### 16 个测试文件的分档
+### 19 个测试文件的分档（v2.2.0：pilot 5 + 纯函数 14）
 
-- **pilot 档**（5 个，Textual 原生 `run_test()` 飞行器）：`test_tui_app` / `test_tui_composer` / `test_tui_overlays` / `test_tui_palette` / `test_tui_transparent`——驱动按键/滚动/模态，不需要任何 ANSI 层。如 `_fill_scrollable_transcript`（`backend/tests/test_tui_app.py:55`）构造满屏 transcript 测"用户上翻时流式更新不拉回底部"的滚动跟随契约；
-- **纯函数档**（11 个，无 Textual）：`test_tui_cli`（`plan_launch` 启动规划，含 `DEER_FLOW_TUI` 环境变量强制开启路径）、`test_tui_cli_main`、`test_tui_view_state`（reducer：按 id 合并 delta、tool_call 去重、空 id 丢弃…）、`test_tui_runtime`、`test_tui_command_registry`、`test_tui_input_history`、`test_tui_message_format`、`test_tui_palette_render`、`test_tui_persistence`、`test_tui_render`、`test_tui_session`。
+- **pilot 档**（5 个，Textual 原生 `run_test()` 飞行器，2.1 与 2.2 一致）：`test_tui_app` / `test_tui_composer` / `test_tui_overlays` / `test_tui_palette` / `test_tui_transparent`——驱动按键/滚动/模态，不需要任何 ANSI 层。如 `_fill_scrollable_transcript`（`backend/tests/test_tui_app.py:55`）构造满屏 transcript 测"用户上翻时流式更新不拉回底部"的滚动跟随契约；
+- **纯函数档**（14 个，无 Textual，**v2.1.0 为 11 个**）：`test_tui_cli`（`plan_launch` 启动规划，含 `DEER_FLOW_TUI` 环境变量强制开启路径）、`test_tui_cli_main`、`test_tui_view_state`（reducer：按 id 合并 delta、tool_call 去重、空 id 丢弃…）、`test_tui_runtime`、`test_tui_command_registry`、`test_tui_input_history`、`test_tui_message_format`、`test_tui_palette_render`、`test_tui_persistence`、`test_tui_render`、`test_tui_session`，以及 **2.2 新增的三个**：`test_tui_interrupted_run_drain`、`test_tui_run_isolation`、`test_tui_thread_switching`。
+
+**解释（三个新文件说明 TUI 的关注点变了）**：v2.1.0 的 TUI 测试集中在"渲染与输入"（reducer、palette、composer、滚动）；2.2 新增的三个全部关于**运行生命周期**——中断后如何排空事件、多个 run 如何隔离、切换 thread 时状态如何不串。这是 TUI 从"能用的终端界面"变成"能承载后台 run 的工作台"的直接证据；而且它们全都落在**纯函数档**而不是 pilot 档，说明这条"把状态机做成纯函数"的架构决定在扩展期兑现了红利：新的生命周期语义不需要驱动真终端就能测。
 
 CJK/光标这类终端协议细节被压缩到唯一一处：`widgets/composer.py:21` 覆写 `_cursor_offset`，修正 Textual `Input._cursor_offset` 的无条件 `+1` 偏移——协议补丁集中在 App 层，测试面不扩散。
 

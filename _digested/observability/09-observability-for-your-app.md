@@ -80,6 +80,14 @@ def record_my_audit(self, runtime, ...):
 
 > `changes` 只放**名字/计数/id**，不要放敏感值（如被过滤的 tool arguments）——持久化它们反而违背安全过滤的初衷。
 
+**🆕 v2.2.0 补充**：`tag` **不需要**预先登记进 `MIDDLEWARE_EVENT_TAGS`（`catalog.py:88-97` 那 8 个只是内置清单），任意 1–21 字符的合法 tag 都能用；但**内置的 `summarize` 已占用一个**，别撞名。另外 v2.2.0 给 `record_middleware` 加了更严格的生产者准入——持 `_producer_lock` 增 `_pending_producer_callbacks` 再 `call_soon_threadsafe`（`journal.py:1520`），**停生产者之后的迟到回调会被直接丢弃**。所以：
+
+- 别在 `on_chain_end` 之后、run 已经进入终局化的窗口里发审计事件——它会被静默丢掉，不会报错。
+- 你的中间件要发审计，就挂在正常生命周期钩子（`before_model` / `after_model` / `wrap_tool_call`）里，别做成后台线程延迟上报。
+- 想验证“我的事件真的落库了”：直接打 `GET .../events?event_types=middleware:my_guard`，别只看日志里没报错。
+
+**想跟内置遥测对齐**：v2.2.0 的 `llm.ai.response` metadata 有 `caller_category`（`lead_agent` / `middleware` / `subagent` / `fallback` / `other`）。你自己的 LLM 调用如果走 `record_external_usage`，可以传 `count_call: 1`（把这次调用计入 `llm_call_count`）和 `usage_missing: 1`（没拿到 usage 时标记，让 Console 把成本判成 `null` 而不是当 0）。**别谎报 usage**——`missing_usage_calls` 存在的意义就是不让人猜。
+
 ### 4. 独立 LLM 调用接追踪
 
 你如果在 agent graph **之外**调模型（像 `MemoryUpdater`、goal 评估器那样），用模型级追踪回退：

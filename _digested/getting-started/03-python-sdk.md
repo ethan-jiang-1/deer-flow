@@ -197,6 +197,13 @@ Client 和 Gateway API 读取相同的 config.yaml 和 extensions_config.json。
 
 这意味着先用 Gateway API 改了 MCP 配置，Client 下一次调用时自动感知到文件 mtime 变化并生效。
 
+**两条缓存的失效方式并不相同**（v2.2.0 起统一验收 `(mtime, size, sha256)` 内容指纹 + 路径）：
+
+- `get_app_config()` 比指纹 + 路径，并额外比 extensions 单例身份；`set_app_config()` 注入的实例被钉住直到 `reload_app_config()` / `reset_app_config()`。
+- `get_extensions_config()` 也做同样的指纹 revalidation（`config/extensions_config.py:883`）——多 worker / 多实例部署时写文件的进程通常不是随后读它的进程，只能靠自己发现变化；读失败时保留最后一次好配置并只记一次日志，首次加载失败仍抛错。
+
+所以"改了文件，下一调用生效"对内嵌 Client 和 Gateway 是一致的行为，不依赖 Gateway 进程去通知谁。
+
 ## Gateway 一致性测试
 
 `tests/test_client.py` 中 `TestGatewayConformance` 验证每个 dict-returning 的 client 方法输出能通过对应 Gateway Pydantic response model 解析。如果 Gateway 加了必填字段而 Client 没同步，CI 会报 `ValidationError`。这保证了两种接入方式的结果格式一致。

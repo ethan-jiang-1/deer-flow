@@ -30,10 +30,21 @@ Langfuse v4 只在 `on_chain_start(parent_run_id=None)` 时把 `RunnableConfig.m
 | `langfuse_session_id` | LangGraph `thread_id` |
 | `langfuse_user_id` | `get_effective_user_id()`（subagent 用 `task_tool` 时捕获的 user） |
 | `langfuse_trace_name` | `assistant_id` / `agent_name`（subagent 为 `subagent:<name>`） |
-| `langfuse_tags` | `env:<DEER_FLOW_ENV>` + `model:<model_name>` |
+| `langfuse_tags` | `env:<DEER_FLOW_ENV>` + `model:<有效模型名>`（🆕 v2.2.0 语义收紧，见下） |
 | `deerflow_trace_id` | 当前请求 trace context，与 `X-Trace-Id` 对齐 |
 
 调用方键通过 `setdefault` 优先——外部系统可注入自己的 `langfuse_session_id` 关联到外部 trace。
+
+### 🆕 v2.2.0：`model:` tag 跟随"实际会跑的模型"
+
+v2.1.0 的 `model:<name>` 打的是**请求里写的**模型名。v2.2.0 改成打**装配（assembly）之后实际生效**的模型：
+
+- Gateway 路径 `runtime/runs/worker.py:1400`：`effective_model = _assembled_model_name(agent_result) or record.model_name`，注释写明 "Trace the model that will run, rather than the model name originally requested"；随后 `inject_langfuse_metadata(..., model_name=effective_model, ...)`（`worker.py:1402-1410`）。
+- 注入点时机也变了：`inject_langfuse_metadata` 现在在**模型选择之后、调用 graph 之前**执行（v2.1.0 是在构造 graph 前就地 merge）——见 `tracing/AGENTS.md` 的 "after model selection, before invoking the graph"。
+- 覆盖内置 Gateway lead-agent 与嵌入式 client 两条路径（含默认模型与 fallback 选择）；**自定义裸 graph factory 仍回落到请求的模型名**。
+- 顺带：`worker.py:1510-1511` 在装配模型与 `record.model_name` 不一致时调 `run_manager.update_model_name()`，所以 `RunRow.model_name` 也跟实际模型对齐——Langfuse tag 与 Console 的成本归属看的是同一个名字。
+
+**为什么重要**：按 `model:` tag 做 Langfuse 成本看板时，v2.1.0 会把"请求了 A 但 fallback 到 B"的 run 记到 A 名下。升级后这类 run 会**换桶**，历史看板和新数据不可直接比。
 
 ## 配置检测三层（`tracing_config.py`）
 
@@ -47,9 +58,9 @@ Langfuse v4 只在 `on_chain_start(parent_run_id=None)` 时把 `RunnableConfig.m
 
 Langfuse v4 与 Monocle 都基于 OTel——后初始化的复用已存在的 global `TracerProvider`，两边都不丢 span（有测试钉住）。LangSmith 是普通 callback，天然共存。设 `DEER_FLOW_ENV` 打环境标签，Langfuse UI 里按 tag 过滤。
 
-## 代码级契约（`tracing/` 三模块，v2.1.0 实测）
+## 代码级契约（`tracing/` 四模块，v2.2.0 实测）
 
-包入口 `tracing/__init__.py` 只导出 4 个名字：`build_tracing_callbacks` / `build_langfuse_trace_metadata` / `inject_langfuse_metadata` / `setup_monocle_tracing_if_enabled`。三个模块分工明确：
+包入口 `tracing/__init__.py` 只导出 4 个名字：`build_tracing_callbacks` / `build_langfuse_trace_metadata` / `inject_langfuse_metadata` / `setup_monocle_tracing_if_enabled`。三个实现模块分工明确（另有 `AGENTS.md` 描述装配约定）：`factory.py` 65 行、`metadata.py` 114 行、`monocle.py` 69 行、`__init__.py` 10 行——**v2.1.0→v2.2.0 只有 `AGENTS.md` 变了（4 行），代码零改动**。
 
 ### `factory.py::build_tracing_callbacks()`（65 行）
 

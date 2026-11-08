@@ -105,7 +105,7 @@ OpenAI Codex 的官方实现细节（[Custom instructions with AGENTS.md](https:
 
 - ❌ 未文档化的隐式全局状态（必须先手动改 hosts / 必须先跑某个一次性脚本）——agent 每次都要重新踩坑。
 - ❌ 错误信息只有 opaque code / traceback，没有下一步提示：Anthropic 给出对比示例并要求"错误响应要清晰传达**具体且可行动的改进**"（[writing tools for agents](https://www.anthropic.com/engineering/writing-tools-for-agents)）。
-- ❌ 环境依赖本机 locale/版本漂移（对照 deer-flow 的"skill 文本必须显式 `encoding='utf-8'`"与版本四文件 lockstep 检查脚本）。
+- ❌ 环境依赖本机 locale/版本漂移（对照 deer-flow 的"skill 文本必须显式 `encoding='utf-8'`"与版本 lockstep 检查脚本——v2.2.0 已从"四文件"扩到 **五处来源 + `uv lock --check`**，见 `_digested/testing/06-ci-and-automation.md`）。
 
 ### 维度四：可修改性 / 局部性
 
@@ -117,7 +117,7 @@ OpenAI Codex 的官方实现细节（[Custom instructions with AGENTS.md](https:
 - **语义化、可预测的命名**：前缀/命名空间帮助模型消歧。Anthropic 在工具层面论证："工具功能重叠会让 agent 困惑；按服务/资源加前缀（`asana_projects_search`）划定边界"，同一逻辑适用于包名、模块名、CLI 命令（[writing tools for agents / Namespacing](https://www.anthropic.com/engineering/writing-tools-for-agents)）。
 - **聚合操作、减少步数**：与其让使用者拼多个原语，不如提供完成高频复合任务的入口（`schedule_event` vs `list_users`+`list_events`+`create_event`）——脚本/API 设计同理（同上）。
 - 返回高信号信息：自然语言名优先于神秘 UUID；`concise/detailed` 可选输出控制 token（同上）。
-- 变更影响可枚举：跨组件契约显式化（deer-flow 的 `contracts/` 目录、版本四源 lockstep + CI 阻断）。
+- 变更影响可枚举：跨组件契约显式化（deer-flow 的 `contracts/` 目录——v2.2.0 已扩到 9 个根级 JSON + 4 个 skill_review schema、版本五源 lockstep + CI 阻断）。
 - 就近注释 + 高信号 diff：让 agent 的局部修改不依赖读全仓库。
 
 **反模式**

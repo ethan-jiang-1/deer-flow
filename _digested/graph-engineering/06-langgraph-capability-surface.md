@@ -6,7 +6,7 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 
 # 06 · LangGraph 能力面 — 依赖提供什么,DeerFlow 用了什么
 
-> 深挖版判定(2026-10-02)。用户语境:"DeerFlow 依赖的 LangGraph 也有更多 DAG 支持(静态/动态)——这些都在 DeerFlow 语境下,因为这个语境规定了 harness 的运行状态。" 本文把依赖能力按 **已用 / 可用未用 / 结构不可用** 三分类钉死。依据:venv 实装源码(`langgraph` 1.2.9 / `langchain` 1.2.15 / `langgraph-prebuilt` 1.0.11)+ deerflow 全库 import/调用 grep。
+> 深挖版判定(2026-10-02)。用户语境:"DeerFlow 依赖的 LangGraph 也有更多 DAG 支持(静态/动态)——这些都在 DeerFlow 语境下,因为这个语境规定了 harness 的运行状态。" 本文把依赖能力按 **已用 / 可用未用 / 结构不可用** 三分类钉死。依据:venv 实装源码(`langgraph` 1.2.9 / `langchain` 1.3.14 / `langchain-core` 1.4.9 / `langgraph-prebuilt` 1.1.0,**2026-11-08 在本仓库 `backend/.venv` 实测**;旧版 digest 记的 1.2.15 / 1.0.11 是 v2.1.0 时代的实装)+ deerflow 全库 import/调用 grep。依赖声明见 `backend/packages/harness/pyproject.toml:31`(`langgraph>=1.2.9,<1.3`)与 `:24`(`langchain>=1.3`,**无上界**——这正是 langchain 能漂到 1.3.14 的原因)。
 
 ![LangGraph 能力面:依赖提供 → 语境过滤 → 三分类使用](figures/capability-funnel.svg)
 
@@ -18,7 +18,7 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 | `Command(goto=END)` 动态跳转 | `ask_clarification` 短路:`Command(update={tool_message}, goto=END)`,ToolMessage 带 `artifact={human_input: payload}` 结构化载荷 | `clarification_middleware.py:516` |
 | `Command(resume=...)` 续跑输入 | Gateway run 请求支持 `command.resume` → `graph_input = Command(resume=...)` | `services.py:1571` |
 | `interrupt_before` / `interrupt_after` 节点级中断 | **Gateway API 字段**(`run_models.py:48`,描述 "Nodes to interrupt before")→ `run_agent(...)` → `agent.interrupt_before_nodes`,支持 `["*"]` | `services.py:1725`、`worker.py:1229-1231` |
-| `Send()` 动态 fan-out | 仅经 langchain factory 内部使用:tools 节点内并行执行多个 tool call;**deerflow 自身代码零处调用** | `langchain/agents/factory.py:1734`;grep `\bSend(` in deerflow = 0 |
+| `Send()` 动态 fan-out | 仅经 langchain factory 内部使用:tools 节点内并行执行多个 tool call;**deerflow 自身代码零处调用** | `langchain/agents/factory.py:1881`(`[Send("tools", [tool_call]) for tool_call in pending_tool_calls]`);grep `\bSend(` in deerflow = 0 |
 | `StateGraph` 构图 | 仅两处:`agents/factory.py` 经 `create_agent`(主元图)+ `runtime/checkpoint_state.py::build_state_mutation_graph`(单 no-op 节点变异图,复用 checkpoint 机制做整体状态替换:回滚恢复/上下文压缩/delta 线性化) | grep `StateGraph` |
 | `DeltaChannel` / `BinaryOperatorAggregate` | delta 检查点模式:O(N) 存储;`merge_message_writes` 线性折叠保持 add_messages 全语义 | `thread_state.py`、`checkpoint_state.py` |
 | 子图 checkpoint namespace | 子代理**故意不传** checkpoint 坐标键,让 LangGraph 从复制的父 ContextVar 继承非根子图命名空间(1.2.6+ 显式传 thread_id 会开新根 lineage) | `subagents/AGENTS.md` Checkpoint lineage 节 |
@@ -30,7 +30,8 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 |------|-----------|---------------|
 | `interrupt()` 函数原语(节点内动态 HITL) | `langgraph.types.interrupt` 可导入,配合 `Command(resume=...)` 成对 | deerflow 全库零处调用。产品级 HITL 走 `ask_clarification`(goto=END + 下轮对话);`interrupt_before/after` 已暴露却无人传值——**原语齐备,产品语义缺失** |
 | `Send()` 跨节点 fan-out | 原生支持(动态 Map-Reduce) | deerflow 不构图,没有可 Send 的目标节点;子代理派发走工具层。**这是"动态面降级到工具层"的最直接表达** |
-| `Command(goto=<非END节点>)` | 支持 | 唯一使用是 END 短路。langchain 侧还有上游限制:wrap_model_call 内**不支持** Command goto(`factory.py:201-203` 明确报错)——middleware 层连这半个能力都被上游封死 |
+| `Command(goto=<非END节点>)` | 支持 | 唯一使用是 END 短路。langchain 侧还有上游限制:`wrap_model_call` 内**不支持** `Command` 的 `goto`/`resume`/`graph`(venv 实测 `factory.py:216`-`225` 三处 `NotImplementedError`) |
+| **`jump_to` 状态字段(middleware 内转场)** | **v2.2.0 新登记**——这是上一条的官方替代品:上游报错文案自己写着 "Use the `jump_to` state field with `before_model`/`after_model` hooks instead"。钩子用 `hook_config(can_jump_to=...)` 声明可跳目标,返回 `{"jump_to": "tools"/"model"/"end"}` 即可改流向,**不需要新节点** | deerflow **已经在拿它做成本模型**:`subagents/turn_budget.py:31`-`39` 推导出"任何 jump 都让 turn 预算是下界";`find_jumping_hooks()` 会在子代理 executor 里对声明了 jump 的钩子**发警告**。但 docstring 结尾原话 "No middleware in today's subagent chain does"——**能力已识别,尚无消费者**。lead 侧 `Command(goto=END)` 仍是唯一流向变更 |
 | `add_conditional_edges` / 自定义构图 | 全套可用 | DeerFlow 不写图拓扑——两节点元图的全部路由都由 langchain factory 的 `model_to_tools`/`tools_to_model` 决策树提供 |
 | `interrupt_before=["*"]` 全节点暂停 | 参数支持 `Literal["*"]` | 已接线,无调用方 |
 
@@ -63,5 +64,5 @@ topics: [langgraph, langchain, send, command, interrupt, capability]
 
 **DeerFlow 不是"没用 LangGraph",而是"用了它的控制面,冻结了它的拓扑面,把它的动态面降级到工具层"**——并且:
 1. 它在依赖**之上打补丁**(`checkpoint_patches.py` 修上游 delta 回放缺陷、稳定消息 ID 等)——关系是修正性的,不只是消费性的;
-2. 它把 LangGraph 图能力中最有价值的三个(interrupt_before/resume、Send、fork)分别处理为:**暴露但无人用**、**封在工具层之下**、**delta 模式结构性禁用**;
+2. 它把 LangGraph 图能力中最有价值的四个(interrupt_before/resume、Send、fork、jump_to)分别处理为:**暴露但无人用**、**封在工具层之下**、**delta 模式结构性禁用**、**识别进成本模型但无消费者**;
 3. 对"如何更好地支持企业":依赖侧的 HITL 原语对(`interrupt_before` + `Command(resume)`)已经端到端可达——**给 Gate 语义补上产品层的消费,是全部缺口里离现有资产最近的一个**。

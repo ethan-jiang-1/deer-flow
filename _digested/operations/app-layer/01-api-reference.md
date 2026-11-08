@@ -1,6 +1,6 @@
 ---
 title: "REST API 端点文档"
-description: "v2.1.0 全部 Gateway 路由的穷举清单，以及「领域异常 → HTTP 映射」穷举表（每条带 file:line）。"
+description: "v2.2.0 全部 Gateway 路由的穷举清单（221 条），以及「领域异常 → HTTP 映射」穷举表（每条带 file:line）。"
 topics: [gateway, api, rest, error-handling]
 ---
 
@@ -8,16 +8,20 @@ topics: [gateway, api, rest, error-handling]
 
 本文档有两块可核对内容：
 
-1. **§1 端点总览** — `backend/app/gateway/routers/*.py` 里 **180** 条 `(方法, 路径)`，逐条给 `file:line`、鉴权、成功码。
+1. **§1 端点总览** — `backend/app/gateway/routers/*.py` 里 **221** 条 `(方法, 路径)`，逐条给 `file:line`、鉴权、成功码。
 2. **§2 领域异常 → HTTP 映射（穷举）** — 按状态码分组，覆盖每个 `raise HTTPException(...)`、每个 `except XxxError → 状态码`，以及路由之前三层中间件的码。`operations/integration/**` 通过指针引用本节（§2.19 是路由组级签名，权威行）。
 
-> **核对口径**：源码 = upstream tag `v2.1.0`（`345f08be`），工作区 `backend/app/gateway/routers/` 与该 tag 逐字节一致（`git diff 345f08be -- backend/app/gateway/routers/` 为空）。所有锚点行号均为该 revision 实测。AST 提取脚本口径：`raise HTTPException` 出现 **417** 次，含 helper 返回值在内的全部 `raise` 语句 **494** 处。detail 文本在表中做摘要，不逐字复制长 f-string。
+> **核对口径**（v2.2.0，锚点 `58fc5bd5b`）：工作区 `backend/app/gateway/routers/` 与 tag `v2.2.0` 逐字节一致。所有锚点行号均为该 revision 实测（AST 逐体提取 `router.<method>(...)` 装饰器的 `lineno`，并解析各模块 `APIRouter(prefix=...)` 拼出完整路径 —— **不要**手数行号，装饰器在 `@router.post("")` 这类无路径写法上行号会偏 8–10 行）。detail 文本在表中做摘要，不逐字复制长 f-string。
+>
+> 相比 v2.1.0 基线（`345f08be`，180 条 / 31 个 router 文件），v2.2.0 是 **221 条 / 40 个 router 文件**（另有 `routers/AGENTS.md` 契约文档）。
 
 ---
 
-## 1. 端点总览（v2.1.0 穷举）
+## 1. 端点总览（v2.2.0 穷举）
 
-**180** 条 `(方法, 路径)`：`GET` 78、`POST` 69、`DELETE` 17、`PUT` 10、`PATCH` 6。另有 3 个不在 `routers/` 内的入口见 §1.2。
+**221** 条 `(方法, 路径)`：`GET` 100、`POST` 80、`DELETE` 19、`PUT` 12、`PATCH` 9、`WEBSOCKET` 1。另有 3 个不在 `routers/` 内的入口（`/health`、`/health/ready`、`/docs` 三件套）见 §1.2。
+
+> v2.1.0 → v2.2.0 增量：**+41 条**（180 → 221）。新增 40 个文件里的 9 个新 router 带来 30 条，既有 router 增量 11 条：`agents.py` +3（`/agent-tool-groups`、`/agents/import`、`/agents/{name}/export`）、`models.py` +1（`/models/resolve`）、`feedback.py` +2（`feedback/stats`、`feedback/{feedback_id}`）、`subagent_batches.py` +1（`items/{position}`）、`channel_connections.py` +3（`wechat/qr-login` 三条）、`threads.py` +1（`{id}/read`）、`skills.py` +1（`skills/diagnostics/custom`）。
 
 鉴权列含义：
 
@@ -30,18 +34,21 @@ topics: [gateway, api, rest, error-handling]
 
 #### Custom Agents / User Profile
 
-源码：`routers/agents.py` — 受 `agents_api.enabled` 门控，关闭时 **403**。
+源码：`routers/agents.py` — 受 `agents_api.enabled` 门控，关闭时 **403**；v2.2.0 权限从「已登录」改为 `agents:read`/`agents:write`（`authz.py:63-87` 新增的两个权限）🆕 v2.2.0。
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/agents` | 已登录 + `agents_api.enabled`（关闭 **403**） | 200 | `backend/app/gateway/routers/agents.py:215` | List Custom Agents |
-| `GET` | `/api/agents/check` | 已登录 + `agents_api.enabled`（关闭 **403**） | 200 | `backend/app/gateway/routers/agents.py:244` | Check Agent Name |
-| `GET` | `/api/agents/{name}` | 已登录 + `agents_api.enabled`（关闭 **403**） | 200 | `backend/app/gateway/routers/agents.py:277` | Get Custom Agent |
-| `POST` | `/api/agents` | 已登录 + `agents_api.enabled`（关闭 **403**） | 201 | `backend/app/gateway/routers/agents.py:315` | Create Custom Agent |
-| `PUT` | `/api/agents/{name}` | 已登录 + `agents_api.enabled`（关闭 **403**） | 200 | `backend/app/gateway/routers/agents.py:373` | Update Custom Agent |
-| `GET` | `/api/user-profile` | 已登录 + `agents_api.enabled`（关闭 **403**） | 200 | `backend/app/gateway/routers/agents.py:512` | Get User Profile |
-| `PUT` | `/api/user-profile` | 已登录 + `agents_api.enabled`（关闭 **403**） | 200 | `backend/app/gateway/routers/agents.py:537` | Update User Profile |
-| `DELETE` | `/api/agents/{name}` | 已登录 + `agents_api.enabled`（关闭 **403**） | 204 | `backend/app/gateway/routers/agents.py:565` | Delete Custom Agent |
+| `GET` | `/api/agents` | `agents:read` | 200 | `backend/app/gateway/routers/agents.py:296` | List Custom Agents |
+| `GET` | `/api/agent-tool-groups` | `agents:read` | 200 | `backend/app/gateway/routers/agents.py:327` | 🆕 v2.2.0 只投影**已配置的 group 名**，供自定义 Agent 设置白名单；绝不暴露 tool provider 路径/凭据/原始工具配置 |
+| `GET` | `/api/agents/check` | `agents:read` | 200 | `backend/app/gateway/routers/agents.py:343` | Check Agent Name |
+| `POST` | `/api/agents/import` | `agents:write` | 201 | `backend/app/gateway/routers/agents.py:376` | 🆕 v2.2.0 导入 Agent 包（严格、带版本的**纯定义** JSON）：owner-scoped 且 **create-only**，冲突 **409**，绝不覆盖/upsert；普通创建与导入共用 `_persist_new_agent`（经 `run_drained_write` 排空） |
+| `GET` | `/api/agents/{name}/export` | `agents:read` | 200 | `backend/app/gateway/routers/agents.py:407` | 🆕 v2.2.0 导出调用方**可移植**的 `AgentConfig` 字段 + SOUL；排除 `github` 安装绑定、memory 内容、会话与凭据 |
+| `GET` | `/api/agents/{name}` | `agents:read` | 200 | `backend/app/gateway/routers/agents.py:458` | Get Custom Agent |
+| `POST` | `/api/agents` | `agents:write` | 201 | `backend/app/gateway/routers/agents.py:496` | Create Custom Agent |
+| `PUT` | `/api/agents/{name}` | `agents:write` | 200 | `backend/app/gateway/routers/agents.py:532` | Update Custom Agent；v2.2.0 用 `preserve_non_managed_fields(..., new_tool_groups=...)` 在换组后**清掉继承来的知识默认值**（显式 scope/null 仍优先；未变的组不算迁移） |
+| `GET` | `/api/user-profile` | `agents:read` | 200 | `backend/app/gateway/routers/agents.py:685` | Get User Profile |
+| `PUT` | `/api/user-profile` | `agents:write` | 200 | `backend/app/gateway/routers/agents.py:722` | Update User Profile |
+| `DELETE` | `/api/agents/{name}` | `agents:write` | 204 | `backend/app/gateway/routers/agents.py:765` | Delete Custom Agent |
 
 #### Artifacts
 
@@ -49,8 +56,8 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/threads/{thread_id}/artifacts/{path:path}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/artifacts.py:339` | Get Artifact File |
-| `PUT` | `/api/threads/{thread_id}/artifacts/{path:path}` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/artifacts.py:486` | Update Artifact File |
+| `GET` | `/api/threads/{thread_id}/artifacts/{path:path}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/artifacts.py:394` | Get Artifact File |
+| `PUT` | `/api/threads/{thread_id}/artifacts/{path:path}` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/artifacts.py:619` | Update Artifact File |
 
 #### Assistants 兼容层
 
@@ -58,10 +65,10 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/assistants/search` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:90` | Search assistants. |
-| `GET` | `/api/assistants/{assistant_id}` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:110` | Get an assistant by ID. |
-| `GET` | `/api/assistants/{assistant_id}/graph` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:119` | Get the graph structure for an assistant. |
-| `GET` | `/api/assistants/{assistant_id}/schemas` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:137` | Get JSON schemas for an assistant's input/output/state. |
+| `POST` | `/api/assistants/search` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:89` | Search assistants. |
+| `GET` | `/api/assistants/{assistant_id}` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:109` | Get an assistant by ID. |
+| `GET` | `/api/assistants/{assistant_id}/graph` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:118` | Get the graph structure for an assistant. |
+| `GET` | `/api/assistants/{assistant_id}/schemas` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/assistants_compat.py:136` | Get JSON schemas for an assistant's input/output/state. |
 
 #### Auth / PAT / OIDC
 
@@ -69,19 +76,19 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/v1/auth/login/local` | 公开（限流 429） | 200 | `backend/app/gateway/routers/auth.py:403` | Local email/password login. |
-| `POST` | `/api/v1/auth/register` | 公开 | 201 | `backend/app/gateway/routers/auth.py:458` | Register a new user account (always 'user' role). |
-| `POST` | `/api/v1/auth/logout` | 公开/session | 200 | `backend/app/gateway/routers/auth.py:487` | Logout current user by clearing the cookie. |
-| `POST` | `/api/v1/auth/change-password` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/auth.py:498` | Change password for the currently authenticated user. |
-| `GET` | `/api/v1/auth/me` | session 或 PAT | 200 | `backend/app/gateway/routers/auth.py:562` | Get current authenticated user info, including effective permissions. |
-| `POST` | `/api/v1/auth/pats` | 已登录（无 `require_permission`） | 201 | `backend/app/gateway/routers/auth.py:652` | Create a personal access token for the session user. |
-| `GET` | `/api/v1/auth/pats` | session-only（PAT 403） | 200 | `backend/app/gateway/routers/auth.py:689` | List the session user's tokens. Never returns digests or raw tokens. |
-| `DELETE` | `/api/v1/auth/pats/{pat_id}` | session-only（PAT 403） | 200 | `backend/app/gateway/routers/auth.py:699` | Revoke one of the session user's tokens. Revocation is immediate. |
-| `GET` | `/api/v1/auth/setup-status` | 公开 | 200 | `backend/app/gateway/routers/auth.py:722` | Check if an admin account exists. Returns needs_setup=True when no admin exists. |
-| `POST` | `/api/v1/auth/initialize` | 公开 | 201 | `backend/app/gateway/routers/auth.py:789` | Create the first admin account on initial system setup. |
-| `GET` | `/api/v1/auth/providers` | 公开 | 200 | `backend/app/gateway/routers/auth.py:881` | List enabled SSO providers for the login page. |
-| `GET` | `/api/v1/auth/oauth/{provider}` | 公开 | 200 | `backend/app/gateway/routers/auth.py:908` | Initiate OIDC login flow. |
-| `GET` | `/api/v1/auth/callback/{provider}` | 公开 | 200 | `backend/app/gateway/routers/auth.py:987` | OIDC callback endpoint. |
+| `POST` | `/api/v1/auth/login/local` | 公开（限流 429） | 200 | `backend/app/gateway/routers/auth.py:431` | Local email/password login. |
+| `POST` | `/api/v1/auth/register` | 公开 | 201 | `backend/app/gateway/routers/auth.py:488` | Register a new user account (always 'user' role). |
+| `POST` | `/api/v1/auth/logout` | 公开/session | 200 | `backend/app/gateway/routers/auth.py:517` | Logout current user by clearing the cookie. |
+| `POST` | `/api/v1/auth/change-password` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/auth.py:528` | Change password for the currently authenticated user. |
+| `GET` | `/api/v1/auth/me` | session 或 PAT | 200 | `backend/app/gateway/routers/auth.py:592` | Get current authenticated user info, including effective permissions. |
+| `POST` | `/api/v1/auth/pats` | 已登录（无 `require_permission`） | 201 | `backend/app/gateway/routers/auth.py:682` | Create a personal access token for the session user. |
+| `GET` | `/api/v1/auth/pats` | session-only（PAT 403） | 200 | `backend/app/gateway/routers/auth.py:719` | List the session user's tokens. Never returns digests or raw tokens. |
+| `DELETE` | `/api/v1/auth/pats/{pat_id}` | session-only（PAT 403） | 200 | `backend/app/gateway/routers/auth.py:729` | Revoke one of the session user's tokens. Revocation is immediate. |
+| `GET` | `/api/v1/auth/setup-status` | 公开 | 200 | `backend/app/gateway/routers/auth.py:752` | Check if an admin account exists. Returns needs_setup=True when no admin exists. |
+| `POST` | `/api/v1/auth/initialize` | 公开 | 201 | `backend/app/gateway/routers/auth.py:820` | Create the first admin account on initial system setup. |
+| `GET` | `/api/v1/auth/providers` | 公开 | 200 | `backend/app/gateway/routers/auth.py:930` | List enabled SSO providers for the login page. |
+| `GET` | `/api/v1/auth/oauth/{provider}` | 公开 | 200 | `backend/app/gateway/routers/auth.py:954` | Initiate OIDC login flow. |
+| `GET` | `/api/v1/auth/callback/{provider}` | 公开 | 200 | `backend/app/gateway/routers/auth.py:1030` | OIDC callback endpoint. |
 
 #### Browser 自动化
 
@@ -89,20 +96,26 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/threads/{thread_id}/browser/navigate` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/browser.py:81` | Navigate The Live Browser Session |
+| `POST` | `/api/threads/{thread_id}/browser/navigate` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/browser.py:75` | Navigate The Live Browser Session |
+| `WEBSOCKET` | `/api/threads/{thread_id}/browser/stream` | `threads:read` (owner 校验在握手时做) | 101 | `backend/app/gateway/routers/browser.py:214` | 实时浏览器画面/输入流；nginx 有专门的 upgrade 正则（600s read timeout），必须排在通用 threads 正则之前 |
 
 #### Channel Connections
 
-源码：`routers/channel_connections.py` — runtime-config 端点 admin-only；连接码超限 **429**。
+源码：`routers/channel_connections.py` — runtime-config 端点 admin-only；连接码超限 **429**；v2.2.0 新增企业微信扫码登录三件套（**同样 admin-only**，且**只允许单 worker**）🆕。
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/channels/providers` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/channel_connections.py:515` | — |
-| `GET` | `/api/channels/connections` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/channel_connections.py:545` | — |
-| `DELETE` | `/api/channels/connections/{connection_id}` | 已登录（无 `require_permission`） | 204 | `backend/app/gateway/routers/channel_connections.py:555` | — |
-| `DELETE` | `/api/channels/{provider}/runtime-config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/channel_connections.py:571` | — |
-| `POST` | `/api/channels/{provider}/connect` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/channel_connections.py:618` | — |
-| `POST` | `/api/channels/{provider}/runtime-config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/channel_connections.py:653` | — |
+| `GET` | `/api/channels/providers` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/channel_connections.py:549` | — |
+| `GET` | `/api/channels/connections` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/channel_connections.py:579` | — |
+| `DELETE` | `/api/channels/connections/{connection_id}` | 已登录（无 `require_permission`） | 204 | `backend/app/gateway/routers/channel_connections.py:596` | — |
+| `DELETE` | `/api/channels/{provider}/runtime-config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/channel_connections.py:612` | — |
+| `POST` | `/api/channels/{provider}/connect` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/channel_connections.py:658` | — |
+| `POST` | `/api/channels/{provider}/runtime-config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/channel_connections.py:697` | — |
+| `POST` | `/api/channels/wechat/qr-login` | admin（`_require_wechat_qr_login`，非 admin **403**） | 200 | `backend/app/gateway/routers/channel_connections.py:813` | 🆕 v2.2.0 起一个企业微信扫码登录会话；响应 `Cache-Control: no-store` |
+| `POST` | `/api/channels/wechat/qr-login/{session_id}/poll` | admin（同上） | 200 | `backend/app/gateway/routers/channel_connections.py:824` | 🆕 v2.2.0 轮询扫码状态；可选 body `verify_code`；拿到凭据后走 `_apply_runtime_channel_config(..., "wechat", ...)` 落运行时配置 |
+| `DELETE` | `/api/channels/wechat/qr-login/{session_id}` | admin（同上） | 204 | `backend/app/gateway/routers/channel_connections.py:843` | 🆕 v2.2.0 放弃扫码会话 |
+
+三个 wechat QR 路由共用 `_require_wechat_qr_login()`（`:788`）：`require_admin_user` → channel connections 与 `config.wechat` 都必须 enabled（否则 **400**「WeChat channel connections are disabled」）→ **多 worker 直接拒**：`GATEWAY_WORKERS`/`WEB_CONCURRENCY` 解析后 `!= 1`，或 `multi_instance_declaration(config)` 非空，就 **503**（QR 会话与变更锁只活在单进程里，请求落到别的 worker 会读到不存在的 session）。`QRLoginError.status_code` 原样透传。
 
 #### Channels 状态/重启
 
@@ -110,8 +123,8 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/channels/` | 登录即可 | 200 | `backend/app/gateway/routers/channels.py:30` | Get the status of all IM channels. |
-| `POST` | `/api/channels/{name}/restart` | admin | 200 | `backend/app/gateway/routers/channels.py:42` | Restart a specific IM channel. |
+| `GET` | `/api/channels/` | 登录即可 | 200 | `backend/app/gateway/routers/channels.py:29` | Get the status of all IM channels. |
+| `POST` | `/api/channels/{name}/restart` | admin | 200 | `backend/app/gateway/routers/channels.py:41` | Restart a specific IM channel. |
 
 #### Console — 跨线程可观测性
 
@@ -119,9 +132,9 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/console/stats` | `runs:read` | 200 | `backend/app/gateway/routers/console.py:285` | Console Stats |
-| `GET` | `/api/console/runs` | `runs:read` | 200 | `backend/app/gateway/routers/console.py:356` | List Runs Across Threads |
-| `GET` | `/api/console/usage` | `runs:read` | 200 | `backend/app/gateway/routers/console.py:427` | Token Usage Over Time |
+| `GET` | `/api/console/stats` | `runs:read` | 200 | `backend/app/gateway/routers/console.py:289` | Console Stats |
+| `GET` | `/api/console/runs` | `runs:read` | 200 | `backend/app/gateway/routers/console.py:363` | List Runs Across Threads |
+| `GET` | `/api/console/usage` | `runs:read` | 200 | `backend/app/gateway/routers/console.py:434` | Token Usage Over Time |
 
 #### Features — 前端能力门控
 
@@ -129,7 +142,7 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/features` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/features.py:73` | List Feature Flags |
+| `GET` | `/api/features` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/features.py:98` | List Feature Flags — 🆕 v2.2.0 载荷 8 组：`agents_api`/`browser_control`/`mcp_tasks`/`subagent_batches`/`conversation_references`/`knowledge_base`/`scheduled_tasks`/`thread_activity` |
 
 #### Feedback
 
@@ -137,12 +150,12 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `PUT` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:64` | Create or update feedback for a run (idempotent). |
-| `DELETE` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:95` | Delete the current user's feedback for a run. |
-| `POST` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:115` | Submit feedback (thumbs-up/down) for a run. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/feedback.py:148` | List all feedback for a run. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/feedback/stats` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/feedback.py:160` | Get aggregated feedback stats (positive/negative counts) for a run. |
-| `DELETE` | `/api/threads/{thread_id}/runs/{run_id}/feedback/{feedback_id}` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:172` | Delete a feedback record. |
+| `PUT` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:62` | Create or update feedback for a run (idempotent). |
+| `DELETE` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:93` | Delete the current user's feedback for a run. |
+| `POST` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:113` | Submit feedback (thumbs-up/down) for a run. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/feedback` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/feedback.py:146` | List feedback for a run. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/feedback/stats` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/feedback.py:158` | 🆕 v2.2.0 该 run 的反馈聚合计数 |
+| `DELETE` | `/api/threads/{thread_id}/runs/{run_id}/feedback/{feedback_id}` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/feedback.py:170` | 🆕 v2.2.0 按 feedback_id 删除单条反馈 |
 
 #### GitHub Webhooks
 
@@ -158,7 +171,7 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/input-polish` | `runs:create` | 200 | `backend/app/gateway/routers/input_polish.py:65` | Polish Composer Input |
+| `POST` | `/api/input-polish` | `runs:create` | 200 | `backend/app/gateway/routers/input_polish.py:58` | Polish Composer Input |
 
 #### Integrations（Lark）
 
@@ -166,37 +179,37 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/integrations/lark/status` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/integrations.py:260` | Get Lark/Feishu Integration Status |
-| `POST` | `/api/integrations/lark/install` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/integrations.py:270` | Install Lark/Feishu Skill Pack |
-| `POST` | `/api/integrations/lark/config/start` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/integrations.py:288` | Start Lark/Feishu App Configuration |
-| `POST` | `/api/integrations/lark/config/complete` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/integrations.py:308` | Complete Lark/Feishu App Configuration |
-| `POST` | `/api/integrations/lark/config/credentials` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/integrations.py:335` | Switch Lark/Feishu App Credentials |
-| `POST` | `/api/integrations/lark/auth/start` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/integrations.py:358` | Start Lark/Feishu Browser Authorization |
-| `POST` | `/api/integrations/lark/auth/complete` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/integrations.py:383` | Complete Lark/Feishu Browser Authorization |
+| `GET` | `/api/integrations/lark/status` | 已登录（非 admin 只回脱敏状态） | 200 | `backend/app/gateway/routers/integrations.py:262` | — |
+| `POST` | `/api/integrations/lark/install` | admin | 200 | `backend/app/gateway/routers/integrations.py:272` | — |
+| `POST` | `/api/integrations/lark/config/start` | admin | 200 | `backend/app/gateway/routers/integrations.py:306` | — |
+| `POST` | `/api/integrations/lark/config/complete` | admin | 200 | `backend/app/gateway/routers/integrations.py:326` | — |
+| `POST` | `/api/integrations/lark/config/credentials` | admin | 200 | `backend/app/gateway/routers/integrations.py:353` | — |
+| `POST` | `/api/integrations/lark/auth/start` | 已登录 | 200 | `backend/app/gateway/routers/integrations.py:376` | — |
+| `POST` | `/api/integrations/lark/auth/complete` | 已登录 | 200 | `backend/app/gateway/routers/integrations.py:401` | — |
 
-#### MCP 配置
+#### MCP 配置（平台级）
 
-源码：`routers/mcp.py` — 全部经 `require_admin_user`（**403**）；配置非法 **400**，非预期异常 **500**。
+源码：`routers/mcp.py` — 全部 admin（`require_admin_user`，detail `_ADMIN_REQUIRED_DETAIL = "Admin privileges required to manage MCP configuration."` `mcp.py:48`）；配置非法 **400**。v2.2.0 起 personal MCP 走独立前缀 `/api/mcp/personal/config`（见 §1.3）。
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/mcp/config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1116` | Get MCP Configuration |
-| `POST` | `/api/mcp/cache/reset` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1423` | Reset MCP Tools Cache |
-| `PUT` | `/api/mcp/config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1444` | Update MCP Configuration |
-| `POST` | `/api/mcp/config/servers` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1504` | Add MCP Servers |
-| `PUT` | `/api/mcp/config/server` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1527` | Update MCP Server |
-| `DELETE` | `/api/mcp/config/servers/{server_name:path}` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1553` | Delete MCP Server |
-| `PATCH` | `/api/mcp/config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1575` | Update MCP Server State |
+| `GET` | `/api/mcp/config` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/mcp.py:1147` | Get MCP Configuration |
+| `POST` | `/api/mcp/cache/reset` | admin | 200 | `backend/app/gateway/routers/mcp.py:1559` | Reset MCP Tools Cache |
+| `PUT` | `/api/mcp/config` | admin | 200 | `backend/app/gateway/routers/mcp.py:1588` | Update MCP Configuration（整表替换） |
+| `POST` | `/api/mcp/config/servers` | admin | 200 | `backend/app/gateway/routers/mcp.py:1647` | Create MCP Servers |
+| `PUT` | `/api/mcp/config/server` | admin | 200 | `backend/app/gateway/routers/mcp.py:1669` | Update MCP Server |
+| `DELETE` | `/api/mcp/config/servers/{server_name:path}` | admin | 200 | `backend/app/gateway/routers/mcp.py:1694` | Delete MCP Server |
+| `PATCH` | `/api/mcp/config` | admin | 200 | `backend/app/gateway/routers/mcp.py:1715` | Update MCP Server State（enabled 开关） |
 
 #### MCP 长任务
 
-源码：`routers/mcp_tasks.py` — owner-scoped `threads:read/write`；取消时 worker 未运行 **503**。
+源码：`routers/mcp_tasks.py` — owner-scoped `threads:read/write`；worker 未运行时 `app.state.mcp_tasks_available` 为假，全部 **503**。
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/threads/{thread_id}/mcp-tasks` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/mcp_tasks.py:68` | — |
-| `GET` | `/api/threads/{thread_id}/mcp-tasks/{task_id}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/mcp_tasks.py:87` | — |
-| `POST` | `/api/threads/{thread_id}/mcp-tasks/{task_id}/cancel` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/mcp_tasks.py:106` | — |
+| `GET` | `/api/threads/{thread_id}/mcp-tasks` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/mcp_tasks.py:93` | 🆕 v2.2.0 支持 `TaskStatus` 与 `active_only` 过滤（只把**真的仍是 active** 的 task status 报成非终态） |
+| `GET` | `/api/threads/{thread_id}/mcp-tasks/{task_id}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/mcp_tasks.py:134` | 不存在/不可见统一 **404**「MCP task not found」 |
+| `POST` | `/api/threads/{thread_id}/mcp-tasks/{task_id}/cancel` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/mcp_tasks.py:176` | worker 未运行 **503** |
 
 #### Memory
 
@@ -204,25 +217,26 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/memory` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:211` | Get Memory Data |
-| `POST` | `/api/memory/reload` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:257` | Reload Memory Data |
-| `DELETE` | `/api/memory` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:290` | Clear All Memory Data |
-| `POST` | `/api/memory/facts` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:312` | Create Memory Fact |
-| `DELETE` | `/api/memory/facts/{fact_id}` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:345` | Delete Memory Fact |
-| `PATCH` | `/api/memory/facts/{fact_id}` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:369` | Patch Memory Fact |
-| `GET` | `/api/memory/export` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:402` | Export Memory Data |
-| `POST` | `/api/memory/import` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:416` | Import Memory Data |
-| `GET` | `/api/memory/config` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:441` | Get Memory Configuration |
-| `GET` | `/api/memory/status` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:491` | Get Memory Status |
+| `GET` | `/api/memory` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/memory.py:255` | Get Memory Data |
+| `POST` | `/api/memory/reload` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:308` | Reload Memory Data |
+| `DELETE` | `/api/memory` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:353` | Clear All Memory Data |
+| `POST` | `/api/memory/facts` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:384` | Create Memory Fact |
+| `DELETE` | `/api/memory/facts/{fact_id}` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:423` | Delete Memory Fact |
+| `PATCH` | `/api/memory/facts/{fact_id}` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:457` | Patch Memory Fact |
+| `GET` | `/api/memory/export` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:496` | Export Memory Data |
+| `POST` | `/api/memory/import` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:517` | Import Memory Data |
+| `GET` | `/api/memory/config` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:551` | Get Memory Configuration |
+| `GET` | `/api/memory/status` | 已登录 | 200 | `backend/app/gateway/routers/memory.py:601` | Get Memory Status |
 
 #### Models — 模型目录
 
-源码：`routers/models.py` — 需要认证；`GET /{name}` 另做 `model:use` 授权，fail-closed 时 403。
+源码：`routers/models.py` — 需要认证；`GET /{name}` 另做 `model:use` 授权（`authz.py:413 authorize_model_use`），fail-closed 时 **403**；v2.2.0 新增 `GET /api/models/token-usage` 🆕。
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/models` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/models.py:50` | List All Models |
-| `GET` | `/api/models/{model_name}` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/models.py:138` | Get Model Details |
+| `POST` | `/api/models/resolve` | 已登录（候选逐个过 `model:use`，全部被拒时降级为 `status: unavailable` 而非 403） | 200 | `backend/app/gateway/routers/models.py:103` | 🆕 v2.2.0 只读预览：把用户的任务文本解析成模型选择，**绝不**启动 run、绝不改默认模型 |
+| `GET` | `/api/models` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/models.py:135` | List All Models |
+| `GET` | `/api/models/{model_name}` | 已登录 + `model:use`（fail-closed **403**） | 200 | `backend/app/gateway/routers/models.py:221` | Get Model Details；不存在 **404**「Model '<n>' not found」 |
 
 #### Project Document Shelf
 
@@ -230,12 +244,12 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/projects/{project_id}/documents` | `projects:read` | 200 | `backend/app/gateway/routers/project_documents.py:142` | — |
-| `POST` | `/api/projects/{project_id}/documents` | `projects:write` | 201 | `backend/app/gateway/routers/project_documents.py:166` | Shelf exactly one file (§17.2): 201 created, or 200 on a content dedup hit. |
-| `POST` | `/api/projects/{project_id}/documents/from-thread` | `projects:write` + `threads:read` | 201 | `backend/app/gateway/routers/project_documents.py:270` | Copy one thread file (upload or output) into the shelf (§7.4). |
-| `POST` | `/api/projects/{project_id}/documents/{document_id}/attach-to-thread/{thread_id}` | `projects:write` + `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/project_documents.py:338` | Materialize an independent copy of a shelf document into a thread (§7.3 item 3). |
-| `GET` | `/api/projects/{project_id}/documents/{document_id}/content` | `projects:read` | 200 | `backend/app/gateway/routers/project_documents.py:412` | Inline text or attachment for one active shelf document (§6.5). |
-| `DELETE` | `/api/projects/{project_id}/documents/{document_id}` | `projects:delete` | 204 | `backend/app/gateway/routers/project_documents.py:486` | Move one document to trash (204). Restore/purge are the Slice-D trash tier. |
+| `GET` | `/api/projects/{project_id}/documents` | `projects:read` | 200 | `backend/app/gateway/routers/project_documents.py:173` | — |
+| `POST` | `/api/projects/{project_id}/documents` | `projects:write` | 201 | `backend/app/gateway/routers/project_documents.py:197` | Shelf exactly one file (§17.2): 201 created, or 200 on a content dedup hit. |
+| `POST` | `/api/projects/{project_id}/documents/from-thread` | `projects:write` + `threads:read` | 201 | `backend/app/gateway/routers/project_documents.py:304` | Copy one thread file (upload or output) into the shelf (§7.4). |
+| `POST` | `/api/projects/{project_id}/documents/{document_id}/attach-to-thread/{thread_id}` | `projects:write` + `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/project_documents.py:376` | Materialize an independent copy of a shelf document into a thread (§7.3 item 3). |
+| `GET` | `/api/projects/{project_id}/documents/{document_id}/content` | `projects:read` | 200 | `backend/app/gateway/routers/project_documents.py:454` | Inline text or attachment for one active shelf document (§6.5). |
+| `DELETE` | `/api/projects/{project_id}/documents/{document_id}` | `projects:delete` | 204 | `backend/app/gateway/routers/project_documents.py:528` | Move one document to trash (204). Restore/purge are the Slice-D trash tier. |
 
 #### Project Thread Files
 
@@ -243,7 +257,7 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/projects/{project_id}/thread-files` | `projects:read` + `threads:read` | 200 | `backend/app/gateway/routers/project_thread_files.py:105` | Aggregate member threads' files, paged by thread (§6.5/§7.4). |
+| `GET` | `/api/projects/{project_id}/thread-files` | `projects:read` + `threads:read` | 200 | `backend/app/gateway/routers/project_thread_files.py:102` | Aggregate member threads' files, paged by thread (§6.5/§7.4). |
 
 #### Projects
 
@@ -251,15 +265,15 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/projects` | `projects:write` | 201 | `backend/app/gateway/routers/projects.py:118` | — |
-| `GET` | `/api/projects` | `projects:read` | 200 | `backend/app/gateway/routers/projects.py:126` | — |
-| `GET` | `/api/projects/config` | `projects:read` | 200 | `backend/app/gateway/routers/projects.py:133` | Projects config for the UI (instructions byte cap, trash retention). |
-| `GET` | `/api/projects/{project_id}` | `projects:read` | 200 | `backend/app/gateway/routers/projects.py:148` | — |
-| `PATCH` | `/api/projects/{project_id}` | `projects:write` | 200 | `backend/app/gateway/routers/projects.py:157` | — |
-| `POST` | `/api/projects/{project_id}/archive` | `projects:write` | 200 | `backend/app/gateway/routers/projects.py:167` | — |
-| `POST` | `/api/projects/{project_id}/restore` | `projects:write` | 200 | `backend/app/gateway/routers/projects.py:176` | — |
-| `DELETE` | `/api/projects/{project_id}` | `projects:delete` | 204 | `backend/app/gateway/routers/projects.py:185` | — |
-| `GET` | `/api/projects/{project_id}/threads` | `projects:read` + `threads:read` | 200 | `backend/app/gateway/routers/projects.py:193` | — |
+| `POST` | `/api/projects` | `projects:write` | 201 | `backend/app/gateway/routers/projects.py:116` | — |
+| `GET` | `/api/projects` | `projects:read` | 200 | `backend/app/gateway/routers/projects.py:124` | — |
+| `GET` | `/api/projects/config` | `projects:read` | 200 | `backend/app/gateway/routers/projects.py:131` | Projects config for the UI (instructions byte cap, trash retention). |
+| `GET` | `/api/projects/{project_id}` | `projects:read` | 200 | `backend/app/gateway/routers/projects.py:146` | — |
+| `PATCH` | `/api/projects/{project_id}` | `projects:write` | 200 | `backend/app/gateway/routers/projects.py:155` | — |
+| `POST` | `/api/projects/{project_id}/archive` | `projects:write` | 200 | `backend/app/gateway/routers/projects.py:165` | — |
+| `POST` | `/api/projects/{project_id}/restore` | `projects:write` | 200 | `backend/app/gateway/routers/projects.py:174` | — |
+| `DELETE` | `/api/projects/{project_id}` | `projects:delete` | 204 | `backend/app/gateway/routers/projects.py:183` | — |
+| `GET` | `/api/projects/{project_id}/threads` | `projects:read` + `threads:read` | 200 | `backend/app/gateway/routers/projects.py:190` | — |
 
 #### Stateless Runs
 
@@ -267,49 +281,51 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/runs/stream` | `runs:create` | 200 | `backend/app/gateway/routers/runs.py:35` | Create a run and stream events via SSE. |
+| `POST` | `/api/runs/stream` | `runs:create` | 200 | `backend/app/gateway/routers/runs.py:40` | Create a run and stream events via SSE. |
 | `POST` | `/api/runs/wait` | `runs:create` | 200 | `backend/app/gateway/routers/runs.py:61` | Create a run and block until completion. |
-| `GET` | `/api/runs/{run_id}/messages` | `runs:read` | 200 | `backend/app/gateway/routers/runs.py:110` | Return paginated messages for a run (cursor-based). |
-| `GET` | `/api/runs/{run_id}/feedback` | `runs:read` | 200 | `backend/app/gateway/routers/runs.py:141` | Return all feedback for a run. |
+| `GET` | `/api/runs/{run_id}/messages` | `runs:read` | 200 | `backend/app/gateway/routers/runs.py:113` | Return paginated messages for a run (cursor-based). |
+| `GET` | `/api/runs/{run_id}/feedback` | `runs:read` | 200 | `backend/app/gateway/routers/runs.py:144` | Return all feedback for a run. |
 
 #### Scheduled Tasks
 
-源码：`routers/scheduled_tasks.py` — `threads:write`+`runs:create`；`_ensure_task_mutable` 用 **409**，触发派发失败 **502**（全仓少见 5xx 业务码）。
+源码：`routers/scheduled_tasks.py` — `threads:*`+`runs:create`；v2.2.0 起**所有**错误都是 `{code, message, params}` 结构化 detail（`scheduled_task_errors.py`），触发派发失败 **502**、scheduler 未运行 **409** `scheduler_not_running`（全仓少见 5xx 业务码）🆕。
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/scheduled-tasks/preview-cron` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:167` | Preview future cron instants without creating or dispatching a task. |
-| `GET` | `/api/scheduled-tasks` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:178` | — |
-| `POST` | `/api/scheduled-tasks` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:189` | — |
-| `GET` | `/api/scheduled-tasks/{task_id}` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:254` | — |
-| `PATCH` | `/api/scheduled-tasks/{task_id}` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:268` | — |
-| `POST` | `/api/scheduled-tasks/{task_id}/pause` | `threads:write` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:380` | — |
-| `POST` | `/api/scheduled-tasks/{task_id}/resume` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:412` | — |
-| `POST` | `/api/scheduled-tasks/{task_id}/trigger` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:441` | — |
-| `DELETE` | `/api/scheduled-tasks/{task_id}` | `threads:write` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:462` | — |
-| `GET` | `/api/scheduled-tasks/{task_id}/runs` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:485` | — |
-| `GET` | `/api/threads/{thread_id}/scheduled-tasks` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/scheduled_tasks.py:505` | — |
+| `POST` | `/api/scheduled-tasks/preview-cron` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:234` | Preview future cron instants without creating or dispatching a task. |
+| `GET` | `/api/scheduled-tasks` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:245` | — |
+| `POST` | `/api/scheduled-tasks` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:255` | 新增 **409** `scheduler_not_running`（本进程 poller 未跑，否则任务永不执行）；通知组非法 **422** `invalid_notification_group`，查询通知组时 scheduler 不可用 **503** `scheduler_unavailable` |
+| `GET` | `/api/scheduled-tasks/{task_id}` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:294` | — |
+| `PATCH` | `/api/scheduled-tasks/{task_id}` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:307` | — |
+| `POST` | `/api/scheduled-tasks/{task_id}/pause` | `threads:write` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:358` | — |
+| `POST` | `/api/scheduled-tasks/{task_id}/resume` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:391` | — |
+| `POST` | `/api/scheduled-tasks/{task_id}/trigger` | `threads:write` + `runs:create` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:428` | **502** `trigger_failed`；占用中 **409** `task_changed`/`task_running` |
+| `DELETE` | `/api/scheduled-tasks/{task_id}` | `threads:write` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:453` | — |
+| `GET` | `/api/scheduled-tasks/{task_id}/runs` | `threads:read` | 200 | `backend/app/gateway/routers/scheduled_tasks.py:473` | — |
+| `GET` | `/api/threads/{thread_id}/scheduled-tasks` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/scheduled_tasks.py:494` | — |
+| `GET` | `/api/threads/{thread_id}/scheduled-task-events` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/scheduled_tasks.py:505` | 🆕 v2.2.0 该会话中调用方任务的生命周期事件（暂停/自动暂停/完成），带标题快照所以任务删除后行仍在；`limit` 1–200 默认 50 |
 
 #### Skills
 
-源码：`routers/skills.py` — 管理端点经 `require_admin_user`（**403**）；安装/编辑被安全扫描阻断 **400**；上传超限 **413**。
+源码：`routers/skills.py` — 管理端点经 `require_admin_user`（`_ADMIN_REQUIRED_DETAIL` `skills.py:71`，非 admin **403**）；安装/编辑被安全扫描阻断 **400**；上传超限 **413**。**读取端**（`GET /skills`、`/skills/custom`、`/skills/{name}`）对所有登录用户开放，`authorization.enabled` 时按 `provider.filter_resources("skill")` 过滤（fail-closed → 空列表 / 详情 404；fail-open → 全量）🆕 v2.2.0。
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/skills` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/skills.py:277` | List All Skills |
-| `POST` | `/api/skills/install` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:293` | Install Skill |
-| `POST` | `/api/skills/install/upload` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:324` | Upload and Install Skill |
-| `POST` | `/api/skills/reload` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:362` | Reload Skills |
-| `GET` | `/api/skills/custom` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/skills.py:379` | List Custom Skills |
-| `GET` | `/api/skills/custom/{skill_name}/export-manifest` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:396` | Preview Custom Skill Export |
-| `GET` | `/api/skills/custom/{skill_name}/export` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:416` | Download Custom Skill Archive |
-| `GET` | `/api/skills/custom/{skill_name}` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:437` | Get Custom Skill Content |
-| `PUT` | `/api/skills/custom/{skill_name}` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:459` | Edit Custom Skill |
-| `DELETE` | `/api/skills/custom/{skill_name}` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:499` | Delete Custom Skill |
-| `GET` | `/api/skills/custom/{skill_name}/history` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:529` | Get Custom Skill History |
-| `POST` | `/api/skills/custom/{skill_name}/rollback` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:555` | Rollback Custom Skill |
-| `GET` | `/api/skills/{skill_name}` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/skills.py:609` | Get Skill Details |
-| `PUT` | `/api/skills/{skill_name}` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:681` | Update Skill |
+| `GET` | `/api/skills` | 已登录（`authorization.enabled` 时按角色过滤） | 200 | `backend/app/gateway/routers/skills.py:498` | List All Skills |
+| `POST` | `/api/skills/install` | admin（`require_admin_user`，非 admin **403**） | 200 | `backend/app/gateway/routers/skills.py:526` | Install Skill |
+| `POST` | `/api/skills/install/upload` | admin | 200 | `backend/app/gateway/routers/skills.py:543` | Upload and Install Skill；包体超限 **413** |
+| `POST` | `/api/skills/reload` | admin | 200 | `backend/app/gateway/routers/skills.py:598` | Reload Skills |
+| `GET` | `/api/skills/custom` | 已登录（与 `GET /skills` 同一可见性过滤，否则会泄漏主列表隐藏的名字） | 200 | `backend/app/gateway/routers/skills.py:645` | List Custom Skills |
+| `GET` | `/api/skills/diagnostics/custom` | admin | 200 | `backend/app/gateway/routers/skills.py:672` | 🆕 v2.2.0 列出调用方自有 custom skill 的 YAML 载入诊断；响应 `Cache-Control: no-store` |
+| `GET` | `/api/skills/custom/{skill_name}/export-manifest` | admin | 200 | `backend/app/gateway/routers/skills.py:687` | Preview Custom Skill Export（槽位满 **429** `skill_export_busy`） |
+| `GET` | `/api/skills/custom/{skill_name}/export` | admin | 200 | `backend/app/gateway/routers/skills.py:707` | Download Custom Skill Archive（120s idle 超时；客户端断连 **204**） |
+| `GET` | `/api/skills/custom/{skill_name}` | admin | 200 | `backend/app/gateway/routers/skills.py:728` | Get Custom Skill Content |
+| `PUT` | `/api/skills/custom/{skill_name}` | admin | 200 | `backend/app/gateway/routers/skills.py:760` | Edit Custom Skill |
+| `DELETE` | `/api/skills/custom/{skill_name}` | admin | 200 | `backend/app/gateway/routers/skills.py:827` | Delete Custom Skill |
+| `GET` | `/api/skills/custom/{skill_name}/history` | admin | 200 | `backend/app/gateway/routers/skills.py:876` | Get Custom Skill History |
+| `POST` | `/api/skills/custom/{skill_name}/rollback` | admin | 200 | `backend/app/gateway/routers/skills.py:911` | Rollback Custom Skill |
+| `GET` | `/api/skills/{skill_name}` | 已登录（不可见的 skill 与不存在一样 **404**，避免成为存在性探针） | 200 | `backend/app/gateway/routers/skills.py:1012` | Get Skill Details |
+| `PUT` | `/api/skills/{skill_name}` | admin | 200 | `backend/app/gateway/routers/skills.py:1095` | Update Skill（enabled 开关） |
 
 #### backend/app/gateway/routers/subagent_batches.py
 
@@ -317,14 +333,15 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/threads/{thread_id}/subagent-batches` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:41` | — |
-| `GET` | `/api/threads/{thread_id}/subagent-batches/{batch_id}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:48` | — |
-| `GET` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/items` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:55` | — |
-| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/pause` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:71` | — |
-| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/resume` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:78` | — |
-| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/cancel` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:85` | — |
-| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/items/{item_id}/retry` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:97` | — |
-| `GET` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/results.jsonl` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:107` | — |
+| `GET` | `/api/threads/{thread_id}/subagent-batches` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:43` | — |
+| `GET` | `/api/threads/{thread_id}/subagent-batches/{batch_id}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:50` | — |
+| `GET` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/items` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:57` | — |
+| `GET` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/items/{position}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:73` | 🆕 v2.2.0 按 position 取单条 item |
+| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/pause` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:93` | — |
+| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/resume` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:100` | — |
+| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/cancel` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:107` | — |
+| `POST` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/items/{item_id}/retry` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:119` | 非 failed 状态 **409** |
+| `GET` | `/api/threads/{thread_id}/subagent-batches/{batch_id}/results.jsonl` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/subagent_batches.py:129` | — |
 
 #### backend/app/gateway/routers/subagents.py
 
@@ -343,8 +360,8 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/suggestions/config` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/suggestions.py:92` | Get Suggestions Configuration |
-| `POST` | `/api/threads/{thread_id}/suggestions` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/suggestions.py:105` | Generate Follow-up Questions |
+| `GET` | `/api/suggestions/config` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/suggestions.py:86` | Get Suggestions Configuration |
+| `POST` | `/api/threads/{thread_id}/suggestions` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/suggestions.py:98` | Generate Follow-up Questions |
 
 #### Thread Runs / Messages
 
@@ -352,26 +369,26 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/threads/{thread_id}/runs/regenerate/prepare` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:903` | Prepare input and checkpoint for regenerating the latest assistant turn. |
-| `POST` | `/api/threads/{thread_id}/runs/edit-regenerate/prepare` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:914` | Prepare input and checkpoint for editing then rerunning the latest user turn. |
-| `POST` | `/api/threads/{thread_id}/runs` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:925` | Create a background run (returns immediately). |
-| `POST` | `/api/threads/{thread_id}/runs/stream` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:943` | Create a run and stream events via SSE. |
-| `POST` | `/api/threads/{thread_id}/runs/wait` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:998` | Create a run and block until it completes, returning the final state. |
-| `GET` | `/api/threads/{thread_id}/runs` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1093` | List the newest runs for a thread (default 100, as a bare array). |
-| `GET` | `/api/threads/{thread_id}/runs/page` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1103` | Return a newest-first keyset page of runs for a thread. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1145` | Get details of a specific run. |
-| `POST` | `/api/threads/{thread_id}/runs/{run_id}/cancel` | `runs:cancel` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1157` | Cancel a running or pending run. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/join` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1217` | Join an existing run's SSE stream. |
-| `POST` | `/api/threads/{thread_id}/runs/{run_id}/stream` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1333` | Join an existing run's SSE stream, optionally cancelling it first. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/stream` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1351` | Join an existing run's observation-only SSE stream. |
-| `GET` | `/api/threads/{thread_id}/messages` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1363` | Return displayable messages for a thread (across all runs), with feedback attached. |
-| `GET` | `/api/threads/{thread_id}/messages/page` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1502` | Return a backward page ordered by the thread-global event sequence. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/messages` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1530` | Return paginated messages for a specific run. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | `runs:read` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1642` | Return the verified terminal delivery count used by the archive. |
-| `POST` | `/api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | `runs:read` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1654` | Download the current contents of the files presented by one terminal run. |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/events` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1712` | Return the full event stream for a run (debug/audit). |
-| `GET` | `/api/threads/{thread_id}/runs/{run_id}/workspace-changes` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1749` | Return workspace/output file changes recorded for one run. |
-| `GET` | `/api/threads/{thread_id}/token-usage` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1769` | Thread-level token usage aggregation. |
+| `POST` | `/api/threads/{thread_id}/runs/regenerate/prepare` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:963` | Prepare input and checkpoint for regenerating the latest assistant turn. |
+| `POST` | `/api/threads/{thread_id}/runs/edit-regenerate/prepare` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:974` | Prepare input and checkpoint for editing then rerunning the latest user turn. |
+| `POST` | `/api/threads/{thread_id}/runs` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:985` | Create a background run (returns immediately). |
+| `POST` | `/api/threads/{thread_id}/runs/stream` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1003` | Create a run and stream events via SSE. |
+| `POST` | `/api/threads/{thread_id}/runs/wait` | `runs:create` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1053` | Create a run and block until it completes, returning the final state. |
+| `GET` | `/api/threads/{thread_id}/runs` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1215` | List the newest runs for a thread (default 100, as a bare array). |
+| `GET` | `/api/threads/{thread_id}/runs/page` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1225` | Return a newest-first keyset page of runs for a thread. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1267` | Get details of a specific run. |
+| `POST` | `/api/threads/{thread_id}/runs/{run_id}/cancel` | `runs:cancel` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1279` | Cancel a running or pending run. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/join` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1340` | Join an existing run's SSE stream. |
+| `POST` | `/api/threads/{thread_id}/runs/{run_id}/stream` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1450` | Join an existing run's SSE stream, optionally cancelling it first. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/stream` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1463` | Join an existing run's observation-only SSE stream. |
+| `GET` | `/api/threads/{thread_id}/messages` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1480` | Return displayable messages for a thread (across all runs), with feedback attached. |
+| `GET` | `/api/threads/{thread_id}/messages/page` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1620` | Return a backward page ordered by the thread-global event sequence. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/messages` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1648` | Return paginated messages for a specific run. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | `runs:read` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1762` | Return the verified terminal delivery count used by the archive. |
+| `POST` | `/api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | `runs:read` (owner, require_existing) | 200 | `backend/app/gateway/routers/thread_runs.py:1778` | Download the current contents of the files presented by one terminal run. |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/events` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1837` | Return the full event stream for a run (debug/audit). |
+| `GET` | `/api/threads/{thread_id}/runs/{run_id}/workspace-changes` | `runs:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1885` | Return workspace/output file changes recorded for one run. |
+| `GET` | `/api/threads/{thread_id}/token-usage` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/thread_runs.py:1908` | Thread-level token usage aggregation. |
 
 #### Threads 生命周期与组织
 
@@ -379,20 +396,21 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `DELETE` | `/api/threads/{thread_id}` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:708` | Delete local persisted filesystem data for a thread. |
-| `POST` | `/api/threads` | `threads:write` | 200 | `backend/app/gateway/routers/threads.py:868` | Create a new thread. |
-| `POST` | `/api/threads/{thread_id}/branches` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:955` | Create a new main-thread branch from a completed assistant turn. |
-| `POST` | `/api/threads/search` | `threads:read` | 200 | `backend/app/gateway/routers/threads.py:1175` | Search and list threads. |
-| `PATCH` | `/api/threads/{thread_id}` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1218` | Merge metadata into a thread record. |
-| `POST` | `/api/threads/{thread_id}/move` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1257` | Move a thread between projects (or out). Organizational only: history, |
-| `GET` | `/api/threads/{thread_id}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1278` | Get thread info from metadata plus the graph's materialized state. |
-| `GET` | `/api/threads/{thread_id}/goal` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1331` | Return the active Claude-style goal for a thread, if any. |
-| `PUT` | `/api/threads/{thread_id}/goal` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/threads.py:1344` | Set or replace the active goal for a thread. |
-| `DELETE` | `/api/threads/{thread_id}/goal` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/threads.py:1370` | Clear the active goal for a thread. |
-| `POST` | `/api/threads/{thread_id}/compact` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1401` | Manually summarize old thread context while preserving the visible history. |
-| `GET` | `/api/threads/{thread_id}/state` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1448` | Get the latest materialized graph state for a thread. |
-| `POST` | `/api/threads/{thread_id}/state` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1497` | Replace selected thread-state fields through the materialized graph. |
-| `POST` | `/api/threads/{thread_id}/history` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1701` | Get materialized graph state history for a thread. |
+| `DELETE` | `/api/threads/{thread_id}` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:756` | Delete local persisted filesystem data for a thread. |
+| `POST` | `/api/threads` | `threads:write` | 200 | `backend/app/gateway/routers/threads.py:959` | Create a new thread. |
+| `POST` | `/api/threads/{thread_id}/branches` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1051` | Create a new main-thread branch from a completed assistant turn. |
+| `POST` | `/api/threads/search` | `threads:read` | 200 | `backend/app/gateway/routers/threads.py:1286` | Search and list threads. |
+| `POST` | `/api/threads/{thread_id}/read` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1349` | 🆕 v2.2.0 写该用户对该 thread 的读标记（`thread_read_markers`）；无 SQL 持久化 **503**，`/api/features` 的 `thread_activity.available` 是门控 |
+| `PATCH` | `/api/threads/{thread_id}` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1365` | Merge metadata into a thread record. |
+| `POST` | `/api/threads/{thread_id}/move` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1404` | Move a thread between projects (or out). Organizational only: history, |
+| `GET` | `/api/threads/{thread_id}` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1425` | Get thread info from metadata plus the graph's materialized state. |
+| `GET` | `/api/threads/{thread_id}/goal` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1478` | Return the active Claude-style goal for a thread, if any. |
+| `PUT` | `/api/threads/{thread_id}/goal` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/threads.py:1491` | Set or replace the active goal for a thread. |
+| `DELETE` | `/api/threads/{thread_id}/goal` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/threads.py:1517` | Clear the active goal for a thread. |
+| `POST` | `/api/threads/{thread_id}/compact` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1548` | Manually summarize old thread context while preserving the visible history. |
+| `GET` | `/api/threads/{thread_id}/state` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1597` | Get the latest materialized graph state for a thread. |
+| `POST` | `/api/threads/{thread_id}/state` | `threads:write` (owner, require_existing) | 200 | `backend/app/gateway/routers/threads.py:1646` | Replace selected thread-state fields through the materialized graph. |
+| `POST` | `/api/threads/{thread_id}/history` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/threads.py:1865` | Get materialized graph state history for a thread. |
 
 #### Trash 回收站
 
@@ -400,10 +418,10 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/trash/documents` | `projects:read` | 200 | `backend/app/gateway/routers/trash.py:139` | List the caller's trashed documents (most recently trashed first). |
-| `POST` | `/api/trash/documents/{document_id}/restore` | `projects:write` | 200 | `backend/app/gateway/routers/trash.py:173` | Restore one trashed document into an active project (§8.2). |
-| `POST` | `/api/trash/documents/{document_id}/purge` | `projects:delete` | 204 | `backend/app/gateway/routers/trash.py:210` | Permanently purge one trashed document: bytes first, then the row (§8.3). |
-| `POST` | `/api/trash/purge` | `projects:delete` | 200 | `backend/app/gateway/routers/trash.py:228` | Empty the trash: purge every trashed document of the caller (§8.3). |
+| `GET` | `/api/trash/documents` | `projects:read` | 200 | `backend/app/gateway/routers/trash.py:137` | List the caller's trashed documents (most recently trashed first). |
+| `POST` | `/api/trash/documents/{document_id}/restore` | `projects:write` | 200 | `backend/app/gateway/routers/trash.py:171` | Restore one trashed document into an active project (§8.2). |
+| `POST` | `/api/trash/documents/{document_id}/purge` | `projects:delete` | 204 | `backend/app/gateway/routers/trash.py:208` | Permanently purge one trashed document: bytes first, then the row (§8.3). |
+| `POST` | `/api/trash/purge` | `projects:delete` | 200 | `backend/app/gateway/routers/trash.py:226` | Empty the trash: purge every trashed document of the caller (§8.3). |
 
 #### Uploads
 
@@ -411,10 +429,10 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `POST` | `/api/threads/{thread_id}/uploads` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/uploads.py:358` | Upload multiple files to a thread's uploads directory. |
-| `GET` | `/api/threads/{thread_id}/uploads/limits` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/uploads.py:433` | Return upload limits used by the gateway for this thread. |
-| `GET` | `/api/threads/{thread_id}/uploads/list` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/uploads.py:444` | List all files in a thread's uploads directory. |
-| `DELETE` | `/api/threads/{thread_id}/uploads/{filename}` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/uploads.py:456` | Delete a file from a thread's uploads directory. |
+| `POST` | `/api/threads/{thread_id}/uploads` | `threads:write` (owner) | 200 | `backend/app/gateway/routers/uploads.py:394` | Upload multiple files to a thread's uploads directory；v2.2.0 起经 staging→`os.link` 原子无覆盖提交（详见 [02-upload-security.md](02-upload-security.md)），返回 `success=bool(uploaded_files)` 与 `skipped_files` |
+| `GET` | `/api/threads/{thread_id}/uploads/limits` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/uploads.py:494` | Return upload limits used by the gateway for this thread. |
+| `GET` | `/api/threads/{thread_id}/uploads/list` | `threads:read` (owner) | 200 | `backend/app/gateway/routers/uploads.py:505` | List all files in a thread's uploads directory. |
+| `DELETE` | `/api/threads/{thread_id}/uploads/{filename}` | `threads:delete` (owner, require_existing) | 200 | `backend/app/gateway/routers/uploads.py:517` | Delete a file from a thread's uploads directory. |
 
 #### User Preferences
 
@@ -422,70 +440,71 @@ topics: [gateway, api, rest, error-handling]
 
 | 方法 | 路径 | 鉴权 | 成功码 | 源码 | 摘要 |
 |------|------|------|--------|------|------|
-| `GET` | `/api/v1/auth/preferences` | 已登录（无 `require_permission`） | 200 | `backend/app/gateway/routers/user_preferences.py:42` | — |
-| `PATCH` | `/api/v1/auth/preferences` | 已登录（无 `require_permission`） | 204 | `backend/app/gateway/routers/user_preferences.py:57` | — |
+| `GET` | `/api/v1/auth/preferences` | 已登录 + session provenance（PAT/内部调用 **403**） | 200 | `backend/app/gateway/routers/user_preferences.py:51` | — |
+| `PATCH` | `/api/v1/auth/preferences` | 同上；body 带 `x_expected_user_id` 时账号已切换 **409** | 204 | `backend/app/gateway/routers/user_preferences.py:66` | 无响应体（204）；写入是串行化的列写 |
 
 ### 1.2 routers/ 之外的入口
 
 | 方法 | 路径 | 鉴权 | 源码 | 说明 |
 |------|------|------|------|------|
-| `GET` | `/health` | 公开（`_PUBLIC_PATH_PREFIXES` 含 `/health`） | `app/gateway/app.py:981` | 纯 liveness，进程活着即 200 `{"status":"healthy"}` |
-| `GET` | `/health/ready` | 公开 | `app/gateway/app.py:990`；实现 `app/gateway/health.py:240` | 并发探测 ORM engine + 生效 checkpointer/Store，单端点 deadline 3s / 单探针 2s；任一 `unreachable` → **503** `degraded`，否则 200 `ready` |
-| `WS` | `/api/threads/{thread_id}/browser/stream` | `_authenticate_ws`（WebSocket 升级绕过 `AuthMiddleware`，见 `browser.py:117`） | `routers/browser.py:206` | 双向实时浏览器流；认证失败 `close(4401)`、跨源 `4403`、owner store 缺失 fail-closed `4404`、坏 `frame_format` `1008`（**不是 HTTP 状态码**，是 WS close code） |
-| `—` | `/docs`、`/redoc`、`/openapi.json` | 公开 | `app.py:680` | `GATEWAY_ENABLE_DOCS=false` 时不注册（404） |
+| `GET` | `/health` | 公开（`_PUBLIC_PATH_PREFIXES` 含 `/health`） | `app/gateway/app.py:1446` | 纯 liveness，进程活着即 200 `{"status":"healthy"}` |
+| `GET` | `/health/ready` | 公开 | `app/gateway/app.py:1455`；实现 `app/gateway/health.py` | 并发探测 ORM engine + 生效 checkpointer/Store + stream bridge 的 Redis 后端，单端点统一 deadline；沙箱 provisioner 的 `/health` **只报告不作为门控**（每个副本共享一个 provisioner）。主判据失败或启动目标无法解析 → **503** `status: degraded`，否则 200 |
+| `—` | `/docs`、`/redoc`、`/openapi.json` | 公开 | `app.py:1096-1098` | `config.enable_docs` 为假时三个 URL 都变成 `None`（不注册 → 404）；环境变量 `GATEWAY_ENABLE_DOCS` 覆盖 config |
 
-**条件挂载**：`POST /api/webhooks/github` 只在 `GITHUB_WEBHOOK_SECRET` 已设置，或显式 dev opt-in `DEER_FLOW_ALLOW_UNVERIFIED_GITHUB_WEBHOOKS=1` 时挂载；否则**整个路由不存在 → 404**（`app.py:970-976`）。
+`WS /api/threads/{thread_id}/browser/stream` 已移入 §1.1（它确实是 `routers/browser.py:215` 的 `@router.websocket`），认证细节见 §2 的 WS close code 表。
 
-### 1.3 与旧版本文档的差异（本次补齐）
+**条件挂载**：`POST /api/webhooks/github` 只在 `GITHUB_WEBHOOK_SECRET` 已设置，或显式 dev opt-in `DEER_FLOW_ALLOW_UNVERIFIED_GITHUB_WEBHOOKS=1` 时挂载（`app.py:1441`）；否则**整个路由不注册 → 404**（fail-closed：配置缺失的部署无法被伪造投递命中）。
 
-此前 digest 只列了约 60 条端点。本次逐条 AST 对照后**新增列出**（组）：
+**扩展贡献的路由**在**所有 host 路由之后** mount，因此 host 路径永远优先于扩展同路径；扩展路由器同样经 `AuthMiddleware`（它不是公开前缀）。
 
-- `routers/models.py`（2）、`routers/assistants_compat.py`（4）、`routers/auth.py` 全部 13 条（含 PAT 3 条、`setup-status`、`providers`、`initialize`、`change-password`）
-- `routers/memory.py` 10 条（此前只提了 4 条）、`routers/agents.py` 8 条（含 `GET /api/agents/check`、`user-profile` 两向）
-- `routers/artifacts.py` 2 条、`routers/uploads.py` 4 条、`routers/trash.py` 4 条、`routers/project_documents.py` 6 条、`routers/project_thread_files.py` 1 条、`routers/projects.py` 9 条
-- `routers/skills.py` 14 条（此前只提了 custom CRUD + export）、`routers/subagents.py` 4 条、`routers/subagent_batches.py` 8 条、`routers/mcp_tasks.py` 3 条
-- `routers/threads.py` 14 条（含 `state` 双向、`history`、`move`、`search`）、`routers/thread_runs.py` 20 条
-- `routers/runs.py` 4 条、`routers/feedback.py` 6 条、`routers/suggestions.py` 2 条、`routers/scheduled_tasks.py` 11 条
-- `routers/channels.py` 2 条、`routers/channel_connections.py` 6 条、`routers/console.py` 3 条、`routers/features.py` 1 条、`routers/input_polish.py` 1 条、`routers/browser.py` 1 条 + 1 个 WS、`routers/github_webhooks.py` 1 条
-- `PUT /api/mcp/config`（旧文档只写 PATCH）与 `routers/mcp.py` 的 7 条
+### 1.3 🆕 v2.2.0 新增端点组（相对 v2.1.0）
+
+v2.1.0 的 180 条已全部保留在 §1.1；以下 9 组新 router 是 **v2.2.0 才出现**的 HTTP 面（30 条），逐组给前缀、鉴权模型与要点：
+
+| 组 | router | 条数 | 鉴权模型 | 要点 |
+|----|--------|------|---------|------|
+| 账户生命周期 | `admin_users.py` | 2 | 全部 `require_admin_user`（handler 体内） | `GET /api/v1/admin/users`（`:60`）、`PATCH /{user_id}`（`:68`）。PATCH 无字段 **422**「nothing to update」，role 不在 `assignable_role_names()` **422**，用户不存在 **404**，降级最后一个 admin / 禁用最后一个活跃 admin **409**。role 与 disabled **各走一个串行化列写**（最后 admin 计数与写在同一事务里） |
+| Capability Center | `capabilities.py` | 3 | `catalog` 公开；安装按 `scope` | `GET /api/capabilities/catalog`（`:27`，插件清单）、`GET /installations/{adapter}`（`:32`，`scope=deployment|user|all`）、`POST /installations`（`:37`）。适配器注册表在 `app/gateway/capabilities.py:218 AdapterRegistry` / `:234 registry`，注册 `mcp`/`business`/`lark`/`skills`；未知 adapter **422**「This capability only has a setup guide; no installation adapter is available」；`scope=deployment` 非 admin **403**；`scope=user` 只允许 `mcp`/`business`（其它适配器仍要 admin）；`can_manage = scope == "user" or is_admin_user(request)`。重复注册同一 adapter → `ValueError` |
+| 知识检索目录 | `knowledge.py` | 3 | `threads:read` | `GET /capabilities`（`:74`）、`GET /retrieval-catalog/datasets`（`:88`）、`GET /retrieval-catalog/datasets/{dataset_id:path}/documents`（`:102`）。**只读目录 + 准入**，实际资源授权/映射归 provider 适配器 |
+| 托管模型 | `managed_models.py` | 4 | admin | `GET /providers`（`:69`）、`GET /`（`:75`）、`PUT /`（`:115`）、`POST /test`（`:157`）。`route_class=RedactedModelRoute` 让密钥在响应里脱敏；`POST /test` 是流式且强制关 DeepSeek thinking；所有客户端/存储调用 off-loop |
+| Personal MCP | `personal_mcp.py` | 5 | **owner-only** | `GET /api/mcp/personal/config`（`:114`）、`POST /servers`（`:134`）、`PUT /server`（`:139`）、`PATCH /`（`:144`）、`DELETE /servers/{server_name:path}`（`:149`）。与平台级 `/api/mcp/config*`（admin-only）**不同前缀、不同授权**；admin 判定经 `personal_mcp_access.py:23 personal_mcp_authority()` 绑到 Gateway 账户表 |
+| 全栈插件 | `plugins.py` | 5 | 诊断 admin-only，其余已登录 | `GET /diagnostics`（`:47`）、`GET /`（`:69`）、`GET /modules/{module}/{revision}.mjs`（`:102`）、`GET /{namespace}/assets/{revision}/{path:path}`（`:113`）、`POST /{namespace}/actions/{action_name}`（`:136`）。revision = **前端模块内容哈希**（不匹配 404）；assets 用 `immutable` + `Vary: Cookie, Authorization` + `CSP: sandbox`；action 的 413/409/422/502/504 见 §2 |
+| Skill 变更操作 | `skill_mutations.py` | 4 | admin | `GET /operations`（`:32`）、`GET /operations/{operation_id}`（`:40`）、`POST /operations/{operation_id}/recover`（`:45`）、`POST /owners/{owner_id}/recover`（`:50`）。worker 不可用 **503**；末页 `next_cursor: null` |
+| Thread 活动流 | `thread_activity.py` | 1 | `threads:read` | `GET /api/thread-activity`（`:72`）。基于 `runs.change_seq` 的每用户增量 feed，游标 `"seq:run_id"`，非法游标 **422** `invalid_cursor`，`_MAX_CHANGE_SEQ = 2**63-1`，limit 1–500 默认 200；无 SQL 持久化 **503**「Thread activity is not available」 |
+| IM 通知偏好 | `im_notification_preferences.py` | 2 | 已登录 + `X-Expected-User-Id` | `GET /api/channels/notification-preferences`（`:41`）、`PATCH /`（`:47`）。头与当前账号不符 **409**「The signed-in account changed; reload this page」；无 session factory **503** |
+| 项目线程文件聚合 | `project_thread_files.py` | 1 | `projects:read` + `threads:read` | v2.1.0 已有此 router，v2.2.0 补进文档：`GET /api/projects/{project_id}/thread-files`（`:105`），按 thread 分页聚合成员线程的文件 |
+
+**既有 router 的 v2.2.0 增量**（各 1 道，已并入 §1.1 的表）：`GET /api/agent-tool-groups`、`POST /api/agents/import`、`GET /api/agents/{name}/export`、`POST /api/models/resolve`、`GET .../feedback/stats`、`DELETE .../feedback/{feedback_id}`、`GET .../subagent-batches/{batch_id}/items/{position}`、`POST/GET/DELETE /api/channels/wechat/qr-login*`、`POST /api/threads/{thread_id}/read`、`GET /api/skills/diagnostics/custom`。
 
 ---
 
-## 2. 领域异常 → HTTP 映射（穷举，v2.1.0）
+## 2. 领域异常 → HTTP 映射（穷举，v2.2.0）
 
-> 小节标题固定为「领域异常 → HTTP 映射」，供 `operations/integration/**` 以指针方式引用（`integration/01-overview.md`、`integration/05-lark-cli-managed-integration.md` 指向本文件）。
+> 小节标题固定为「领域异常 → HTTP 映射」，供 `operations/integration/**` 以指针方式引用（`integration/01-overview.md`、`integration/05-lark-cli-managed-integration.md` 指向本文件）。**§2 的小节编号与含义在 v2.2.0 保持不变**（§2.5、§2.6、§2.7、§2.8、§2.19 均未改号），只在各小节内追加 v2.2.0 的新码。
 
 ### 2.0 状态码总表
 
-| 码 | 出现位置数（AST） | 一句话语义 |
-|----|------------------|-----------|
-| 400 | 42 个端点可达 | 请求形状合法但**语义非法**（非法 rating / 非法 URL / 配置校验失败 / 空文件 / 非文件路径） |
-| 401 | 173 个端点可达（除 6 个公开 auth 路径 + webhook + `/health`） | 未认证；另有 GitHub HMAC 校验失败也映射到 401（见 §2.2） |
-| 403 | 137 个端点可达 | 已认证但**无权限**：`require_permission` 权限不足、`require_admin_user` 非 admin、`agents_api` 关闭、PAT 越界、CSRF 失败 |
-| 404 | 123 个端点可达 | 不存在**或不属于你**（fail closed，防枚举）；路由未挂载也 404 |
-| 405 | 1 | 只用于 `GET /api/threads/{id}/runs/{rid}/stream?action=...` |
-| 409 | 55 个端点可达 | **多义码**：run 在跑 / 幂等键冲突 / 资源已存在 / 状态机冲突 / 内容缺失（见 §2.6） |
-| 412 | 1 | artifact 编辑的 `expected_sha256` 不匹配 |
-| 413 | 8 | 请求体/文件/归档超出上限（上传、skill 包、artifact 编辑、归档 ZIP） |
-| 415 | 5（同 1 个端点） | artifact 编辑的媒体类型不支持（`.skill`、符号链接、二进制、非 UTF-8、含 NUL） |
-| 416 | 1 | `GET artifact` 的 `Range` 不可满足 |
-| 422 | 149 个端点可达 | Pydantic/FastAPI 校验失败（含 `extra="forbid"` 的未知字段），以及各 router 手写的领域 422 |
-| 429 | 5 个端点可达 | 限流/并发槽位：登录失败锁定、IM 连接码上限、artifact 归档并发、skill 导出槽位 |
-| 500 | 65 个端点可达 | `except Exception → 500` 模板；以及未捕获的 `TypeError`/`AssertionError`/`RuntimeError` |
-| 501 | 15 个端点可达 | memory 后端不支持该操作；browser 依赖缺失；**run multitask_strategy 不支持** |
-| 502 | 4 | 上游/外部依赖失败：browser 导航、OIDC discovery、scheduled task 派发 |
-| 503 | 26 个端点可达 | 依赖未就绪：SQL/仓储不可用、channel worker 未运行、LLM 调用失败、归档/导出超时与取消、checkpoint 模式切换中、`/health/ready` |
-| 504 | 5（全在 integrations） | Lark CLI `TimeoutError` |
-| 200/201/202/204/206 | — | 成功码；202 用于 cancel/stream 的「已接受」，206 用于 artifact `Range` |
+> **口径说明（重要）**：下表「端点可达数」= 在**该端点自身函数体内**出现的该状态码的端点数（AST 统计），因此**系统性低估**——中间件产生的 401/403（`AuthMiddleware`/`CSRFMiddleware`）、`require_permission` 装饰器产生的 401/403/404、Pydantic 自动产生的 422、以及经 helper 抛出的码都不计入端点函数体。真实可达面应理解为「表值 + 中间件面」。v2.1.0 版本曾给出 400:42 / 401:173 / 403:137 / 404:123 / 422:149 这组数字，它是按「全部 `raise HTTPException` 字面量 + 中间件覆盖」估算的，v2.2.0 无法用同样口径复算（新增路由在 handler 体内调 `require_admin_user` 而非装饰器），故此处换成可复算的函数体口径，并标注不可比。
 
-**本版本未出现**：402、406、407、408、**410**（任务要求重点覆盖，但 v2.1.0 全仓无 410 —— 已删除/永久移除的资源一律用 **404 + fail closed**，见 §2.4）、411、418、428、431、451。
-
-**`raise HTTPException` 语句计数（AST，routers/ 共 417 条；含字面量与 `status.HTTP_*` 两种写法）**：
-400 × 79、404 × 96、409 × 69、500 × 68、422 × 39、401 × 15、413 × 9、503 × 9、403 × 8、415 × 5、504 × 5、502 × 4、429 × 2、405 × 1、412 × 1、501 × 1，另有 1 条 `status_code=exc.status_code`（归档按 `ArtifactArchiveError.status_code` 转发）与 5 条经由 helper **返回值**（`_not_found()` / `_unsupported_501()` / `_map_memory_*()` / `export_http_error()` / `_checkpoint_mode_http_error()`）间接产生，故 79+96+69+68+39+15+9+9+8+5+5+4+2+1+1+1（= 411）+ 1 + 5 = **417**。
-
-同范围内还有 **77 条非 `HTTPException` 的 `raise`**（裸 `raise` 透明转发、`NotImplementedError`、`ValueError`、`Unsafe*Error`、`ArtifactArchiveError`、`_SkillArchiveUploadTooLargeError` 等），其中被 router 捕获后转成 §2 中某个码的已逐条列出，未被捕获的按 **500** 计（见 §2.13(c)）。
-
----
+| 码 | 端点自身函数体内出现（v2.2.0，AST） | v2.1.0 旧值（不可比，见上） | 一句话语义 |
+|----|-----------------------------------|---------------------------|-----------|
+| 400 | 34 | 42 | 请求形状合法但**语义非法**（非法 rating / 非法 URL / 配置校验失败 / 空文件 / 非文件路径 / 预留文件名） |
+| 401 | 3 | 173 | 未认证。**主要来源是中间件**（除 `/health`、`/docs`、`/redoc`、`/openapi.json`、`/api/v1/auth/oauth/`、`/api/v1/auth/callback/`、`/api/webhooks/` 与 6 个 `_PUBLIC_EXACT_PATHS` 之外的全部路由）；handler 体内只有 3 处（`plugins.py` 的 `_principal`、`mcp_tasks.py`、插件 action）。另有 GitHub HMAC 校验失败也映射 401（§2.2） |
+| 403 | 4 | 137 | 已认证但**无权限**：`require_permission` 装饰器（不在统计内）、`require_admin_user`（v2.2.0 self-check 有 7 个新 router 在体内调用，不在统计内）、`agents_api` 关闭、PAT 越界（session-only 端点）、CSRF 失败、插件被管理员禁用 |
+| 404 | 55 | 123 | 不存在**或不属于你**（fail closed，防枚举）；路由未挂载也 404（`/api/webhooks/github`、插件 assets/modules、不可见 skill） |
+| 405 | 1（依赖注入，不在 AST） | 1 | 只用于 `GET /api/threads/{id}/runs/{rid}/stream?action=...`（`thread_runs.py` 的 `_reject_get_stream_action`） |
+| 409 | 27 | 55 | **多义码**：run 在跑 / 幂等键冲突 / 资源已存在 / 状态机冲突 / 内容缺失 / 账号已变更 / 插件 viewer 变更 / 定时任务 `scheduler_not_running` / 最后一个 admin（§2.6） |
+| 412 | 1 | 1 | artifact 编辑的 `expected_sha256` 不匹配 |
+| 413 | 5 | 8 | 请求体/文件/归档超出上限（上传、skill 包、artifact 编辑、归档 ZIP、**插件 action 输入 256 KiB**） |
+| 415 | 5（同 1 个端点） | 5 | artifact 编辑的媒体类型不支持（`.skill`、符号链接、二进制、非 UTF-8、含 NUL） |
+| 416 | 1 | 1 | `GET artifact` 的 `Range` 不可满足 |
+| 422 | 12 | 149 | Pydantic/FastAPI 校验失败（含 `extra="forbid"` 的未知字段）——**统计外**，凡有 body/query model 的端点都可达；handler 体内手写的领域 422 有 12 处：`admin_users`、`capabilities`（未知 adapter）、`knowledge`/`scheduled_tasks`（非法通知组）、`thread_activity`（`invalid_cursor`）、`plugins`（非 JSON object / 无效 action 输入）、`managed_models` 等 |
+| 429 | 5 个端点可达 | 5 | 限流/并发槽位：登录失败锁定、IM 连接码上限、artifact 归档并发槽位、skill 导出槽位、团队/子 agent 并发 |
+| 500 | 54 | — | 未预期异常的统一兜底；v2.2.0 起上传/删除/附件删除/列 skill 的 500 detail 都是**固定文本**（不再回显异常内容，避免泄漏路径/内部信息） |
+| 501 | 1 | — | 后端/平台不支持该操作（memory 后端、浏览器依赖缺失等，多数经 helper） |
+| 502 | 4 | — | 上游失败：浏览器底层失败、定时任务派发 `trigger_failed`、OIDC `sso_failed`、插件 action 失败 |
+| 503 | 9 | — | 依赖不可用：console 无 SQL、mcp_tasks worker 未跑、thread activity 无持久化、WeChat QR 多 worker、skill mutation worker、managed 通知组 scheduler、`/health/ready` degraded、artifact 归档超时、插件 settings 不可读 |
+| 504 | 6 | — | 超时：Lark CLI 超时、插件 action 30s 超时等 |
 
 ### 2.1 400 Bad Request
 
@@ -498,18 +517,18 @@ topics: [gateway, api, rest, error-handling]
 | browser 导航参数非法（`ValueError`） | `str(exc)` | `routers/browser.py:104` |
 | input polish 文本为空/超长 | `Input text is required` / `Input text exceeds N characters` | `routers/input_polish.py:80`、`:84` |
 | IM 连接功能关闭 / provider 未启用 / 未配置 / 启停失败 | `Channel connections are disabled`、`Channel provider is not enabled`、`Channel provider is not configured`、`Failed to start/stop <name> channel...` | `routers/channel_connections.py:558`、`:575`、`:579`、`:595`、`:622`、`:630`、`:632`、`:634`、`:661`、`:665`、`:689` |
-| 上传未给文件 | `No files provided` | `routers/uploads.py:376` |
-| 上传目录初始化 `ValueError` | `str(exc)` | `routers/uploads.py:393` |
-| uploads list/delete 的 `ValueError` | `str(exc)` | `routers/uploads.py:449`、`:465` |
-| delete 路径穿越 | `Invalid path`（`PathTraversalError`） | `routers/uploads.py:463` |
-| artifact 路径不是普通文件 | `Path is not a file: <path>` | `routers/artifacts.py:86` |
-| 项目文档文件名非法（空/含分隔符/超 255 UTF-8 字节） | `str(exc)` | `routers/project_documents.py:186`、`:294` |
-| 项目文档内容为空 | `Empty file` | `routers/project_documents.py:200`、`:312` |
-| skill 安装文件名不以 `.skill` 结尾 | `Skill archive filename must end with .skill` | `routers/skills.py:340` |
-| skill multipart 解析失败（非超限） | `MultiPartException.message` | `routers/skills.py:348` |
-| skill 编辑/回滚被安全扫描阻断 | `Security scan blocked the edit: ...` / `Rollback blocked by security scanner: ...` | `routers/skills.py:469`、`:585` |
-| skill 内容/名称 `ValueError` | `str(e)` | `routers/skills.py:300`、`:492`、`:522`、`:597` |
-| skill 无历史 / 选中历史项无 `prev_content` / `history_index` 越界 | `Custom skill '<n>' has no history`、`Selected history entry has no previous content...`、`history_index is out of range` | `routers/skills.py:563`、`:567`、`:593` |
+| 上传未给文件 | `No files provided` | `routers/uploads.py:414` |
+| 上传目录初始化 `ValueError` | `str(exc)` | `routers/uploads.py:437` |
+| uploads list/delete 的 `ValueError` | `str(exc)` | `routers/uploads.py:511`、`:531` |
+| delete 路径穿越 | `Invalid path`（`PathTraversalError`） | `routers/uploads.py:529` |
+| artifact 路径不是普通文件 | `Path is not a file: <path>` | `routers/artifacts.py:89` |
+| 项目文档文件名非法（空/含分隔符/超 255 UTF-8 字节） | `str(exc)` | `routers/project_documents.py:229`、`:345` |
+| 项目文档内容为空 | `Empty file` | `routers/project_documents.py:234`、`:350` |
+| skill 安装文件名不以 `.skill` 结尾 | `Skill archive filename must end with .skill` | `routers/skills.py:579` |
+| skill multipart 解析失败（非超限） | `MultiPartException.message` | `routers/skills.py:590` |
+| skill 编辑/回滚被安全扫描阻断 | `Security scan blocked the edit: ...` / `Rollback blocked by security scanner: ...` | `routers/skills.py:800`、`:906` |
+| skill 内容/名称 `ValueError` | `str(e)` | `routers/skills.py:544`、`:820`、`:870`、`:915` |
+| skill 无历史 / 选中历史项无 `prev_content` / `history_index` 越界 | `Custom skill '<n>' has no history`、`Selected history entry has no previous content...`、`history_index is out of range` | `routers/skills.py:897`、`:900`、`:928` |
 | memory fact 校验失败（confidence / agent_name / 空内容） | `Invalid confidence value...`、`An agent name is required...`、`Memory fact content cannot be empty.` | `routers/memory.py:113-124`（`_map_memory_fact_value_error`），调用点 `:325`、`:383` |
 | thread search 元数据过滤器非法 | `str(exc)`（`InvalidMetadataFilterError`） | `routers/threads.py:1198` |
 | Lark 流程 `ValueError` | `str(e)` | `routers/integrations.py:279`、`:299`、`:326`、`:349`、`:374`、`:399` |
@@ -517,10 +536,10 @@ topics: [gateway, api, rest, error-handling]
 | auth：邮箱已注册 / 改密码各类拒绝 | `Email already registered`、`Current password is incorrect`、`OAuth users cannot change password`、`Password changes are not available when DEER_FLOW_AUTH_DISABLED=1.` | `routers/auth.py:475`、`:520`、`:529`、`:532`、`:540`、`:810` |
 | auth：PAT 名称非法 | `str(exc)` | `routers/auth.py:667` |
 | auth：OIDC provider 非法 / 缺 code/state | `Invalid provider ID`、`Unknown SSO provider: x`、`Missing code or state parameter` | `routers/auth.py:929`、`:933`、`:1017`、`:1021`、`:1024` |
-| run 准入：模型不在 allowlist | `Model 'x' is not in the configured model allowlist` | `app/gateway/services.py:1522`（`start_run`） |
-| run 准入：`input.messages` 不是列表 | `input.messages must be a list` | `app/gateway/services.py:1493`、`:1501` |
-| checkpoint 配置非法 / 线程不匹配 / configurable 非对象 | `checkpoint must be an object`、`checkpoint thread_id does not match request thread_id`、`request config configurable must be an object` | `app/gateway/services.py:1353`、`:1356`、`:1389`（`apply_checkpoint_to_run_config`） |
-| run 输入归一化失败 | 见 `normalize_input` | `app/gateway/services.py:480` |
+| run 准入：模型不在 allowlist | `Model 'x' is not in the configured model allowlist` | `app/gateway/services.py:2204`（`start_run` `:2128`） |
+| run 准入：`input.messages` 不是列表 | `input.messages must be a list` | `app/gateway/services.py:2423`（`start_run` `:2128`） |
+| checkpoint 配置非法 / 线程不匹配 / configurable 非对象 | `checkpoint must be an object`、`checkpoint thread_id does not match request thread_id`、`request config configurable must be an object` | `app/gateway/services.py:1839`、`:1842`、`:1875`（`apply_checkpoint_to_run_config` `:1824`） |
+| run 输入归一化失败 | 见 `normalize_input` | `app/gateway/services.py:682`（`normalize_input`） |
 
 > **400 vs 422 的边界**：Pydantic 模型/路径参数/query 的**形状**问题一律由 FastAPI 自动给 **422**（§2.11）；router 里手写的 400 用于「形状对但语义错」。MCP 是唯一把「配置内容非法」也写成 400 的领域（因为它同时被 Pydantic 校验与 runtime `validate_raw_extensions_config` 校验）。
 
@@ -532,9 +551,9 @@ topics: [gateway, api, rest, error-handling]
 |------|------------|---------|
 | 中间件：非公开路径无 session cookie | `Authentication required`（code `NOT_AUTHENTICATED`） | `app/gateway/auth_middleware.py:169` |
 | 中间件：Bearer PAT 无效 | 直接回传 `exc.status_code`（401 `token_expired` / `token_invalid` / `user_not_found`） | `app/gateway/auth_middleware.py:130-134` |
-| `require_auth` 装饰器 | `Authentication required` | `app/gateway/authz.py:588` |
-| `require_permission` 装饰器 | `Authentication required` | `app/gateway/authz.py:666` |
-| `AuthContext.require_user()` | `Authentication required` | `app/gateway/authz.py:118` |
+| `require_auth` 装饰器 | `Authentication required` | `app/gateway/authz.py:946` |
+| `require_permission` 装饰器 | `Authentication required` | `app/gateway/authz.py:1029` |
+| `AuthContext.require_user()` | `Authentication required` | `app/gateway/authz.py:130` |
 | 本地登录密码错 | `Incorrect email or password`（code `INVALID_CREDENTIALS`） | `routers/auth.py:417` |
 | **GitHub webhook HMAC 校验失败** | `Invalid or missing X-Hub-Signature-256` | `routers/github_webhooks.py:252` — 注意这里用的是 **401**，不是 403 |
 | scheduled tasks 手写认证检查（11 处） | `Authentication required` | `routers/scheduled_tasks.py:171`、`:195`、`:258`、`:273`、`:384`、`:416`、`:446`、`:466`、`:496`、`:509` |
@@ -588,7 +607,7 @@ topics: [gateway, api, rest, error-handling]
 | PAT 不存在 | `Token not found` | `routers/auth.py:706` |
 | 上传文件不存在 | `File not found: <name>` | `routers/uploads.py:461` |
 | artifact 不存在 | `Artifact not found: <path>` | `routers/artifacts.py:82` |
-| checkpoint 不存在 | `Checkpoint not found`、`Checkpoint <id> not found` | `routers/threads.py:1504`、`:1518`；`app/gateway/services.py:1385` |
+| checkpoint 不存在 | `Checkpoint not found`、`Checkpoint <id> not found` | `routers/threads.py:1504`、`:1518`；`app/gateway/services.py:1869` |
 | Lark 集成未安装 | `str(e)`（`FileNotFoundError`） | `routers/integrations.py:277`、`:297`、`:322`、`:347`、`:370`、`:395` |
 | browser 线程不存在 / 浏览器功能未启用 | `Thread <id> not found`、`Browser automation is not enabled` | `routers/browser.py:85`、`:88` |
 | input polish 关闭 | `Input polishing is disabled` | `routers/input_polish.py:73` |
@@ -614,26 +633,26 @@ topics: [gateway, api, rest, error-handling]
 
 | detail 摘要 | 源码锚点 |
 |------------|---------|
-| `Thread has a run in flight. Save after the run finishes.`（artifact 编辑） | `routers/artifacts.py:556`（`ConflictError`） |
-| `Thread has work in flight. Delete it after the work finishes.` | `routers/threads.py:725` |
-| `Thread has work in flight. Branch it after the work finishes.` | `routers/threads.py:966` |
+| `Thread has a run in flight. Save after the run finishes.`（artifact 编辑） | `routers/artifacts.py:695`（`ConflictError`） |
+| `Thread has work in flight. Delete it after the work finishes.` | `routers/threads.py:777` |
+| `Thread has work in flight. Branch it after the work finishes.` | `routers/threads.py:1066` |
 | `Thread has a run in flight. Set the goal after the run finishes.` | `routers/threads.py:1359` |
 | `Thread has a run in flight. Clear the goal after the run finishes.` | `routers/threads.py:1377` |
 | `Thread has a run in flight. Compact after the run finishes.` | `routers/threads.py:1428` |
 | `Context compaction is disabled.`（`ContextCompactionDisabled`） | `routers/threads.py:1432` |
 | `Thread has a run in flight. Update state after the run finishes.` | `routers/threads.py:1562` |
-| `Run <id> is not active on this worker and cannot be streamed` | `routers/thread_runs.py:970`、`:1225` |
-| `Artifacts are currently being modified; try again shortly` | `routers/thread_runs.py:1684` |
-| `Scheduled task is currently running; retry after the active execution finishes` | `routers/scheduled_tasks.py:389` |
-| `Scheduled task is already launching or running; ...` | `routers/scheduled_tasks.py:402`、`:476` |
+| `Run <id> is not active on this worker and cannot be streamed` | `routers/thread_runs.py:1034`、`:1351`、`:1400` |
+| `Artifacts are currently being modified; try again shortly` | `routers/thread_runs.py:1811` |
+| `Scheduled task is currently running; retry after the active execution finishes` | `routers/scheduled_tasks.py:369`（+ `:95`） |
+| `Scheduled task is already launching or running; ...` | `routers/scheduled_tasks.py:382`、`:469` |
 | `Scheduled task has an active <queued/launching/running> occurrence; ...`（`queued` 追加「可 pause 取消」） | `_ensure_task_mutable` `scheduled_tasks.py:90-104`；`_active_occurrence_conflict_detail` `:40-44`；调用点 `:371`、`:429` |
 
 **(b) 幂等键冲突 → 409**
 
 | detail | 锚点 |
 |--------|------|
-| `Idempotency-Key already used with a different request`（同键但 `input`/`assistant_id`/`conversation_references` 不同） | `app/gateway/services.py:1763-1766` |
-| `ConflictError` 透传（`multitask_strategy` 拒绝/回滚时的活动 run 冲突） | `app/gateway/services.py:1785` |
+| `Idempotency-Key already used with a different request`（同键但 `input`/`assistant_id`/`conversation_references` 不同） | `app/gateway/services.py:2688`、`:2714` |
+| `ConflictError` 透传（`multitask_strategy` 拒绝/回滚时的活动 run 冲突） | `app/gateway/services.py:2744`（`start_run` 内 `except UnsupportedStrategyError`） |
 
 适用于 `POST /api/threads/{id}/runs`、`/runs/stream`、`/runs/wait`（`thread_runs.py:925/943/998`），stateless `/api/runs/*` **不在**该契约内。
 
@@ -652,7 +671,7 @@ topics: [gateway, api, rest, error-handling]
 |--------|------|
 | `System already initialized` | `routers/auth.py:800`、`:814` |
 | Lark 流程被更新的 generation 取代（`LarkFlowSupersededError`） | `routers/integrations.py:324`、`:372`、`:397` |
-| `Run <id> is not cancellable (status: <s>)` / `... not active on this worker and cannot be cancelled` | `routers/thread_runs.py:1212` + `_cancel_conflict_detail` `:305-308` |
+| `Run <id> is not cancellable (status: <s>)` / `... not active on this worker and cannot be cancelled` | `routers/thread_runs.py:1337`、`:1414` + `_cancel_conflict_detail` `:333-336` |
 | `Only failed items can be retried` | `routers/subagent_batches.py:101` |
 | `The signed-in account changed; reload this page` | `routers/user_preferences.py:31` |
 | checkpoint 模式不匹配（`CheckpointModeMismatchError`） | `threads.py:96-108`（`_checkpoint_mode_http_error`）→ **409**；同一 helper 对「进程正在切换模式」返回 **503** |
@@ -680,15 +699,15 @@ topics: [gateway, api, rest, error-handling]
 
 | 场景 | detail 摘要 | 锚点 |
 |------|------------|------|
-| 上传文件数超过 `uploads.max_files`（默认 10） | `Too many files: maximum is <n>` | `routers/uploads.py:380` |
-| 单文件超过 `uploads.max_file_size`（默认 50 MiB） | `File too large: <name>` | `app/gateway/upload_ingestion.py:201` |
-| 单请求总量超过 `uploads.max_total_size`（默认 100 MiB） | `Total upload size too large` | `app/gateway/upload_ingestion.py:203` |
-| 项目 shelf 上传/晋升超限 | `File too large: <name>` | `routers/project_documents.py:194`、`:306` |
-| artifact 编辑超过 `MAX_EDITABLE_ARTIFACT_BYTES`（stat 与实读两处） | `Artifact is too large to edit` | `routers/artifacts.py:88`、`:92`、`:109` |
-| `.skill` 归档成员预览过大 | `Skill archive member is too large to preview` | `routers/artifacts.py:217`、`:225` |
-| skill 包上传超过 100 MiB（+ 1 MiB multipart framing） | `Skill archive exceeds the 100 MiB upload limit` | `routers/skills.py:346`（`_SkillArchiveUploadTooLargeError`），常量 `:49-50`，message `:204-205` |
-| run 产出归档 ZIP 超限（>50 文件 / 单文件 50MiB / 总量 100MiB） | `_too_large(...)` | `app/gateway/artifact_archive.py:60`（默认 409 之外显式传 413） |
-| skill 导出超资源上限 | `skill_export_limit_exceeded` | `packages/harness/deerflow/skills/export.py:90` → `routers/skills.py:403/428` 经 `export_http_error`（`app/gateway/skill_export.py:184`） |
+| 上传文件数超过 `uploads.max_files`（默认 10） | `Too many files: maximum is <n>` | `routers/uploads.py:418` |
+| 单文件超过 `uploads.max_file_size`（默认 50 MiB） | `File too large: <name>` | `app/gateway/upload_ingestion.py:330` |
+| 单请求总量超过 `uploads.max_total_size`（默认 100 MiB） | `Total upload size too large` | `app/gateway/upload_ingestion.py:332` |
+| 项目 shelf 上传/晋升超限 | `File too large: <name>` | `routers/project_documents.py:228`、`:344` |
+| artifact 编辑超过 `MAX_EDITABLE_ARTIFACT_BYTES`（stat 与实读两处） | `Artifact is too large to edit` | `routers/artifacts.py:91`、`:96`、`:113` |
+| `.skill` 归档成员预览过大 | `Skill archive member is too large to preview` | `routers/artifacts.py:247`、`:255`（`_read_skill_archive_member` `:244`） |
+| skill 包上传超过 100 MiB（+ 1 MiB multipart framing） | `Skill archive exceeds the 100 MiB upload limit` | `routers/skills.py:584`（`except _SkillArchiveUploadTooLargeError`），类 `:77`，抛点 `:97`、`:367`、`:390`、`:396` |
+| run 产出归档 ZIP 超限（>50 文件 / 单文件 50MiB / 总量 100MiB） | `_too_large(...)` | `app/gateway/artifact_archive.py:59`（`_too_large`，显式传 413） |
+| skill 导出超资源上限 | `skill_export_limit_exceeded` | `packages/harness/deerflow/skills/export.py:90` → `routers/skills.py:694-695`、`:719-720` 经 `export_http_error`（`app/gateway/skill_export.py:184`） |
 
 > **没有全局 body-size 中间件**：413 全部由上述各处理器显式抛出。`02-upload-security.md` 记录的文件名/路径/符号链接防御是**磁盘层**，不产生 413。
 
@@ -696,15 +715,15 @@ topics: [gateway, api, rest, error-handling]
 
 ### 2.9 415 Unsupported Media Type
 
-只出现在 `PUT /api/threads/{thread_id}/artifacts/{path:path}`（`routers/artifacts.py:486`）：
+只出现在 `PUT /api/threads/{thread_id}/artifacts/{path:path}`（`routers/artifacts.py:626`）：
 
 | 场景 | detail | 锚点 |
 |------|--------|------|
-| 目标是 `.skill` 归档 | `Skill archives cannot be edited in the artifacts panel` | `:74`（`_normalize_editable_artifact_path`） |
-| 目标是符号链接 | `Symlinked artifacts cannot be edited` | `:84`（`_load_editable_artifact`） |
-| 内容含 NUL 字节 | `Binary artifacts cannot be edited` | `:94` |
-| 内容不是合法 UTF-8 | `Only UTF-8 text artifacts can be edited` | `:98` |
-| 提交的新内容含 NUL | `Binary content cannot be saved as an artifact` | `:111`（`_encode_artifact_update`） |
+| 目标是 `.skill` 归档 | `Skill archives cannot be edited in the artifacts panel` | `:78`（`_normalize_editable_artifact_path`） |
+| 目标是符号链接 | `Symlinked artifacts cannot be edited` | `:88`（`_load_editable_artifact`） |
+| 内容含 NUL 字节 | `Binary artifacts cannot be edited` | `:98` |
+| 内容不是合法 UTF-8 | `Only UTF-8 text artifacts can be edited` | `:102` |
+| 提交的新内容含 NUL | `Binary content cannot be saved as an artifact` | `:115`（`_encode_artifact_update`） |
 
 ---
 
@@ -712,7 +731,7 @@ topics: [gateway, api, rest, error-handling]
 
 | 场景 | detail + 头 | 锚点 |
 |------|------------|------|
-| `GET artifact` 的 `Range` 头非法/多段/越界/空文件/suffix ≤ 0 | `Requested range is not satisfiable`，附 `Accept-Ranges: bytes` 与 `Content-Range: bytes */<size>` | `routers/artifacts.py:176-181`（`unsatisfied()`），触发点 `:184`、`:187`、`:193`、`:196`、`:203` |
+| `GET artifact` 的 `Range` 头非法/多段/越界/空文件/suffix ≤ 0 | `Requested range is not satisfiable`，附 `Accept-Ranges: bytes` 与 `Content-Range: bytes */<size>` | `routers/artifacts.py:206-212`（`unsatisfied()`），触发点紧随其后 |
 
 合法单段范围返回 **206** + `Content-Range`。
 
@@ -722,7 +741,7 @@ topics: [gateway, api, rest, error-handling]
 
 两类来源：
 
-**(a) FastAPI 自动（`RequestValidationError`）** — 覆盖 149 个带校验参数/请求体的端点。典型：
+**(a) FastAPI 自动（`RequestValidationError`）** — 覆盖所有带校验参数/请求体的端点。典型：
 
 | 场景 | 锚点 |
 |------|------|
@@ -736,18 +755,24 @@ topics: [gateway, api, rest, error-handling]
 
 | 场景 | detail 摘要 | 锚点 |
 |------|------------|------|
-| agent `model` 不是配置的 profile | `Unknown model '<m>'. Use a model name defined under `models:` ...` | `routers/agents.py:143`（`_validate_model_exists`） |
-| managed subagent 名称非法 / Pydantic 校验失败 | `str(exc)` / `exc.errors()` | `routers/subagents.py:86`、`:88`、`:176`、`:211` |
-| managed subagent `model` 非法 | `Unknown model '<m>'. Use 'inherit' or a configured model name.` | `routers/subagents.py:81` |
-| scheduled task：`assistant_id` 为空/非法/未知 | `assistant_id must not be empty`、`Invalid assistant_id ...`、`Unknown assistant_id 'x'` | `routers/scheduled_tasks.py:72`、`:77`、`:84`、`:86`、`:89`、`:91`、`:302`、`:344` |
-| scheduled task：不支持的 `context_mode` / `schedule_type`、缺 cron、once 必须未来 | `Unsupported context_mode`、`Unsupported schedule_type`、`cron schedule requires schedule_spec.cron`、`once schedule must be in the future`、`once schedule must be at least <n> seconds in the future` | `routers/scheduled_tasks.py:197`、`:200`、`:204`、`:212`、`:223`、`:226`、`:228`、`:287`、`:292`、`:313` |
-| run 历史游标两个字段未成对出现 | `before_created_at and before_run_id must be provided together` | `routers/thread_runs.py:1116` |
-| messages/page 不支持 `after_seq` | `after_seq is not supported by this backward-only endpoint` | `routers/thread_runs.py:1510` |
-| thread goal 参数非法（如 `max_continuations > 8`） | `str(exc)` | `routers/threads.py:1357` |
-| thread state 未知字段 | `Unknown thread-state field(s): [...]` | `routers/threads.py:1539` |
-| subagent batch item 状态过滤值非法 | `Unknown batch item status` | `routers/subagent_batches.py:64` |
-| skill 归档上传：非 multipart / 缺 `archive` 文件 | `Expected a multipart form upload`、`Multipart field 'archive' must contain a file` | `routers/skills.py:228`、`:336` |
-| skill 导出：非法 skill 名 / 平台不支持 / 非法 revision / 目录结构不支持 | `skill_export_unsupported` | `packages/harness/deerflow/skills/export.py:370`、`:376`、`:441`、`:447` → `routers/skills.py:403/428` |
+| agent `model` 不是配置的 profile | `Unknown model '<m>'. Use a model name defined under `models:` ...` | `routers/agents.py:186`（`_validate_model_exists` `:166`），调用点 `:389`（import）、`:519`（create）、`:591`（update） |
+| managed subagent `model` 非法 | `Unknown model '<m>'. Use 'inherit' or a configured model name.` | `routers/subagents.py:82` |
+| managed subagent 名称非法 / Pydantic 校验失败 | `str(exc)` / `exc.errors()` | `routers/subagents.py`（`create`/`update` 体内的 ValueError 分支） |
+| scheduled task：`assistant_id` 为空/非法/未知 | 编码错误 `invalid_assistant`、`unknown_assistant` | `routers/scheduled_tasks.py:70`、`:78`、`:83`、`:89` |
+| scheduled task：`context_mode`/`schedule_type`/cron/once 校验 | 编码错误（`invalid_request` 等），消息仍是英文 | `routers/scheduled_tasks.py`（`scheduled_task_validation.py` 共享校验 + `scheduler_error(422, ...)`）；v2.2.0 把散落的字面量收敛进 `scheduled_task_errors.py` |
+| 通知组非法 | `invalid_notification_group`（422），消息 `Select a connected notification group belonging to this user` | `routers/scheduled_tasks.py:119`、`:147` |
+| run 历史游标两个字段未成对出现 | `before_created_at and before_run_id must be provided together` | `routers/thread_runs.py:1242` |
+| messages/page 不支持 `after_seq` | `after_seq is not supported by this backward-only endpoint` | `routers/thread_runs.py:1630` |
+| thread goal 参数非法（如 `max_continuations > 8`） | `str(exc)` | `routers/threads.py:580-590`（`ThreadGoalRequest`，Pydantic 界）；语义校验在 `build_goal_state` |
+| thread state 未知字段 | `Unknown thread-state field(s): [...]` | `routers/threads.py:1704` |
+| subagent batch item 状态过滤值非法 | `Unknown batch item status` | `routers/subagent_batches.py:68` |
+| skill 归档上传：非 multipart / 缺 `archive` 文件 | `Expected a multipart form upload`、`Multipart field 'archive' must contain a file` | `routers/skills.py:404`、`:575` |
+| skill 导出：非法 skill 名 / 平台不支持 / 非法 revision / 目录结构不支持 | `skill_export_unsupported` | `packages/harness/deerflow/skills/export.py`（`SkillExportError`）→ `routers/skills.py:694-695`、`:719-720` |
+| **🆕 v2.2.0** admin：无字段 / 未知 role | `nothing to update: provide system_role and/or disabled`、`unknown role '<r>'; assignable roles: [...]` | `routers/admin_users.py:89`、`:96`（尚有 `:114`、`:116` 两条 409） |
+| **🆕 v2.2.0** capability：未知 adapter | `This capability only has a setup guide; no installation adapter is available` | `app/gateway/capabilities.py:225`（`AdapterRegistry.get`） |
+| **🆕 v2.2.0** thread activity：非法游标 | `invalid_cursor` | `routers/thread_activity.py:72` |
+| **🆕 v2.2.0** plugins：输入不是 JSON object / action 输入无效 | `Plugin action requires a JSON object.`、`Invalid plugin action input.` | `routers/plugins.py:179`、`:197` |
+| **🆕 v2.2.0** knowledge：scope 选择不被该 assistant 支持 | details 说明哪一项被拒（前端据此回退选择器） | `app/gateway/knowledge_scope_admission.py:55`（`admit_message_knowledge_scope`），辅助 `:21`（`assistant_supports_knowledge_scope`） |
 
 ---
 
@@ -757,8 +782,8 @@ topics: [gateway, api, rest, error-handling]
 |------|------------|------|
 | 同一 IP 登录失败超过 `local_auth.max_login_attempts`，锁定未过期 | `Too many login attempts. Try again later.` | `routers/auth.py:322-325`（`_check_rate_limit`），由 `login_local` 调用 |
 | 单个 owner 每 provider 的 pending IM 连接码超过 `_MAX_PENDING_CONNECT_CODES_PER_PROVIDER = 5` | `Too many pending channel connection codes. Wait for existing codes to expire or use one of them.` | `routers/channel_connections.py:343-348`（常量 `:28`） |
-| run 产出归档 ZIP 并发构建槽位（`Semaphore(4)`）已满 | `Too many artifact archives are being created; try again shortly` | `routers/thread_runs.py:1579` → `App/gateway/artifact_archive.py`（`ArtifactArchiveError(..., 429)`） |
-| skill 导出槽位（每进程全用户 `BoundedSemaphore(2)`）已满 | `skill_export_busy`：`Both export slots in this Gateway process are in use across all users. ...` | `app/gateway/skill_export.py:69-71` |
+| run 产出归档 ZIP 并发构建槽位（`Semaphore(4)`）已满 | `Too many artifact archives are being created; try again shortly` | `routers/thread_runs.py:1702`（`ArtifactArchiveError(..., 429)`） |
+| skill 导出槽位（每进程全用户 `BoundedSemaphore(2)`）已满 | `skill_export_busy`：`Both export slots in this Gateway process are in use across all users. ...` | `app/gateway/skill_export.py:71` |
 
 ---
 
@@ -766,39 +791,42 @@ topics: [gateway, api, rest, error-handling]
 
 三类来源：
 
-**(a) `except Exception → 500` 模板**（每个 router 都有，detail 通常是 `Failed to ...: {str(e)}` 或固定的安全文案）。主要锚点：
+**(a) `except Exception → 500` 模板**
 
-| 文件 | 锚点 |
-|------|------|
-| `routers/agents.py` | `:236`、`:305`、`:364`、`:491`、`:528`、`:556`、`:586` |
-| `routers/artifacts.py` | `:561`（固定文案 `Failed to update artifact`） |
-| `routers/integrations.py` | `:266`、`:284`、`:304`、`:331`、`:354`、`:379`、`:404` |
-| `routers/mcp.py` | `:1495`、`:1518`、`:1544`、`:1566`、`:1588` |
-| `routers/memory.py` | `:300`、`:330`、`:357`、`:390`、`:430`（`OSError`） |
-| `routers/project_documents.py` | `:385`、`:388`、`:395` |
-| `routers/skills.py` | `:266`、`:282`、`:367`、`:392`、`:407`、`:432`、`:455`、`:495`、`:525`、`:549`、`:600`、`:623`、`:751`、`:760` |
-| `routers/thread_runs.py` | `:1686`（`ArtifactArchiveError.status_code`，多为 409/413/503 而非 500） |
-| `routers/threads.py` | `:923`、`:927`、`:943`、`:1236`、`:1302`、`:1338`、`:1364`、`:1382`、`:1441`、`:1462`、`:1516`、`:1567`、`:1915`、`:625`、`:696`、`:1107`、`:1123`、`:233`、`:300`、`:690`、`:1514` |
-| `routers/trash.py` | `:221`、`:243`（`OSError`，事务回滚保留回收站行） |
-| `routers/uploads.py` | `:412`、`:468` |
+每个 router 都有一份「兜底 `except Exception` → 500」的模板。**v2.2.0 起不再逐条列出行号**：这些锚点在每个版本都会被无关改动整体推移（v2.1.0 基线里列的约 70 个行号在 v2.2.0 已全部失效），维护成本远超信息价值。现行的稳定结论是：
+
+| 文件 | 兜底 500 的 detail 形态 |
+|------|------------------------|
+| `routers/agents.py` | `Failed to <动作>: {e}` 或固定文案 |
+| `routers/artifacts.py` | 固定 `Failed to update artifact`（**不回显异常内容**，避免泄漏路径） |
+| `routers/integrations.py` | `Failed to <动作>: {e}` |
+| `routers/mcp.py` | `Failed to <动作>: {e}` |
+| `routers/memory.py` | `Failed to <动作>: {e}`；`OSError` 另有专门分支 |
+| `routers/project_documents.py` | 固定文案（不泄漏磁盘路径） |
+| `routers/skills.py` | 固定文案；v2.2.0 修掉了 `GET /api/skills` 里回显异常细节的 500 |
+| `routers/threads.py` | `Failed to <动作>: {e}` |
+| `routers/thread_runs.py` | `ArtifactArchiveError.status_code` 原样透传（多为 409/413/429/503，不是 500） |
+| `routers/trash.py` | `OSError` → 事务回滚保留回收站行，再 500 |
+| `routers/uploads.py` | v2.2.0 改成**固定文案**（上传/删除不再回显异常内容，见 `routers/AGENTS.md`） |
+| 🆕 v2.2.0 `routers/plugins.py` | 固定 `Plugin action failed.`，日志只记**异常类型**（文本可能含用户内容） |
 
 **(b) 业务性 500（不是模板）**
 
 | 场景 | detail | 锚点 |
 |------|--------|------|
-| 存储的 memory 数据损坏（`MemoryCorruptionError`） | `Stored memory data is corrupted.` | `routers/memory.py:131`（`_map_memory_manager_error`） |
-| 手动压缩失败（`ContextCompactionFailed`） | `Failed to compact thread context.` | `routers/threads.py:1434` |
-| checkpoint 校验失败 | `Failed to validate checkpoint` | `app/gateway/services.py:1383` |
-| skill 导出内部失败 | `{"code":"skill_export_failed", ...}` | `routers/skills.py:407`、`:432`；`export.py:412`、`:471` |
+| 存储的 memory 数据损坏（`MemoryCorruptionError`） | `Stored memory data is corrupted.` | `routers/memory.py:137`（`_map_memory_manager_error` `:133`，调用点 `:217`） |
+| 手动压缩失败（`ContextCompactionFailed`） | `Failed to compact thread context.` | `routers/threads.py:1585`、`:1592` |
+| checkpoint 校验失败 | `Failed to validate checkpoint` | `app/gateway/services.py:1869` |
+| skill 导出内部失败 | `{"code":"skill_export_failed", ...}` | `routers/skills.py:699`、`:724`（`export_manifest` 与 `download` 各一处） |
 
 **(c) 未捕获的非 HTTP 异常 → Starlette/TraceMiddleware 渲染 500**
 
 | 异常 | detail | 锚点 |
 |------|--------|------|
-| `TypeError`（AuthorizationProvider 返回类型违约） | `AuthorizationProvider.filter_resources must return list[str]` | `routers/models.py:108` |
-| `TypeError` | `AuthorizationProvider.authorize must return AuthzDecision` | `routers/models.py:186` |
-| `AssertionError`（未处理的 artifact 响应类型） | `Unhandled artifact response kind: ...` | `routers/artifacts.py:476` |
-| `RuntimeError`（sandbox lease 未产出 sandbox） | `Failed to acquire sandbox for artifact update` | `routers/artifacts.py:538` |
+| `TypeError`（AuthorizationProvider 返回类型违约） | `AuthorizationProvider.filter_resources must return list[str]` | `routers/models.py:207` |
+| `TypeError` | `AuthorizationProvider.authorize must return AuthzDecision`（异步变体 `aauthorize` 同文案） | `app/gateway/authz.py:435`、`:333` |
+| `AssertionError`（未处理的 artifact 响应类型） | `Unhandled artifact response kind: ...` | `routers/artifacts.py:531` |
+| `RuntimeError`（sandbox lease 未产出 sandbox） | `Failed to acquire sandbox for artifact update` | `routers/artifacts.py:678` |
 
 > `TraceMiddleware` 对未处理异常会先自行发送一个 CORS-opaque 的 plain 500 再 re-raise（见 harness `trace_context` 说明）。
 
@@ -808,9 +836,9 @@ topics: [gateway, api, rest, error-handling]
 
 | 场景 | detail 摘要 | 锚点 |
 |------|------------|------|
-| memory 后端未实现该 tier-3/tier-2 操作（`NotImplementedError`） | `Operation '<label>' not supported by memory backend '<cls>'.` | `routers/memory.py:133-138`（`_unsupported_501`）；label = `clear memory`(`:296`)、`create fact`(`:324`)、`delete fact`(`:351`)、`update fact`(`:382`)、`import memory`(`:426`)、`reload memory`(`:270` 经 `_get_memory_or_501` `:152-165`) |
-| browser 自动化依赖缺失（`ImportError`） | `Browser automation is not available` | `routers/browser.py:92-93` |
-| **run 的 `multitask_strategy` 不受支持** | `Multitask strategy '<s>' is not yet supported. Supported strategies: ...` | `packages/harness/deerflow/runtime/runs/manager.py:1605`（`UnsupportedStrategyError`）→ `app/gateway/services.py:1787` 转 501。影响 `POST /api/threads/{id}/runs`、`/runs/stream`、`/runs/wait` 与 `POST /api/runs/*` |
+| memory 后端未实现该 tier-3/tier-2 操作（`NotImplementedError`） | `Operation '<label>' not supported by memory backend '<cls>'.` | `routers/memory.py:140-156`（`_unsupported_501`）；label 由各 handler 传入（`clear memory`、`create fact`、`delete fact`、`update fact`、`import memory`、`reload memory`），agent-scoped 分支 `:182`；`_get_memory_or_501` `:192` |
+| browser 自动化依赖缺失（`ImportError`） | `Browser automation is not available` | `routers/browser.py:94` |
+| **run 的 `multitask_strategy` 不受支持** | `Multitask strategy '<s>' is not yet supported. Supported strategies: ...` | `packages/harness/deerflow/runtime/runs/manager.py:1605`（`UnsupportedStrategyError`）→ `app/gateway/services.py:2744` 转 501。影响 `POST /api/threads/{id}/runs`、`/runs/stream`、`/runs/wait` 与 `POST /api/runs/*` |
 
 ---
 
@@ -818,10 +846,10 @@ topics: [gateway, api, rest, error-handling]
 
 | 场景 | detail 摘要 | 锚点 |
 |------|------------|------|
-| browser 导航底层失败（任何其它异常） | `Browser navigation failed` | `routers/browser.py:105`、`:112` |
-| OIDC discovery / provider 连接失败（登录发起） | `Failed to connect to SSO provider` | `routers/auth.py:957`、`:959` |
-| OIDC discovery 失败（回调，改为 302 重定向到错误页） | `sso_failed` | `routers/auth.py:1047-1064`（`_build_error_redirect`） |
-| scheduled task 手动触发派发失败 | `result['error'] or 'Scheduled task trigger failed'` | `routers/scheduled_tasks.py:456` |
+| browser 导航底层失败（任何其它异常） | `Browser navigation failed` | `routers/browser.py:113`（导航失败统一一个 502） |
+| OIDC discovery / provider 连接失败（登录发起） | `Failed to connect to SSO provider` | `routers/auth.py:1003`、`:1090` |
+| OIDC discovery 失败（回调，改为 302 重定向到错误页） | `sso_failed` | `routers/auth.py:1051`、`:1107`、`:1120`（`_build_error_redirect` `:1147`） |
+| scheduled task 手动触发派发失败 | `result['error'] or 'Scheduled task trigger failed'` | `routers/scheduled_tasks.py:449`（`scheduler_error(502, "trigger_failed", ...)`） |
 
 ---
 
@@ -829,76 +857,62 @@ topics: [gateway, api, rest, error-handling]
 
 | 场景 | detail 摘要 | 锚点 |
 |------|------------|------|
-| Console 需要 SQL backend（`database.backend: memory`） | `Console requires a SQL database backend; set database.backend to sqlite or postgres in config.yaml.` | `routers/console.py:121-127`（`_session_factory_or_503`），3 个 console 端点调用 |
-| channel connection 持久化不可用 | `Channel connection persistence is not available` | `routers/channel_connections.py:195-203`；在 `GET /providers`（`:522-524`）与 `DELETE /{provider}/runtime-config`（`:583-586`）里被**刻意吞掉降级**，不报 503 |
+| Console 需要 SQL backend（`database.backend: memory`） | `Console requires a SQL database backend; set database.backend to sqlite or postgres in config.yaml.` | `routers/console.py:121-128`（`_session_factory_or_503`），3 个 console 端点调用 |
+| channel connection 持久化不可用 | `Channel connection persistence is not available` | `routers/channel_connections.py:232`；在 `GET /providers` 与 `DELETE /{provider}/runtime-config` 里被**刻意吞掉降级**，不报 503（v2.2.0 行号见 §2.16 的行为描述，精确行号未逐一核对） |
 | IM channel service 未运行 | `Channel service is not running` | `routers/channels.py:50` |
-| GitHub webhook 未配置签名校验 | `Webhook signature verification not configured. Set ... or ...=1 for unverified dev mode.` | `routers/github_webhooks.py:235` |
-| GitHub webhook fan-out 运行时失败（保留为 failed 供人工重投） | `fan-out failed for delivery <id>: ...` | `routers/github_webhooks.py:359-365` |
+| GitHub webhook 未配置签名校验 | `Webhook signature verification not configured. Set ... or ...=1 for unverified dev mode.` | `routers/github_webhooks.py:238` |
+| GitHub webhook fan-out 运行时失败（保留为 failed 供人工重投） | `fan-out failed for delivery <id>: ...` | `routers/github_webhooks.py:368` |
 | input polish LLM 调用失败 | `Failed to polish input` | `routers/input_polish.py:99`、`:102` |
-| MCP task 取消时 worker 未运行 | `MCP task cancellation worker is not running` | `routers/mcp_tasks.py:118` |
-| subagent batch worker 未运行 | `Subagent batch worker is not running` | `routers/subagent_batches.py:87` |
-| 用户偏好持久化不可用 | `Preference persistence is unavailable` | `routers/user_preferences.py:33`（`_repository`） |
+| MCP task 取消时 worker 未运行 | `MCP task cancellation worker is not running` | `routers/mcp_tasks.py:209` |
+| subagent batch worker 未运行 | `Subagent batch worker is not running` | `routers/subagent_batches.py:111` |
+| 用户偏好持久化不可用 | `Preference persistence is unavailable` | `routers/user_preferences.py:47`（`_repository` `:44`） |
 | 归档 ZIP 构建超时（60s deadline） | `Artifact archive creation timed out` | `app/gateway/artifact_archive.py:65` |
-| skill 导出被取消 / 超时 / 锁超时 | `skill_export_cancelled`、`skill_export_timeout` | `packages/harness/deerflow/skills/export.py:84`、`:86`、`:408` |
-| checkpoint 进程正在切换存储模式（非 `CheckpointModeMismatchError`） | `str(exc)` | `routers/threads.py:107-108`（`_checkpoint_mode_http_error`） |
-| `/health/ready` 任一后端 `unreachable` | `status: degraded` | `app/gateway/health.py:240-266` |
+| skill 导出被取消 / 超时 / 锁超时 | `skill_export_cancelled`、`skill_export_timeout` | `packages/harness/deerflow/skills/export.py:84`、`:86`、`:422` |
+| checkpoint 进程正在切换存储模式（非 `CheckpointModeMismatchError`） | `str(exc)` | `routers/threads.py:106`（`_checkpoint_mode_http_error`） |
+| `/health/ready` 任一后端 `unreachable` | `status: degraded` | `app/gateway/health.py:412-418` |
 
 ---
 
 ### 2.17 504 Gateway Timeout
 
-只在 `routers/integrations.py`（Lark CLI 的子进程 `TimeoutError`）：
+两处来源：Lark CLI 子进程超时（`routers/integrations.py`，`TimeoutError` → 504，detail 是异常文本）与插件 action 的 30s 预算 🆕 v2.2.0。
 
 | 端点 | 锚点 |
 |------|------|
-| `POST /api/integrations/lark/config/start` | `:301` |
-| `POST /api/integrations/lark/config/complete` | `:328` |
-| `POST /api/integrations/lark/config/credentials` | `:351` |
-| `POST /api/integrations/lark/auth/start` | `:376` |
-| `POST /api/integrations/lark/auth/complete` | `:401` |
-
----
+| `POST /api/integrations/lark/config/start` | `:319-320` |
+| `POST /api/integrations/lark/config/complete` | `:346-347` |
+| `POST /api/integrations/lark/config/credentials` | `:369-370` |
+| `POST /api/integrations/lark/auth/start` | `:394-395` |
+| `POST /api/integrations/lark/auth/complete` | `:419-420` |
+| 🆕 `POST /api/plugins/{namespace}/actions/{action_name}` | 固定 `Plugin action timed out.`，`asyncio.timeout(30)` 包住整个 handler | `routers/plugins.py:186`、`:189` |
 
 ### 2.18 成功码的非常规用法
 
 | 码 | 场景 | 锚点 |
 |----|------|------|
-| 201 | create agent / project / shelf document / managed subagent / register / PAT / initialize admin | `routers/agents.py:311`、`routers/projects.py:116`、`routers/project_documents.py:164`、`:267`、`routers/subagents.py:170`、`routers/auth.py:458`、`:652`、`:789` |
-| **200 on dedup** | shelf 上传/晋升命中内容去重时把 201 改写成 200 | `routers/project_documents.py:214-217`、`:328-331` |
-| 202 | run 取消/流式已被接受（非 owner worker 记为 `requested`，或 store-only 无法订阅） | `routers/thread_runs.py:1206`、`:1287`、`:1296`、`:1310` |
-| 204 | delete agent / disconnect connection / delete document / delete project / delete subagent / purge / cancel with `wait=true` / skill 导出客户端断连 | `routers/agents.py:561`、`routers/channel_connections.py:554`、`routers/project_documents.py:484`、`routers/projects.py:183`、`routers/subagents.py:231`、`routers/trash.py:208`、`routers/thread_runs.py:1194`、`:1205`、`:1302`、`:1310`、`routers/skills.py:401`、`:426` |
-| 206 | artifact `Range` 命中 | `routers/artifacts.py`（`_slice_byte_range` 返回 206） |
-
----
-
-### 2.19 路由级状态码签名（供 integration 文档引用的权威行）
-
-把「一个路由组能返回哪些码」压成一行，`operations/integration/**` 只引用这里，不重复穷举：
-
-| 路由组 | 完整状态码签名 | 关键语义 | 权威锚点 |
-|--------|---------------|---------|---------|
-| `POST /api/integrations/lark/install`、`/config/{start,complete,credentials}`、`/auth/{start,complete}` | **403 / 404 / 400 / 409 / 504 / 500**（另加中间件 401、参数校验 422；同步成功 200） | 403 = 非 admin（`require_admin_user`，detail = `Admin privileges required to install integrations.`）；404 = Lark 未安装 / 流程句柄缺失（`FileNotFoundError`）；400 = `ValueError`（参数或流程状态非法）；409 = `LarkFlowSupersededError`（流程被更新的 generation 取代）；504 = CLI `TimeoutError`；500 = 其余异常 | 403 `deps.py:894-903`；404/400/409/504/500 `routers/integrations.py:277`/`:279`/`:324`/`:301`/`:284`（install 同构 `:277`/`:279`/—/—/`:284`）；逐条见 §2.1/§2.4/§2.6/§2.13/§2.16/§2.17 |
-| `GET /api/integrations/lark/status` | **500**（+401）；**不返回 403** | 只读，任何已认证用户可读；非 admin **不是 403**，而是把 host 文件系统路径**脱敏**（`include_host_paths=await _is_admin_user(request)`，`_is_admin_user` fail-closed：任何异常都当非 admin）；内部失败 500 | `routers/integrations.py:260-266`；脱敏开关 `:41-50`、`:263`；host-path 注释 `:185` |
-| `POST /api/webhooks/github` | **400 / 401 / 422 / 503 / 200**；未配置 secret 时**路由不挂载 → 404** | 401 = HMAC 签名缺失/不匹配（`X-Hub-Signature-256`）；400 = 缺 `X-GitHub-Event` 或 JSON 非法；**200 = 已识别事件、未知事件（`handled=false`）、以及缺少 channel service 的无操作派发**；503 = 未配置签名校验（`is_route_enabled()` 的运行时兜底，正常不可达），或 fan-out 运行时失败（**故意保留为 failed**，供人工/API 重投 —— GitHub 不会自动重试任何失败投递，含 5xx） | 401 `routers/github_webhooks.py:252`；400 `:255`、`:267`；503 `:235`、`:359-368`；200 汇总 `:380-386`；条件挂载 `app.py:970-976` |
-
-> `POST /api/webhooks/github` **没有 delivery-id 去重存储**：同一 `X-GitHub-Delivery` 重放会被**再次 fan-out** 并同样返回 200（不是幂等命中，也不会 409）。「200」保证的是 GitHub 把这次投递标为成功，而不是「只执行一次」。
-
-> `POST /api/webhooks/github` 也**不走 `AuthMiddleware`/`CSRFMiddleware`**（`/api/webhooks/` 在公开前缀里），所以它的 401 只来自 HMAC，不是会话认证。
+| 201 | create agent / import agent / project / shelf document / managed subagent / register / PAT / initialize admin | `routers/agents.py:504`（create）、`:384`（import）、`routers/projects.py:118`、`routers/project_documents.py:199`、`:307`、`routers/subagents.py:172`、`routers/auth.py:489`、`:683`、`:821` |
+| **200 on dedup** | shelf 上传/晋升命中内容去重时把 201 改写成 200 | `routers/project_documents.py`（`upload_project_document` / `promote_thread_file_to_shelf` 内的 dedup 分支，v2.2.0 行号未逐一核对） |
+| 202 | run 取消/流式已被接受（非 owner worker 记为 `requested`，或 store-only 无法订阅） | `routers/thread_runs.py`（`cancel_run` / `stream_existing_run` 内，v2.2.0 行号未逐一核对） |
+| 204 | delete agent / disconnect connection / delete document / delete project / delete subagent / purge / cancel with `wait=true` / skill 导出客户端断连 / PATCH preferences | `routers/agents.py:772`、`routers/channel_connections.py:597`、`routers/project_documents.py:530`、`routers/projects.py:185`、`routers/subagents.py:233`、`routers/trash.py:210`、`routers/user_preferences.py:67`、`routers/channel_connections.py:844`（wechat QR 取消）、`routers/thread_runs.py`（`cancel_run`）、`routers/skills.py`（导出断连分支 `:692`、`:717`） |
+| 206 | artifact `Range` 命中 | `routers/artifacts.py:199`（`_slice_byte_range`） |
+| 101 | WebSocket 升级成功 | `routers/browser.py:215` |
 
 ---
 
 ## 3. 路由之前的四层中间件（先于 §2 的 router 码）
 
-`create_app()` 里 `add_middleware()` 的**添加顺序**是 `AuthMiddleware`(`app.py:771`) → `CSRFMiddleware`(`:816`) → `CORSMiddleware`(`:827`，仅当 `GATEWAY_CORS_ORIGINS` 配置了才加) → `TraceMiddleware`(`:840`)。Starlette 里后添加的更靠外，所以**实际执行顺序（外 → 内）是**：
+`create_app()` 里 `add_middleware()` 的**添加顺序**是 `AuthMiddleware`(`app.py:1187`) → `CSRFMiddleware`(`:1259`) → `CORSMiddleware`(`:1271`，仅当 `sorted(get_configured_cors_origins())` 非空) → 扩展贡献的中间件(`:1281`) → `TraceMiddleware`(`:1283`)。Starlette 里后添加的更靠外，所以**实际执行顺序（外 → 内）是**：
 
 ```
-TraceMiddleware → CORSMiddleware(可选) → CSRFMiddleware → AuthMiddleware → router
+TraceMiddleware → (CORS，按需) → CSRFMiddleware → AuthMiddleware → router
 ```
 
-关键推论：**CSRF 在 Auth 之前**，所以一个没有 session、也没有 `X-CSRF-Token` 的 `POST` 会先撞到 **403 `CSRF token missing`**，而不是 401。
+> ⚠️ **v2.2.0 的扩展中间件位置**：它们夹在 `CORSMiddleware` 与 `TraceMiddleware` 之间，即在 **CORS 之内、CSRF/Auth 之外**——扩展中间件看到的请求**已经过** CORS，但**还没被 CSRF 与认证校验**。
+
+关键推论（v2.2.0 未变）：**CSRF 在 Auth 之前**，所以一个没有 session、也没有 `X-CSRF-Token` 的 `POST` 会先撞到 **403 `CSRF token missing`**，而不是 401。
 
 1. **`TraceMiddleware`**（`app/gateway/trace_middleware.py`）— 注入 `X-Trace-Id`；未处理异常时自行发送 CORS-opaque plain **500** 再 re-raise。
-2. **`CORSMiddleware`**（可选）— 仅在 `GATEWAY_CORS_ORIGINS` 非空时挂载；`expose_headers` 含 `CORS_EXPOSED_HEADERS`（含 `Content-Location`）。
+2. **`CORSMiddleware`**（按需）— 仅当 `GATEWAY_CORS_ORIGINS` 非空时挂载（`app.py:1269-1277`）；`allow_credentials=True`、`allow_methods/headers=["*"]`、`expose_headers=list(CORS_EXPOSED_HEADERS)`。CORS allowlist 与 CSRF origin 检查**共用同一个配置源**。
 3. **`CSRFMiddleware`**（`csrf_middleware.py`）— 双提交 cookie。仅对状态变更方法生效（`POST/PUT/DELETE/PATCH`，`:26`），且：
    - `DEER_FLOW_AUTH_DISABLED=1` 时不检查（`:49`）
    - 豁免精确路径 `/api/v1/auth/me`（`:27`、`:55`）与 `/api/webhooks/` 前缀（`:59`）
@@ -909,198 +923,243 @@ TraceMiddleware → CORSMiddleware(可选) → CSRFMiddleware → AuthMiddleware
    - 非公开路径 + 无 cookie → **401** `NOT_AUTHENTICATED`（`:169`）
    - 无效/过期 cookie → 回传 `exc.status_code`（**401**，`token_expired`/`token_invalid`/`user_not_found`）
    - `Authorization: Bearer dfp_...`（PAT）优先级最高；无效 Bearer 是**硬 401，不回退 cookie**；PAT 不在 allowlist 路由 → **403**（`:136-141`）
-   - 公开路径前缀：`/health`、`/docs`、`/redoc`、`/openapi.json`、`/api/v1/auth/oauth/`、`/api/v1/auth/callback/`、`/api/webhooks/`；精确公开：`/api/v1/auth/{login/local,register,logout,setup-status,initialize,providers}`（`auth_middleware.py:34-57`）
+   - 公开路径前缀 `_PUBLIC_PATH_PREFIXES`（`:37`）：`/health`、`/docs`、`/redoc`、`/openapi.json`、`/api/v1/auth/oauth/`、`/api/v1/auth/callback/`、`/api/webhooks/`；精确公开 `_PUBLIC_EXACT_PATHS`（`:51`）：`/api/v1/auth/{login/local,register,logout,setup-status,initialize,providers}`
 
-越过这四层之后才是 `@require_auth` / `@require_permission` / 路由体内的 404/409/…。
+越过这四层之后才是 `@require_auth` / `@require_permission` / `require_admin_user`（handler 体内）/ 路由体内的 404/409/…。
+
+> 🆕 v2.2.0：`routers/admin_users.py`、`routers/managed_models.py`、`routers/skill_mutations.py`、`routers/plugins.py`（诊断）、`routers/capabilities.py`（安装）、`routers/channel_connections.py` 的 WeChat QR 三条，都不是用 `@require_permission` 装饰器，而是在 handler 体内调 `app/gateway/authz.py:require_admin_user` —— 因此 §2.0 的「端点自身函数体内的码」统计里它们的 **403 不计入**，但实际上都会 403。
 
 ---
 
 ## 4. 端点 → 可达状态码矩阵
 
+**本表覆盖 221 条端点**（= §1 端点总数）；🆕「v2.2.0 新增的 41 条」排在最前面（`/api/v1/admin/users` 起至 `POST /api/threads/{thread_id}/read`），其后是 v2.1.0 已有、锚点已按 v2.2.0 重锚的 180 条。
+
 **读法**：`/` 分隔 = 该端点**可达**的状态码；口径 = 本端点自身 raise + 同模块被调 helper 的传递闭包 + `require_permission`(401/403，`owner_check` 再加 404) + `require_admin_user`(403) + 有校验参数时的 422 + 未捕获非 HTTP 异常的 500。`401` 由 §3 的 `AuthMiddleware` 对**所有非公开路由**补上。因此这是**上界**（宁多勿漏）。成功码见 §1.1 与 §2.18。此外**所有状态变更方法**（`POST/PUT/DELETE/PATCH`）都可能先被 `CSRFMiddleware` 拦成 **403**（豁免清单见 §3），表中未逐行重复。
 
 | 端点 | 可达码 | 源码锚点 |
 |------|--------|---------|
-| `GET /api/agents` | 401/403/500 | `backend/app/gateway/routers/agents.py:215` |
-| `GET /api/agents/check` | 401/403/422 | `backend/app/gateway/routers/agents.py:244` |
-| `GET /api/agents/{name}` | 401/403/404/422/500 | `backend/app/gateway/routers/agents.py:277` |
-| `POST /api/agents` | 401/403/409/422/500 | `backend/app/gateway/routers/agents.py:315` |
-| `PUT /api/agents/{name}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/agents.py:373` |
-| `GET /api/user-profile` | 401/403/500 | `backend/app/gateway/routers/agents.py:512` |
-| `PUT /api/user-profile` | 401/403/422/500 | `backend/app/gateway/routers/agents.py:537` |
-| `DELETE /api/agents/{name}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/agents.py:565` |
-| `GET /api/threads/{thread_id}/artifacts/{path:path}` | 401/403/404/416/422/500 | `backend/app/gateway/routers/artifacts.py:339` |
-| `PUT /api/threads/{thread_id}/artifacts/{path:path}` | 401/403/404/409/413/415/422/500 | `backend/app/gateway/routers/artifacts.py:486` |
-| `GET /api/assistants/{assistant_id}` | 401/404/422 | `backend/app/gateway/routers/assistants_compat.py:110` |
-| `GET /api/assistants/{assistant_id}/graph` | 401/404/422 | `backend/app/gateway/routers/assistants_compat.py:119` |
-| `GET /api/assistants/{assistant_id}/schemas` | 401/404/422 | `backend/app/gateway/routers/assistants_compat.py:137` |
-| `POST /api/assistants/search` | 401/422 | `backend/app/gateway/routers/assistants_compat.py:90` |
-| `POST /api/v1/auth/login/local` | 401/422/429 | `backend/app/gateway/routers/auth.py:403` |
-| `POST /api/v1/auth/register` | 400/403/422 | `backend/app/gateway/routers/auth.py:458` |
-| `POST /api/v1/auth/logout` | — | `backend/app/gateway/routers/auth.py:487` |
-| `POST /api/v1/auth/change-password` | 400/401/403/422 | `backend/app/gateway/routers/auth.py:498` |
-| `GET /api/v1/auth/me` | 401 | `backend/app/gateway/routers/auth.py:562` |
-| `POST /api/v1/auth/pats` | 400/401/422 | `backend/app/gateway/routers/auth.py:652` |
-| `GET /api/v1/auth/pats` | 401 | `backend/app/gateway/routers/auth.py:689` |
-| `DELETE /api/v1/auth/pats/{pat_id}` | 401/404/422 | `backend/app/gateway/routers/auth.py:699` |
-| `GET /api/v1/auth/setup-status` | — | `backend/app/gateway/routers/auth.py:722` |
-| `POST /api/v1/auth/initialize` | 400/409/422 | `backend/app/gateway/routers/auth.py:789` |
-| `GET /api/v1/auth/providers` | — | `backend/app/gateway/routers/auth.py:881` |
-| `GET /api/v1/auth/oauth/{provider}` | 400/404/422/502 | `backend/app/gateway/routers/auth.py:908` |
-| `GET /api/v1/auth/callback/{provider}` | 400/403/404/422/502 | `backend/app/gateway/routers/auth.py:987` |
-| `POST /api/threads/{thread_id}/browser/navigate` | 400/401/403/404/422/501/502 | `backend/app/gateway/routers/browser.py:81` |
-| `GET /api/channels/providers` | 401/404/503 | `backend/app/gateway/routers/channel_connections.py:515` |
-| `GET /api/channels/connections` | 401/503 | `backend/app/gateway/routers/channel_connections.py:545` |
-| `DELETE /api/channels/connections/{connection_id}` | 400/401/404/422/503 | `backend/app/gateway/routers/channel_connections.py:555` |
-| `DELETE /api/channels/{provider}/runtime-config` | 400/401/403/404/422/503 | `backend/app/gateway/routers/channel_connections.py:571` |
-| `POST /api/channels/{provider}/connect` | 400/401/404/422/429/503 | `backend/app/gateway/routers/channel_connections.py:618` |
-| `POST /api/channels/{provider}/runtime-config` | 400/401/403/404/422 | `backend/app/gateway/routers/channel_connections.py:653` |
-| `GET /api/channels/` | 401 | `backend/app/gateway/routers/channels.py:30` |
-| `POST /api/channels/{name}/restart` | 401/403/422/503 | `backend/app/gateway/routers/channels.py:42` |
-| `GET /api/console/stats` | 401/403/503 | `backend/app/gateway/routers/console.py:285` |
-| `GET /api/console/runs` | 401/403/422/503 | `backend/app/gateway/routers/console.py:356` |
-| `GET /api/console/usage` | 401/403/422/503 | `backend/app/gateway/routers/console.py:427` |
-| `GET /api/features` | 401 | `backend/app/gateway/routers/features.py:73` |
-| `POST /api/threads/{thread_id}/runs/{run_id}/feedback` | 400/401/403/404/422 | `backend/app/gateway/routers/feedback.py:115` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/feedback` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:148` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/feedback/stats` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:160` |
-| `DELETE /api/threads/{thread_id}/runs/{run_id}/feedback/{feedback_id}` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:172` |
-| `PUT /api/threads/{thread_id}/runs/{run_id}/feedback` | 400/401/403/404/422 | `backend/app/gateway/routers/feedback.py:64` |
-| `DELETE /api/threads/{thread_id}/runs/{run_id}/feedback` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:95` |
+| `GET /api/v1/admin/users` | 401/403/500 | `backend/app/gateway/routers/admin_users.py:59` |
+| `PATCH /api/v1/admin/users/{user_id}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/admin_users.py:67` |
+| `GET /api/agent-tool-groups` | 401/403/500 | `backend/app/gateway/routers/agents.py:327` |
+| `POST /api/agents/import` | 401/403/409/413/422/500 | `backend/app/gateway/routers/agents.py:376` |
+| `GET /api/agents/{name}/export` | 401/403/404/422/500 | `backend/app/gateway/routers/agents.py:407` |
+| `WEBSOCKET /api/threads/{thread_id}/browser/stream` | —（WS close code：1008/4401/4403/4404） | `backend/app/gateway/routers/browser.py:214` |
+| `GET /api/capabilities/catalog` | 401/403/500 | `backend/app/gateway/routers/capabilities.py:26` |
+| `GET /api/capabilities/installations/{adapter}` | 401/403/404/422/500 | `backend/app/gateway/routers/capabilities.py:31` |
+| `POST /api/capabilities/installations` | 400/401/403/422/500 | `backend/app/gateway/routers/capabilities.py:36` |
+| `POST /api/channels/wechat/qr-login` | 400/401/403/500/503 | `backend/app/gateway/routers/channel_connections.py:813` |
+| `POST /api/channels/wechat/qr-login/{session_id}/poll` | 400/401/403/404/409/500/503 | `backend/app/gateway/routers/channel_connections.py:824` |
+| `DELETE /api/channels/wechat/qr-login/{session_id}` | 401/403/404/500/503 | `backend/app/gateway/routers/channel_connections.py:843` |
+| `GET /api/channels/notification-preferences` | 401/409/422/500/503 | `backend/app/gateway/routers/im_notification_preferences.py:40` |
+| `PATCH /api/channels/notification-preferences` | 401/409/422/500/503 | `backend/app/gateway/routers/im_notification_preferences.py:46` |
+| `GET /api/knowledge/capabilities` | 401/403/500 | `backend/app/gateway/routers/knowledge.py:72` |
+| `GET /api/knowledge/retrieval-catalog/datasets` | 401/403/500/503 | `backend/app/gateway/routers/knowledge.py:86` |
+| `GET /api/knowledge/retrieval-catalog/datasets/{dataset_id:path}/documents` | 401/403/404/500/503 | `backend/app/gateway/routers/knowledge.py:100` |
+| `GET /api/managed-models/providers` | 401/403/500 | `backend/app/gateway/routers/managed_models.py:68` |
+| `GET /api/managed-models` | 401/403/500 | `backend/app/gateway/routers/managed_models.py:74` |
+| `PUT /api/managed-models` | 400/401/403/409/422/500 | `backend/app/gateway/routers/managed_models.py:114` |
+| `POST /api/managed-models/test` | 400/401/403/422/500/502 | `backend/app/gateway/routers/managed_models.py:156` |
+| `POST /api/models/resolve` | 400/401/403/422/500 | `backend/app/gateway/routers/models.py:103` |
+| `GET /api/mcp/personal/config` | 401/403/500/503 | `backend/app/gateway/routers/personal_mcp.py:113` |
+| `POST /api/mcp/personal/config/servers` | 400/401/403/409/422/500/503 | `backend/app/gateway/routers/personal_mcp.py:133` |
+| `PUT /api/mcp/personal/config/server` | 400/401/403/404/409/422/500/503 | `backend/app/gateway/routers/personal_mcp.py:138` |
+| `PATCH /api/mcp/personal/config` | 400/401/403/409/422/500/503 | `backend/app/gateway/routers/personal_mcp.py:143` |
+| `DELETE /api/mcp/personal/config/servers/{server_name:path}` | 400/401/403/404/422/500/503 | `backend/app/gateway/routers/personal_mcp.py:148` |
+| `GET /api/plugins/diagnostics` | 401/403/500 | `backend/app/gateway/routers/plugins.py:46` |
+| `GET /api/plugins` | 401/403/500 | `backend/app/gateway/routers/plugins.py:68` |
+| `GET /api/plugins/modules/{module}/{revision}.mjs` | 401/404/500 | `backend/app/gateway/routers/plugins.py:101` |
+| `GET /api/plugins/{namespace}/assets/{revision}/{path:path}` | 401/404/500 | `backend/app/gateway/routers/plugins.py:112` |
+| `POST /api/plugins/{namespace}/actions/{action_name}` | 401/403/404/409/413/422/500/502/503/504 | `backend/app/gateway/routers/plugins.py:135` |
+| `GET /api/threads/{thread_id}/scheduled-task-events` | 401/403/404/422/500 | `backend/app/gateway/routers/scheduled_tasks.py:505` |
+| `GET /api/skill-mutations/operations` | 401/403/422/500/503 | `backend/app/gateway/routers/skill_mutations.py:31` |
+| `GET /api/skill-mutations/operations/{operation_id}` | 401/403/404/500/503 | `backend/app/gateway/routers/skill_mutations.py:39` |
+| `POST /api/skill-mutations/operations/{operation_id}/recover` | 401/403/404/409/500/503 | `backend/app/gateway/routers/skill_mutations.py:44` |
+| `POST /api/skill-mutations/owners/{owner_id}/recover` | 401/403/404/409/500/503 | `backend/app/gateway/routers/skill_mutations.py:49` |
+| `GET /api/skills/diagnostics/custom` | 401/403/500 | `backend/app/gateway/routers/skills.py:672` |
+| `GET /api/threads/{thread_id}/subagent-batches/{batch_id}/items/{position}` | 401/403/404/422/500 | `backend/app/gateway/routers/subagent_batches.py:73` |
+| `GET /api/thread-activity` | 401/403/422/500/503 | `backend/app/gateway/routers/thread_activity.py:70` |
+| `POST /api/threads/{thread_id}/read` | 401/403/404/500/503 | `backend/app/gateway/routers/threads.py:1349` |
+| `GET /api/agents` | 401/403/500 | `backend/app/gateway/routers/agents.py:296` |
+| `GET /api/agents/check` | 401/403/422 | `backend/app/gateway/routers/agents.py:343` |
+| `GET /api/agents/{name}` | 401/403/404/422/500 | `backend/app/gateway/routers/agents.py:458` |
+| `POST /api/agents` | 401/403/409/422/500 | `backend/app/gateway/routers/agents.py:496` |
+| `PUT /api/agents/{name}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/agents.py:532` |
+| `GET /api/user-profile` | 401/403/500 | `backend/app/gateway/routers/agents.py:685` |
+| `PUT /api/user-profile` | 401/403/422/500 | `backend/app/gateway/routers/agents.py:722` |
+| `DELETE /api/agents/{name}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/agents.py:765` |
+| `GET /api/threads/{thread_id}/artifacts/{path:path}` | 401/403/404/416/422/500 | `backend/app/gateway/routers/artifacts.py:394` |
+| `PUT /api/threads/{thread_id}/artifacts/{path:path}` | 401/403/404/409/413/415/422/500 | `backend/app/gateway/routers/artifacts.py:619` |
+| `GET /api/assistants/{assistant_id}` | 401/404/422 | `backend/app/gateway/routers/assistants_compat.py:109` |
+| `GET /api/assistants/{assistant_id}/graph` | 401/404/422 | `backend/app/gateway/routers/assistants_compat.py:118` |
+| `GET /api/assistants/{assistant_id}/schemas` | 401/404/422 | `backend/app/gateway/routers/assistants_compat.py:136` |
+| `POST /api/assistants/search` | 401/422 | `backend/app/gateway/routers/assistants_compat.py:89` |
+| `POST /api/v1/auth/login/local` | 401/422/429 | `backend/app/gateway/routers/auth.py:431` |
+| `POST /api/v1/auth/register` | 400/403/422 | `backend/app/gateway/routers/auth.py:488` |
+| `POST /api/v1/auth/logout` | — | `backend/app/gateway/routers/auth.py:517` |
+| `POST /api/v1/auth/change-password` | 400/401/403/422 | `backend/app/gateway/routers/auth.py:528` |
+| `GET /api/v1/auth/me` | 401 | `backend/app/gateway/routers/auth.py:592` |
+| `POST /api/v1/auth/pats` | 400/401/422 | `backend/app/gateway/routers/auth.py:682` |
+| `GET /api/v1/auth/pats` | 401 | `backend/app/gateway/routers/auth.py:719` |
+| `DELETE /api/v1/auth/pats/{pat_id}` | 401/404/422 | `backend/app/gateway/routers/auth.py:729` |
+| `GET /api/v1/auth/setup-status` | — | `backend/app/gateway/routers/auth.py:752` |
+| `POST /api/v1/auth/initialize` | 400/409/422 | `backend/app/gateway/routers/auth.py:820` |
+| `GET /api/v1/auth/providers` | — | `backend/app/gateway/routers/auth.py:930` |
+| `GET /api/v1/auth/oauth/{provider}` | 400/404/422/502 | `backend/app/gateway/routers/auth.py:954` |
+| `GET /api/v1/auth/callback/{provider}` | 400/403/404/422/502 | `backend/app/gateway/routers/auth.py:1030` |
+| `POST /api/threads/{thread_id}/browser/navigate` | 400/401/403/404/422/501/502 | `backend/app/gateway/routers/browser.py:75` |
+| `GET /api/channels/providers` | 401/404/503 | `backend/app/gateway/routers/channel_connections.py:549` |
+| `GET /api/channels/connections` | 401/503 | `backend/app/gateway/routers/channel_connections.py:579` |
+| `DELETE /api/channels/connections/{connection_id}` | 400/401/404/422/503 | `backend/app/gateway/routers/channel_connections.py:596` |
+| `DELETE /api/channels/{provider}/runtime-config` | 400/401/403/404/422/503 | `backend/app/gateway/routers/channel_connections.py:612` |
+| `POST /api/channels/{provider}/connect` | 400/401/404/422/429/503 | `backend/app/gateway/routers/channel_connections.py:658` |
+| `POST /api/channels/{provider}/runtime-config` | 400/401/403/404/422 | `backend/app/gateway/routers/channel_connections.py:697` |
+| `GET /api/channels/` | 401 | `backend/app/gateway/routers/channels.py:29` |
+| `POST /api/channels/{name}/restart` | 401/403/422/503 | `backend/app/gateway/routers/channels.py:41` |
+| `GET /api/console/stats` | 401/403/503 | `backend/app/gateway/routers/console.py:289` |
+| `GET /api/console/runs` | 401/403/422/503 | `backend/app/gateway/routers/console.py:363` |
+| `GET /api/console/usage` | 401/403/422/503 | `backend/app/gateway/routers/console.py:434` |
+| `GET /api/features` | 401 | `backend/app/gateway/routers/features.py:98` |
+| `POST /api/threads/{thread_id}/runs/{run_id}/feedback` | 400/401/403/404/422 | `backend/app/gateway/routers/feedback.py:113` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/feedback` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:146` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/feedback/stats` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:158` |
+| `DELETE /api/threads/{thread_id}/runs/{run_id}/feedback/{feedback_id}` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:170` |
+| `PUT /api/threads/{thread_id}/runs/{run_id}/feedback` | 400/401/403/404/422 | `backend/app/gateway/routers/feedback.py:62` |
+| `DELETE /api/threads/{thread_id}/runs/{run_id}/feedback` | 401/403/404/422 | `backend/app/gateway/routers/feedback.py:93` |
 | `POST /api/webhooks/github` | 400/401/422/503 | `backend/app/gateway/routers/github_webhooks.py:173` |
-| `POST /api/input-polish` | 400/401/403/404/422/503 | `backend/app/gateway/routers/input_polish.py:65` |
-| `GET /api/integrations/lark/status` | 401/500 | `backend/app/gateway/routers/integrations.py:260` |
-| `POST /api/integrations/lark/install` | 400/401/403/404/500 | `backend/app/gateway/routers/integrations.py:270` |
-| `POST /api/integrations/lark/config/start` | 400/401/404/422/500/504 | `backend/app/gateway/routers/integrations.py:288` |
-| `POST /api/integrations/lark/config/complete` | 400/401/404/409/422/500/504 | `backend/app/gateway/routers/integrations.py:308` |
-| `POST /api/integrations/lark/config/credentials` | 400/401/404/422/500/504 | `backend/app/gateway/routers/integrations.py:335` |
-| `POST /api/integrations/lark/auth/start` | 400/401/404/409/422/500/504 | `backend/app/gateway/routers/integrations.py:358` |
-| `POST /api/integrations/lark/auth/complete` | 400/401/404/409/422/500/504 | `backend/app/gateway/routers/integrations.py:383` |
-| `GET /api/mcp/config` | 401/403 | `backend/app/gateway/routers/mcp.py:1116` |
-| `POST /api/mcp/cache/reset` | 401/403 | `backend/app/gateway/routers/mcp.py:1423` |
-| `PUT /api/mcp/config` | 400/401/403/422/500 | `backend/app/gateway/routers/mcp.py:1444` |
-| `POST /api/mcp/config/servers` | 400/401/403/422/500 | `backend/app/gateway/routers/mcp.py:1504` |
-| `PUT /api/mcp/config/server` | 400/401/403/422/500 | `backend/app/gateway/routers/mcp.py:1527` |
-| `DELETE /api/mcp/config/servers/{server_name:path}` | 401/403/422/500 | `backend/app/gateway/routers/mcp.py:1553` |
-| `PATCH /api/mcp/config` | 401/403/422/500 | `backend/app/gateway/routers/mcp.py:1575` |
-| `POST /api/threads/{thread_id}/mcp-tasks/{task_id}/cancel` | 401/403/404/422/503 | `backend/app/gateway/routers/mcp_tasks.py:106` |
-| `GET /api/threads/{thread_id}/mcp-tasks` | 401/403/404/422 | `backend/app/gateway/routers/mcp_tasks.py:68` |
-| `GET /api/threads/{thread_id}/mcp-tasks/{task_id}` | 401/403/404/422 | `backend/app/gateway/routers/mcp_tasks.py:87` |
-| `GET /api/memory` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:211` |
-| `POST /api/memory/reload` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:257` |
-| `DELETE /api/memory` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:290` |
-| `POST /api/memory/facts` | 400/401/409/422/500/501 | `backend/app/gateway/routers/memory.py:312` |
-| `DELETE /api/memory/facts/{fact_id}` | 401/404/409/422/500/501 | `backend/app/gateway/routers/memory.py:345` |
-| `PATCH /api/memory/facts/{fact_id}` | 400/401/404/409/422/500/501 | `backend/app/gateway/routers/memory.py:369` |
-| `GET /api/memory/export` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:402` |
-| `POST /api/memory/import` | 401/409/422/500/501 | `backend/app/gateway/routers/memory.py:416` |
-| `GET /api/memory/config` | 401 | `backend/app/gateway/routers/memory.py:441` |
-| `GET /api/memory/status` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:491` |
-| `GET /api/models/{model_name}` | 401/403/404/422/500 | `backend/app/gateway/routers/models.py:138` |
-| `GET /api/models` | 401/500 | `backend/app/gateway/routers/models.py:50` |
-| `GET /api/projects/{project_id}/documents` | 401/403/404/422 | `backend/app/gateway/routers/project_documents.py:142` |
-| `POST /api/projects/{project_id}/documents` | 400/401/403/404/413/422 | `backend/app/gateway/routers/project_documents.py:166` |
-| `POST /api/projects/{project_id}/documents/from-thread` | 400/401/403/404/413/422 | `backend/app/gateway/routers/project_documents.py:270` |
-| `POST /api/projects/{project_id}/documents/{document_id}/attach-to-thread/{thread_id}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/project_documents.py:338` |
-| `GET /api/projects/{project_id}/documents/{document_id}/content` | 401/403/404/409/422 | `backend/app/gateway/routers/project_documents.py:412` |
-| `DELETE /api/projects/{project_id}/documents/{document_id}` | 401/403/404/422 | `backend/app/gateway/routers/project_documents.py:486` |
-| `GET /api/projects/{project_id}/thread-files` | 401/403/404/422 | `backend/app/gateway/routers/project_thread_files.py:105` |
-| `POST /api/projects` | 401/403/422 | `backend/app/gateway/routers/projects.py:118` |
-| `GET /api/projects` | 401/403/422 | `backend/app/gateway/routers/projects.py:126` |
-| `GET /api/projects/config` | 401/403 | `backend/app/gateway/routers/projects.py:133` |
-| `GET /api/projects/{project_id}` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:148` |
-| `PATCH /api/projects/{project_id}` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:157` |
-| `POST /api/projects/{project_id}/archive` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:167` |
-| `POST /api/projects/{project_id}/restore` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:176` |
-| `DELETE /api/projects/{project_id}` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:185` |
-| `GET /api/projects/{project_id}/threads` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:193` |
-| `GET /api/runs/{run_id}/messages` | 401/403/404/422 | `backend/app/gateway/routers/runs.py:110` |
-| `GET /api/runs/{run_id}/feedback` | 401/403/404/422 | `backend/app/gateway/routers/runs.py:141` |
-| `POST /api/runs/stream` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/runs.py:35` |
+| `POST /api/input-polish` | 400/401/403/404/422/503 | `backend/app/gateway/routers/input_polish.py:58` |
+| `GET /api/integrations/lark/status` | 401/500 | `backend/app/gateway/routers/integrations.py:262` |
+| `POST /api/integrations/lark/install` | 400/401/403/404/500 | `backend/app/gateway/routers/integrations.py:272` |
+| `POST /api/integrations/lark/config/start` | 400/401/404/422/500/504 | `backend/app/gateway/routers/integrations.py:306` |
+| `POST /api/integrations/lark/config/complete` | 400/401/404/409/422/500/504 | `backend/app/gateway/routers/integrations.py:326` |
+| `POST /api/integrations/lark/config/credentials` | 400/401/404/422/500/504 | `backend/app/gateway/routers/integrations.py:353` |
+| `POST /api/integrations/lark/auth/start` | 400/401/404/409/422/500/504 | `backend/app/gateway/routers/integrations.py:376` |
+| `POST /api/integrations/lark/auth/complete` | 400/401/404/409/422/500/504 | `backend/app/gateway/routers/integrations.py:401` |
+| `GET /api/mcp/config` | 401/403 | `backend/app/gateway/routers/mcp.py:1147` |
+| `POST /api/mcp/cache/reset` | 401/403 | `backend/app/gateway/routers/mcp.py:1559` |
+| `PUT /api/mcp/config` | 400/401/403/422/500 | `backend/app/gateway/routers/mcp.py:1588` |
+| `POST /api/mcp/config/servers` | 400/401/403/422/500 | `backend/app/gateway/routers/mcp.py:1647` |
+| `PUT /api/mcp/config/server` | 400/401/403/422/500 | `backend/app/gateway/routers/mcp.py:1669` |
+| `DELETE /api/mcp/config/servers/{server_name:path}` | 401/403/422/500 | `backend/app/gateway/routers/mcp.py:1694` |
+| `PATCH /api/mcp/config` | 401/403/422/500 | `backend/app/gateway/routers/mcp.py:1715` |
+| `POST /api/threads/{thread_id}/mcp-tasks/{task_id}/cancel` | 401/403/404/422/503 | `backend/app/gateway/routers/mcp_tasks.py:176` |
+| `GET /api/threads/{thread_id}/mcp-tasks` | 401/403/404/422 | `backend/app/gateway/routers/mcp_tasks.py:93` |
+| `GET /api/threads/{thread_id}/mcp-tasks/{task_id}` | 401/403/404/422 | `backend/app/gateway/routers/mcp_tasks.py:134` |
+| `GET /api/memory` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:255` |
+| `POST /api/memory/reload` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:308` |
+| `DELETE /api/memory` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:353` |
+| `POST /api/memory/facts` | 400/401/409/422/500/501 | `backend/app/gateway/routers/memory.py:384` |
+| `DELETE /api/memory/facts/{fact_id}` | 401/404/409/422/500/501 | `backend/app/gateway/routers/memory.py:423` |
+| `PATCH /api/memory/facts/{fact_id}` | 400/401/404/409/422/500/501 | `backend/app/gateway/routers/memory.py:457` |
+| `GET /api/memory/export` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:496` |
+| `POST /api/memory/import` | 401/409/422/500/501 | `backend/app/gateway/routers/memory.py:517` |
+| `GET /api/memory/config` | 401 | `backend/app/gateway/routers/memory.py:551` |
+| `GET /api/memory/status` | 401/409/500/501 | `backend/app/gateway/routers/memory.py:601` |
+| `GET /api/models/{model_name}` | 401/403/404/422/500 | `backend/app/gateway/routers/models.py:221` |
+| `GET /api/models` | 401/500 | `backend/app/gateway/routers/models.py:135` |
+| `GET /api/projects/{project_id}/documents` | 401/403/404/422 | `backend/app/gateway/routers/project_documents.py:173` |
+| `POST /api/projects/{project_id}/documents` | 400/401/403/404/413/422 | `backend/app/gateway/routers/project_documents.py:197` |
+| `POST /api/projects/{project_id}/documents/from-thread` | 400/401/403/404/413/422 | `backend/app/gateway/routers/project_documents.py:304` |
+| `POST /api/projects/{project_id}/documents/{document_id}/attach-to-thread/{thread_id}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/project_documents.py:376` |
+| `GET /api/projects/{project_id}/documents/{document_id}/content` | 401/403/404/409/422 | `backend/app/gateway/routers/project_documents.py:454` |
+| `DELETE /api/projects/{project_id}/documents/{document_id}` | 401/403/404/422 | `backend/app/gateway/routers/project_documents.py:528` |
+| `GET /api/projects/{project_id}/thread-files` | 401/403/404/422 | `backend/app/gateway/routers/project_thread_files.py:102` |
+| `POST /api/projects` | 401/403/422 | `backend/app/gateway/routers/projects.py:116` |
+| `GET /api/projects` | 401/403/422 | `backend/app/gateway/routers/projects.py:124` |
+| `GET /api/projects/config` | 401/403 | `backend/app/gateway/routers/projects.py:131` |
+| `GET /api/projects/{project_id}` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:146` |
+| `PATCH /api/projects/{project_id}` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:155` |
+| `POST /api/projects/{project_id}/archive` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:165` |
+| `POST /api/projects/{project_id}/restore` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:174` |
+| `DELETE /api/projects/{project_id}` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:183` |
+| `GET /api/projects/{project_id}/threads` | 401/403/404/422 | `backend/app/gateway/routers/projects.py:190` |
+| `GET /api/runs/{run_id}/messages` | 401/403/404/422 | `backend/app/gateway/routers/runs.py:113` |
+| `GET /api/runs/{run_id}/feedback` | 401/403/404/422 | `backend/app/gateway/routers/runs.py:144` |
+| `POST /api/runs/stream` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/runs.py:40` |
 | `POST /api/runs/wait` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/runs.py:61` |
-| `POST /api/scheduled-tasks/preview-cron` | 401/403/422 | `backend/app/gateway/routers/scheduled_tasks.py:167` |
-| `GET /api/scheduled-tasks` | 401/403 | `backend/app/gateway/routers/scheduled_tasks.py:178` |
-| `POST /api/scheduled-tasks` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:189` |
-| `GET /api/scheduled-tasks/{task_id}` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:254` |
-| `PATCH /api/scheduled-tasks/{task_id}` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:268` |
-| `POST /api/scheduled-tasks/{task_id}/pause` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:380` |
-| `POST /api/scheduled-tasks/{task_id}/resume` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:412` |
-| `POST /api/scheduled-tasks/{task_id}/trigger` | 401/403/404/409/422/502 | `backend/app/gateway/routers/scheduled_tasks.py:441` |
-| `DELETE /api/scheduled-tasks/{task_id}` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:462` |
-| `GET /api/scheduled-tasks/{task_id}/runs` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:485` |
-| `GET /api/threads/{thread_id}/scheduled-tasks` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:505` |
-| `GET /api/skills` | 401/500 | `backend/app/gateway/routers/skills.py:277` |
-| `POST /api/skills/install` | 400/401/403/404/409/422/500 | `backend/app/gateway/routers/skills.py:293` |
-| `POST /api/skills/install/upload` | 400/401/403/404/409/413/422/500 | `backend/app/gateway/routers/skills.py:324` |
-| `POST /api/skills/reload` | 401/403/500 | `backend/app/gateway/routers/skills.py:362` |
-| `GET /api/skills/custom` | 401/500 | `backend/app/gateway/routers/skills.py:379` |
-| `GET /api/skills/custom/{skill_name}/export-manifest` | 204/401/403/404/409/413/422/429/500/503 | `backend/app/gateway/routers/skills.py:396` |
-| `GET /api/skills/custom/{skill_name}/export` | 204/401/403/404/409/413/422/429/500/503 | `backend/app/gateway/routers/skills.py:416` |
-| `GET /api/skills/custom/{skill_name}` | 401/403/404/422/500 | `backend/app/gateway/routers/skills.py:437` |
-| `PUT /api/skills/custom/{skill_name}` | 400/401/403/404/422/500 | `backend/app/gateway/routers/skills.py:459` |
-| `DELETE /api/skills/custom/{skill_name}` | 400/401/403/404/422/500 | `backend/app/gateway/routers/skills.py:499` |
-| `GET /api/skills/custom/{skill_name}/history` | 401/403/404/422/500 | `backend/app/gateway/routers/skills.py:529` |
-| `POST /api/skills/custom/{skill_name}/rollback` | 400/401/403/404/422/500 | `backend/app/gateway/routers/skills.py:555` |
-| `GET /api/skills/{skill_name}` | 401/404/422/500 | `backend/app/gateway/routers/skills.py:609` |
-| `PUT /api/skills/{skill_name}` | 401/403/404/422/500 | `backend/app/gateway/routers/skills.py:681` |
-| `GET /api/threads/{thread_id}/subagent-batches/{batch_id}/results.jsonl` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:107` |
-| `GET /api/threads/{thread_id}/subagent-batches` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:41` |
-| `GET /api/threads/{thread_id}/subagent-batches/{batch_id}` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:48` |
-| `GET /api/threads/{thread_id}/subagent-batches/{batch_id}/items` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:55` |
-| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/pause` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:71` |
-| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/resume` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:78` |
-| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/cancel` | 401/403/404/422/503 | `backend/app/gateway/routers/subagent_batches.py:85` |
-| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/items/{item_id}/retry` | 401/403/404/409/422 | `backend/app/gateway/routers/subagent_batches.py:97` |
+| `POST /api/scheduled-tasks/preview-cron` | 401/403/422 | `backend/app/gateway/routers/scheduled_tasks.py:234` |
+| `GET /api/scheduled-tasks` | 401/403 | `backend/app/gateway/routers/scheduled_tasks.py:245` |
+| `POST /api/scheduled-tasks` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:255` |
+| `GET /api/scheduled-tasks/{task_id}` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:294` |
+| `PATCH /api/scheduled-tasks/{task_id}` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:307` |
+| `POST /api/scheduled-tasks/{task_id}/pause` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:358` |
+| `POST /api/scheduled-tasks/{task_id}/resume` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:391` |
+| `POST /api/scheduled-tasks/{task_id}/trigger` | 401/403/404/409/422/502 | `backend/app/gateway/routers/scheduled_tasks.py:428` |
+| `DELETE /api/scheduled-tasks/{task_id}` | 401/403/404/409/422 | `backend/app/gateway/routers/scheduled_tasks.py:453` |
+| `GET /api/scheduled-tasks/{task_id}/runs` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:473` |
+| `GET /api/threads/{thread_id}/scheduled-tasks` | 401/403/404/422 | `backend/app/gateway/routers/scheduled_tasks.py:494` |
+| `GET /api/skills` | 401/500 | `backend/app/gateway/routers/skills.py:498` |
+| `POST /api/skills/install` | 400/401/403/404/409/422/500 | `backend/app/gateway/routers/skills.py:526` |
+| `POST /api/skills/install/upload` | 400/401/403/404/409/413/422/500 | `backend/app/gateway/routers/skills.py:543` |
+| `POST /api/skills/reload` | 401/403/500 | `backend/app/gateway/routers/skills.py:598` |
+| `GET /api/skills/custom` | 401/500 | `backend/app/gateway/routers/skills.py:645` |
+| `GET /api/skills/custom/{skill_name}/export-manifest` | 204/401/403/404/409/413/422/429/500/503 | `backend/app/gateway/routers/skills.py:687` |
+| `GET /api/skills/custom/{skill_name}/export` | 204/401/403/404/409/413/422/429/500/503 | `backend/app/gateway/routers/skills.py:707` |
+| `GET /api/skills/custom/{skill_name}` | 401/403/404/422/500 | `backend/app/gateway/routers/skills.py:728` |
+| `PUT /api/skills/custom/{skill_name}` | 400/401/403/404/422/500 | `backend/app/gateway/routers/skills.py:760` |
+| `DELETE /api/skills/custom/{skill_name}` | 400/401/403/404/422/500 | `backend/app/gateway/routers/skills.py:827` |
+| `GET /api/skills/custom/{skill_name}/history` | 401/403/404/422/500 | `backend/app/gateway/routers/skills.py:876` |
+| `POST /api/skills/custom/{skill_name}/rollback` | 400/401/403/404/422/500 | `backend/app/gateway/routers/skills.py:911` |
+| `GET /api/skills/{skill_name}` | 401/404/422/500 | `backend/app/gateway/routers/skills.py:1012` |
+| `PUT /api/skills/{skill_name}` | 401/403/404/422/500 | `backend/app/gateway/routers/skills.py:1095` |
+| `GET /api/threads/{thread_id}/subagent-batches/{batch_id}/results.jsonl` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:129` |
+| `GET /api/threads/{thread_id}/subagent-batches` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:43` |
+| `GET /api/threads/{thread_id}/subagent-batches/{batch_id}` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:50` |
+| `GET /api/threads/{thread_id}/subagent-batches/{batch_id}/items` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:57` |
+| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/pause` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:93` |
+| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/resume` | 401/403/404/422 | `backend/app/gateway/routers/subagent_batches.py:100` |
+| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/cancel` | 401/403/404/422/503 | `backend/app/gateway/routers/subagent_batches.py:107` |
+| `POST /api/threads/{thread_id}/subagent-batches/{batch_id}/items/{item_id}/retry` | 401/403/404/409/422 | `backend/app/gateway/routers/subagent_batches.py:119` |
 | `GET /api/subagents` | 401 | `backend/app/gateway/routers/subagents.py:164` |
 | `POST /api/subagents` | 401/403/409/422 | `backend/app/gateway/routers/subagents.py:171` |
 | `PUT /api/subagents/{name}` | 401/403/404/422 | `backend/app/gateway/routers/subagents.py:196` |
 | `DELETE /api/subagents/{name}` | 401/403/404/422 | `backend/app/gateway/routers/subagents.py:232` |
-| `POST /api/threads/{thread_id}/suggestions` | 401/403/404/422 | `backend/app/gateway/routers/suggestions.py:105` |
-| `GET /api/suggestions/config` | 401 | `backend/app/gateway/routers/suggestions.py:92` |
-| `GET /api/threads/{thread_id}/runs` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1093` |
-| `GET /api/threads/{thread_id}/runs/page` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1103` |
-| `GET /api/threads/{thread_id}/runs/{run_id}` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1145` |
-| `POST /api/threads/{thread_id}/runs/{run_id}/cancel` | 401/403/404/409/422 | `backend/app/gateway/routers/thread_runs.py:1157` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/join` | 401/403/404/409/422 | `backend/app/gateway/routers/thread_runs.py:1217` |
-| `POST /api/threads/{thread_id}/runs/{run_id}/stream` | 401/403/404/409/422/503 | `backend/app/gateway/routers/thread_runs.py:1333` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/stream` | 401/403/404/409/422/503 | `backend/app/gateway/routers/thread_runs.py:1351` |
-| `GET /api/threads/{thread_id}/messages` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1363` |
-| `GET /api/threads/{thread_id}/messages/page` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1502` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/messages` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1530` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | 401/403/404/409/422 | `backend/app/gateway/routers/thread_runs.py:1642` |
-| `POST /api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | 401/403/404/409/413/422/429/503 | `backend/app/gateway/routers/thread_runs.py:1654` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/events` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1712` |
-| `GET /api/threads/{thread_id}/runs/{run_id}/workspace-changes` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1749` |
-| `GET /api/threads/{thread_id}/token-usage` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1769` |
-| `POST /api/threads/{thread_id}/runs/regenerate/prepare` | 401/403/404/409/422/500 | `backend/app/gateway/routers/thread_runs.py:903` |
-| `POST /api/threads/{thread_id}/runs/edit-regenerate/prepare` | 401/403/404/409/422/500 | `backend/app/gateway/routers/thread_runs.py:914` |
-| `POST /api/threads/{thread_id}/runs` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/thread_runs.py:925` |
-| `POST /api/threads/{thread_id}/runs/stream` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/thread_runs.py:943` |
-| `POST /api/threads/{thread_id}/runs/wait` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/thread_runs.py:998` |
-| `POST /api/threads/search` | 400/401/403/422 | `backend/app/gateway/routers/threads.py:1175` |
-| `PATCH /api/threads/{thread_id}` | 401/403/404/422/500 | `backend/app/gateway/routers/threads.py:1218` |
-| `POST /api/threads/{thread_id}/move` | 401/403/404/422 | `backend/app/gateway/routers/threads.py:1257` |
-| `GET /api/threads/{thread_id}` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1278` |
-| `GET /api/threads/{thread_id}/goal` | 401/403/404/422/500 | `backend/app/gateway/routers/threads.py:1331` |
-| `PUT /api/threads/{thread_id}/goal` | 401/403/404/409/422/500 | `backend/app/gateway/routers/threads.py:1344` |
-| `DELETE /api/threads/{thread_id}/goal` | 401/403/404/409/422/500 | `backend/app/gateway/routers/threads.py:1370` |
-| `POST /api/threads/{thread_id}/compact` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1401` |
-| `GET /api/threads/{thread_id}/state` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1448` |
-| `POST /api/threads/{thread_id}/state` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1497` |
-| `POST /api/threads/{thread_id}/history` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1701` |
-| `DELETE /api/threads/{thread_id}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/threads.py:708` |
-| `POST /api/threads` | 401/403/404/422/500 | `backend/app/gateway/routers/threads.py:868` |
-| `POST /api/threads/{thread_id}/branches` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:955` |
-| `GET /api/trash/documents` | 401/403/422 | `backend/app/gateway/routers/trash.py:139` |
-| `POST /api/trash/documents/{document_id}/restore` | 401/403/404/409/422 | `backend/app/gateway/routers/trash.py:173` |
-| `POST /api/trash/documents/{document_id}/purge` | 401/403/404/422/500 | `backend/app/gateway/routers/trash.py:210` |
-| `POST /api/trash/purge` | 401/403/500 | `backend/app/gateway/routers/trash.py:228` |
-| `POST /api/threads/{thread_id}/uploads` | 400/401/403/404/413/422/500 | `backend/app/gateway/routers/uploads.py:358` |
-| `GET /api/threads/{thread_id}/uploads/limits` | 401/403/404/422 | `backend/app/gateway/routers/uploads.py:433` |
-| `GET /api/threads/{thread_id}/uploads/list` | 400/401/403/404/422 | `backend/app/gateway/routers/uploads.py:444` |
-| `DELETE /api/threads/{thread_id}/uploads/{filename}` | 400/401/403/404/422/500 | `backend/app/gateway/routers/uploads.py:456` |
-| `GET /api/v1/auth/preferences` | 401/403/409/422/503 | `backend/app/gateway/routers/user_preferences.py:42` |
-| `PATCH /api/v1/auth/preferences` | 401/403/409/422/503 | `backend/app/gateway/routers/user_preferences.py:57` |
+| `POST /api/threads/{thread_id}/suggestions` | 401/403/404/422 | `backend/app/gateway/routers/suggestions.py:98` |
+| `GET /api/suggestions/config` | 401 | `backend/app/gateway/routers/suggestions.py:86` |
+| `GET /api/threads/{thread_id}/runs` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1215` |
+| `GET /api/threads/{thread_id}/runs/page` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1225` |
+| `GET /api/threads/{thread_id}/runs/{run_id}` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1267` |
+| `POST /api/threads/{thread_id}/runs/{run_id}/cancel` | 401/403/404/409/422 | `backend/app/gateway/routers/thread_runs.py:1279` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/join` | 401/403/404/409/422 | `backend/app/gateway/routers/thread_runs.py:1340` |
+| `POST /api/threads/{thread_id}/runs/{run_id}/stream` | 401/403/404/409/422/503 | `backend/app/gateway/routers/thread_runs.py:1450` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/stream` | 401/403/404/409/422/503 | `backend/app/gateway/routers/thread_runs.py:1463` |
+| `GET /api/threads/{thread_id}/messages` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1480` |
+| `GET /api/threads/{thread_id}/messages/page` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1620` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/messages` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1648` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | 401/403/404/409/422 | `backend/app/gateway/routers/thread_runs.py:1762` |
+| `POST /api/threads/{thread_id}/runs/{run_id}/artifacts/archive` | 401/403/404/409/413/422/429/503 | `backend/app/gateway/routers/thread_runs.py:1778` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/events` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1837` |
+| `GET /api/threads/{thread_id}/runs/{run_id}/workspace-changes` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1885` |
+| `GET /api/threads/{thread_id}/token-usage` | 401/403/404/422 | `backend/app/gateway/routers/thread_runs.py:1908` |
+| `POST /api/threads/{thread_id}/runs/regenerate/prepare` | 401/403/404/409/422/500 | `backend/app/gateway/routers/thread_runs.py:963` |
+| `POST /api/threads/{thread_id}/runs/edit-regenerate/prepare` | 401/403/404/409/422/500 | `backend/app/gateway/routers/thread_runs.py:974` |
+| `POST /api/threads/{thread_id}/runs` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/thread_runs.py:985` |
+| `POST /api/threads/{thread_id}/runs/stream` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/thread_runs.py:1003` |
+| `POST /api/threads/{thread_id}/runs/wait` | 400/401/403/404/409/422/501 | `backend/app/gateway/routers/thread_runs.py:1053` |
+| `POST /api/threads/search` | 400/401/403/422 | `backend/app/gateway/routers/threads.py:1286` |
+| `PATCH /api/threads/{thread_id}` | 401/403/404/422/500 | `backend/app/gateway/routers/threads.py:1365` |
+| `POST /api/threads/{thread_id}/move` | 401/403/404/422 | `backend/app/gateway/routers/threads.py:1404` |
+| `GET /api/threads/{thread_id}` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1425` |
+| `GET /api/threads/{thread_id}/goal` | 401/403/404/422/500 | `backend/app/gateway/routers/threads.py:1478` |
+| `PUT /api/threads/{thread_id}/goal` | 401/403/404/409/422/500 | `backend/app/gateway/routers/threads.py:1491` |
+| `DELETE /api/threads/{thread_id}/goal` | 401/403/404/409/422/500 | `backend/app/gateway/routers/threads.py:1517` |
+| `POST /api/threads/{thread_id}/compact` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1548` |
+| `GET /api/threads/{thread_id}/state` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1597` |
+| `POST /api/threads/{thread_id}/state` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1646` |
+| `POST /api/threads/{thread_id}/history` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1865` |
+| `DELETE /api/threads/{thread_id}` | 401/403/404/409/422/500 | `backend/app/gateway/routers/threads.py:756` |
+| `POST /api/threads` | 401/403/404/422/500 | `backend/app/gateway/routers/threads.py:959` |
+| `POST /api/threads/{thread_id}/branches` | 401/403/404/409/422/500/503 | `backend/app/gateway/routers/threads.py:1051` |
+| `GET /api/trash/documents` | 401/403/422 | `backend/app/gateway/routers/trash.py:137` |
+| `POST /api/trash/documents/{document_id}/restore` | 401/403/404/409/422 | `backend/app/gateway/routers/trash.py:171` |
+| `POST /api/trash/documents/{document_id}/purge` | 401/403/404/422/500 | `backend/app/gateway/routers/trash.py:208` |
+| `POST /api/trash/purge` | 401/403/500 | `backend/app/gateway/routers/trash.py:226` |
+| `POST /api/threads/{thread_id}/uploads` | 400/401/403/404/413/422/500 | `backend/app/gateway/routers/uploads.py:394` |
+| `GET /api/threads/{thread_id}/uploads/limits` | 401/403/404/422 | `backend/app/gateway/routers/uploads.py:494` |
+| `GET /api/threads/{thread_id}/uploads/list` | 400/401/403/404/422 | `backend/app/gateway/routers/uploads.py:505` |
+| `DELETE /api/threads/{thread_id}/uploads/{filename}` | 400/401/403/404/422/500 | `backend/app/gateway/routers/uploads.py:517` |
+| `GET /api/v1/auth/preferences` | 401/403/409/422/503 | `backend/app/gateway/routers/user_preferences.py:51` |
+| `PATCH /api/v1/auth/preferences` | 401/403/409/422/503 | `backend/app/gateway/routers/user_preferences.py:66` |
 
 
 ---
@@ -1200,7 +1259,7 @@ class RunCreateRequest(BaseModel):   # extra="forbid"
 
 ### 5.5 MCP 配置合并
 
-`PUT /api/mcp/config` 实现 `_merge_preserving_secrets()`（`routers/mcp.py:1174-1210+`）：
+`PUT /api/mcp/config` 实现 `_merge_preserving_secrets()`（`routers/mcp.py:897`（定义），调用点 `:1328`、`:1511`）：
 
 1. `ExtensionsConfig.resolve_config_path()`，缺失则落到 `<project_root>/extensions_config.json`
 2. 在 `extensions_config_write_lock` + 跨进程 `extensions_config_file_lock(path)` 内做**整个 read-modify-write**

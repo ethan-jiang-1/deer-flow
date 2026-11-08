@@ -12,10 +12,11 @@ DeerFlow 的配置系统由两套文件驱动，各有独立的加载路径、�
 
 | 问题 | 答案 |
 |------|------|
-| **几个配置文件？** | 两个 — `config.yaml`（AppConfig；`config.example.yaml` 里实际启用 38 个顶层键，另有 `plugins:` 等注释示例段）+ `extensions_config.json`（MCP servers + skills state + middlewares） |
+| **几个配置文件？** | 两个 — `config.yaml`（AppConfig；`config.example.yaml` 共 3680 行、`config_version: 63`，实际启用 43 个顶层键，另有 `plugins:` / `typesafe:` 等注释示例段）+ `extensions_config.json`（MCP servers + skills state + middlewares） |
 | **改 config.yaml 要重启吗？** | 分两半 — database/sandbox/channels 等基础设施字段要重启，model/tool/memory/prompt 等策略字段实时生效 |
 | **env var 怎么解析？** | `$VAR` → `os.getenv()`。AppConfig 严格模式（缺了就报错），ExtensionsConfig 宽松模式（缺了存空串） |
-| **配置优先级？** | 显式传参 > 环境变量 > project root（`DEER_FLOW_PROJECT_ROOT` 否则 cwd）> legacy `backend/` → `repo_root/`（`config/runtime_paths.py:7-16`、`config/app_config.py:156-160`） |
+| **🆕 `.env` 从哪读？** | 设了 `DEER_FLOW_ENV_FILE` 就只读那个文件（`deerflow/env.py:10`），否则回落 `load_dotenv()` 自动发现；与 `PYTHON_DOTENV_DISABLED` 同时设置会直接报错 |
+| **配置优先级？** | 显式传参 > 环境变量 > project root（`DEER_FLOW_PROJECT_ROOT` 否则 cwd）> legacy `backend/` → `repo_root/`（`config/runtime_paths.py:7-16`、`config/app_config.py:193-197`） |
 | **怎么加载自定义 tool/model？** | `resolve_variable("module.path:name", BaseTool)` — 动态 import + type check |
 | **subagent 怎么覆盖配置？** | 三层 override: builtin defaults → config.yaml 全局 → per-agent overrides |
 
@@ -74,7 +75,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 | 缓存策略 | `(mtime, size, sha256)` 内容指纹自动 reload | 懒加载，无自动 reload |
 | env var 缺失 | `raise ValueError` | 存空字符串 `""` |
 | 热更新 | 仅策略字段 | 需手动 `reload_extensions_config()` |
-| MCP cache | — | 独立 `(mtime, size, sha256)` 失效 (`mcp/cache.py:15`) |
+| MCP cache | — | 独立 `(mtime, size, sha256)` 失效 (`mcp/cache.py:117`) |
 
 两套文件的汇合点在 `get_available_tools()` 和 `make_lead_agent()`：
 - `config.yaml` → tool 列表（`resolve_variable` 解析）+ subagent 配置 + model 配置
@@ -86,7 +87,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ![Config Hot Reload](../internals/configuration/figures/config-hot-reload.svg)
 
-`lifespan()`（`app/gateway/app.py:272`）是进程生命周期分界线。启动时 `get_app_config()` 的快照传给 `langgraph_runtime()`，构建所有长生命周期对象并存到 `app.state`。后续请求走另一条路径 — 直接调 `get_app_config()` 检测 mtime 决定要不要重新从磁盘加载。
+`lifespan()`（`app/gateway/app.py:625`，实现体 `_gateway_lifespan` 在 `app/gateway/app.py:637`）是进程生命周期分界线。启动时 `get_app_config()` 的快照传给 `langgraph_runtime()`，构建所有长生命周期对象并存到 `app.state`。后续请求走另一条路径 — 直接调 `get_app_config()` 检测 mtime 决定要不要重新从磁盘加载。
 
 **设计理由：** 数据库连接池、checkpointer、沙箱 provider、IM 长连接是进程的"骨架" — 热替换这些会导致连接断开、状态丢失。而 model、tool、memory 是"策略"，下次请求读新值即可。
 
@@ -94,17 +95,17 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ## 优先级链
 
-### config.yaml (`app_config.py:384`)
+### config.yaml (`app_config.py:448`)
 
 ```
 ① 显式传参 config_path
 ② DEER_FLOW_CONFIG_PATH 环境变量（设了但文件不存在 → FileNotFoundError，不回落搜索）
 ③ project_root()/config.yaml（最常用）
      project_root() = DEER_FLOW_PROJECT_ROOT（须为存在的目录）否则 cwd   # runtime_paths.py:7-16
-④ legacy: backend/config.yaml → repo_root/config.yaml                  # app_config.py:156-160
+④ legacy: backend/config.yaml → repo_root/config.yaml                  # app_config.py:193-197
 ```
 
-### extensions_config.json (`extensions_config.py:419`)
+### extensions_config.json (`extensions_config.py:442`)
 
 ```
 ① 显式传参 config_path
@@ -117,7 +118,7 @@ Skills 的**路径**在 `config.yaml` 里（告诉系统去哪找 SKILL.md 文�
 
 ## env var 解析
 
-`AppConfig.resolve_env_variables()` (`app_config.py:565`) 在 YAML 解析后递归遍历整个 config dict。任何 string 值以 `$` 开头就调用 `os.getenv()`：
+`AppConfig.resolve_env_variables()` (`app_config.py:644`) 在 YAML 解析后递归遍历整个 config dict。任何 string 值以 `$` 开头就调用 `os.getenv()`：
 
 ```yaml
 # config.yaml
@@ -130,12 +131,12 @@ models:
 **AppConfig vs ExtensionsConfig 的差异：**
 
 ```python
-# AppConfig (app_config.py:565-580) — 严格模式
+# AppConfig (app_config.py:644 起) — 严格模式
 value = os.getenv(env_key)
 if value is None:
     raise ValueError(f"Environment variable {env_key} not found for config value ...")
 
-# ExtensionsConfig (extensions_config.py:526-545) — 宽松模式
+# ExtensionsConfig — 宽松模式
 value = os.getenv(env_key)       # 缺了就是 None/空，不报错
 ```
 
@@ -147,8 +148,8 @@ MCP server 的 env 字段设计为宽松是因为 server 可能用 `env` 传 fal
 
 | 缓存 | 位置 | 失效方式 |
 |------|------|----------|
-| `_app_config` | `app_config.py:651` | `(mtime, size, sha256)` 内容指纹 + path 变更自动重载 |
-| `_extensions_config` | `extensions_config.py:589` | 懒加载，需手动 `reload_extensions_config()` |
-| `_mcp_tools_cache` | `mcp/cache.py:15` | 独立 path + `(mtime, size, sha256)` 指纹比较，失败不重试 |
+| `_app_config` | `app_config.py:732` | `(mtime, size, sha256)` 内容指纹 + path 变更 + extensions 实例变更自动重载 |
+| `_extensions_config` | `extensions_config.py:642` | 懒加载，需手动 `reload_extensions_config()`（`extensions_config.py:995`） |
+| `_mcp_tools_cache` | `mcp/cache.py:117` | 独立 path + `(mtime, size, sha256)` 指纹比较，失败不重试；另有按 server 名的 `_server_tool_cache`（`mcp/cache.py:121`）复用未变 server 的 tool 对象 |
 
 三者互不依赖，各自管理生命周期。`PUT /api/mcp/config` 是唯一同时触发后两者更新的路径 — 保存 JSON → `reload_extensions_config()` → `reset MCP cache`。

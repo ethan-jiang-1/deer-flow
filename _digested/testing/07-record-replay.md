@@ -12,9 +12,9 @@ DeerFlow 最先进的测试模式。录一次（需要 API key），永久回放
 
 | 文件 | 用途 |
 |------|------|
-| `tests/_replay_fixture.py` | 共享 config builder + Gateway 驱动 + SSE 形状提取 |
-| `tests/replay_provider.py` | `ReplayChatModel` — 416 行确定性 LLM |
-| `tests/test_replay_golden.py` | Layer 1 replay：构造 Gateway → 断言 event 序列 |
+| `backend/tests/_replay_fixture.py` | 共享 config builder + Gateway 驱动 + SSE 形状提取 |
+| `backend/tests/replay_provider.py` | `ReplayChatModel` — 415 行确定性 LLM |
+| `backend/tests/test_replay_golden.py` | Layer 1 replay：构造 Gateway → 断言 event 序列 |
 
 ## ReplayChatModel 核心机制
 
@@ -79,16 +79,32 @@ def bind_tools(self, tools, **kwargs):
 
 ## 如何录制/回放
 
+注意区分**两件不同的事**（v2.2.0 的 `backend/docs/REPLAY_E2E.md:94` 与 `test_replay_golden.py:88-89` 都写明了）：
+
+- `DEERFLOW_WRITE_GOLDEN=1` 只**重写提交的 golden JSON**（SSE 形状序列），不产生新 fixture；
+- **产生新 fixture** 要走录制工序：真前端 + 真模型（`frontend/tests/e2e-record/`）+ `backend/scripts/record_gateway.py` + `backend/scripts/build_fixture_from_jsonl.py`，见 `test-strategy/02-deterministic-llm.md` 级 4。
+
 ```bash
-# 录制（需要 API key）
-DEERFLOW_WRITE_GOLDEN=1 uv run pytest tests/test_replay_golden.py
+# 重写 golden（fixture 不变；需要能跑通回放）
+DEERFLOW_WRITE_GOLDEN=1 PYTHONPATH=. uv run pytest tests/test_replay_golden.py
 
 # 回放（零 key，毫秒级）
 uv run pytest tests/test_replay_golden.py
 ```
+
+**`PYTHONPATH=.` 不能省**：`test_replay_golden.py` 直接 `import replay_provider`（同目录的模块，不是包内模块），`backend/pyproject.toml` 没把 `tests/` 加进 `pythonpath`，所以必须从 `backend/` 目录带着 `PYTHONPATH=.` 跑。这是这份笔记里最容易踩的一脚。
 
 ## 缺陷检测能力
 
 - System prompt 变更导致 agent 产生不同 tool call → hash miss → `replay_misses` 非空 → **CI 失败**
 - 新增 ThreadState 字段 → `keys` 变化 → golden mismatch → **CI 失败**
 - Middleware 顺序变更 → event 序列变化 → **CI 失败**
+
+**但要注意两条断言防的不是同一类事**（`backend/tests/test_replay_golden.py:70-72` 的注释把这个分工写得很明白）：
+
+| 症状 | 谁抓 | 为什么 |
+|---|---|---|
+| fixture 与实际系统 prompt / agent 图不匹配 | `replay_misses()` 清单（`:84`） | Gateway 的 `LLMErrorHandlingMiddleware` 会把 hash miss **吞成一条正常的 assistant 错误消息**，SSE 形状完全不变——只看形状会全绿 |
+| 后端 SSE 协议真的漂移了 | `events == golden`（`:97`） | 形状序列是前端消费的契约，由 golden 钉住 |
+
+一句话：**形状断言抓协议漂移，miss 清单抓 fixture 过期**。少任何一条，另一条都会被它掩盖。

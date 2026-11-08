@@ -119,7 +119,7 @@ response = client.chat("Hello")
 print(response)
 ```
 
-只需要 3 行代码，不需要启动任何服务（`DeerFlowClient.chat(message, *, thread_id=None, **kwargs)`，`client.py:1193`）。
+只需要 3 行代码，不需要启动任何服务（`DeerFlowClient.chat(message, *, thread_id=None, **kwargs)`，`deerflow/client.py:1314`）。
 
 ### ③ Docker
 
@@ -142,7 +142,13 @@ channels:
 
 然后用户直接在飞书里 @机器人 聊天。
 
-聊天平台共 8 个：Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、Buzz；另有 webhook 驱动的 GitHub 通道（`backend/app/channels/`）。频道实现内部用 `langgraph-sdk` 调 Gateway（`app/channels/manager.py:21,1788-1790`）。
+聊天平台共 **9 个**：Feishu/Lark、DingTalk、Slack、Telegram、Discord、WeCom、WeChat、**QQ**、Buzz；另有 webhook 驱动的 GitHub 通道（`backend/app/channels/`）。频道实现内部用 `langgraph-sdk` 调 Gateway——manager 懒初始化 `langgraph_sdk` async client（`app/channels/manager.py:2311` 的 `_get_client()`，构造点在 `:1625`）。
+
+v2.2.0 起这条路径多了三件事，配置前值得知道：
+
+- **入站有界**：总线容量 `channels.inbound_queue_maxsize`（默认 1000），满载丢消息并告警，不无界堆积。
+- **多副本只有一个连平台**：`channels.leader_lease` 按 provider 仲裁（`github` 除外），默认 `auto`。
+- **Web UI 录入的凭据要密钥**：设置 `DEER_FLOW_CREDENTIALS_KEY`，否则保存运行时凭据返回 503。
 
 ---
 

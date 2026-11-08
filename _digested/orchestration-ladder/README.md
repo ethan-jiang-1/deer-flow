@@ -14,14 +14,14 @@ topics: [orchestration, primitives, completion, state, budget, langgraph, compos
 | [01-完成语义与崩溃窗口](01-完成语义与崩溃窗口-接受可见静止处置.md) | 五时刻 × 七原语证据表、run 终态十步持久化顺序、九行崩溃窗口表、at-least-once 清单 |
 | [02-状态三分法](02-状态三分法-持久事实派生投影与内存权限.md) | 25 行状态主表；恢复姿态 = 标错对账/静默丢失，唯一可续跑是 checkpoint 链 |
 | [03-资源预算与公平性](03-资源预算与公平性-并发深度总量与容量边界.md) | 六层闸门叠加链、clamp 关系、超限三态、"默认无限制"三处 |
-| [04-LangGraph能力面榨取](04-LangGraph能力面榨取-未用原语与接入设计.md) | 七条榨取设计 + 优先级表（interrupt() 最高）；venv 1.1.9 依赖漂移 |
+| [04-LangGraph能力面榨取](04-LangGraph能力面榨取-未用原语与接入设计.md) | 七条榨取设计 + 优先级表（interrupt() 最高）；**venv 已对齐 1.2.9**（旧记 1.1.9 漂移已消解），新增 `jump_to` 作为 `Command` 被封后的官方替代 |
 | [05-组合模式与收尾纪律](05-组合模式与收尾纪律-跨原语协同.md) | 组合冲突矩阵（结构性禁止/软化/自由）、stop_reason 两套聚合纪律、goal 无 wrapup、通知三通道 |
 | [06-Session谱系与冷恢复](06-Session谱系与冷恢复-线程运行与所有权.md) | 六层身份谱系、双轨 id（关联键≠所有权键）、lease 双向围栏、冷恢复时序 |
 | [07-对照外部叙事](07-对照外部叙事-v1v2混淆与逐条核对.md) | 六条叙事逐条核对；最常见误传 = v1/v2 版本混淆 |
 | [08-图计算的本质](08-图计算的本质-DeerFlow编排的统一重述.md) | 四个真实的图、引擎做/拒绝清单、Agent 是原子、代码-语言倒置样本 |
 | [09-驾驶座手册](09-驾驶座手册-用已核验事实驱动DeerFlow.md) | 使用守则：选原语决策树、"完成"核对清单、预算陷阱、多 worker 清单 |
 | [10-反向借鉴](10-反向借鉴-DSH原语对DeerFlow的可吸收点.md) | DSH 九级原语逐个对照：三条最划算吸收（委派 fork KV 复用 / goal 有界报告 / ledger 对账）与不该借鉴的 |
-| [11-选择决策语义全景](11-选择决策语义全景-DeerFlow原语边界句与空白.md) | 逐原语模型可见边界句逐字盘点（含 path:line）、跨原语路由规则与升级阶梯、矛盾与空白登记；核心发现：goal 与 scheduler 无模型可见工具（图：[selection-ladder](figures/selection-ladder.svg)） |
+| [11-选择决策语义全景](11-选择决策语义全景-DeerFlow原语边界句与空白.md) | 逐原语模型可见边界句逐字盘点（含 path:line）、跨原语路由规则与升级阶梯、矛盾与空白登记；核心发现：goal 无模型可见工具；**scheduler 在 v2.2.0 变了**——`scheduler.tool_enabled`（默认关）会给交互轮提供 owner-bound schedule 工具（图：[selection-ladder](figures/selection-ladder.svg) 基于 v2.1.0 口径，尚未重绘） |
 | [12-goal驾驶座](12-goal驾驶座-续轮准入评估熔断与收尾.md) | 裁决权在独立评估器而非模型、驾驶座时间线、两个独立预算、blocker 枚举与隐藏续轮消息、no-progress 熔断签名、stand_down_reason 收尾（图：[goal-continuation](figures/goal-continuation.svg)） |
 
 ## 一句话结论
@@ -48,7 +48,7 @@ DeerFlow 给的不是中心调度引擎，而是**架在两节点 react 元图�
 | [composition-matrix.svg](figures/composition-matrix.svg) | 组合冲突色块矩阵、stop_reason 两套纪律、通知三通道 | [05](05-组合模式与收尾纪律-跨原语协同.md) |
 | [lineage-layers.svg](figures/lineage-layers.svg) | 六层身份谱系、双向围栏、冷恢复四步时序、四类断点 | [06](06-Session谱系与冷恢复-线程运行与所有权.md) |
 | [graph-essence.svg](figures/graph-essence.svg) | 四个真实的图、引擎做/拒绝、Agent 是原子、代码-语言倒置 | [08](08-图计算的本质-DeerFlow编排的统一重述.md) |
-| [selection-ladder.svg](figures/selection-ladder.svg) | 原语选择边界句与升级阶梯、选择权分界（goal/scheduler 不在模型选择集） | [11](11-选择决策语义全景-DeerFlow原语边界句与空白.md) |
+| [selection-ladder.svg](figures/selection-ladder.svg) | 原语选择边界句与升级阶梯、选择权分界（**v2.1.0 口径**：goal/scheduler 不在模型选择集；v2.2.0 的 `scheduler.tool_enabled` 已部分改变 scheduler 侧） | [11](11-选择决策语义全景-DeerFlow原语边界句与空白.md) |
 | [goal-continuation.svg](figures/goal-continuation.svg) | goal 续轮决策流：实例身份门 → 独立评估器 → blocker 枚举 → 双闸 | [12](12-goal驾驶座-续轮准入评估熔断与收尾.md) |
 
 ## 阅读路径

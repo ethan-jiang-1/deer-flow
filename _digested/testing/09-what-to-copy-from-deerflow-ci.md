@@ -62,7 +62,21 @@ def test_agent_reviews_code():
     assert "security" in result.lower()
 ```
 
-DeerFlow 有 **738 个测试文件 / 约 14.4k 个 `def test_` 函数**（v2.1.0 用 AST 实测，含约 830 处 `parametrize`）。真正调用**外部真实服务**的用例集中且可数：`test_client_live.py`（19 个，模块级 `pytestmark = pytest.mark.live`）、`test_client_live_policy.py`（11 个，`DEER_FLOW_RUN_LIVE_TESTS=1` 门）、`test_deferred_tool_promotion_real_llm.py`（1 个，`ONEAPI_E2E` 门），以及 `test_aio_sandbox_local_backend.py` 里 3 个带 `@pytest.mark.live` 的用例（该文件 96 个用例中只有这 3 个真连 Docker）。其余全部用 fake model / 录制回放。`make test` 用 `-m "not live"` 排除它们，`make test-live` 显式跑。
+DeerFlow 在 **v2.2.0** 有 **1,363 个测试文件 / 23,432 个 `def test` 函数 / 4,266 处 `parametrize`**（v2.1.0 为 738 / 约 14.4k / 约 830——文件涨 85%、函数约涨 63%，但 parametrize 涨了 5 倍，说明新增测试更偏向「同一逻辑多组输入」而不是「多写独立函数」）。
+
+真正调用**外部真实服务**的用例集中且可数——**v2.2.0 有 9 个文件带 `live` marker**，其中 7 个是新增的 `*_live.py`：
+
+| 文件 | 用例数 | 门 |
+|---|---|---|
+| `test_client_live.py` | 19 | 模块级 `pytestmark = pytest.mark.live` |
+| `test_client_live_policy.py` | **13**（v2.1.0 为 11） | `DEER_FLOW_RUN_LIVE_TESTS=1`；新增两个分别钉 Windows workflow 接线与 child-env 可启动 |
+| `test_deferred_tool_promotion_real_llm.py` | 1 | `ONEAPI_E2E`（`:41` 的 `pytestmark = pytest.mark.skipif(...)`） |
+| `test_aio_sandbox_local_backend.py` | **131 个中的 3 个**（v2.1.0 为 96 个中的 3 个） | `@pytest.mark.live`，真连 Docker |
+| 其余 5 个 `*_live.py` | — | 各自的环境门（IM 真凭据、真实 provider 等） |
+
+其余全部用 fake model / 录制回放。`make test` 用 `-m "not live"` 排除它们，`make test-live` 显式跑。
+
+**解释（为什么这组数字是「可数的」）**：live 用例总数是几十个量级，测试函数总数是两万多个——比例约 0.2%。这个比例本身就是可复制的设计目标：**真外部依赖不是「测不了就不测」，而是「集中成几十个受三重门保护的用例，其余全部替身化」**。三重门是 `CI` 环境变量、显式 opt-in 环境变量、config 存在性，三层都由 `test_client_live_policy.py` 用子进程重收集验证（`test-strategy/04-enforcement-meta.md` §6）。
 
 ## 3. FakeToolCallingModel（直接复制）
 
@@ -100,7 +114,9 @@ def isolated_env(tmp_path, monkeypatch):
     return tmp_path
 ```
 
-每个测试独立 `DEER_FLOW_HOME`，不污染全局状态。DeerFlow 的 **738** 个测试文件（递归计数，其中 `blocking_io/` 47 个）都这么用。
+每个测试独立 `DEER_FLOW_HOME`，不污染全局状态。DeerFlow 在 v2.2.0 有 **1,363** 个测试文件（递归计数：根 `test_*.py` 1271 + `blocking_io/` **89** + `monocle/` 3），其中 **132** 个文件提到 `DEER_FLOW_HOME`、**53** 个显式设 `DEER_FLOW_CONFIG_PATH`，都按这个路子隔离。
+
+规模翻倍后这套配方的压力点在于「进程级单例越积越多」——`backend/tests/conftest.py` 为此增加了一组 autouse 重置（`:82`/`:97`/`:115`/`:140`/`:159`），并且 `:21-40` 有一整块 `sys.modules["deerflow.subagents.executor"]` 的替身注入。可复制的教训是：**隔离配方不是一次写好的 fixture，而是随单例数量增长的维护清单**，见 `test-strategy/05-speed-isolation.md` §2。
 
 ## 5. Record/Replay E2E
 

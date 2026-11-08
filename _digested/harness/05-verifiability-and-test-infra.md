@@ -34,10 +34,11 @@ description: "agent 时代的测试基建设计原则：确定性、快速子集
 
 ### 后端（`backend/Makefile`）
 
-- **默认套件即"离线子集"**：`make test` = `pytest -m "not live" --ignore=tests/blocking_io tests/`——live（需外部服务）与 blocking-I/O 特化套件被显式排除，这正对应原则 1/3：agent 默认路径里没有网络依赖。
+- **默认套件即"离线子集"**：`make test`（`backend/Makefile:26-30`）= `$(MAKE) -k -j$(TEST_JOBS) $(TEST_SHARD_TARGETS)`，`TEST_JOBS ?= 4`（`:23`）——**v2.2.0 起本地默认就是四片并行**，而每片的 pytest 都带 `-m "not live" --ignore=tests/blocking_io`：live（需外部服务）与 blocking-I/O 特化套件被显式排除，这正对应原则 1/3：agent 默认路径里没有网络依赖。`-k` 让某片失败不取消其他片（"先看到全部失败"优先于"快速失败"）。
 - **单测入口**：根 AGENTS.md 文档化了 `python -m pytest tests/path/to/test.py::test_func -q`——单函数级入口（原则 2）。
-- **CI 一致性用分片基建保证**：`make test-shard SPLITS=4 GROUP=2` 按 `.test_durations` 时长基线做 `--splitting-algorithm least_duration` 分片，与 CI 共享同一套命令（原则 5）；分片与 CI 的关系被写进 Makefile 注释。
-- **规模**：`backend/tests/` 有 **704 个文件**，`AGENTS.md` 位于测试目录内、TDD 为强制（根 AGENTS.md："Backend tests live in `backend/tests/`（TDD is mandatory there）"）——测试目录自己也有 agent 指引，指令就近（原则 4）。
+- **CI 一致性用分片基建保证**：`make test-shard SPLITS=4 GROUP=2` 按 `.test_durations` 时长基线做 `--splitting-algorithm least_duration` 分片，与 CI 共享同一套命令（原则 5）；分片与 CI 的关系被写进 Makefile 注释（`:38-44`）。v2.2.0 的两处加固让这条"本地=CI"更实：**基线缺失时 fail-loud**（`:49-51`，提示 `make test-shard-durations`）、**再生命令带 `--clean-durations`**（`:57-58`，否则陈旧条目会永久霸占慢分片）。
+- **规模**：`backend/tests/` 有 **1,363** 个测试文件 / **23,432** 个 `def test`（v2.1.0 为 704 个文件），`AGENTS.md` 位于测试目录内、TDD 为强制（根 AGENTS.md："Backend tests live in `backend/tests/`（TDD is mandatory there）"）——测试目录自己也有 agent 指引，指令就近（原则 4）。
+- **🆕 2.2：AGENTS.md 本身也进了门禁**——`scripts/check_agent_guidance.py` 施加 KiB 尺寸预算（根 16/20、模块 28/32、深层 40/48、祖先链累计 80/96），`EXPECTED_GUIDANCE_PATHS` 钉住 **57** 个文件的精确集合，`lint-check.yml` 的 `agent-guidance` job 每 PR 跑并带 GitHub annotations。**这是"验证闭环"指向自身的一步**：给 agent 的指令也是交付物，也有一致性与预算约束（详见 `_digested/testing/06-ci-and-automation.md` 与 `_digested/test-strategy/04-enforcement-meta.md` §4）。
 
 ### 前端（`frontend/`）
 
@@ -47,6 +48,10 @@ description: "agent 时代的测试基建设计原则：确定性、快速子集
 
 - 格式检查交机器：`make format` / `ruff format --check` 在 CI 强制（根 AGENTS.md "Format before pushing"）——对应 Codex 官方建议"把格式与 lint 检查留给 CI"（[Codex docs](https://learn.chatgpt.com/docs/agent-configuration/agents-md)）。
 - 契约级一致性测试：`backend/tests/test_compose_default_bind_host.py` 把"每个服务的发布端口必须显式 bind 地址"钉进测试——**用测试替代理应属于指令的约束**，这是 agent 时代值得推广的模式（指令会被忽略，测试不会）。
+- 🆕 2.2 的三条新实例，正好覆盖三种"指令容易失效"的场景：
+  - **跨文件静默失败**：`scripts/check_label_declarations.py` 断言 triage workflow 里 apply 的每个标签都在 `.github/labels.yml` 声明（GitHub 对不存在的标签返回 422 并**丢弃整批**，失配是静默的）。
+  - **只在特定平台失效**：`backend-windows-live-policy.yml` 把"文本缓存字节精确往返"放在 `windows-latest` 上跑——换行翻译的回归在 ubuntu 上永远绿。
+  - **门禁自己失联**：`test_client_live_policy.py::test_windows_workflow_collects_all_five_policy_checks` 断言那条 Windows workflow 确实逐节点点名了 5 个策略用例——**"门禁是否还接在线上"本身是断言**。
 
 ## 4. Record-Replay：外部依赖的确定性化
 

@@ -12,6 +12,24 @@ DeerFlow 的环境变量有三个来源，文档表格逐条标注了证据路�
 2. **代码直接读取** —— `os.getenv` / `os.environ.get`。
 3. **Docker/构建期** —— `docker/*.yaml` 的 `${VAR}` 插值、`scripts/*.sh`、Makefile。
 
+## 🆕 dotenv 选择器（v2.2.0）
+
+v2.2.0 把"从哪儿读 `.env`"变成一个显式开关，实现是一个 37 行的独立模块 `deerflow/env.py`（刻意不 import 任何 config，避免 auth/debug 入口把默认配置预热进来）。
+
+| 变量 | 读取点 | 说明 |
+|------|--------|------|
+| `DEER_FLOW_ENV_FILE` | `env.py:10` `load_selected_env_file()` | 设了它，就**只**读这个文件；相对路径按**后端进程 cwd** 解析；必须是可读的 UTF-8 普通文件，否则 `ValueError`（错误信息不回显内容）。用 `utf-8-sig` 读，吞掉 Windows 记事本/PowerShell 写的 BOM。`load_dotenv(stream=..., override=False)`：**进程里已存在的变量（包括空值）永远赢**。未设置时返回 `False`，调用方回落原来的 `load_dotenv()` 自动发现 |
+| `PYTHON_DOTENV_DISABLED` | `env.py:21-22` | python-dotenv 自带的全局开关。与 `DEER_FLOW_ENV_FILE` **同时设置**时直接 `ValueError`（值 ∈ `1`/`true`/`t`/`yes`/`y`，大小写不敏感）——显式选择不能静默失效 |
+| `DEER_FLOW_COMPOSE_ENV_FILE` | `docker/docker-compose.yaml:202,252`；`scripts/deploy.sh:45,53` | **Compose 侧**的 env_file 路径（默认 `../.env`）。与 `DEER_FLOW_ENV_FILE` 无关，一个给容器、一个给后端进程 |
+
+三个调用点写成同一模式 `if not load_selected_env_file(): load_dotenv()`：
+
+- `config/app_config.py:67-70` —— 配置加载器
+- `app/gateway/auth/config.py:58-64` —— Gateway 认证配置（首次 `get_auth_config()` 时）
+- `backend/debug.py:23,33` —— 交互调试 CLI
+
+注意它**只影响环境变量**，不改变 config.yaml 的路径优先级（见文末"配置优先级总结"）。
+
 ## 模型 API Keys
 
 | 变量 | 读取方式 | 用途 |
@@ -75,7 +93,8 @@ DeerFlow 的环境变量有三个来源，文档表格逐条标注了证据路�
 
 | 变量 | 说明 |
 |------|------|
-| `DEER_FLOW_PROJECT_ROOT` | 项目根目录：设了必须是存在的目录，否则回落到 `cwd`（`config/runtime_paths.py:7-16`） |
+| `DEER_FLOW_PROJECT_ROOT` | 项目根目录：设了但解析后不是存在的目录 → `ValueError`（**不回落**）；未设才用 `cwd`（`config/runtime_paths.py:7-16`） |
+| `DEER_FLOW_HOST_BASE_DIR` | DooD 场景下 `base_dir` 对应的**宿主侧**路径，用于沙箱容器的 bind mount 源（`config/paths.py:164-181`；未设则用 `base_dir` 本身）。compose 固定传 `=${DEER_FLOW_HOME}` |
 | `DEER_FLOW_HOME` | 可写数据目录，默认 `{project_root}/.deer-flow`（`config/runtime_paths.py:19-23`） |
 | `DEER_FLOW_CONFIG_PATH` | config.yaml 的完整路径（优先级第 2 档） |
 | `DEER_FLOW_EXTENSIONS_CONFIG_PATH` | extensions_config.json 的完整路径（`config/extensions_config.py:424`；显式设置后文件缺失会报错，不再回落搜索） |
@@ -95,6 +114,9 @@ DeerFlow 的环境变量有三个来源，文档表格逐条标注了证据路�
 | `DEER_FLOW_AUTH_DISABLED` | **只认字面值 `1`**（`app/gateway/auth_disabled.py:30-31`）= 关闭认证，所有请求以合成 admin 用户 `"default"` 运行（email `default@test.local`，`auth_disabled.py:11-13,49-58`）。认证**默认开启**。显式生产环境下**被忽略**：`DEER_FLOW_ENV` 或 `ENVIRONMENT` 去空白转小写后 ∈ {`prod`, `production`} 即否决（`auth_disabled.py:20-27,34-35`） |
 | `AUTH_JWT_SECRET` | JWT 签名密钥。显式设置优先；未设时在 `DEER_FLOW_HOME` 下生成并持久化（`app/gateway/auth/config.py:25,48,57,68`） |
 | `AUTH_TRUSTED_PROXIES` | 逗号分隔的受信代理网段，用于解析真实客户端 IP（`app/gateway/routers/auth.py:211-229`，非法项只告警） |
+| 🆕 `DEER_FLOW_CREDENTIALS_KEY` | 静态凭据（MCP OAuth token、Web 端录入的 IM 频道凭证等）的 Fernet 加密密钥，`config/credentials_key.py:39` 的 `CREDENTIALS_KEY_ENV_VAR`。**逗号分隔的密钥列表**，逐个校验（urlsafe base64 43 字符 + `=`），空项忽略；格式不合法抛 `CredentialsKeyError`，密钥材料永不进错误信息。解密按 `MultiFernet` 顺序尝试，全失败抛 `CredentialsDecryptError`（调用方当作"数据缺失"处理，不崩）。未设时在 `{base_dir}/.credentials_key` 自动生成并持久化（走 `secret_file.read_or_create_secret_file` 的 0600 独占创建）。**多实例必须设同一个值**，否则另一个实例写下的 token 链在本实例解不开（`mcp/oauth.py:67`） |
+| `TYPESAFE_API_KEY` | 🆕 `typesafe.api_key_env` 的默认值（`typesafe/connection.py:44`），TypeSafe(Jev) guardrail / 记忆预筛 / 信号分类共用 |
+| `OPENAI_API_KEY`（复用） | 🆕 OpenAI Decisions 后端（`deerflow/openai_decisions/client.py`）的默认 `api_key_env`（`DEFAULT_API_KEY_ENV`），与模型 key 是同一个变量 |
 
 ## 内部通信
 
@@ -108,6 +130,7 @@ DeerFlow 的环境变量有三个来源，文档表格逐条标注了证据路�
 | `DEER_FLOW_STREAM_BRIDGE_REDIS_URL` | Redis stream bridge 地址；未设时依次回落 `REDIS_URL` → `redis://localhost:6379/0`（`runtime/stream_bridge/async_provider.py:28,45`） |
 | `REDIS_URL` | 通用 Redis 回落地址，被 stream bridge、checkpoint cache、sandbox ownership 共享（`runtime/checkpoint_cache/provider.py:22`、`community/aio_sandbox/ownership/factory.py:68`） |
 | `DEER_FLOW_SANDBOX_OWNERSHIP_REDIS_URL` | sandbox ownership 专用 Redis；未设时按 ownership → stream bridge → `REDIS_URL` 顺序回落（`community/aio_sandbox/ownership/factory.py:23,68`） |
+| 🆕 `DEER_FLOW_MULTI_INSTANCE` | `deployment.multi_instance: true` 的环境变量形式（`config/deployment_config.py:26` 的 `MULTI_INSTANCE_ENV_VAR`）。空白 / `0` / `false` / `no` / `off` 视为**未声明**（模板渲染的 `=false` 保持惰性），其余**任何**值都算声明——拼错也要 fail closed 跑门禁。声明后启动强制校验 postgres + db run_events + run ownership 心跳 + Redis stream bridge |
 
 ## IM 频道
 
@@ -213,6 +236,7 @@ DeerFlow 的环境变量有三个来源，文档表格逐条标注了证据路�
 | 变量 | 读取点 | 说明 |
 |------|--------|------|
 | `GITHUB_TOKEN` | `.env.example:67` | GitHub API Token（MCP GitHub server、GitHub 事件触发 agent 等） |
+| 🆕 `DEER_FLOW_TUI_TRANSPARENT` | `tui/cli.py:187` | 真值（`1`/`true`/`yes`/`on`，大小写不敏感）= 强制以透明背景启动 TUI（等价命令行 `--tui-transparent`）。见 [06-tui.md](06-tui.md) |
 | `SKIP_FRONTEND_BUILD` | `Makefile:150-164` | `make start` / `make start-daemon` 传 `--skip-frontend-build`，复用上次前端构建 |
 | `DEERFLOW_LARK_BROKER_URL` / `_HOST` / `_PORT` / `_TIMEOUT` / `_CLI` / `_PYTHON` / `_DENY_SUBCOMMANDS` | `integrations/lark_broker.py:41,86,137,432` | broker 侧车连接与 shim 参数（由 provisioner 注入；`_PYTHON` 在 PATH 为空时固定 python3 路径） |
 | `LANGSERVE_GRAPHS` / `LANGSMITH_LANGGRAPH_API_VARIANT` | `app/gateway` | LangGraph 兼容 runtime/Studio 集成相关 |
@@ -238,7 +262,7 @@ DeerFlow 的环境变量有三个来源，文档表格逐条标注了证据路�
 2. 环境变量 DEER_FLOW_CONFIG_PATH / DEER_FLOW_EXTENSIONS_CONFIG_PATH（设了但文件不存在 → 报错）
 3. project_root()/config.yaml
      project_root() = DEER_FLOW_PROJECT_ROOT（须为存在的目录）否则 cwd   # config/runtime_paths.py:7-16
-4. legacy 候选：backend/config.yaml → repo_root/config.yaml               # config/app_config.py:156-160
+4. legacy 候选：backend/config.yaml → repo_root/config.yaml               # config/app_config.py:193-197
    （extensions 侧：extensions_config.json → mcp_config.json；都没有则返回 None，extensions 可选）
 ```
 

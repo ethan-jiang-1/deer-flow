@@ -21,10 +21,12 @@ topics: [testing, governance, ci, architecture]
 | `test_compose_default_bind_host.py` | README 承诺的回环默认部署 ↔ 两个 compose 文件的每个发布端口显式 bind 地址 |
 | `test_compose_default_workers.py` | 单 Uvicorn worker 默认（run 状态在进程内，多 worker 会撕裂） |
 | `test_compose_extensions_config_writable.py` + `test_helm_extensions_config_writable.py` + `test_extensions_config_atomic_write.py` | `extensions_config.json` 运行时可写的挂载（compose 与渲染后的 Helm 双侧），含 Linux 拒绝在 mount point 上 `rename()` 的 `EBUSY` 回退路径 |
-| chart CI 的三个检查脚本 | Service 类型门禁、上传大小策略、chart config_version 与 `config.example.yaml` 的漂移 |
+| `test_nginx_*.py`（5 个）+ `support/nginx_conf.py` | Docker 生产 / `make dev` 本地 / Helm ConfigMap 三份 nginx 配置的路由与 `client_max_body_size`/`proxy_read_timeout` 不漂移（WebSocket 正则必须在通用 threads 正则**之前**） |
+| `test_helm_database_secret_precedence.py` / `test_helm_redis_existing_secret.py` | Helm 里 `existingSecret` 与内联 secret 的优先级，多副本部署的隐式前提 |
+| chart CI 的四个检查脚本 | `check_chart_sandbox_service.sh`（Service 类型门禁）、**v2.2.0 新增 `check_chart_sandbox_storage.sh`**（Gateway 与 provisioner 在共享 home PVC 下必须挂同一逻辑状态根）、`check_chart_skill_upload_size.sh`（上传大小策略）、`check_config_version.sh`（chart 内嵌 `config_version` 与 `config.example.yaml` 的漂移） |
+| `scripts/verify_versions.sh`（`verify-versions.yml`） | **五处**版本一致：`backend/pyproject.toml`、`backend/packages/harness/pyproject.toml`、`frontend/package.json`、`deploy/helm/deer-flow/Chart.yaml`（`version`/`appVersion`），外加 `backend/uv.lock` 里的 `deer-flow` 与 `deerflow-harness` 两个 PEP 440 条目（由 `uv lock --check` 判定，`scripts/verify_versions.sh:9` 注释："via `uv lock --check`"）。v2.1.0 是"四处一致"、不管 lock——drift **阻断一切发布** |
 
 周期面上，`nightly.yaml` 定时跑 `helm lint` + `helm template --include-crds` + config_version 漂移检查——发布配置的渲染验证不只 PR 时跑，慢一拍的漂移也有网。
-| `scripts/verify_versions.sh`（`verify-versions.yml`） | `backend/pyproject.toml`、`frontend/package.json`、Helm Chart.yaml 的版本四处一致，drift **阻断一切发布** |
 
 这族测试的共同叙事：**部署描述（compose/Helm/chart/版本号）也是代码，也会回归，也需要门禁**。
 
@@ -44,11 +46,23 @@ topics: [testing, governance, ci, architecture]
 
 ## 4. AGENTS.md 治理：给 agent 的指令也是受门禁的资产
 
-28 个 `AGENTS.md` 文件构成目录级指令链，它们不是自由生长的散文，而是受预算与结构约束的资产：
+**57** 个 `AGENTS.md` 文件构成目录级指令链（v2.1.0 为 28），它们不是自由生长的散文，而是受预算与结构约束的资产：
 
-- `scripts/check_agent_guidance.py` 强制尺寸预算：根文件软/硬 16/20 KB，模块级 28/32 KB，更深层 40/48 KB，**整条祖先链累计 80/96 KB**——直接约束"agent 指令的 token 成本"；
-- `backend/tests/test_agent_guidance_check.py` 把治理规则本身钉死：`EXPECTED_GUIDANCE_PATHS` 精确集合（28 个路径）、按目录深度的预算表、棘轮语义（超预算的存量文件只能缩不能涨）、祖先链累积、exact-basename 发现规则（不误抓 `GITHUB_AGENTS.md`）、禁止"Subsystem Index"式索引文档、以及"本地与 CI 各只有一个入口"；
+- `scripts/check_agent_guidance.py` 强制尺寸预算：根文件软/硬 16/20 KB（`ROOT_SOFT`/`ROOT_HARD`），模块级 28/32 KB（`MODULE_SOFT`/`MODULE_HARD`），更深层 40/48 KB（`LOCAL_SOFT`/`LOCAL_HARD`），**整条祖先链累计 80/96 KB**（`CHAIN_SOFT`/`CHAIN_HARD`）——直接约束"agent 指令的 token 成本"；
+- `backend/tests/test_agent_guidance_check.py` 把治理规则本身钉死：`EXPECTED_GUIDANCE_PATHS` 精确集合（**57 个路径**，与 `find . -name AGENTS.md` 的计数一致）、按目录深度的预算表、棘轮语义（超预算的存量文件只能缩不能涨）、祖先链累积、exact-basename 发现规则（不误抓 `GITHUB_AGENTS.md`）、禁止"Subsystem Index"式索引文档、以及"本地与 CI 各只有一个入口"；
 - `lint-check.yml` 的 `agent-guidance` job 在每个 PR 上跑这套检查（带 GitHub annotations）。
+
+**解释（为什么会从 28 涨到 57）**：v2.2.0 新增的子系统——知识库（`deerflow/knowledge/`、`deerflow-extension-knowledge-*`）、AgentRuns 工作流扩展、managed provider、blob storage、MCP control lease、runtime guidance——各自带了自己的 `AGENTS.md`（而不是全塞进 `backend/AGENTS.md`）。这与尺寸预算门禁是一对**互补约束**：预算逼你把细节下沉，`EXPECTED_GUIDANCE_PATHS` 逼你为下沉出的新文件登记注册，两者合起来让"指令该放哪一层"有可执行的答案。
+
+## 4bis. label 声明与 triage 的静态配对（v2.2.0 新增）
+
+`lint-check.yml` 在 v2.2.0 多了一个 `label-declarations` job，跑 `python scripts/check_label_declarations.py`（273 行）。它守的是一对**跨文件、失败时静默**的契约：`.github/labels.yml` 是标签的声明源，`.github/workflows/triage.yml` 在运行时按名字调 `addLabels`。脚本 docstring 把失效模式写死：
+
+> "GitHub rejects an `addLabels` call with **422** when *any* requested label does not exist, and drops the whole batch -- so a label added to the workflow but forgotten here makes labelling stop working silently instead of failing loudly."
+
+实现上不是简单的字符串 grep——"The reader follows quoted literals through arrays, conditional values, variable aliases, Sets and add/push mutations in each workflow script"，且"Filter predicates, log messages, YAML comments and JavaScript comments are not label sources"；遇到不支持的变换**fail closed**（"This is not a general JavaScript evaluator."）。回归覆盖是 `backend/tests/test_label_declarations.py`。
+
+**解释**：这是"文档即契约"的一个变体——契约的双方都不是文档，而是两个 CI 配置；一旦失配，失败在 GitHub 服务端且被整批丢弃。静态检查是唯一能在 PR 期把它变成红绿的手段。
 
 **解释**：这是把"指令文档的质量"从 review 惯例提升为 CI 门禁——与代码同等待遇、同一套红绿语义。
 
@@ -76,7 +90,9 @@ topics: [testing, governance, ci, architecture]
 | 自测 | 验证什么 |
 |------|---------|
 | `backend/tests/blocking_io/test_gate_smoke.py` | Blockbuster 门禁真的会咬：注入故意阻塞的探针必须触发拦截；`allow_blocking_io` 豁免必须真的关闸（"a green gate that no longer catches anything is worse than no gate at all"） |
-| `backend/tests/test_client_live_policy.py` | live 三重门的政策矩阵：子进程重收集，验证 CI/opt-in/缺 config.yaml 三态下的收集行为 |
+| `backend/tests/test_client_live_policy.py`（13 个测试） | live 三重门的政策矩阵：子进程重收集，验证 CI/opt-in/缺 config.yaml 三态下的收集行为；v2.2.0 新增 `test_windows_workflow_collects_all_five_policy_checks`——**连"Windows 那条 workflow 是否逐节点点名了全部 5 条策略用例"也成了断言**，门禁的接线本身被钉住 |
+| `backend/tests/test_label_declarations.py` | triage workflow 里会被 apply 的每个标签都必须在 `.github/labels.yml` 声明（§4bis） |
+| `backend/tests/blocking_io/test_gate_smoke.py::test_gate_catches_hostname_resolution_on_the_loop`（`:36`） | v2.2.0 新增：门禁必须咬住 `socket.getaddrinfo` 这种**Blockbuster 自己不包装**的阻塞（`09-test-infra-and-platform.md` §2） |
 | `tests/monocle/test_deerflow.py` 的 live 门元测试 | `MONOCLE_LIVE_TESTS` 必须**默认关闭**——"plain run never spends model tokens" 是被断言的性质 |
 | `backend/tests/test_detector_repo_root.py` | 静态检测器的仓库根解析必须 fail-loud——防止路径解析失败后"静默地什么都没扫" |
 | `backend/tests/test_agent_guidance_check.py` | 上文的 AGENTS.md 治理器本身 |

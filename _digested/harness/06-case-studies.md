@@ -86,9 +86,24 @@ description: "精读 openai/codex、apache/airflow、electron/electron、tempora
 3. **边界约束配测试钉子**："Any new published port needs an explicit bind address; `backend/tests/test_compose_default_bind_host.py` pins this for every service" —— 指令与测试互为印证（见 [05 篇](05-verifiability-and-test-infra.md)）。
 4. **反模式即文档**：对历史踩坑显式留痕（裸 `"${PORT}:2026"` 绑 0.0.0.0 是错的、`PORT` 只是 Docker ingress、ready 失败不得谎报成功）——符合 `/doctor` 修剪标准中应保留的 "pitfalls, rationale"。
 
+**🆕 v2.2.0 增补：从 28 个到 57 个 AGENTS.md，且尺寸预算真的在管事**
+
+这一轮本仓库的分层指令体系翻了一倍，正好给"三层嵌套"这个主张提供了新的观察点：
+
+| 现象 | v2.1.0 | v2.2.0 | 含义 |
+|---|---|---|---|
+| `AGENTS.md` 总数 | 28 | **57** | 新增子系统（knowledge、extensions、blob、managed-provider、workflow）各自带指南，而不是塞进 `backend/AGENTS.md` |
+| 根文件行数 | 238 | 249 | **只涨 11 行**——预算把根层压住了 |
+| 超 200 行的文件 | 6 份（最大 397） | **7 份（最大 631）** | 增量全压在模块层，`agents/memory/` 从 302 → 631 |
+
+**解释（这是这个案例最有价值的新证据）**：尺寸门禁（`scripts/check_agent_guidance.py`：根 16/20 KB、模块 28/32 KB、深层 40/48 KB、祖先链累计 80/96 KB）起作用的方式是**把压力逼向深层而不是消灭压力**。根文件控制住了，但模块级文件吃满了 28/32 KB 的余量——631 行的 `agents/memory/AGENTS.md` 已经从"模块指南"变成"子系统手册"。这印证了 01 篇的判断：**嵌套分层不是银弹，它把"一份过长的文件"换成了"一份过长的深层文件 + 一份克制的根文件"**，代价是 agent 加载深层文件时的上下文成本更高（尽管是按需加载）。
+
+另一个可复制的新机制是**精确集合登记**：`backend/tests/test_agent_guidance_check.py:11` 的 `EXPECTED_GUIDANCE_PATHS` 逐条列出 57 个路径，新增/删除指南必须同步改这个集合——防止"新建了子系统却忘了写指南"和"指南被误删"两种漂移。这比"用 glob 发现所有 AGENTS.md"更强：**发现规则负责抓变体（`GITHUB_AGENTS.md` 不误抓），登记集合负责证明覆盖完整**。
+
 **缺陷/取舍**
 
-- 根文件已相当长（含 scheduled-task、skill-review-waivers 等专项注记），专项内容或可再下沉到对应模块指南；随业务演进需要持续修剪（agent 指引的维护成本是真实税负）。
+- 根文件已相当长（含 scheduled-task、skill-review-waivers、Service Topology 等专项注记），专项内容或可再下沉到对应模块指南；随业务演进需要持续修剪（agent 指引的维护成本是真实税负，v2.2.0 的 57 份 / 最大 631 行就是这笔税的具体数额）。
+- 尺寸预算只能"防涨"不能"促缩"——存量超线文件在棘轮下纹丝不动（v2.1.0 的 397 行 `backend/AGENTS.md` 在 2.2 是 327 行，唯一一份真的缩了的；其余全部上涨）。
 
 ## 案例 6（对照）：agents.md 规范示例 —— "教科书模板"
 
@@ -104,7 +119,7 @@ description: "精读 openai/codex、apache/airflow、electron/electron、tempora
 | [apache/airflow](https://github.com/apache/airflow/blob/main/AGENTS.md) | 长 | 生成式命令区 + 架构边界 + 安全三分法 + 命名反 distractor | breeze 包装器抬高 setup 门槛 |
 | [electron/electron](https://github.com/electron/electron/blob/main/CLAUDE.md) | 长 | 安全禁令三件套 + 工作流决策树 + 危险区前置 | 独用 CLAUDE.md；混入人类 onboarding |
 | [temporalio/sdk-java](https://github.com/temporalio/sdk-java/blob/main/AGENTS.md) | 短 | 最小合格集合（布局/API 冻结/命令/checklist） | 缺"为什么"，只适合稳定仓库 |
-| [deer-flow](../../AGENTS.md) | 中 | 定位层/深度层/薄 shim 三层 + 测试钉子 | 根文件需持续修剪 |
+| [deer-flow](../../AGENTS.md) | 中（根 249 行，但全仓 57 份、最大 631 行） | 定位层/深度层/薄 shim 三层 + 测试钉子 + **AGENTS.md 尺寸预算与精确集合登记** | 根受控、深层膨胀；尺寸门禁防涨不促缩 |
 | [agents.md 示例](https://agents.md/) | 极短 | 三节模板（tips/testing/PR） | 教科书骨架，无领域内容 |
 
 **共性结论**：六个样本没有一个在写"请写好代码"式空话；全部把篇幅花在**命令、边界、禁令、理由**上——与 [Codex 官方规则写作建议](https://learn.chatgpt.com/docs/agent-configuration/agents-md)（"keep rules concise, explain the behavior to flag and any safe path"）完全一致。

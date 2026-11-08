@@ -31,7 +31,8 @@ make dev
 
 - **Hot Reload：** Gateway（uvicorn `--reload`，含 `*.yaml` / `.env`）、Frontend（Next.js HMR）——两人热重载
 - **Local Sandbox：** 默认使用 `LocalSandboxProvider`——所有 bash/文件操作在 host 上执行，通过虚拟路径映射隔离
-- **SQLite：** 单文件数据库，路径 `.deer-flow/data/`
+- **SQLite：** 单文件数据库，路径 `.deer-flow/data/`（`database.sqlite_dir` 默认值，`config.example.yaml:2712`）；底座目录遵循 `DEER_FLOW_HOME` → `{project_root}/.deer-flow`（`config/paths.py:130-157`）
+- **🆕 `.env`：** 设了 `DEER_FLOW_ENV_FILE` 就只读那一个文件，否则 `load_dotenv()` 自动发现（`deerflow/env.py:10`）；`uvicorn --reload` 监听 `.env` 的前提就是它被实际读取
 - **Auth：** 认证默认**开启**（首次访问进 setup 页创建管理员，`user_id` 取真实用户）。本地无认证调试才设 `DEER_FLOW_AUTH_DISABLED=1`，此时所有请求以合成 admin 用户 `"default"`（`DEFAULT_USER_ID`，`runtime/user_context.py:98`）运行；该变量在显式生产环境（`DEER_FLOW_ENV`/`ENVIRONMENT` = prod/production）下会被忽略（`app/gateway/auth_disabled.py:11-40`）
 - **Memory Stream Bridge：** 单进程内存 pub/sub，无需 Redis
 

@@ -32,7 +32,7 @@ sequenceDiagram
 
     RM->>MLA: make_lead_agent(config)
     MLA->>MLA: resolve model + tools + prompt
-    MLA->>MLA: build 33 middlewares
+    MLA->>MLA: build_middlewares()（39 个文档化条目位）
     MLA-->>RM: CompiledStateGraph
 
     RM->>LG: graph.astream(input, stream_mode)
@@ -109,7 +109,10 @@ sequenceDiagram
         │   │       subagent 指令                       │   │
         │   │                                          │   │
         │   │  e) build_middlewares()                  │   │
-        │   │     - 8 runtime middlewares               │   │
+        │   │     - build_lead_runtime_middlewares()   │   │
+        │   │       打底（outer_wrappers/thread_hooks/  │   │
+        │   │       tail 三段，含 KnowledgeScope、      │   │
+        │   │       PII 可选、Artifact* 可选）          │   │
         │   │     - DynamicContext, Summarization,      │   │
         │   │       TodoList, TokenUsage, Title,        │   │
         │   │       Memory, ViewImage, DeferredTools,   │   │
@@ -215,7 +218,9 @@ RunManager
 
 RunRecord
 ├── run_id, thread_id, assistant_id
-├── status (pending/running/completed/failed/cancelled)
+├── status (RunStatus: pending/running/success/error/
+│           timeout/interrupted；皆是 "completed"/"failed"
+│           —— 旧文档写法已不正确)
 ├── created_at, updated_at
 ├── task (asyncio.Task handle)
 └── control state (cancel_event, stream_bridge)

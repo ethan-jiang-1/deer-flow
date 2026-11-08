@@ -48,13 +48,26 @@ status: verified（综合页：结论全部回链 01-08 已核验锚点，不新
 
 ## 5. 多 worker / 上生产清单
 
-`GATEWAY_WORKERS>1` 或多 pod 前（[06] §4 + 各篇危险点）：
+`GATEWAY_WORKERS>1` 或多 pod 前（[06] §4 + 各篇危险点）。**v2.2.0 把这套要求从"经验清单"变成了启动门**——`_enforce_postgres_for_multi_worker`（`app/gateway/deps.py:135`-`175`）在持久化启动**之前**逐条判定，不满足就退出，不是警告：
 
-1. `database.backend=postgres`（共享 runs/事件/唯一索引）；2. `run_ownership.heartbeat_enabled=true`；3. `run_events.backend=db`（内存/JSONL 事件存储直接被启动门拒绝）；4. scheduler 多实例还要求 `multi_instance=true`；5. 接受：IM follow-up 缓冲、`_runs` 视图、子代理注册表仍是 per-process（[02] 危险点 6、[05] §4.2）；6. delta checkpoint 模式下放弃 fork 类玩法（[04] §3.5）。
+| # | 必须 | 不满足会怎样（源码原话的意思） |
+|---|---|---|
+| 1 | `database.backend=postgres` | SQLite 写锁撑不住多进程 |
+| 2 | `run_ownership.heartbeat_enabled=true` | 没有心跳时每个 run 的 lease 都是 NULL，reconciliation 把**同行的活 run 全当孤儿**，滚动更新即互杀 |
+| 3 | `run_events.backend=db` | memory/JSONL 是进程内的，无法强制共享的投递回执 |
+| 4 | Redis stream bridge | memory bridge 进程内，SSE 流/重连/`/wait` 只在 owner 上有效 |
+| 5 | 普通多 worker 关掉后台 scheduler（要调度就设 `scheduler.multi_instance=true`） | 每个 worker 各起一份调度，重复触发 |
+| 6 | 关掉进程内浏览器会话 | 浏览器工具把 Chromium/Playwright 留在单个 worker 内存，而 uvicorn 派发没有 thread affinity |
+| 7 | `sandbox.ownership.type` 不能显式 `memory` | 进程内 ownership store 看不见同伴，会把别人的活容器当空闲销毁（#4206） |
+| 8 | 非 GitHub 的 IM 通道启用时，`channels.leader_lease.enabled` 不能 `false` | 每个实例抢同一个平台连接：Telegram 409，Discord 每条消息答两遍 |
+
+**注意"多实例"有两种声明途径**：`GATEWAY_WORKERS`/`WEB_CONCURRENCY >1` 只数得到一个进程树；**Pod 副本数 >1 且每 Pod 单 worker 时启动门根本看不见同伴**——这种部署必须显式写 `deployment.multi_instance: true`（或 `DEER_FLOW_MULTI_INSTANCE=1`），否则门根本不会检查上面 8 条（`config/deployment_config.py:34`-`45`）。
+
+余下的仍然要自己接受：IM follow-up 缓冲、`_runs` 视图、子代理注册表是 per-process（[02] 危险点 6、[05] §4.2）；delta checkpoint 模式下放弃 fork 类玩法（[04] §3.5）；`channels.leader_lease` 的接管延迟是 `lease_seconds + grace_seconds` 加一个续约间隔，**崩溃后的消息可能丢**（[06] §2.1）。
 
 ## 6. 想榨新能力时
 
-按 [04] 优先级表动手：`interrupt()` 挂起式工具审批是 seam 最清晰的（ToolNode v2 的 Send 化本就为此设计）；做之前 `uv sync` 复核行号（venv 1.1.9 vs lock 1.2.9 漂移，[04] 版本事实节）。新原语必须同时接进三条 HITL 信任边界（`non_interactive` 结构剔除 / `disable_clarification` 软化 / 沙箱审批合流，[05] §1.1）。
+按 [04] 优先级表动手：`interrupt()` 挂起式工具审批是 seam 最清晰的（ToolNode v2 的 Send 化本就为此设计）；做之前仍建议 `uv sync` 后复核行号（venv 现已对齐 1.2.9，旧记的 1.1.9 漂移已消解，但仍会随依赖升级再变——[04] 版本事实节给了 1.2.9 上的实测行号：`interrupt()` 在 `types.py:811`、`Command` 在 `:759`、`Send` 在 `:664`）。新原语必须同时接进三条 HITL 信任边界（`non_interactive` 结构剔除 / `disable_clarification` 软化 / 沙箱审批合流，[05] §1.1）。
 
 ## 回链
 

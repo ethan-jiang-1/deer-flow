@@ -16,18 +16,20 @@ DeerFlow 暴露了哪些挂载点？怎么把自定义的东西挂上去？
 
 | 文件 | 内容 |
 |------|------|
-| **01-config-yaml.md** | AppConfig 深挖：38 section、from_file() 8 步流水线、config_version 升级、🆕 memory 重构、feature gating |
-| **02-extensions-json.md** | MCP + Skills 配置：MCP server config、OAuth token、MCP tools 缓存、skills 状态 |
-| **03-dynamic-loading.md** | resolve_variable 原理：动态 import + type check、model factory、extra="allow" 透传、thinking 跨 provider |
+| **01-config-yaml.md** | AppConfig 深挖：56 字段 / example 43 个启用键、`_from_yaml_text()` 8 步流水线、config_version 63、🆕 blob_storage / knowledge_base / typesafe / deployment 速查、8 项 feature gating |
+| **02-extensions-json.md** | MCP + Skills 配置：MCP server config、OAuth token、🔄 自动 revalidation、MCP tools 双层缓存、skills 状态 |
+| **03-dynamic-loading.md** | resolve_variable 原理：路径形状校验 + 安装提示、tool 装配四道过滤、model factory meta field、🆕 reasoning 契约 |
 | **04-config-reference.md** | 完整字段级配置手册：每个 section 的 YAML schema、默认值、🆕 memory.backend_config、authorization |
 | **05-summarization-deep-dive.md** | 上下文压缩完整机制：触发条件、保留策略、与 DurableContext 协作、🆕 手动 compaction |
 
 ## 关键问题
 
-- 修改 config.yaml 后哪些字段实时生效，哪些必须重启？→ `01-config-yaml.md` 热加载分流表
+- 修改 config.yaml 后哪些字段实时生效，哪些必须重启？→ `04-config-reference.md` 的 `reload_boundary` 表 + [getting-started/02-configuration.md](../../getting-started/02-configuration.md) 的生效规则表
 - config.yaml 和 extensions_config.json 的关系？→ `02-extensions-json.md`
-- AppConfig 是怎么从 YAML 变成运行时对象的？→ `01-config-yaml.md` 8 步流水线
+- AppConfig 是怎么从 YAML 变成运行时对象的？→ `01-config-yaml.md` 流水线 + `get_app_config()` 缓存/ContextVar 章节
 - MCP server 的 tool 是怎么注入到 Agent Loop 的？→ `02-extensions-json.md` MCP 缓存
 - 怎么做到 `config.yaml` 里写个 class path 就能加载自定义 tool/model？→ `03-dynamic-loading.md`
 - 🆕 Memory 怎么从平铺配置变成可插拔后端？→ `01-config-yaml.md` + `04-config-reference.md`
 - 🆕 手动触发上下文压缩怎么工作？→ `05-summarization-deep-dive.md`
+- 🆕 `.env` 从哪读？`DEER_FLOW_ENV_FILE` 怎么和 `config.yaml` 生效？→ [getting-started/05-environment.md](../../getting-started/05-environment.md) 的 dotenv 选择器一节
+- 🆕 v2.2.0 新增的 `blob_storage` / `knowledge_base` / `typesafe` / `deployment` 是什么？→ `01-config-yaml.md` 的新增 section 速查

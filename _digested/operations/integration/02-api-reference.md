@@ -31,7 +31,8 @@ Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口
 | `/api/v1/auth` | `auth.py` | `POST /login/local`；`POST /register`；`POST /logout`；`POST /change-password`；`GET /me`；`GET /setup-status`；`POST /initialize`；`GET /oauth/{provider}`；`GET /callback/{provider}` |
 | `/api/runs` | `runs.py` | `POST /stream` 无状态SSE运行；`POST /wait` 无状态阻塞运行；`GET /{rid}/messages`；`GET /{rid}/feedback` |
 | `/api/threads/{id}/runs/{rid}/feedback` | `feedback.py` | Thread/Run feedback CRUD（`feedback.py:20` 的 prefix 是 `/api/threads`，不存在独立 `/api/feedback` 挂载） |
-| `/api/channels` | `channels.py` | IM频道管理 |
+| `/api/channels` | `channels.py` | IM 频道管理：`GET /providers`、`GET /status` 等（服务生命周期） |
+| `/api/channels` | `channel_connections.py` | 🆕 用户连接面板：`GET /providers`（带 `proactive_notifications` / `proactive_group_notifications`，`:549`）、`GET /connections`（`:579`）、`DELETE /connections/{id}`（`:596`）、`DELETE /{provider}/runtime-config`（`:612`）、`POST /{provider}/connect`（`:658`）、`POST /{provider}/runtime-config`（`:697`）、WeChat 扫码 `POST /wechat/qr-login`（`:813`）/ `POST /wechat/qr-login/{id}/poll`（`:824`）/ `DELETE /wechat/qr-login/{id}`（`:843`） |
 | `/api/assistants` | `assistants_compat.py` | OpenAI Assistants兼容层 |
 
 ---
@@ -42,15 +43,17 @@ Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口
 
 ### Lark/Feishu 托管集成（`app/gateway/routers/integrations.py`）
 
+7 个端点（`integrations.py:262-421`）：`GET /lark/status`、`POST /lark/install`、`POST /lark/config/{start,complete,credentials}`、`POST /lark/auth/{start,complete}`。
+
 | 情况 | 状态码 | 依据 |
 |------|--------|------|
-| 非管理员调 `POST /api/integrations/lark/install` | 403 `Admin privileges required to install integrations.` | `integrations.py:38,271`（`require_admin_user` → `deps.py:894-902`） |
-| `lark-cli` 不存在（`FileNotFoundError`） | 404 | `integrations.py:276-277,296-297,321-322,346-347,369-370,394-395` |
-| 参数/流程异常（`ValueError`） | 400 | 同上各端点的 `except ValueError` |
-| 流程代际过期（`LarkFlowSupersededError`） | 409 | `integrations.py:323-324,371-372,396-397`（异常定义 `deerflow/integrations/lark_cli.py:266-267`） |
-| 轮询/流程超时（`TimeoutError`） | 504 | `integrations.py:300-301,327-328,350-351,375-376,400-401` |
-| 其它未预期异常 | 500（泛化 detail） | `integrations.py:264-266,282-284,302-304,329-331,352-354,377-379,402-404` |
-| 非管理员读 status/complete | 200，但 `cli.path`/`install_path` 被脱敏为空 | `integrations.py:41-51,182-207,263,320,345,393` |
+| 非管理员调需要管理员的面板 | 403 `Admin privileges required to install integrations.` | `_ADMIN_REQUIRED_DETAIL`（`integrations.py:40`），检查点 `:49`（status 探测）与 `:274`（install）；其余端点不强制 admin，靠 per-user 凭据树隔离 |
+| `lark-cli` 不存在（`FileNotFoundError`） | 404 | `integrations.py:295,315,340,365,388,413` |
+| 参数/流程异常（`ValueError`，含 `LarkFlowSupersededError` 子类） | 400 | `integrations.py:297,317,344,367,392,417`；先匹配子类的地方见下两行 |
+| 流程代际过期（`LarkFlowSupersededError`） | 409 | `integrations.py:342,390,415`（异常定义 `deerflow/integrations/lark_cli.py:282`，是 `ValueError` 的子类，故必须先于 `except ValueError` 匹配） |
+| 轮询/流程超时（`TimeoutError`） | 504 | `integrations.py:319,346,369,394,419` |
+| 其它未预期异常 | 500（泛化 detail） | `integrations.py:267,301,321,348,371,396,421` |
+| 非管理员读 status | 200，但 `cli.path` / `install_path` 被脱敏为空 | `integrations.py:263` → `_status_to_response(..., include_host_paths=await _is_admin_user(request))` |
 
 ### GitHub webhook（`app/gateway/routers/github_webhooks.py`）
 
@@ -68,11 +71,13 @@ Gateway 是 FastAPI 应用，默认 `http://localhost:8001`。Nginx 统一入口
 | 情况 | 状态码 | 依据 |
 |------|--------|------|
 | Channel 服务未运行（`GET /api/channels/...`） | 503 | `channels.py:50` |
-| 连接持久化不可用 | 503 | `channel_connections.py:202` |
-| 未认证访问连接端点 | 401 | `channel_connections.py:142` |
-| 未知 provider / 连接不存在 | 404 | `channel_connections.py:216-219,358,368,395,566` |
-| 连接功能未开启 / provider 未启用 / 缺必填配置 / 启动或停止失败 | 400 | `channel_connections.py:480,558,575-595,622-634,661-689` |
-| 单 provider 待处理绑定码超上限 | 429 | `channel_connections.py:346-349` |
+| 连接持久化不可用 / 凭据加密密钥不可用 / WeChat 扫码不支持多 worker | 503 | `channel_connections.py:232`（持久化）、`:767-772`（点名 `DEER_FLOW_CREDENTIALS_KEY` 的 runtime-config 写入）、`:802-810`（`_require_wechat_qr_login`：`GATEWAY_WORKERS != 1` 或声明了多实例） |
+| 未认证访问连接端点 | 401 | `channel_connections.py:176` |
+| 未知 provider / 连接不存在 | 404 | `channel_connections.py:247,250,391,401,428,608` |
+| 连接功能未开启 / provider 未启用 / 缺必填配置 / 启动或停止失败 / 参数非法 | 400 | `channel_connections.py:515,600,624,628,644,663,671,673,675,713,717,773,792` |
+| provider 不支持群通知却传了 `group_name` | 422 | `channel_connections.py:679` |
+| 单 provider 待处理绑定码超上限（`_MAX_PENDING_CONNECT_CODES_PER_PROVIDER = 5`） | 429 | `channel_connections.py:380` |
+| WeChat 连接未启用（扫码端点） | 400 `WeChat channel connections are disabled` | `channel_connections.py:791`（`_require_wechat_qr_login`，定义在 `:788`） |
 
 ---
 

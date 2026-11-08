@@ -58,7 +58,7 @@ live 的三重门实现在 `backend/tests/test_client_live.py`（`.github` 的 C
 
 ## 5. No-unpinned-invariant：每条规矩都有钉住它的测试
 
-全仓共有 28 个 `AGENTS.md` 文件构成指令链（后端 24 + 根/frontend/scripts 4；集合被 `test_agent_guidance_check.py` 的 `EXPECTED_GUIDANCE_PATHS` 钉死）。嵌套子系统指南的写法是一个固定句式：**陈述规矩 → 点名 pinning 测试**。三个抽样（均为原文）：
+全仓共有 **57** 个 `AGENTS.md` 文件构成指令链，集合被 `backend/tests/test_agent_guidance_check.py:11` 的 `EXPECTED_GUIDANCE_PATHS` **逐一列名钉死**（v2.1.0 为 28 个，v2.2.0 随知识库/工作流/扩展等新子系统翻倍；`find . -name AGENTS.md` 也正好 57，两个口径一致）。嵌套子系统指南的写法是一个固定句式：**陈述规矩 → 点名 pinning 测试**。三个抽样（均为原文）：
 
 - `backend/packages/harness/deerflow/mcp/AGENTS.md:30`：LangGraph 把 `ToolRuntime` 注入名为 `runtime` 的工具参数，上游改名风险由 `test_mcp_context_headers.py::test_adapter_tool_receives_the_runtime_langgraph_injects` 钉住——"pins the injection rule against an upstream rename by disabling the ambient fallback and driving a real adapter tool through a real graph"。
 - `backend/packages/harness/deerflow/skills/AGENTS.md`：SkillScan 静态分析器的代表性漏报被 `test_skillscan_native.py` 的 `test_python_declared_false_negatives_stay_unreported` **刻意钉住不许修复**——漏报边界本身是契约。
@@ -68,7 +68,7 @@ live 的三重门实现在 `backend/tests/test_client_live.py`（`.github` 的 C
 
 ## 6. Scar-tissue：门禁从真实事故生长
 
-`backend/tests/blocking_io/` 的 47 个 anchor 不是规划出来的，是**事故驱动**逐个长出来的——git 历史显示每个 anchor 对应一个真实生产 bug：tiktoken 在事件循环上阻塞（PR #3402/#3411）、custom-agent router 文件 IO（#3457）、UploadsMiddleware 扫描（#3311）、JsonlRunEventStore（#3313）。`backend/docs/BLOCKING_IO_DETECTION.md` 把这套工作流写成循环：
+`backend/tests/blocking_io/` 的 **89** 个文件（v2.1.0 为 47，含 `conftest.py` 与 `__init__.py`）不是规划出来的，是**事故驱动**逐个长出来的——git 历史显示每个 anchor 对应一个真实生产 bug：tiktoken 在事件循环上阻塞（PR #3402/#3411）、custom-agent router 文件 IO（#3457）、UploadsMiddleware 扫描（#3311）、JsonlRunEventStore（#3313）。`backend/docs/BLOCKING_IO_DETECTION.md` 把这套工作流写成循环：
 
 > "The static detector is the discovery tool … A static finding is a candidate, not proof." → 人工评审选出高危路径 → 加 runtime anchor → "Let CI prevent that path from regressing."
 
@@ -80,7 +80,7 @@ live 的三重门实现在 `backend/tests/test_client_live.py`（`.github` 的 C
 
 > "a green gate that no longer catches anything is **worse than no gate at all**."
 
-门禁的技术实现有两处值得记录：`backend/tests/blocking_io/conftest.py:26` 用 `hookwrapper` 包住**整个 `pytest_runtest_protocol`**（setup+call+teardown 全覆盖，async fixture/lifespan 里的阻塞也抓），且仅当 item 路径在 `blocking_io/` 下才激活；`backend/tests/support/detectors/blocking_io_runtime.py` 的 `BlockBuster(scanned_modules=("app", "deerflow"))` 只抓**调用栈穿过生产代码**的同步阻塞 IO（pytest/langchain/三方库不在扫描范围，避免误报）。评审期还有一件武器 `backend/tests/support/detectors/blocking_io_changed.py`：把 git diff 与静态发现**求交**，回答"这次改动引入了哪些阻塞 IO 候选"——其中 merge-base 后的新发现也计数，专门捕捉"没改阻塞行、但新 async 调用者让它变 async-可达"这类隐性回归。
+门禁的技术实现有两处值得记录：`backend/tests/blocking_io/conftest.py:26` 用 `hookwrapper` 包住**整个 `pytest_runtest_protocol`**（setup+call+teardown 全覆盖，async fixture/lifespan 里的阻塞也抓），且仅当 item 路径在 `blocking_io/` 下才激活；`backend/tests/support/detectors/blocking_io_runtime.py` 的 `BlockBuster(scanned_modules=("app", "deerflow"))` 只抓**调用栈穿过生产代码**的同步阻塞 IO（pytest/langchain/三方库不在扫描范围，避免误报）；同文件 `_install_project_rules`（`:31`）在 v2.2.0 追加一条**项目自有规则**钉住 `socket.getaddrinfo`，因为 Blockbuster 不包装模块级解析器、而 `deerflow.community.url_safety` 的 SSRF 守卫正是用它做 DNS——**「门禁的盲区」本身也被显式登记**（详见 `09-test-infra-and-platform.md` §2）。评审期还有一件武器 `backend/tests/support/detectors/blocking_io_changed.py`：把 git diff 与静态发现**求交**，回答"这次改动引入了哪些阻塞 IO 候选"——其中 merge-base 后的新发现也计数，专门捕捉"没改阻塞行、但新 async 调用者让它变 async-可达"这类隐性回归。
 
 ## 7. 文档即契约（docs-as-contract）
 

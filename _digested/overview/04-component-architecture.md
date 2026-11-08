@@ -44,7 +44,7 @@ config.yaml                              .deer-flow/
 ├── guardrails: {...}                    ├── users/{uid}/
 ├── tool_search: {...}                   │   ├── memory.json
 ├── loop_detection: {...}                │   ├── agents/{name}/
-├── ... (35 sections)                    │   │   ├── SOUL.md
+├── ... (43 sections, v2.2.0)            │   │   ├── SOUL.md
 └── ...                                  │   │   └── config.yaml
                                          │   └── threads/{tid}/
 extensions_config.json                   │       └── user-data/

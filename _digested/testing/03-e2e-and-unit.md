@@ -113,32 +113,50 @@ pnpm test:e2e -- --debug
 
 # 特定测试
 pnpm test:e2e -- --grep "thinking block"
+
+# 指定分片（CI 把 mock 车道切成 4 片、每片 1 worker）
+pnpm test:e2e -- --shard=2/4 --workers=1
 ```
+
+**v2.2.0 的变化**：mock 车道从 45 个 spec 长到 **85 个**（369 个 `test(`），CI 相应从单 job 改为 `matrix.shard = [1,2,3,4]` + `--shard=/4 --workers=1`，每个分片上传 `playwright-report-<n>` artifact；只有 shard 1 额外跑认证恢复用例（`frontend/AGENTS.md:47`）。本地复现 CI 失败时**必须带同一个 `--shard`**，否则跑的用例集不同。
 
 ## Backend 单元测试（pytest）
 
 ### 关键测试文件
 
+（计数为 v2.2.0 实测 `def test` 数；v2.1.0 的旧值在括号里。）
+
 | 文件 | 测试数量 | 覆盖重点 |
 |------|---------|---------|
-| `test_vllm_provider.py` | 16 | reasoning 字段提取、chat template 兼容、thinking 开关、streaming chunk |
-| `test_patched_minimax.py` | 5 | reasoning_split 强制启用、reasoning_details 映射、<think> 剥离、delta 拼接 |
-| `test_patched_deepseek.py` | 10 | reasoning_content 重注入、多轮保持、positional fallback |
-| `test_mindie_provider.py` | 45 | tool+stream 降级、XML 解析、message 修复、timeout 归一化 |
-| `test_codex_provider.py` | 24 | SSE 解析、response 合并、message 转换、tool arg 处理 |
-| `test_patched_openai.py` | 8 | thought_signature 重注入、snake_case/camelCase 双检测 |
-| `test_claude_provider_prompt_caching.py` | 13 | cache_control breakpoint ≤4 上限、候选位置选择 |
-| `test_claude_provider_oauth_billing.py` | 11 | OAuth billing block 注入顺序、metadata.user_id、cache_control 剥离 |
+| `backend/tests/test_vllm_provider.py` | **24**（v2.1.0 为 16） | reasoning 字段提取、chat template 兼容、thinking 开关、streaming chunk |
+| `backend/tests/test_patched_minimax.py` | **12**（v2.1.0 为 5） | reasoning_split 强制启用、reasoning_details 映射、<think> 剥离、delta 拼接 |
+| `backend/tests/test_patched_deepseek.py` | **16**（v2.1.0 为 10） | reasoning_content 重注入、多轮保持、positional fallback |
+| `backend/tests/test_mindie_provider.py` | **83**（v2.1.0 为 45） | tool+stream 降级、XML 解析、message 修复、timeout 归一化 |
+| `backend/tests/test_codex_provider.py` | **28**（v2.1.0 为 24） | SSE 解析、response 合并、message 转换、tool arg 处理 |
+| `backend/tests/test_patched_openai.py` | 8 | thought_signature 重注入、snake_case/camelCase 双检测 |
+| `backend/tests/test_claude_provider_prompt_caching.py` | **20**（v2.1.0 为 13） | cache_control breakpoint ≤4 上限、候选位置选择 |
+| `backend/tests/test_claude_provider_oauth_billing.py` | 11 | OAuth billing block 注入顺序、metadata.user_id、cache_control 剥离 |
+
+**解释（为什么模型 provider 的测试在 2.2 涨得最快）**：这八份里六份都涨了，`test_mindie_provider` 从 45 涨到 83、`test_patched_minimax` 从 5 涨到 12。原因不在「提供商变多了」，而在**每个 provider 的降级路径都被枚举成了参数化用例**——tool+stream 不支持时怎么退、timeout 怎么归一、XML 解析失败怎么救。这类逻辑的失败模式是组合式的，只测主路径等于不测。
 
 ### 运行
 
 ```bash
-# 全量
-pytest backend/tests/
+cd backend
 
-# per-module
-pytest backend/tests/test_vllm_provider.py -v
+# 全量（本地默认：四片并行，排除 live 与 blocking_io）
+make test
 
-# CI 模式
-pytest backend/tests/ --tb=short -q
+# 单文件 / 单测试
+uv run pytest tests/test_vllm_provider.py -v
+uv run pytest tests/test_vllm_provider.py::test_vllm_provider_preserves_explicit_enable_thinking_kwarg -q
+
+# 与 CI 完全同源的分片
+make test-shard SPLITS=4 GROUP=2
+
+# 慢但真实的套件（都不在默认路径里）
+make test-live           # 需显式开门
+make test-blocking-io    # 严格阻塞 IO 套件
 ```
+
+**v2.2.0 的一处命令变更**：`make test` 已从"单进程全量"变成 `$(MAKE) -k -j$(TEST_JOBS) $(TEST_SHARD_TARGETS)`（`backend/Makefile:26-30`，`TEST_JOBS ?= 4` 在 `:23`）。`-k` 让某一片失败不取消其余片——对 agent 来说这是关键改进：**一次跑完能看到尽可能多的失败，而不是只看到第一个**。根 `AGENTS.md` 也同步把 `cd backend && make test` 的注释改成了 "Four parallel shards; excludes live and blocking-I/O tests"。

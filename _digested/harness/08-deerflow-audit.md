@@ -45,12 +45,12 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 | # | 条目 | 评分 | 证据 |
 |---|------|------|------|
-| 1 | 规范指令入口 | ✅ | 计数口径：`*AGENTS*.md` 共 **29 个** = 恰为 `AGENTS.md` 的 **28 个**（`scripts/check_agent_guidance.py` 自报 "28 AGENTS.md"）+ 变体 `backend/docs/GITHUB_AGENTS.md`；根 `AGENTS.md` 249 行 |
+| 1 | 规范指令入口 | ✅ | 计数口径（v2.2.0 重算）：`*AGENTS*.md` 共 **58 个** = 恰为 `AGENTS.md` 的 **57 个**（`scripts/check_agent_guidance.py` 与 `backend/tests/test_agent_guidance_check.py:11` 的 `EXPECTED_GUIDANCE_PATHS` 双向自报 57）+ 变体 `backend/docs/GITHUB_AGENTS.md`（v2.1.0 为 29 = 28 + 1）；根 `AGENTS.md` 249 行 |
 | 2 | 推荐章节覆盖 | ✅ | 根 AGENTS.md 章节：What is DeerFlow / Service Topology / Repository Map / **Commands** / Cross-Cutting Conventions（含安全注意）；backend/AGENTS.md 另有 Commands/Architecture/Code Style |
-| 3 | 根文件=定位层 | ✅ | 根 AGENTS.md 自述 "monorepo orientation layer… read that module's guide"；`backend/AGENTS.md`、`frontend/AGENTS.md` 等 27 个非根文件承接深度（28 个 `AGENTS.md` 减去根） |
-| 4 | 嵌套就近生效 | ✅ | 嵌套覆盖达模块级：`harness/deerflow/{agents,mcp,sandbox,skills,config,runtime,…}/AGENTS.md` 共 19 个（含 `agents/memory/`、`persistence/migrations/` 三层深度） |
-| 5 | 单文件长度 | ⚠️ | `wc -l`：v2.1.0 实测超 200 行的共 **6 份**——根 238、backend 397、extensions 380、runtime 364、agents/memory 302、scripts 269（[Claude Code 建议 ≤200 行](https://code.claude.com/docs/en/memory#my-claude-md-is-too-large)）；按文件自身的 context 预算（`check_agent_guidance.py` 的 KiB 软/硬线）另见 [harness-engineering/01](../harness-engineering/01-agent-docs-system.md) |
-| 6 | 无矛盾指令 | ⚠️ | 抽查根/backend/frontend/extensions 四文件的命令与格式规则未见冲突；**未做全 28 文件系统比对（受限）** |
+| 3 | 根文件=定位层 | ✅ | 根 AGENTS.md 自述 "monorepo orientation layer… read that module's guide"；`backend/AGENTS.md`、`frontend/AGENTS.md` 等 **56** 个非根文件承接深度（v2.2.0 共 57 个 `AGENTS.md` 减去根；v2.1.0 为 28 → 27） |
+| 4 | 嵌套就近生效 | ✅ | 嵌套覆盖达模块级：`harness/deerflow/{agents,mcp,sandbox,skills,config,runtime,…}/AGENTS.md` 共 **19** 个（v2.1.0 实测，v2.2.0 未重算但总数已从 28 涨到 57——新增的主要是 knowledge、extensions、blob、managed-provider 等新子系统）；含 `agents/memory/`、`persistence/migrations/` 三层深度 |
+| 5 | 单文件长度 | ⚠️→❌ | v2.2.0 `wc -l` 实测超 200 行的共 **7 份**且更长了：`agents/memory` **631**、`scripts` **518**、`tests` **515**、`extensions` **503**、`frontend` **438**、`runtime` **397**、`backend` **327**（v2.1.0 是 6 份：根 238、backend 397、extensions 380、runtime 364、agents/memory 302、scripts 269）。根文件只到 249 行（v2.1.0 为 238，仅 +11）——增量全压在了模块级（[Claude Code 建议 ≤200 行](https://code.claude.com/docs/en/memory#my-claude-md-is-too-large)）。**解释**：这恰好验证了尺寸门禁（`check_agent_guidance.py` 的 KiB 软/硬线）的作用面——根文件被上下文预算压住，模块级仍有 28/32 KB 的余量可吃；评分从 ⚠️ 降为 ❌ 是因为 631 行的 `agents/memory/AGENTS.md` 已远超 200 行建议值三倍。按文件自身的 context 预算另见 [harness-engineering/01](../harness-engineering/01-agent-docs-system.md) |
+| 6 | 无矛盾指令 | ⚠️ | 抽查根/backend/frontend/extensions 四文件的命令与格式规则未见冲突；**未做全 57 文件系统比对（受限）** |
 | 7 | 不复述可推导内容 | ⚠️ | 根文件含 "Repository Map" ASCII 目录树——但为带注释的导航地图（服务端口、模块归属），属高信号；backend/AGENTS.md 的架构综述篇幅偏大，`/doctor` 口径下可修剪 |
 | 8 | 指令具体可验证 | ✅ | 全是命令式："cd backend && make test"、"python -m pytest tests/path/to/test.py::test_func -q"、"根 PORT 值仅是 Docker ingress 配置" |
 | 9 | path-scoped rules | ⚠️ | 无 `.claude/rules/`；**但** Claude Code 原生"子目录 AGENTS.md 读到时按需加载"部分达成同等效果（[memory docs](https://code.claude.com/docs/en/memory)） |
@@ -58,8 +58,8 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 | 11 | harness 兼容策略 | ✅ | `CLAUDE.md`（5 行）= 说明 + `@AGENTS.md` import，且明文 "Don't edit CLAUDE.md"；import 在工作目录内，无外部审批问题。Codex 口径：根 `AGENTS.md` 即其原生入口，✅ 成立 |
 | 12 | 命名可 grep | ✅ | 抽样：`merge_skill_context`、`describe_skill`、`skill_activation`、`pnpm.py` 等语义化；`utils/` 偏泛（个别） |
 | 13 | 无语义近似 distractor | ⚠️ | 术语使用一致（DeerFlow/harness/extension），但**无 airflow 式明文命名消歧规范**（对照其 "Dag vs DAG" 规则） |
-| 14 | 结构化格式 | ✅ | 根文件 6 个 `##`（v2.1.0 实测）+ 全 bullet/表格；backend/frontend 同构 |
-| 15 | 活文档 | ✅ | 根 AGENTS.md L220（v2.1.0；rc0 为 L221）"Documentation update policy — keep docs in sync with code… in the same change set" |
+| 14 | 结构化格式 | ✅ | 根文件 6 个 `##`（v2.2.0 实测仍是 6：What is DeerFlow / Service Topology / Repository Map / Commands: Root vs. Module / References / Cross-Cutting Conventions，行号 `:12`/`:17`/`:51`/`:131`/`:209`/`:220`）+ 全 bullet/表格；backend/frontend 同构 |
+| 15 | 活文档 | ✅ | 根 AGENTS.md `:224-225`（v2.2.0，Cross-Cutting Conventions 首条）"Update `README.md` for user-facing changes and the relevant `AGENTS.md` for development/architecture changes in the same change set."——v2.1.0 时这句在 L220，2.2 因 Service Topology 扩写而下移 4 行 |
 | 16 | import 可控 | ✅ | 唯一 import 为 `@AGENTS.md`（同目录）；`.gitignore` L45 排除 `.claude/`，个人设置不入库 |
 
 ### 维度二：可验证性 / 反馈闭环（23/24）
@@ -68,16 +68,16 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 |---|------|------|------|
 | 17 | 命令文档化 | ✅ | 根 AGENTS.md "Commands" 节：setup/doctor/install/dev/stop/docker 全套 + per-module（`make test`/`lint`、`pnpm check`/`test`） |
 | 18 | 单测入口 | ✅ | 根 AGENTS.md 明文：`python -m pytest tests/path/to/test.py::test_func -q`、`pnpm rstest run <pattern>` |
-| 19 | 快速默认子集 | ✅ | `backend/Makefile` L21-23：`make test` = `pytest -m "not live" --ignore=tests/blocking_io tests/ -v`（离线子集）；`backend/tests/` 下 738 个 `test_*.py`（含 `blocking_io/`，顶层 690）——v2.1.0 实测 |
-| 20 | 测试确定性 | ✅ | `pyproject.toml` L85 marker `"live: tests that call real external APIs and require explicit opt-in"`；`backend/tests/AGENTS.md` 明文要求"explicit synchronization such as threading.Event rather than sleep-based timing" |
+| 19 | 快速默认子集 | ✅ | `backend/Makefile:26-30`（v2.2.0）：`make test` = `$(MAKE) -k -j$(TEST_JOBS) $(TEST_SHARD_TARGETS)`，`TEST_JOBS ?= 4`（`:23`）——**本地已改为四片并行**，不再是单进程 `pytest -m "not live" --ignore=tests/blocking_io tests/ -v`；`-k` 保证某片失败不取消其他片。`backend/tests/` 下 **1,363** 个测试文件（根 `test_*.py` **1255**、`blocking_io/` **89**、`monocle/` **3**；另一口径 `test_*.py` 通配为 1271，含分类子目录）——v2.2.0 实测，v2.1.0 为 738 / 690 |
+| 20 | 测试确定性 | ✅ | `backend/pyproject.toml:86-92` 注册 4 个 marker，其中 `live` 的说明原文是"tests that call real external APIs and require explicit opt-in"（v2.1.0 在 L85，2.2 因 markers 表扩到 7 行而下移）；`backend/tests/AGENTS.md` 明文要求"explicit synchronization such as threading.Event rather than sleep-based timing"。**v2.2.0 新增证据**：`backend/tests/_repository_race_helpers.py` 用 `MissSelectSession` 把 select-then-write 竞态变成确定性事件（`testing/08-testing-patterns-reference.md` §11.1） |
 | 21 | 外部依赖替身 | ✅ | `backend/tests/_replay_fixture.py`、`replay_provider.py` 存在；`frontend/tests/` 有 `e2e-record/`；CI 有 `replay-e2e.yml` |
 | 22 | 测试布局镜像 | ✅ | `backend/tests/test_compose_default_bind_host.py` 等按 `test_<模块>.py` 平铺于 `tests/`；`tests/AGENTS.md` 就近说明不变量与边界 |
-| 23 | 本地=CI 同源 | ✅ | CI 实测：`backend-unit-tests.yml` L116 `make test-shard SPLITS=4 GROUP=…`（与本地同一 target，`.test_durations` 基线共享）；`frontend-unit-tests.yml` L43 `make test`；lint-check.yml 跑 `pnpm format/lint/typecheck` |
-| 24 | 格式检查归 CI | ✅ | 根 AGENTS.md L226-227（v2.1.0；rc0 为 L227-228）"run make format… **CI enforces ruff format --check**"；pre-commit 有 ruff/ruff-format/uv-lock-check/eslint/prettier 五钩子 |
+| 23 | 本地=CI 同源 | ✅ | CI 实测：`backend-unit-tests.yml` L117 `make test-shard SPLITS=4 GROUP=…`（与本地同一 target，`.test_durations` 基线共享，v2.2.0 该基线已到 32,395 行）；本地 `make test` 也是同一批 `test-shard` target 的 `-j4` 编排（`:26-30`）——**v2.2.0 让「本地=CI」从「同 target」升级成「同切分」**；`frontend-unit-tests.yml` L43 `make test`；lint-check.yml 跑 `pnpm format/lint/typecheck` |
+| 24 | 格式检查归 CI | ✅ | 根 AGENTS.md `:236-237`（v2.2.0）"**Before pushing** — backend `make format`, frontend `pnpm check`. Backend CI enforces `ruff format --check`."（v2.1.0 为 L226-227）；pre-commit 有 ruff/ruff-format/uv-lock-check/eslint/prettier 五钩子 |
 | 25 | agent 知道哪些别跑 | ⚠️ | `test-live`/`test-blocking-io`/手动 e2e 分离清晰，但"完整套件先问用户"类升级规则**未成文**（对照 codex AGENTS.md） |
 | 26 | flaky 出口 | ✅ | `live` marker 显式 opt-in（`DEER_FLOW_RUN_LIVE_TESTS=1`）；blocking_io 独立目录独立 target |
 | 27 | 失败可行动 | ✅ | 未实跑测试（受限）；间接证据：`make doctor`/`support-bundle`、CI 收集诊断的既定模式、tests/AGENTS.md 对确定性断言的规范 |
-| 28 | 约束测试钉子 | ✅ | `test_compose_default_bind_host.py` 钉"每个发布端口需显式 bind"；根 AGENTS.md L47 明文引用该测试（另有 L191-192 的单测示例）；`verify_versions.sh` + `verify-versions.yml` CI 钉版本 lockstep |
+| 28 | 约束测试钉子 | ✅ | `test_compose_default_bind_host.py` 钉"每个发布端口需显式 bind"；根 AGENTS.md `:45` 明文引用该测试（":44-45" 两行成文"Require explicit bind addresses for new published ports"），另有 `:195` 的单测示例；`verify_versions.sh` + `verify-versions.yml` CI 钉版本 lockstep——**v2.2.0 扩到五处来源 + `uv lock --check`**（根 AGENTS.md `:241-246` 的 Version lockstep 项）。v2.2.0 新增的同类钉子：`test_nginx_browser_websocket.py`（WebSocket 正则必须在通用 threads 正则之前，根 AGENTS.md `:39-41`）、`test_agent_guidance_check.py`（57 个 AGENTS.md 精确集合） |
 
 ### 维度三：可执行环境（19/20）
 
@@ -91,7 +91,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 | 34 | 隐式全局状态 | ✅ | 运行时配置可经 Gateway API 编辑但有文档；本地编排 pin Next.js 3000 防止 `.env` 污染（根 AGENTS.md 明文）；未发现未文档化前置步骤 |
 | 35 | 编码/平台 | ✅ | 根 AGENTS.md "Skill text encoding — must pass encoding='utf-8' rather than relying on the platform locale"；pnpm.py 跨平台 |
 | 36 | 日志可定位 | ✅ | 根 AGENTS.md "Logs" 节：docker-logs、各终端 pane、浏览器 console/Gateway terminal 分工 |
-| 37 | 版本 pin | ✅ | `uv.lock`/`pnpm-lock` 入库；pre-commit `uv-lock-check`；CI pinned pnpm 10.26.2（frontend-unit-tests.yml L35）；`verify-versions.yml` |
+| 37 | 版本 pin | ✅ | `uv.lock`/`pnpm-lock` 入库；pre-commit `uv-lock-check`；CI pinned pnpm 10.26.2（frontend-unit-tests.yml L35）与 uv 0.11.1（`astral-sh/setup-uv@v7` + 显式 version，由 `backend/tests/test_ci_uv_version_pin.py` 反向钉住）；`verify-versions.yml` 校验 5 个字段 |
 | 38 | 破坏性脚本辨识 | ⚠️ | `extension-remove`、`stop`、`down` 等在 `make help` 可见，但无统一 danger 标记约定 |
 
 ### 维度四：可修改性 / 局部性（19/24）
@@ -101,7 +101,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 | 39 | 深模块薄接口 | ⚠️ | 架构分层清晰（harness/app split、middleware chain），但存在巨文件：`runtime/runs/worker.py` **3864 行**、`e2b_sandbox_provider.py` 2892、`lark_cli.py` 2846、`sandbox/tools.py` 2789（`wc -l` top5 实测） |
 | 40 | 模块大小规则 | ❌ | grep 根/backend/frontend AGENTS.md：**无**任何量化模块/文件大小规则（对照 codex "≤500 LoC, >800 split"） |
 | 41 | API 冻结策略 | ⚠️ | `packages/extension-api/` 被根 AGENTS.md 定为 "public extension contract"，五类贡献点有 reference example；但无 temporal 式"public/internal 分界 + 禁改签名"明文 |
-| 42 | 契约显式 | ✅ | `contracts/`：run_event_stream、subagent_status、slash_skill、skill_review 四组 JSON 契约；版本四源 lockstep + CI 阻断 |
+| 42 | 契约显式 | ✅ | `contracts/` 在 v2.2.0 扩到 **9 个根级 JSON + `skill_review/` 4 个 schema**：`knowledge_sources.v1`、`run_event_stream_contract`、`scheduled_goal_notes_contract`、`scheduled_task_errors_contract`、`slash_skill_contract`、`subagent_status_contract`、`thread_goal_contract`、`thread_origin_contract`、`ui_locales.v1`（v2.1.0 为 4 组）；**版本五源 lockstep + `uv lock --check` + CI 阻断** |
 | 43 | 生成物隔离 | ✅ | frontend/AGENTS.md L69-70/96："`ui/`、`ai-elements/` auto-generated, ESLint-ignored… **don't manually edit these**" |
 | 44 | 命名空间消歧 | ✅ | 工具命名 `bash/web_fetch/glob/...` 与 portable 拼写映射表成文（`packages/harness/deerflow/skills/AGENTS.md` L4）；MCP/skills/extensions/integrations 边界清晰 |
 | 45 | 高频操作聚合 | ✅ | `make setup`（交互式向导）、`make doctor`、`make support-bundle`（红acted 诊断 + AI issue 草稿一键生成）均为复合任务单入口 |
@@ -132,9 +132,9 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 | 亮点 | 证据 | 对应条目 |
 |------|------|----------|
-| **28 个分层 AGENTS.md 的三层体系**（根定位层 → backend/frontend → harness 模块级） | `find`/`git ls-files` 实测（恰为 `AGENTS.md` 者 28 个，另有 `backend/docs/GITHUB_AGENTS.md` 变体）；根文件自述 orientation layer | #1/#3/#4/#54 |
+| **57 个分层 AGENTS.md 的三层体系**（根定位层 → backend/frontend → harness 模块级） | v2.2.0 `find` 实测 57 个，`backend/tests/test_agent_guidance_check.py:11` 的 `EXPECTED_GUIDANCE_PATHS` 逐一列名（v2.1.0 为 28 个，另有 `GITHUB_AGENTS.md` 变体不计入）；根文件自述 orientation layer | #1/#3/#4/#54 |
 | **CLAUDE.md 薄 shim + "Don't edit" 明文** | 5 行文件，`@AGENTS.md` import | #11 |
-| **CI 与本地同源的时长感知分片** | CI 直接跑 `make test-shard`，`.test_durations` 基线共享 | #23 |
+| **CI 与本地同源的时长感知分片** | CI 直接跑 `make test-shard`，`.test_durations` 基线共享；v2.2.0 本地 `make test` 也变成 `-j4` 四片（`backend/Makefile:26-30`） | #23 |
 | **离线默认子集 + 显式 flaky 出口** | `-m "not live"`、blocking_io 隔离、live 需 env opt-in | #19/#26 |
 | **测试目录自带 AGENTS.md**（确定性断言规范：禁 sleep 阈值、teardown 不泄漏线程） | `backend/tests/AGENTS.md` | #20/#22 |
 | **约束钉进测试而非只写文档** | `test_compose_default_bind_host.py`、`verify_versions.sh` | #28 |
@@ -154,7 +154,7 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 
 **中期（1-2 周）**
 
-4. 按 `/doctor` 口径修剪超 200 行的 6 份 AGENTS.md（v2.1.0 实测 397 / 380 / 364 / 302 / 269 / 238 行 = `backend/`、`extensions/`、`runtime/`、`agents/memory/`、`scripts/`、根；rc0 为 397/379/351/302/260/239，本轮 runtime +13、extensions +1、scripts +9、根 −1），可推导内容删、专项下沉——P3。
+4. 按 `/doctor` 口径修剪超 200 行的 **7 份** AGENTS.md——**v2.2.0 实测为 631 / 518 / 515 / 503 / 438 / 397 / 327 行**（`agents/memory/`、`scripts/`、`backend/tests/`、`extensions/`、`frontend/`、`runtime/`、`backend/`），比 v2.1.0 的 6 份（397/380/364/302/269/238）**整整体量又涨了一档**：`agents/memory/` 从 302 涨到 631（+109%），`scripts/` 从 269 涨到 518（+93%），`backend/tests/` 从无到 515（新上榜，测试体系本身成了最重的模块文档之一）。根文件仍 249 行未失控。**解释**：这说明尺寸门禁的棘轮只保证「不涨」，不保证「缩」——存量超线文件的缩小需要主动工程，而 2.2 的规模扩张把这笔欠账又放大了。可推导内容删、专项下沉——P3（优先级建议上调）。
 5. 引入模块大小规则并建巨文件清单（worker.py 3061 行等 top5 列入拆分 backlog）——P4。
 6. 把 skills/extensions 等模块细则拆到 `.claude/rules/`（`paths:` 作用域），验证注入生效——P5。
 
@@ -166,6 +166,6 @@ description: "按 07 篇 60 条清单对 deer-flow 本仓库的逐条实证审�
 ## 审计方法说明
 
 - **日期**：2026-06，单次只读扫描。
-- **harness 口径**：Claude Code（CLAUDE.md shim → AGENTS.md，import 在工作目录内、无需外部审批）与 Codex（根 AGENTS.md 原生发现，238 行 < 32KiB 上限）两个入口均验证成立；未实际启动 agent 会话验证注入（**未验证/受限**，#6/#27 为抽查或间接证据）。
-- **局限**：① 未做 28 个 AGENTS.md 的全量矛盾比对；② 未实跑测试套件验证 #27；③ Cursor/Gemini CLI 口径未实测（依赖文档行为推断）；④ `.claude/settings.local.json` 为审计会话自身产物，不计入仓库评分。
+- **harness 口径**：Claude Code（CLAUDE.md shim → AGENTS.md，import 在工作目录内、无需外部审批）与 Codex（根 AGENTS.md 原生发现，v2.2.0 为 249 行 < 32KiB 上限）两个入口均验证成立；未实际启动 agent 会话验证注入（**未验证/受限**，#6/#27 为抽查或间接证据）。
+- **局限**：① 未做 57 个 AGENTS.md 的全量矛盾比对（v2.2.0 检视面从 28 扩到 57）；② 未实跑测试套件验证 #27；③ Cursor/Gemini CLI 口径未实测（依赖文档行为推断）；④ `.claude/settings.local.json` 为审计会话自身产物，不计入仓库评分。
 - 评分与依据的权威来源见 [07 篇](07-audit-checklist.md)各条目"依据"列。

@@ -31,10 +31,20 @@ topics: [graph, dag, roadmap, extension]
 | 步骤 1 `merge_task_dag` | **违反自家议题 07 的冻结规则**:方案里的 reducer 允许任意覆盖(含把 SUCCESS 节点改回 PENDING)——正是"状态抖动"反模式。DeerFlow 的 `merge_delegations` 已实现终态不降级,**照抄即可** | `thread_state.py::merge_delegations`;议题 07 §1 |
 | 步骤 1 Pydantic 节点 | `ThreadState` 是 TypedDict 体系,通道值要过 checkpoint 序列化;BaseModel 进通道需确保 serde 与 `adapt_state_schema_for_mode` 兼容,否则 delta 模式下重放会碎 | `thread_state.py` schema 适配链 |
 | 步骤 1 `active_ready_queue`/`global_replan_budget` | 无 reducer 的裸字段在并行写下是 last-value 竞态;预算字段应该由单一写者(Gate/L2 节点)独占 | LangGraph 通道语义;06 §4 |
-| 步骤 4 `gate_middleware` 返回 dict | **不成立**:middleware 的 wrap_model_call 不支持 Command goto(langchain factory.py:201-203 明确报错);`interrupt()` 只能在节点内调用,不是 middleware 返回值。且方案的"引入 interrupt"其实**已有基础设施**——`interrupt_before` + `Command(resume)` 已暴露,缺的是消费者不是原语 | 06 §2;`run_models.py:48`;`services.py:1571` |
+| 步骤 4 `gate_middleware` 返回 dict | **半对半错,需要按 venv 实测改口径**。对的部分:middleware 的 `wrap_model_call` 确实不能返回带 `goto`/`resume`/`graph` 的 `Command`——LangChain 直接抛 `NotImplementedError`。**错的部分(旧 digest 漏了)**:报错文案自带出路——"Use the `jump_to` state field with `before_model`/`after_model` hooks instead",而 `jump_to` 是**真能用的**:DeerFlow 自己的 `subagents/turn_budget.py:31`-`39` 就在拿它做成本模型。所以"middleware 不能控制流向"这句话不成立,准确的是"只能经 `jump_to`,不能经 `Command`"。另外方案的"引入 interrupt"其实**已有基础设施**——`interrupt_before` + `Command(resume)` 已暴露,缺的是消费者不是原语 | venv 实测 `langchain/agents/factory.py:216`-`225`;`subagents/turn_budget.py:31`-`39`;06 §2;`run_models.py:48`;`services.py:1571` |
 | 方案全局 | 未处理**共享沙箱**约束:READY 集并行派发写文件任务进同一线程沙箱 = 现行路由策略的硬否决场景;dispatcher 不带 per-node worktree 的话,方案会把 DeerFlow 现有的写冲突防线拆掉 | 05 §1/§4;`subagents/AGENTS.md` #5128 |
 
 另有一处叙事修正(已回写研究层):方案 §2 的"弱契约失败重试:子工具报错后仅回传 ToolMessage,模型只能瞎猜"对**子代理路径不成立**——状态信封 + 验收判定是结构化的(05 §5);弱契约只在普通工具路径成立。
+
+### 生长点 6(v2.2.0 新增):`jump_to` —— 已在船上的非 `Command` 流向原语
+
+上面的步骤 4 判读逼出一个之前没登记的生长点。`jump_to` 让 **middleware 钩子**能声明"我这个钩子可以跳到哪儿"(`hook_config(can_jump_to=...)`),运行时返回 `{"jump_to": "tools" | "model" | "end"}` 即可改流向。它的意义是:
+
+- 它是**在不碰拓扑的前提下拿到局部控制流**的唯一官方口子——正好落在议题 09 的红线内侧(元图仍是两节点,跳转是钩子内的一次转场,不是新节点);
+- DeerFlow 已经把它写进了成本模型:`turn_budget.py` 明确算出"任何 jump 都让 turn 上限从精确预算降级为下界",并且 `find_jumping_hooks()` 会在子代理 executor 里**发警告**——说明他们把它当成真实存在的能力而非未用 API;
+- 但**今天的中子代理链上没有 middleware 声明 jump**(`turn_budget.py` 的 docstring 结尾原话:"No middleware in today's subagent chain does");lead 链上 `Command(goto=END)` 的唯一用法仍是 clarification 短路。
+
+**因此它既是生长点也是护栏**:若将来要给 Fan-in Gate 加"验收失败 → 回到 model 重规划"的分支,`jump_to` 是比 `Command` 更合规的落点,代价是必须把 L2 重规划预算做进 turn_budget 的成本模型(否则每跳一次,预算就从精确值退化一次)。这恰好印证 §「明确不做什么」的第 2 条:流向变化要表达成**数据 + 钩子**,不是新节点。
 
 ## 明确不做什么
 

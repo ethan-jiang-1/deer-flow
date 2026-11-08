@@ -194,7 +194,7 @@ topics: [harness, evaluation, deerflow, dsh, audit]
 | ST2 披露与隔离 | 2 | 2 | 🟢 | 常驻 KiB 预算门禁（`check_agent_guidance.py`，CI 强制）+ 嵌套 AGENTS.md 就近生效；摘要层/委派收窄在产品侧（RT7） |
 | ST3 运行时查询 | 1 | 2 | 🔴 | `make doctor` 是真诊断（`doctor.py`：Python/Node/pnpm/uv/nginx + 配置存在/版本/可加载/模型/API key 九项），但**没有 dump 最终生效配置的命令**——答得出"能不能加载"，答不出"实际生效的是什么" |
 | MT1 防漂移 | 2 | 2 | 🟢 | 结构检查成群：`check_agent_guidance` / `check_config_version.sh` / `check_chart_*.sh` / `verify-versions.yml` / `detect_blocking_io_static` / compose 钉子；复核触发条件未见成文 |
-| MT2 发布与版本 | 3 | 2 | 🟢 | `RELEASING.md` 成文序列 + 四源版本 lockstep（pyproject/package.json/Chart version+appVersion）+ `scripts/verify_versions.sh` + tag 触发 CI 阻断发布——"忘了 bump 硬失败"的教科书实现；回退路径弱成文 |
+| MT2 发布与版本 | 3 | 2 | 🟢 | `RELEASING.md` 成文序列 + **五源**版本 lockstep（backend/pyproject.toml、harness/pyproject.toml、package.json、Chart `version`+`appVersion`，外加 `uv.lock` 的两个 PEP 440 条目由 `uv lock --check` 判定；v2.1.0 时为四源）+ `scripts/verify_versions.sh` + tag 触发 CI 阻断发布——"忘了 bump 硬失败"的教科书实现；回退路径弱成文 |
 
 ### 2.1 绿的七维：deer-flow 的机制覆盖面是真的
 

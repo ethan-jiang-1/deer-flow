@@ -22,7 +22,18 @@ topics: [architecture, system-overview]
 
 ![Gateway Lifespan](figures/gateway-lifespan.svg)
 
-从 uvicorn 启动到 app 就绪的 6 步：`create_app()` → `get_app_config()` → `langgraph_runtime()`（StreamBridge/Checkpointer/RunManager…共 9 个子步骤）→ `_ensure_admin_user()` → `start_channel_service()` → `yield`。
+从 uvicorn 启动到 app 就绪的 6 步：`create_app()` → `get_app_config()` → `langgraph_runtime()`（先跑 5 道启动门，再建 StreamBridge / Checkpointer / Store / 事件库 / RunManager）→ `_ensure_admin_user()` → `start_channel_service()` → `yield`。
+
+`_gateway_lifespan`（`backend/app/gateway/app.py:637`）在 v2.2.0 多做了 6 件启动期工作：
+
+| 步骤 | 位置 | v2.2.0 语义 |
+|------|------|------------|
+| 容量冻结 | `app.py:657` `configure_subagent_execution_capacity()` | 子代理执行容量 startup-only 冻结，热重载配置不能让"广告的并发上限"和"实际强制值"分叉 |
+| 公共 skill 投影 | `app.py:671` | `ensure_public_skill_projection()` 走 `asyncio.to_thread`，用户投影在沙箱获取时惰性修复 |
+| 检索索引预热 | `app.py:688`-`703` | memory 检索索引在后台上重建，**不阻塞就绪** |
+| trash 清扫 | `app.py:759`（`_run_startup_trash_sweep`） | 启动期一次保留期清扫，作为后台 task，就绪不等它 |
+| 启动门 | `deps.py:784`-`799` | `_enforce_postgres_for_multi_worker` / `_enforce_credentials_key` / `_validate_agent_storage` / `_validate_login_throttle_storage` / `_validate_memory_retrieval_index` |
+| IM 通道租约 | `app.py:837`-`841` | `start_channel_service(..., multi_process=multi_process_deployment(startup_config), lease_owner_id=run_manager.worker_id)`——通道 leader lease 的 owner 就是本实例的 run worker id，租约日志与 run 日志同源 |
 
 ---
 
@@ -38,7 +49,7 @@ topics: [architecture, system-overview]
 | 2. stream_run | `thread_runs.py` | 获取 bridge/run_mgr，调用 start_run |
 | 3. start_run | `services.py` | 8 步准备（model 验证 → RunRecord → build_run_config → context override） |
 | 4. run_agent | `worker.py` | 17 步执行（journal → checkpoint → agent factory → astream → finally） |
-| 5. make_lead_agent | `agent.py` | 7 步装配 Agent Graph（config → model → tools → middlewares → prompt → create_agent） |
+| 5. make_lead_agent | `agent.py` | 7 步装配 Agent Graph（config → model → tools → middlewares → prompt → create_agent）；v2.2.0 起 Gateway worker 用 `assemble_lead_agent()` 拿 `LeadAgentAssembly`（图 + 装配描述），不再从 LangGraph 私有 runtime key 反推 |
 | 6. Pregel + SSE | LangGraph + StreamBridge | Turn 1..N 循环 → serialize → Bridge.publish → SSE frames |
 
 ---
@@ -74,7 +85,7 @@ topics: [architecture, system-overview]
 | _make_lead_agent | `deerflow/agents/lead_agent/agent.py:_make_lead_agent()` |
 | get_available_tools | `deerflow/tools/tools.py:get_available_tools()` |
 | create_chat_model | `deerflow/models/factory.py:create_chat_model()` |
-| build_middlewares | `deerflow/agents/lead_agent/agent.py:build_middlewares()`（v2.1.0 公开名） |
+| build_middlewares | `deerflow/agents/lead_agent/agent.py:build_middlewares()`（`agent.py:485`，公开名，被 `client.py` 跨模块 import）；运行时基底是 `tool_error_handling_middleware.py:build_lead_runtime_middlewares()`（`:538`），内部转 `_build_runtime_middlewares()`（`:347`） |
 | apply_prompt_template | `deerflow/agents/lead_agent/prompt.py:apply_prompt_template()` |
 | sse_consumer | `backend/app/gateway/routers/thread_runs.py:sse_consumer()` |
 | Config 加载 | `deerflow/config/app_config.py:AppConfig.from_file()` |

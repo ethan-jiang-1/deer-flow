@@ -13,10 +13,10 @@ DeerFlow 没有"一个监控大盘"这种聚合视图——它的观测能力是
 | 层 | 机制 | 粒度 | 落在哪 | 谁看 |
 |----|------|------|--------|------|
 | **1. 日志** | `logging_config.py` + `trace_context.py` + `TraceMiddleware` | 请求/进程级 | stderr（Docker 捕获） | 开发者、`grep` |
-| **2. 事件流** | `RunJournal` → `RunEventStore` | run 级结构化事件 | memory / JSONL / DB | 审计、回放、`/events` 调试端点 |
+| **2. 事件流** | `RunJournal` → `RunEventStore`；🆕 v2.2.0 加 `run.terminal` 权威终态 + Evidence Receipt/Seal | run 级结构化事件 | memory / JSONL / DB | 审计、回放、`/events` 调试端点、终态判定 |
 | **3. 追踪** | LangSmith / Langfuse / Monocle | LLM + tool + node span | 外部平台 | 调用链、延迟、成本 |
 | **4. 控制台/成本** | `GET /api/console/*` | 跨线程聚合 | SQL（sqlite/postgres） | 运营、预算、`active_runs` 卡死检测 |
-| **5. 实时流** | `StreamBridge` SSE | 逐 chunk 增量 | 前端 / IM channel | 用户、实时进度 |
+| **5. 实时流** | `StreamBridge` SSE；🆕 v2.2.0 加 producer lease（redis）+ 统一 SSE 反压缩头 | 逐 chunk 增量 | 前端 / IM channel | 用户、实时进度 |
 
 跨层有一条**关联主线**：`trace_id`（`deerflow_trace_id`）。它把日志、HTTP 响应头、Langfuse trace 三者串在一起，是"出问题时从哪个点都能定位到同一次请求"的钥匙（详见 `01`）。
 
@@ -38,10 +38,13 @@ HTTP POST /api/threads/{id}/runs/stream
         └─ StreamBridge → SSE（metadata / updates / events / messages-tuple / error / end）
                               → 前端 / IM channel
 
-run 结束后：
-  ├─ RunRow（status / duration / error / total_tokens / token_usage_by_model）
-  │     └─ Console API 可查（stats / runs / usage，配 pricing 后算成本）
-  └─ 终端事件（run.delivery receipt 等）落 RunEventStore
+run 结束后（🆕 v2.2.0 的顺序，见 backend/docs/RUN_EVENT_STREAM.md）：
+  ├─ 最终提交 ACK（RunRow 终态）→ Journal drain → run.terminal 单例确认（put_if_absent）
+  ├─ Evidence Receipt（DbRunEventStore.evidence_receipt）→ Evidence Seal（RunRow.evidence_seal_state）
+  │     └─ 任一步失败 → evidence_seal_state = 'partial'（带原因），不是静默成功
+  ├─ run.delivery 收据 + run.terminal 落 RunEventStore
+  └─ RunRow（status / duration / error / total_tokens / token_usage_by_model）
+        └─ Console API 可查（stats / runs / usage，配 pricing 后算成本；🆕 缺 usage → cost: null）
 ```
 
 ## 关键架构事实
@@ -49,6 +52,10 @@ run 结束后：
 - **两层附着**：追踪 handler 挂在 **graph 根**（`make_lead_agent` / `DeerFlowClient.stream` 在 `graph.astream()` 前追加），不是模型级——这样一次 run 产生**一个**根 trace，所有 node/LLM/tool 都是子 span。图外调用者（`MemoryUpdater` 等）才用模型级 `attach_tracing=True` 回退。
 - **RunJournal 是回调→事件的汇聚点**：它既喂事件流（观测），又累计 token（成本），是第 2、4 层之间的枢纽。
 - **`RunRow` 是控制台的数据源**：Console API 直接查 `runs` / `threads_meta` 表，不扩宽 `RunStore` 运行时面，只读、短命查询。
+- 🆕 **`run.terminal` 是权威终态，`run.end` 不是**（v2.2.0）：`run.end` 只标记根图完成、恒 `success`，一次 run 可以在业务结局变 `error` 之前先发多个 `success` 的 `run.end`。判「到成没成」看 `run.terminal`（或 `RunRow.status`）。单例身份是 `(thread_id, run_id, event_type)`，`metadata.recovered` 区分 owner 发布还是 takeover 补写。
+- 🆕 **seq 删除后不复用**（v2.2.0）：DB 有 `run_event_thread_seq` 水位表、JSONL 有 `.seq-watermark` 文件；`after_seq` 前向游标因此可靠。**memory 后端仍会从 1 重排**。
+- 🆕 **每次 LLM 调用都有遥测**（v2.2.0）：`llm.ai.response` / `llm.error` 的 metadata 带 `langchain_run_id` / `caller_category` / `provider` / `model` / `stop_reason` / token / `request_*` 请求体量——不用开外部追踪也能做逐调用延迟/成本分析。
+- 🆕 **成本 `null` 有两个成因**（v2.2.0）：没配 pricing，**或**某次调用显式没回 usage。后者是数据质量信号，不是配置问题（见 `04`）。
 - **没有聚合仪表盘**：以上全是"原料"，缺的是 dashboard、告警、异常检测。要上线，得自己拼（见 `07`）。
 
 ## 阅读路径

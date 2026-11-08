@@ -49,6 +49,26 @@ DeerFlow 的日志本身是朴素的 Python `logging`，真正的价值在一个
 | `ensure_trace_context(id)` | `id` → 继承当前 → 生成新 id（嵌入式/入口点用） |
 | `bind_trace_id(id)` / `reset_trace_id(token)` | 底层绑定/恢复（`trace_context.py:121,133`；返回/接收 `Token`）——旧文档曾写作 `set_current_trace_id`，该名字不存在 |
 
+## 🆕 URL 脱敏：`UrlRedactionFilter`（v2.2.0 大改，+194 行）
+
+`logging_config.py` 里多了一条**与 trace 增强无关、恒定生效**的日志后处理：`UrlRedactionFilter`（`logging_config.py:259`）。`configure_logging()` 在 `_ensure_root_handler()` 之后立刻调 `install_url_log_redaction()`（`logging_config.py:513-514`），而 `configure_logging()` **无论** `logging.enhance.enabled` 真假都会给每个 root handler 挂这个 filter，所以**脱敏不归 `logging.enhance` 管**。
+
+**挂在哪**（`install_url_log_redaction()`，`logging_config.py:416-429`）：
+
+| 位置 | 为什么 |
+|------|--------|
+| `httpx` logger 本身（`_REDACTED_LOGGER_NAMES = ("httpx",)`，`logging_config.py:404`） | httpx 直接用裸 `httpx` 名发射，logger filter 能命中 |
+| **每个 root handler** | urllib3 走子 logger（`urllib3.poolmanager` / `urllib3.connectionpool` / `urllib3.util.retry`），在裸 `urllib3` 上挂 filter 是**死代码**（Filter 不被子 logger 继承、也看不到 propagated 记录）；handler filter 才看得到传播上来的记录，从而覆盖任意库 |
+
+**脱敏掉什么**：scheme-bearing URL 里的 userinfo（`user:pass@`）与 query（`_URL_REDACT_RE`，目标是 `scheme://host/<redacted>`）；urllib3 的 `Redirecting <url> -> <url>`（`_URLLIB3_REDIRECTING_ORIGIN_RE`）、`Retry: /path`（`_URLLIB3_RETRY_TARGET_RE`）、`Retrying (...) after connection broken by ...: /path`（`_URLLIB3_RETRYING_RE`）、`Incremented Retry for (url='...')`（`_URLLIB3_INCREMENT_RETRY_RE`）；以及请求行 `METHOD /target HTTP/x.y`（`_URLLIB3_REQUEST_LINE_RE`）。
+
+**v2.2.0 修的两个真实漏口**（都容易复现）：
+
+1. **目标里含空格的带签 URL 漏网**。`_URLLIB3_REQUEST_LINE_RE`、`_URLLIB3_RETRY_TARGET_RE`、`_URLLIB3_RETRYING_RE` 的 target 类从「到第一个空格为止」改成「到行尾 / 到收尾引号为止」。原因：递归 redirect 帧里那个 slot 是**原始 `Location` 头值**，其语法允许内部空格，于是 `Retry: /download a file.pdf?sig=...` 这种带签路径会整条原样落盘。target 仍要求以 `/` 开头，所以只是以 `Retry: ` 开头的散文照旧放过。
+2. **异常文本把脱敏结果又覆盖回去**。`JsonTraceFormatter` 以前无条件 `payload["exc_info"] = self.formatException(record.exc_info)`，会**重算**并丢弃 filter 已经脱敏好的 `record.exc_text`，把异常自己的原文（urllib3 的 header-parse warning 会把整个请求转储进异常）再完整吐一遍。现在跟标准 `logging.Formatter` 一样**缓存复用**（`logging_config.py:462-464`：`if not record.exc_text: record.exc_text = self.formatException(...)`，然后 `payload["exc_info"] = record.exc_text`）。
+
+**运维含义**：这是"日志里为什么看不到完整 URL"的正确答案——**不是 bug**。要看真实 URL，只能显式在受控的调试输出里看，别指望日志。测试锚点：`test_logging_config.py`（v2.2.0 有增量）。
+
 ## TraceMiddleware：启动快照，不是每请求热读
 
 `logging` 是 **restart-required** 字段（`STARTUP_ONLY_FIELDS["logging"]`）。`configure_logging()` 只在 lifespan 启动时装 trace filter + formatter，`TraceMiddleware` 的 `enabled` 标志也在 `create_app()` 时快照一次。
@@ -88,7 +108,7 @@ DeerFlow 的日志本身是朴素的 Python `logging`，真正的价值在一个
 
 ## 重要 logger 名称清单（要监听就盯这些）
 
-DeerFlow 源码里 **217 处 `logging.getLogger(__name__)`，零处显式命名** —— 所以 logger 名 = 模块路径，你按**层级**监听，不用背全名。两条主 hierarchy 就是总开关。
+DeerFlow 源码里 **323 处 `logging.getLogger(__name__)`（harness 242 + app/Gateway 81），零处显式命名**（v2.1.0 是 263 处 = 200 + 63，v2.2.0 净增 60）—— 所以 logger 名 = 模块路径，你按**层级**监听，不用背全名。两条主 hierarchy 就是总开关。
 
 ### 两条主 hierarchy（`config.log_level` 只管这两个）
 
@@ -113,6 +133,8 @@ DeerFlow 源码里 **217 处 `logging.getLogger(__name__)`，零处显式命名*
 | `deerflow.utils.custom_events` | 自定义事件分发（debug） | 你发的 `emit_custom_event` |
 | `app.gateway.trace_middleware` | trace 中间件 | trace_id 绑定 |
 | `app.gateway.routers.console` | Console API（pricing 解析失败等 warning） | 运营端点 |
+| `deerflow.runtime.events.terminal` | 🆕 v2.2.0 终态事件确认失败 / recovery 收据补写失败 | `run.terminal` 缺失或 `CONFLICT`/`UNKNOWN` 排查 |
+| `deerflow.agents.middlewares.summarization_middleware` | 🆕 v2.2.0 「Summarization telemetry failed」（`middleware:summarize` 事件写失败） | 摘要事件缺失 |
 
 ### IM 通道（`app.channels.*`）
 

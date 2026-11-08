@@ -32,12 +32,13 @@
 from __future__ import annotations
 
 import argparse
-import ast
 import glob
 import os
 import re
 import sys
 from collections import defaultdict
+from contextlib import suppress
+from functools import cache
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
@@ -132,6 +133,8 @@ ANCHOR_RE = re.compile(r"\[[^\]]*\]\(([^)\s]*#[^)\s]+)\)")
 PATH_TOK_RE = re.compile(r"`([A-Za-z0-9_][A-Za-z0-9_./-]*\.(?:py|ts|tsx|yml|yaml|json|mdx|sh|toml))`")
 ENV_RE = re.compile(r"\b((?:DEER_FLOW|GATEWAY|AUTH|BETTER_AUTH|LANGSMITH|LANGFUSE|MONOCLE|DATABASE|POSTGRES|PROVISIONER|SANDBOX|DEERFLOW)[A-Z0-9_]*|[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)*_(?:KEY|TOKEN|SECRET|URL|URI|ID|HOST|PATH|DIR|PORT|ENABLED|DISABLED|TRACING|HOME|ROOT|IMAGE|VERSION|ENDPOINT|BASE|ACCOUNT|WEBHOOK|PASSWORD|DSN|REGION|BUCKET|QUEUE|WORKERS|TIMEOUT|LIMIT|MODE))\b")
 CAMEL_RE = re.compile(r"`([A-Z][A-Za-z0-9_]{6,})`")
+# 标识符 token：用于 corpus 符号存在性的 O(1) 快路径索引
+TOKEN_RE = re.compile(r"[A-Za-z0-9_]+")
 MODCLASS_RE = re.compile(r"\b((?:deerflow|app)(?:\.[a-z_][a-z0-9_]*)+):([A-Z][A-Za-z0-9_]*)")
 IMPORT_RE = re.compile(r"from\s+((?:deerflow|app)(?:\.[a-z_][a-z0-9_]*)+)\s+import\s+([A-Za-z_][A-Za-z0-9_,\s]*)")
 
@@ -176,11 +179,35 @@ def rel(path: str) -> str:
     return os.path.relpath(path, ROOT)
 
 
+def read_text(path: str, errors: str = "strict") -> str:
+    """读文本文件（显式 UTF-8，不依赖 locale）。"""
+    with open(path, encoding="utf-8", errors=errors) as fh:
+        return fh.read()
+
+
+@cache
+def file_line_count(path: str) -> int:
+    """文件行数（带缓存：同一目标文件常被多条 digest 引用反复统计）。"""
+    with open(path, encoding="utf-8") as fh:
+        return sum(1 for _ in fh)
+
+
+@cache
+def anchor_heads(path: str) -> tuple[str, ...]:
+    """目标文件的所有标题 slug（带缓存：同一目标常被多个 anchor 链接重复解析）。"""
+    return tuple(slug(h) for h in re.findall(r"^#+\s+(.+)$", read_text(path), re.M))
+
+
 def docs() -> list[str]:
     out: list[str] = []
     for pattern in DOC_GLOBS:
         out += glob.glob(os.path.join(ROOT, pattern), recursive=True)
     return sorted(p for p in out if not any(x in p for x in EXCLUDE_PARTS))
+
+
+# 源码树遍历时整棵剪掉的目录名（依赖目录、构建产物、虚拟环境）。
+# 注意：必须用 dirnames[:] 剪枝才生效——只对 dirpath 做 continue 仍会递归进入子树。
+PRUNE_DIRNAMES = frozenset({"node_modules", ".git", ".next", ".venv", "__pycache__", "dist"})
 
 
 def build_indexes():
@@ -189,22 +216,24 @@ def build_indexes():
     corpus: list[str] = []
     for base in ("backend", "frontend", "scripts", "docker", "deploy", "skills", "contracts", "docs"):
         for dirpath, dirnames, filenames in os.walk(os.path.join(ROOT, base)):
-            if any(x in dirpath for x in ("/node_modules", "/.git", "/.next", "/.venv", "__pycache__", "/dist")):
-                continue
+            dirnames[:] = [d for d in dirnames if d not in PRUNE_DIRNAMES]
             for name in filenames:
                 if not name.endswith(SOURCE_EXTS):
                     continue
                 full = os.path.join(dirpath, name)
                 index[name].append(full)
-                try:
-                    corpus.append(open(full, encoding="utf-8", errors="ignore").read())
-                except OSError:
-                    pass
+                with suppress(OSError):
+                    corpus.append(read_text(full, errors="ignore"))
     for name in ("config.example.yaml", "extensions_config.example.json", "AGENTS.md", "README.md", "Makefile", ".env.example"):
         full = os.path.join(ROOT, name)
         if os.path.isfile(full):
-            corpus.append(open(full, encoding="utf-8", errors="ignore").read())
-    return index, "\n".join(corpus)
+            corpus.append(read_text(full, errors="ignore"))
+    text = "\n".join(corpus)
+    # 符号存在性检查的快路径索引：corpus 里的连续标识符 token。
+    # token 命中 ⟹ 子串必命中，所以 `x in tokens` 可作为 `x in text` 的安全前置判断；
+    # 反向不成立（`PiiRedaction` 只出现在 `PiiRedactionConfig` 里），故 miss 仍回退子串扫描。
+    tokens = set(TOKEN_RE.findall(text))
+    return index, text, tokens
 
 
 def resolve_path(token: str, index: dict[str, list[str]]) -> str | None:
@@ -247,7 +276,7 @@ def slug(heading: str) -> str:
 
 def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
     """Return [(check_name, message)] for real problems only."""
-    index, corpus = build_indexes()
+    index, corpus, tokens = build_indexes()
     findings: list[tuple[str, str]] = []
     exceptions: list[tuple[str, str]] = []
 
@@ -260,7 +289,7 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
     for doc in docs():
         rel_doc = rel(doc)
         try:
-            text = open(doc, encoding="utf-8").read()
+            text = read_text(doc)
         except OSError:
             continue
         lines = text.splitlines()
@@ -287,7 +316,7 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     target = resolve_path(token, index)
                     if not target:
                         continue
-                    actual = sum(1 for _ in open(os.path.join(ROOT, target), encoding="utf-8"))
+                    actual = file_line_count(os.path.join(ROOT, target))
                     if actual != claimed:
                         findings.append(("line_count", f"{rel_doc}:{no} {target} 声称 {claimed} 行，实际 {actual}"))
             if enabled("line_in_range"):
@@ -296,7 +325,7 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     target = resolve_path(token, index)
                     if not target:
                         continue
-                    total = sum(1 for _ in open(os.path.join(ROOT, target), encoding="utf-8"))
+                    total = file_line_count(os.path.join(ROOT, target))
                     if n > total:
                         findings.append(("line_in_range", f"{rel_doc}:{no} {target}:{n} 超出文件长度 {total}"))
 
@@ -318,7 +347,7 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     rm = re.match(r"\s*[-–~]\s*(\d{1,5})", tail)
                     if rm:
                         end = int(rm.group(1))
-                    src_lines = open(os.path.join(ROOT, target), encoding="utf-8", errors="ignore").read().splitlines()
+                    src_lines = read_text(os.path.join(ROOT, target), errors="ignore").splitlines()
                     if n > len(src_lines):
                         continue
                     end = min(end, len(src_lines))
@@ -337,16 +366,14 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     target = resolve_path(token, index)
                     if not target:
                         continue
-                    src_lines = open(os.path.join(ROOT, target), encoding="utf-8", errors="ignore").read().splitlines()
+                    src_lines = read_text(os.path.join(ROOT, target), errors="ignore").splitlines()
                     if n > len(src_lines):
                         continue
                     window = "\n".join(src_lines[max(0, n - 2):n + 1])
                     named = [
                         s for s in (mm.group(1) for mm in CAMEL_RE.finditer(line))
-                        if s not in ("L%s" % n,)
-                    ] + [
-                        s for s in re.findall(r"`([a-z_][a-z0-9_]{5,})`", line)
-                    ]
+                        if s != f"L{n}"
+                    ] + re.findall(r"`([a-z_][a-z0-9_]{5,})`", line)
                     named = [s for s in named if s not in IGNORE_SYMBOLS]
                     if not named:
                         continue
@@ -373,7 +400,7 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     target = os.path.normpath(os.path.join(os.path.dirname(doc), path)) if path else doc
                     if not os.path.isfile(target):
                         continue
-                    heads = [slug(h) for h in re.findall(r"^#+\s+(.+)$", open(target, encoding="utf-8").read(), re.M)]
+                    heads = anchor_heads(target)
                     if anchor not in heads:
                         findings.append(("anchor", f"{rel_doc}:{no} -> {t} 目标小节不存在"))
 
@@ -399,16 +426,20 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
             if enabled("env_var"):
                 for m in ENV_RE.finditer(line):
                     var = m.group(1)
-                    if var in corpus or var in IGNORE_ENV or var.startswith(EXTERNAL_VAR_PREFIXES):
+                    if var in IGNORE_ENV or var.startswith(EXTERNAL_VAR_PREFIXES) or var in tokens:
                         continue
-                    findings.append(("env_var", f"{rel_doc}:{no} -> {var}"))
+                    # token 未命中并不等于不存在：变量名可能被包裹在更长的标识符里
+                    if var not in corpus:
+                        findings.append(("env_var", f"{rel_doc}:{no} -> {var}"))
 
             if enabled("camel_symbol"):
                 for m in CAMEL_RE.finditer(line):
                     sym = m.group(1)
-                    if sym in corpus or sym in IGNORE_CLASSES or sym.startswith(EXTERNAL_CLASS_PREFIXES):
+                    if sym in IGNORE_CLASSES or sym.startswith(EXTERNAL_CLASS_PREFIXES) or sym in tokens:
                         continue
-                    findings.append(("camel_symbol", f"{rel_doc}:{no} -> {sym}"))
+                    # 同 env_var：类名可能只以 `XxxConfig` / `_Xxx` 形式出现
+                    if sym not in corpus:
+                        findings.append(("camel_symbol", f"{rel_doc}:{no} -> {sym}"))
 
             if enabled("module_class"):
                 for m in MODCLASS_RE.finditer(line):
@@ -416,7 +447,7 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     target = resolve_module(mod)
                     if not target:
                         findings.append(("module_class", f"{rel_doc}:{no} -> {mod}:{cls}（模块不存在）"))
-                    elif cls not in open(target, encoding="utf-8").read():
+                    elif cls not in read_text(target):
                         findings.append(("module_class", f"{rel_doc}:{no} -> {mod}:{cls}（类未定义）"))
 
             if enabled("import_stmt"):
@@ -429,7 +460,7 @@ def check_all(verbose: bool, only: set[str] | None) -> list[tuple[str, str]]:
                     if not target:
                         findings.append(("import_stmt", f"{rel_doc}:{no} -> from {mod} import …（模块不存在）"))
                         continue
-                    src = open(target, encoding="utf-8").read()
+                    src = read_text(target)
                     for sym in (s.strip() for s in syms.split(",") if s.strip()):
                         if sym not in src:
                             findings.append(("import_stmt", f"{rel_doc}:{no} -> {mod} 缺符号 {sym}"))

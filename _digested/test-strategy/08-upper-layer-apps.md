@@ -21,23 +21,28 @@ DeerFlow 是**平台**——测试面必须延伸到嫁接在它之上的东西�
 
 **合同事实**：`backend/packages/harness/deerflow/extensions/AGENTS.md:144` —公共包 `packages/extension-api/` 的 registry contract 暴露 **seven contribution kinds**（middleware contributors, task-lifecycle contributors, system-model-call observers, agent-assembly observers, context-compaction observers, Gateway-lifetime services, and eager routers）。Middleware 贡献要声明 lead/subagent scope、稳定顺序和**语义位置**而非脆弱的列表索引。
 
-**宿主侧已有什么**（全部离线、进 backend-unit CI）：20 个 `test_extension_*.py` 覆盖注入/隔离/顺序/位置保证/栈装配/任务生命周期/子代理生命周期/系统模型调用/路由 principal，加 `test_extension_api_contracts|state|surface.py`（合同面本身）、`test_gateway_extension_service_lifecycle.py`（服务生命周期）、`test_extension_manager.py`（管理器事务——临时 Git 仓库、**空 hook 目录**；`extensions/AGENTS.md` 明文 "They must not run developer or CI Git hooks"）。
+**宿主侧已有什么**（全部离线、进 backend-unit CI）：**31** 个 `test_extension_*.py`（v2.1.0 为 20） 覆盖注入/隔离/顺序/位置保证/栈装配/任务生命周期/子代理生命周期/系统模型调用/路由 principal，加 `test_extension_api_contracts|state|surface.py`（合同面本身）、`test_gateway_extension_service_lifecycle.py`（服务生命周期）、`test_extension_manager.py`（管理器事务——临时 Git 仓库、**空 hook 目录**；`extensions/AGENTS.md` 明文 "They must not run developer or CI Git hooks"）。
 
 **你该怎么测自己的扩展**——`examples/deerflow-extension-example/` 就是官方模板：
 
-- `tests/test_plugin.py:27` 的 **FakeRegistry**（实现全部七种注册方法的桩）验证 `install()` 注册的贡献物与路由路径；`:69` `test_install_registers_all_five_contribution_kinds` 钉住示例包声明的五类贡献物（宿主合同共七类，示例只取其五）；
-- 端到端测试用 httpx **`ASGITransport`**（`tests/test_plugin.py:140`）驱动真实 FastAPI app 里的 contributed router，断言 contributed Gateway service 的生命周期状态与聚合行为；
+- `tests/test_plugin.py:28` 的 **FakeRegistry**（实现全部七种注册方法的桩）验证 `install()` 注册的贡献物与路由路径；`:80` `test_install_registers_the_five_demonstrated_contribution_kinds` 钉住示例包声明的五类贡献物（宿主合同共七类，示例只取其五）；同文件 `:101` `test_disabled_extension_registers_nothing` 与 `:113` `test_registered_contributions_publish_one_shared_stats_snapshot` 补上"禁用后零注册"与"多个贡献物共享同一份 stats 快照"两条；
+- 端到端测试用 httpx **`ASGITransport`**（`tests/test_plugin.py:23` import、`:156` 构造 transport）驱动真实 FastAPI app 里的 contributed router，断言 contributed Gateway service 的生命周期状态与聚合行为；
 - `tests/test_entry_point.py`：PEP 621 入口点组 `deerflow.extensions` 恰好暴露声明的 entry point 且可 load；
 - 运行方式完全隔离（README 原文，`README.md:42`）："The tests use only the public contract plus this package's declared dependencies; the DeerFlow harness and Gateway application are not imported."——命令是 `uv run --no-project pytest -q`。
 
-**已知缺口**（照抄者必须知道）：示例包测试**不进任何 CI workflow**；`extensions/AGENTS.md` 也没有明文"扩展必须带测试"——目前靠宿主侧合同测试兜底 + 示例包作为模板。
+**v2.2.0 补上了这个缺口**：新增 `.github/workflows/extension-package-check.yml`，对 `examples/deerflow-extension-*/` 逐包做两件事——(a) `scripts/check_extension.py`（176 行）构建 wheel 并在**不安装其代码**的情况下检查包内容与 manifest；(b) 对**带 `tests/` 的包**起隔离 venv（`uv venv` + `uv pip install -e backend/packages/extension-api` + 包自身的 `.[dev]`）跑 `pytest -q` + `ruff check/format --check`。workflow 注释原话："Each package's own tests run in an isolated environment against this checkout's extension-api, so a contract change that breaks them fails here."
+
+**仍存的缺口**（照抄者必须知道）：
+- 14 个示例包中只有 `deerflow-extension-example` 带 `tests/`，其余 13 个只过打包检查——**"有测试就跑、没测试不拦"是刻意的**（避免为过门禁写空测试），但也就意味着"扩展应当自带测试"仍不是被强制的规矩；
+- `extensions/AGENTS.md` 依然没有明文"扩展必须带测试"；
+- 隔离 venv 用的是 `uv pip install -e backend/packages/extension-api` 的**路径安装**而非已发布版本，因此这个检查证明的是"针对当前 checkout 的契约没问题"，不证明"针对已发布版本的契约没问题"。
 
 ## 三、技能：一个产物，四个测试面
 
 技能是最特殊的"上层产物"——它既是 prompt 资产（部署进沙箱给 agent 读）又是可执行代码（各技能自带的生成脚本，如 `skills/public/image-generation/scripts/generate.py`），所以测试面被拆成四层：
 
-1. **harness 技能系统**（进 CI）：37 个 `test_skill*.py` / `test_skills*.py`——loader/parser/reload/catalog/permissions/projection/metadata 注入，含 SkillScan 静态分析器自身的单测（`test_skillscan_native.py`，其中代表性漏报被**刻意钉住不许修复**——`test_python_declared_false_negatives_stay_unreported`，漏报边界本身是契约）；
-2. **生成脚本单测**（**不进 CI**，手动）：根 `tests/skills/` 5 个文件——`tests/skills/skill_loader.py` 用 `importlib.util.spec_from_file_location` 按路径加载各 `generate.py`（技能不是包），`FakeResp` 打桩 `requests`，API key 全是 dummy 字符串。测试放**仓库根而非 skill 目录**的原因是设计文档的明文要求（`docs/superpowers/specs/2026-06-08-minimax-generation-providers-design.md:144`）："测试目录：仓库根 `tests/skills/`（**不放进会部署到沙箱的 skill 目录**）"——测试代码不能进入 agent 的运行时视野；
+1. **harness 技能系统**（进 CI）：**86** 个 `test_skill*.py` / `test_skills*.py`（v2.1.0 为 37）——loader/parser/reload/catalog/permissions/projection/metadata 注入，含 SkillScan 静态分析器自身的单测（`test_skillscan_native.py`，其中代表性漏报被**刻意钉住不许修复**——`test_python_declared_false_negatives_stay_unreported`，漏报边界本身是契约）；
+2. **生成脚本单测**（**v2.2.0 起进 CI**：`skill-review-ci.yml` 的 `skill-tests` job，见 `testing/06-ci-and-automation.md`）：根 `tests/skills/` **21** 个文件（v2.1.0 为 5）——`tests/skills/skill_loader.py` 用 `importlib.util.spec_from_file_location` 按路径加载各 `generate.py`（技能不是包），`FakeResp` 打桩 `requests`，API key 全是 dummy 字符串。测试放**仓库根而非 skill 目录**的原因是设计文档的明文要求（`docs/superpowers/specs/2026-06-08-minimax-generation-providers-design.md:144`）："测试目录：仓库根 `tests/skills/`（**不放进会部署到沙箱的 skill 目录**）"——测试代码不能进入 agent 的运行时视野；
 3. **确定性质量评审**（进 CI，`skill-review-ci.yml` 阻塞 PR）：`scripts/review_changed_public_skills.py` 只评审**有变更**的技能包（git diff pathspec），subprocess 调 `python -m deerflow.skills.review.cli`（确定性 analyzer，零 LLM）；产出 facts 走 `contracts/skill_review/` 的 schema；
 4. **评审器自身的 evals**：`skills/public/skill-reviewer/evals/evals.json` 6 个 fixture 用例（publish-candidate / needs-revision / blocked / prompt-injection / zh-output / partial-package），每例声明期望 readiness 与 `forbidden_tool_actions` 等硬约束。SKILL.md 的两条纪律被测试钉住（`backend/tests/test_skill_reviewer_public_skill.py:23`）："Always inspect the target through `review_skill_package`"（SKILL.md:38）、"Do not claim a higher assurance level than the evidence proves."（SKILL.md:90）——对"评审智能"这个概率性对象，也建立了确定性的评测夹具。
 
@@ -60,7 +65,7 @@ DeerFlow 是**平台**——测试面必须延伸到嫁接在它之上的东西�
 
 ## 五、IM 渠道：全离线打桩的三种范式
 
-渠道测试全部离线：`test_channels.py`（14345 行 / 352 个测试，全仓最大测试文件）、`test_dingtalk_channel.py`（120 测试）、`test_buzz_channel.py`（99 测试）。
+渠道测试全部离线：`test_channels.py`（14345 行 / **441** 个测试，全仓最大测试文件；v2.1.0 为 352）、`test_dingtalk_channel.py`（**140** 测试，v2.1.0 为 120）、`test_buzz_channel.py`（**120** 测试，v2.1.0 为 99）。
 
 - **mock 消息对象**（DingTalk）：`unittest.mock.AsyncMock/MagicMock` 构造 mock 消息，进程内 `MessageBus`，每例新开 event loop；
 - **真实密码学 + 假网络**（Buzz/Nostr）：`pytest.importorskip("coincurve")`（可选依赖缺失自动跳过），fixture 用**真实密钥对签名事件**（`test_buzz_channel.py:26` 注释原文："every fixture author is now a real keypair whose events are signed"），relay URL 是假的 `wss://buzz.example.com`（`:42`）——签名语义是真的（替身不可替换被测语义），网络是假的（贵的与不确定的被替身替换）；
@@ -100,8 +105,8 @@ DeerFlow 是**平台**——测试面必须延伸到嫁接在它之上的东西�
 | 技能质量评审 + waiver | `review_changed_public_skills.py` + `skill_review_waivers.py` + manifest | 离线（确定性 analyzer） | skill-review-ci（阻塞；blocker 不可豁免） |
 | 评审器自身 | `test_skill_reviewer_public_skill.py` + evals manifest 6 fixture | 离线 | backend-unit |
 | MCP 工具/会话/凭证 | `test_mcp_*` 文件群（含 1 例真 adapter 过真图） | 离线 | backend-unit |
-| MCP 长任务 | `test_mcp_task_service.py` 36 async 例 + 12 外围文件 | 离线（Fake 驱动） | backend-unit |
-| IM 渠道 | `test_*channel*` 文件群（channels 352 / DingTalk 120 / Buzz 99 例） | 离线（mock/真密钥假 relay） | backend-unit |
+| MCP 长任务 | `test_mcp_task_service.py` **105** 例 + 12 外围文件 | 离线（9 个窄接口 Fake 驱动）；v2.2.0 用 `_MutableDateTime` 推进时间 | backend-unit |
+| IM 渠道 | `test_*channel*` 文件群（channels 441 / DingTalk 140 / Buzz 120 例） | 离线（mock/真密钥假 relay）；v2.2.0 起部分用例走 `support/local_sockets.py` 的 `StalledWebSocketServer` 锚真 WebSocket 关闭语义 | backend-unit |
 | 渠道阻塞 IO | `blocking_io/test_channel_*.py` | 离线（Blockbuster） | backend-blocking-io（hard-fail） |
 | DeerFlowClient | `test_client.py` 189 例（含 Pydantic 合同） | 离线 | backend-unit |
 | DeerFlowClient e2e/live | `test_client_e2e.py` 43 例 / `test_client_live.py` 19 例 | 混合 / 在线 | 文件管理子集进 CI；live 手动 |

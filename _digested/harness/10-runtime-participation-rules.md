@@ -17,7 +17,7 @@ topics: [harness, participation-rules, runtime, extensions, config]
 | 载体 | DeerFlow 的实例 |
 |------|----------------|
 | 系统（可执行） | `tests/test_harness_boundary.py`（app/harness 依赖方向红灯）；`Gateway Conformance Tests`（client 返回 dict 必须过 Gateway Pydantic model，缺失字段在 CI 报 ValidationError）；extension api marker 校验（loader 拒绝不兼容 `deerflow-extension-api` 版本）；`tests/test_extension_api_surface.py`（公共契约面钉死）；Blockbuster 阻塞 I/O 门；`scripts/check_agent_guidance.py`（AGENTS.md 预算进 CI）；调度器配置校验（`multi_instance=true` 缺前置直接拒绝启动） |
-| 文档（可读） | 28 个分层 AGENTS.md + "Pinned by tests/…" 双向锚点；`docs/testing/` 五台阶检查单；extensions 用户手册 |
+| 文档（可读） | **57** 个分层 AGENTS.md（v2.2.0，v2.1.0 为 28）+ "Pinned by tests/…" 双向锚点；`docs/testing/` 五台阶检查单；extensions 用户手册 |
 | 人脑（残留部落知识） | 如"defer by deferring the *call*"这类约定仍有部分仅以 prose + review 存在（`backend/packages/harness/deerflow/extensions/AGENTS.md` 自述）——诚实登记，不是已解决的问题 |
 
 `[推断]` DeerFlow 的第三层主体形态是**"测试即门禁"**：Python 类型系统不足以把不变量钉在编译期，所以依赖方向、契约面、基础设施绑定都用 pytest 红灯钉住。这是语言与运行时选择决定的形状，不是纪律强弱。

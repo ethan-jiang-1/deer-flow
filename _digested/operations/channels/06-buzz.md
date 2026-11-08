@@ -6,7 +6,7 @@ topics: [channels, im, buzz, nostr, nip-01, nip-42, bip-340, dedupe]
 
 # Buzz 频道 — Nostr relay 上的身份验证与去重
 
-> 同步 #4（e5c62cab）新增。Buzz 让 DeerFlow 成为某个 Nostr relay 上 **workspace 的成员**——用户通过 Buzz 的聊天界面发消息，DeerFlow 作为成员回复。与 Feishu/Slack 等"机器人接入平台"不同，Buzz 的一切都发生在 **relay 协议层**：身份是 pubkey（BIP-340 Schnorr 签名），消息是不可变公开事件，频道订阅按 `#h` 过滤。
+> 同步 #4（e5c62cab）新增；v2.2.0 同步复核（行数、常量行号、`dedupe_claimed` 语义）。Buzz 让 DeerFlow 成为某个 Nostr relay 上 **workspace 的成员**——用户通过 Buzz 的聊天界面发消息，DeerFlow 作为成员回复。与 Feishu/Slack 等"机器人接入平台"不同，Buzz 的一切都发生在 **relay 协议层**：身份是 pubkey（BIP-340 Schnorr 签名），消息是不可变公开事件，频道订阅按 `#h` 过滤。
 
 ## 与其它通道的根本差异
 
@@ -16,18 +16,18 @@ topics: [channels, im, buzz, nostr, nip-01, nip-42, bip-340, dedupe]
 | 身份 | 平台账号 + 平台签名 | **pubkey**（BIP-340 Schnorr，relay 无法伪造） |
 | 消息模型 | 可编辑/可撤回 | **不可变公开 Nostr 事件**（流出即泄露，无法撤回） |
 | 订阅 | 平台按会话分发 | **channel-scoped REQ**（`#h:[uuid]`），relay 只给该频道订阅推 kind-9 |
-| 去重 | manager 内存 | 两级 store：进程内 OrderedDict / Postgres 条件 upsert |
+| 去重 | manager 内存 + 🆕 有界 bus 准入 | 两级 store：进程内 OrderedDict / Postgres 条件 upsert；连接层另有 durable seen-id 存储 |
 | 流式 | 编辑同一条消息 | **kind-40003 原地编辑**（每条更新都是新事件） |
 
 ## 核心文件
 
 | 文件 | 行数 | 职责 |
 |------|------|------|
-| `app/channels/buzz.py` | 1472 | BuzzChannel：连接、订阅恢复、入站闸门、出站流式 |
-| `app/channels/buzz_nostr.py` | ~200 | 纯 NIP-01 工具：bech32、事件签名/验证（BIP-340） |
+| `app/channels/buzz.py` | 1749 | BuzzChannel：连接、订阅恢复、入站闸门、出站流式 |
+| `app/channels/buzz_nostr.py` | 201 | 纯 NIP-01 工具：bech32、事件签名/验证（BIP-340） |
 | `app/channels/buzz_run_policy.py` | 12 | run 策略注册（import side-effect） |
-| `app/channels/dedupe_store.py` | 276 | 入站去重存储（Memory/Postgres，issue #4120） |
-| `app/channels/buzz_seen_events.py` | 385 | 连接层 seen-id 持久去重（`BuzzSeenEventStore`，issue #4888；🆕 同步 #6 落盘移出事件循环 #5103） |
+| `app/channels/dedupe_store.py` | 309 | 入站去重存储（Memory/Postgres，issue #4120） |
+| `app/channels/buzz_seen_events.py` | 398 | 连接层 seen-id 持久去重（`BuzzSeenEventStore`，issue #4888；🆕 同步 #6 落盘移出事件循环 #5103） |
 
 ## Nostr 协议层（`buzz_nostr.py`）
 
@@ -105,22 +105,22 @@ manager 层 `dedupe_store` 是**进程内 + 10 分钟 TTL**，补不了「重连
 - **双向 fail-open**：读不了的 store 当空载入（代价是至多一次重放回复，即旧行为）；写失败 log + 下次 flush 重试（代价是重放，永不漏）。
 - **有界**：每频道 `MAX_IDS_PER_CHANNEL=512`、频道数 `MAX_CHANNELS=512`（LRU 驱逐）。重启保护因此也是每频道最新 512 条 id——relay 默认 backlog 若更深，超出的尾部仍会重放；真遇到更深的 backlog 需调大该常量。
 - **写合并（coalescing）+ 🆕 落盘移出事件循环（#5103）**：`record()` 标脏后每 `FLUSH_DELAY_SECONDS=1.0` 合并一次 flush，重连 backlog 突发只付一次 O(store) 文件写而非每条一次；同步调用方（测试/工具）立即写，`BuzzChannel.stop()` 走 `aflush()` 干净关停。窗口内崩溃只损失重放、不损失跳过。文件 I/O 本身经 **`asyncio.to_thread` 落到 worker 线程**（`aseen`/`arecord` 的加载也一样），不再阻塞事件循环；generation 计数器保住 flush 期间新到的记录——worker 写的是旧快照时，更新的 generation 会被重新排程；Gateway 取消/关停时 in-flight 的 worker 写被 shield 并保留，最终 flush 可重试（超时留下的是一次可重试写而非丢移交）。
-- **原子替换 + temp 清理**：`_write_snapshot()` 用同目录 tempfile + `Path.replace()`（与 `ChannelStore` 对齐）；失败时 unlink temp，避免持久写不进去时累积 `*.tmp`。
+- **原子替换 + temp 清理**：`_write_snapshot()` 用同目录 tempfile + `Path.replace()`（与 `ChannelStore` 对齐）；失败时 unlink temp，避免持久写不进去时累积 `*.tmp`。v2.2.0 把这段清理重写成「每步独立、诊断各自 `suppress`」的形式：`close()` 与 `unlink()` 分别兜异常，`BaseException`（不是 `Exception`）仍向上抛——快照保持 dirty、可重试，同时失败原因仍可归属。
 - **线程模型**：🆕 双锁——`threading.Lock` 保护内存态 + `_load_lock` 保护惰性加载（off-loop 用户与 worker 线程共存后不再"单循环无锁"）；`quiesce()`/`resume()` 让通道 stop 后排空迟到的 seen 事件、重启后恢复记录。`path=None` = memory-only（测试/工具无文件副作用）；真实部署由 `ChannelService` 注入 `seen_event_store_path`（同 `channel_store` 的接线方式）。
 
 ## Outbound：不可变事件 + 原地编辑
 
 - 首条 kind-9 聊天事件；流式更新用 **kind-40003 原地编辑**（`e` tag 指向目标事件）。每条流式更新都是不可变公开事件。
-- **`_chunk_text`**：按 UTF-8 **编码字节**长度分块（上限 `EDIT_MAX_BYTES=60000`，留出 relay 64KB 编辑内容帽的余量），字符边界整切——split-mid-character 结构上不可能。
+- **`_chunk_text`**：按 UTF-8 **编码字节**长度分块（上限 `EDIT_MAX_BYTES = 60_000`，`buzz.py:66`，留出 relay 64KB 编辑内容帽的余量），字符边界整切——split-mid-character 结构上不可能。
 - **`send()` 拒绝发布带隐藏 model-context 包装的文本**（`<memory>`、`<durable_context_data>`、`<system-reminder>`——`_HIDDEN_CONTEXT_MARKERS`），ERROR log + 在 `is_final` 时清理流式簿记。这是 manager allowlist 之后的纵深防御：Buzz 上泄露是永久的（纠正只改渲染，原始事件留在 relay 上）。按字面 opening tag 匹配——单纯"谈论 memory"的回复仍可发布。
 
 ## Run 策略（`buzz_run_policy.py`）
 
 ```python
-CHANNEL_RUN_POLICY["buzz"] = ChannelRunPolicy(serialize_thread_runs=True, requires_bound_identity=False)
+CHANNEL_RUN_POLICY["buzz"] = ChannelRunPolicy(serialize_thread_runs=True, requires_bound_identity=False)   # buzz_run_policy.py:9
 ```
 
-`serialize_thread_runs=True`（Feishu 先例）：同线程快速跟帖进队列排队，而不是触发 busy 回复；`requires_bound_identity=False`：adapter 层的 pubkey allowlist 就是身份闸门，无需绑定身份。
+`serialize_thread_runs=True`（Feishu 先例）：同线程快速跟帖进队列排队，而不是触发 busy 回复；`requires_bound_identity=False`：adapter 层的 pubkey allowlist 就是身份闸门，无需绑定身份。v2.2.0 未改该策略，但入站侧多了一层 **有界 bus 准入**：`buzz.py:1244` 捕获 `InboundQueueFullError`——总线满载时丢消息并告警，而不是让 relay 读循环堆积（见 [01-message-bus.md](01-message-bus.md)）。
 
 ## Watermark（断线续传游标）
 
@@ -132,7 +132,7 @@ CHANNEL_RUN_POLICY["buzz"] = ChannelRunPolicy(serialize_thread_runs=True, requir
 
 | 机制 | 位置 |
 |------|------|
-| 常量与恢复逻辑 | `buzz.py:59-248`（EDIT_MAX_BYTES / MAX_FUTURE_SKEW / MAX_RESUBSCRIBE_ATTEMPTS / 隐藏标记 / transient-close 判定） |
+| 常量与恢复逻辑 | `buzz.py:66`（EDIT_MAX_BYTES）、`:70`（MAX_FUTURE_SKEW_SECONDS）、`:106`（MAX_RESUBSCRIBE_ATTEMPTS）、`:229`（`_HIDDEN_CONTEXT_MARKERS`）、`:254` 一带（transient-close 判定） |
 | 订阅生命周期 | `buzz.py:_open_control_subscriptions` / `_ensure_chat_subscription` / `_handle_closed` |
 | 签名验证 choke point | `buzz.py:handle_relay_frame` → `buzz_nostr.py:verify_event` |
 | 出站编辑 | `buzz.py:send` / `_edit_or_repost` / `_chunk_text` |

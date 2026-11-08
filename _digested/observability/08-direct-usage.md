@@ -69,9 +69,12 @@ curl -s "http://localhost:8001/api/console/usage?days=30"                 # 30 �
 ```bash
 # 先拿 run_id（上面 runs?status=failed），再：
 curl -s "http://localhost:8001/api/threads/{tid}/runs/{rid}/events?event_types=run.error,llm.error"
+curl -s "http://localhost:8001/api/threads/{tid}/runs/{rid}/events?event_types=run.terminal"     # 🆕 到成没成（权威终态）
 curl -s "http://localhost:8001/api/threads/{tid}/runs/{rid}/events?event_types=context:memory"   # memory identity
 curl -s "http://localhost:8001/api/threads/{tid}/runs/{rid}/workspace-changes"                    # 改了哪些文件
 ```
+
+> 🆕 **v2.2.0**：判断 run 结局**不要**看 `run.end`（恒 `success`、一次 run 可发多条），看 `run.terminal` 的 `content.status`；它缺失就是证据不全。翻页用 `?after_seq=N`（seq 在 DB/JSONL 后端删除后不复用，游标可靠）。逐调用延迟/成本看 `?event_types=llm.ai.response`（metadata 带 `provider` / `model` / `stop_reason` / token / `request_chars`）。
 
 ### grep 日志按 trace_id
 

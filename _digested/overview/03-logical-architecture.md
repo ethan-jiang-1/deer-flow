@@ -22,11 +22,11 @@ topics: [architecture, system-overview]
 
 ---
 
-## Middleware Chain（35 个中间件，按执行序）
+## Middleware Chain（39 个条目位，按执行序；其中 custom / configured extension 两个槽位是可变长度）
 
 完整目录见 [internals/middleware/03-catalog.md](../internals/middleware/03-catalog.md)。
 
-6 个 Hook 点：before_model → LLM → after_model → Tool Execute → after_tool → after_step
+文档化的 Hook 点：`wrap_model_call`（before_model）→ LLM → `after_model` → Tool Execute（`wrap_tool_call`）→ `after_tool` → `before_agent` / `after_agent`。权威编号表在 `backend/packages/harness/deerflow/agents/middlewares/AGENTS.md:60`-`176`（39 条，v2.1.0 为 36 条）。
 
 ---
 
@@ -54,22 +54,21 @@ topics: [architecture, system-overview]
 对话消息
     │
     ▼
-MemoryMiddleware (过滤: 用户输入 + 最终 AI 回复)
+MemoryMiddleware (过滤: 用户输入 + 最终 AI 回复；只排队，不写)
     │
     ▼
-MemoryQueue (debounce 30s, per-thread 去重)
+MemoryManager (agents/memory/manager.py:128；backend 可插拔: deermem / mem0 / noop / openviking)
+    │  入队即 debounce（每会话静默期 30s），max_wait 300s 兜底
     │
     ▼
-MemoryUpdater (LLM-based 提取)
-    │  提取: workContext, personalContext, topOfMind
-    │  提取: facts (preference/knowledge/context/behavior/goal)
-    │  去重: whitespace-normalized fact content
+LLM 提取 (backend_config.model) → facts 落盘（memory.json，原子写）
+    │  事实字段与去重由 backend 自解释；mem0/honcho 走各自 README 记的契约
     │
     ▼
-memory.json (原子写入: temp file + rename)
+下一 turn 注入：DynamicContextMiddleware 按 max_injection_tokens(默认 2000) 注入
+    │  guaranteed_categories(默认 ["correction"]) 有独立预算 500 token
     │
-    ▼
-下一 turn 系统 prompt 注入 <memory> 块 (top 15 facts, max 2000 tokens)
+    └─→ memory 后端检索出的是**派生投影**，不是 run 状态 authority
 ```
 
 ---
@@ -79,12 +78,12 @@ memory.json (原子写入: temp file + rename)
 | 概念 | 源码 |
 |------|------|
 | Agent 创建入口 | `deerflow/agents/lead_agent/agent.py:make_lead_agent()` |
-| Agent 循环 | `deerflow/agents/lead_agent/agent.py:_make_lead_agent()` |
-| Middleware 组装 | `deerflow/agents/middlewares/tool_error_handling_middleware.py:_build_runtime_middlewares()` |
-| Skills 加载 | `deerflow/skills/storage/local_skill_storage.py:load_skills()` |
+| Agent 循环 | `deerflow/agents/lead_agent/agent.py:_make_lead_agent()`（内部 graph-only 入口）、`assemble_lead_agent()`（v2.2.0 新增：返回 `LeadAgentAssembly` = 编译图 + 装配描述，`agent.py:839`） |
+| Middleware 组装 | `deerflow/agents/middlewares/tool_error_handling_middleware.py:_build_runtime_middlewares()`（内部）→ 公开名 `build_lead_runtime_middlewares()`（`tool_error_handling_middleware.py:538`）→ lead 侧 `build_middlewares()`（`agents/lead_agent/agent.py:485`） |
+| Skills 加载 | `deerflow/skills/storage/local_skill_storage.py`（`LocalSkillStorage`，`load_skills()` 定义在基类 `skills/storage/skill_storage.py:349`） |
 | 工具组装 | `deerflow/tools/tools.py:get_available_tools()` |
 | Sandbox 接口 | `deerflow/sandbox/sandbox.py:Sandbox` |
 | Subagent 执行 | `deerflow/subagents/executor.py:SubagentExecutor` |
-| Memory 更新 | `deerflow/agents/memory/updater.py` |
+| Memory 更新 | `deerflow/agents/memory/manager.py`（`MemoryManager`，`manager.py:128`；提取器 `updater.py` 住在 backend 内：`agents/memory/backends/deermem/deermem/core/updater.py`，不是 `agents/memory/updater.py`）。v2.2.0 新增 `judging.py` + `prescreen/` + `signals/` 两段判据流水线 |
 | ThreadState | `deerflow/agents/thread_state.py:ThreadState` |
 | 系统 prompt | `deerflow/agents/lead_agent/prompt.py:apply_prompt_template()` |

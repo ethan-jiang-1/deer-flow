@@ -18,6 +18,16 @@ topics: [gateway, api, rest]
 - `app/gateway/services.py` — 后台服务编排
 - `app/gateway/artifact_archive.py` — run 产出 ZIP 归档（fail-closed 构建）🆕
 - `app/gateway/skill_export.py` — 自定义 Skill 导出 worker 与流式响应 🆕
+- `app/gateway/capabilities.py` — Capability Center 适配器注册表（`mcp`/`business`/`lark`/`skills`）🆕 v2.2.0
+- `app/gateway/knowledge_scope_admission.py` — 每条消息的知识检索 scope 准入（422 details）🆕 v2.2.0
+- `app/gateway/persistent_writes.py` — `run_drained_write()`：所有持久化写路由统一经它跨取消排空 🆕 v2.2.0
+- `app/gateway/run_origin.py` — `resolve_request_origin()`：服务器自有的 `deerflow_origin` 解析 🆕 v2.2.0
+- `app/gateway/sse_headers.py` — 所有 SSE 端点共享的响应头（`no-transform` / `X-Accel-Buffering: no`）🆕 v2.2.0
+- `app/gateway/checkpoint_retention.py` — thread 级 checkpoint 保留（只删「尾随 duration-only 叶」与 opt-in「无子叶兄弟分支」，契约见 `docs/checkpoint-retention-contract.md`）🆕 v2.2.0
+- `app/gateway/scheduled_task_access.py` / `scheduled_task_errors.py` / `scheduled_task_validation.py` — 定时任务的授权、编码错误（`{code,message,params}`）与共享校验 🆕 v2.2.0
+- `app/gateway/personal_mcp_access.py` — 把 personal MCP 的 admin 判定绑到 Gateway 账户表 🆕 v2.2.0
+- `app/gateway/mcp_oauth_tokens.py` — MCP OAuth token 经应用数据库在一个 Gateway 生命周期内共享 🆕 v2.2.0
+- `app/gateway/extension_agent_runs.py` / `extension_artifacts.py` — 把常规 Gateway run 路由适配成**可吊销的扩展能力**（HMAC 句柄）与扩展产物有界读取（不走符号链接、不重读可变路径）🆕 v2.2.0
 
 ## 认证流程
 
@@ -136,7 +146,9 @@ flowchart LR
 | `require_existing=True` | 缺失行 → 404（静默拒绝，防止所有权枚举） |
 | `require_existing=False` | 允许缺失行（旧版未跟踪线程的向后兼容） |
 
-9 个已定义权限（`authz.py:149-158`：threads:read/write/delete、runs:create/read/cancel、projects:read/write/delete），授权关闭时所有已认证用户被授予全部。
+**13** 个已定义权限（`Permissions` 类 `authz.py:63-87`，`_ALL_PERMISSIONS` 列表 `:161-175`）：`threads:read/write/delete`、`runs:create/read/cancel`、`memory:read/write`、`agents:read/write`、`projects:read/write/delete`。授权关闭时所有已认证用户被授予全部 `_ALL_PERMISSIONS`。
+
+`authz.py` 另有三类**非装饰器**授权入口：`authorize_model_use()`（`:413`，`GET /api/models/{name}` 的 `model:use` 决策，fail-closed **403**）、`authorize_sandbox_for_request()`（`:478`，上传后 sandbox 同步跳过而非失败）、`authorize_plugin_action_for_request()`（`:733`，插件 action 的 provider 决策，在 body 被读取**之前**执行以免被拒调用方消耗输入预算）。
 
 ## 内部认证 (通道 Worker)
 
@@ -205,9 +217,11 @@ def sanitize_log_param(value: str) -> str:
 
 其他 rc0 Gateway 行为：**idempotent thread runs**（同 run key 重试不重复执行）、**paginated thread run history**（`thread_runs.py` 大改，migration `0023_run_change_seq` 支持稳定分页游标）、renamed thread title 全端同步。
 
-### Router 全表核对（v2.1.0，31 个 router 文件）
+### Router 全表核对（v2.2.0，41 个 router 文件 / 221 条端点）
 
-上两张表只列「2.x 新增」的 router。下面对 `app/gateway/routers/` 的**全部 31 个文件**逐行核对；每条 `(方法, 路径)` 的穷举清单、鉴权与状态码见 [01-api-reference.md](01-api-reference.md#1-端点总览v210-穷举)（共 **180** 条）。
+上两张表只列「2.x 新增」的 router，**不完整**。下面对 `app/gateway/routers/` 的**全部 41 个 router 文件**逐行核对（v2.1.0 时是 31 个）；每条 `(方法, 路径)` 的穷举清单、鉴权与状态码见 [01-api-reference.md](01-api-reference.md)（共 **221** 条）。
+
+v2.2.0 新增的 10 个 router 文件（表中标 🆕 v2.2.0）：`admin_users.py`、`capabilities.py`、`im_notification_preferences.py`、`knowledge.py`、`managed_models.py`、`personal_mcp.py`、`plugins.py`、`skill_mutations.py`、`thread_activity.py`、`routers/AGENTS.md`（契约文档，不是路由）。
 
 | # | Router 文件 | 端点组（前缀 + 数量） | 关键点 | 此前是否已覆盖 |
 |---|------------|---------------------|--------|---------------|
@@ -242,8 +256,20 @@ def sanitize_log_param(value: str) -> str:
 | 29 | `github_webhooks.py` | `/api/webhooks/github`（1） | HMAC 失败 **401**；未配置 secret 时**不挂载 → 404** | ✅ |
 | 30 | `subagents.py` | `/api/subagents*`（4） | 名称保留/已存在 **409**；未知 model **422** | ✅ |
 | 31 | `subagent_batches.py` | `/api/threads/{id}/subagent-batches*`（8） | worker 未运行 **503**；retry 非 failed **409** | ✅ |
+| 32 🆕 v2.2.0 | `admin_users.py` | `/api/v1/admin/users`（2） | 全部 `require_admin_user`（**403**）；无字段 **422**；未知 role **422**；用户不存在 **404**；降级最后一个 admin / 禁用最后一个活跃 admin **409** | ❌ 新增 |
+| 33 🆕 v2.2.0 | `capabilities.py` | `/api/capabilities`（3） | `catalog` 公开可读；`installations/{adapter}` 由 `scope=` 决定 admin 需求；未知 adapter **422**；部署级安装非 admin **403** | ❌ 新增 |
+| 34 🆕 v2.2.0 | `knowledge.py` | `/api/knowledge`（3） | 全部 `threads:read`；只读检索目录 + 每 assistant `/capabilities`，资源授权由 provider 适配器负责 | ❌ 新增 |
+| 35 🆕 v2.2.0 | `managed_models.py` | `/api/managed-models`（4） | 全部 admin；`route_class=RedactedModelRoute`（响应脱敏）；`POST /test` 是流式且强制关掉 thinking | ❌ 新增 |
+| 36 🆕 v2.2.0 | `personal_mcp.py` | `/api/mcp/personal/config`（5） | **owner-only**（与平台级 MCP 的 admin-only 分离）；`personal_mcp_access.py` 把 admin 判定绑到账户表 | ❌ 新增 |
+| 37 🆕 v2.2.0 | `plugins.py` | `/api/plugins`（5） | 诊断 admin-only；`modules/*.mjs` 与 `assets/...` 由 revision 内容哈希钉住（`immutable` + `CSP: sandbox`）；action **413** >256 KiB / **409** viewer 变更 / **504** 30s 超时 / **502** 其它 | ❌ 新增 |
+| 38 🆕 v2.2.0 | `skill_mutations.py` | `/api/skill-mutations`（4） | 全部 admin；worker 不可用 **503**；操作列表末页 `next_cursor: null` | ❌ 新增 |
+| 39 🆕 v2.2.0 | `thread_activity.py` | `/api/thread-activity`（1） | 需 SQL 持久化否则 **503**；游标 `"seq:run_id"`，非法游标 **422** `invalid_cursor`；limit 1–500（默认 200） | ❌ 新增 |
+| 40 🆕 v2.2.0 | `im_notification_preferences.py` | `/api/channels/notification-preferences`（2） | 两个方法都要求 `X-Expected-User-Id` 头；账号变更 **409**；无 session factory **503** | ❌ 新增 |
+| 41 | `features.py`（改） | `/api/features`（1） | 🆕 v2.2.0 载荷扩到 8 组：`agents_api`/`browser_control`/`mcp_tasks`/`subagent_batches`/`conversation_references`/`knowledge_base`/`scheduled_tasks`/`thread_activity` | ✅ |
 
-非 `routers/` 的入口：`GET /health`、`GET /health/ready`（`app.py:981/990`）与 `WS /api/threads/{id}/browser/stream`（`browser.py:206`）。
+非 `routers/` 的入口：`GET /health`（`app.py:1446`）、`GET /health/ready`（`app.py:1455`）与 `WS /api/threads/{id}/browser/stream`（`routers/browser.py:214`）；`/docs`/`/redoc`/`/openapi.json` 在 `app.py:1096-1098` 由 `config.enable_docs` 门控。
+
+Router mount 顺序（`app.py:1327-1441`）：`managed_models`(:1327) → … → `plugins`(:1412) → `auth`(:1415) → `user_preferences`(:1416) → `im_notification_preferences`(:1417) → `feedback`(:1420) → `thread_runs`(:1423) → `runs`(:1426) → `github_webhooks`（条件挂载 `:1441`）。扩展贡献路由在**所有 host 路由之后** mount（见 §Gateway contribution points）。
 
 ### 🆕 v2.1.0 补丁版变更（同步 #7，upstream #5535 / #5517）
 
@@ -346,3 +372,67 @@ Console 的 cost estimation 支持 **cache-aware pricing**：
 
 - **扩展原地升级保留私有配置**（#5347）：`deerflow extensions upgrade SOURCE` = `install(replace=True)` —— staging 目录 + rename 原子替换受管源码快照（失败恢复现场），并保留该扩展在 `plugins:` 里的私有 `config` 与 enabled 状态（`preserve_enabled=True`）
 - **配置声明的中间件支持构造 kwargs**（#5312）：`extensions.middlewares` 条目可以是 `module.path:ClassName` 字符串（保持零参构造）或 `{class, kwargs}` 对象；kwargs 必须是 JSON 类型（YAML 日期/时间戳强转为 ISO 字符串以对齐 JSON，拒绝 NaN 等非 JSON 值），未知字段与空 class path 在**配置校验期**失败，构造错误仍在 agent 创建时失败
+
+---
+
+## 🆕 v2.2.0 Gateway 变更总览
+
+v2.2.0（锚点 `v2.2.0` = `58fc5bd5b`）在我域内的改动集中在**四类接线**：新的 HTTP 面（10 个新 router）、统一的持久化写排空、run origin 与 SSE 头这两个跨路由横切面、以及上传安全的第二轮加固（见 [02-upload-security.md](02-upload-security.md)）。
+
+### 新 HTTP 面（10 个新 router + `features` 载荷扩容）
+
+| 面 | 路径前缀 | 权威实现 | 语义要点 |
+|----|---------|---------|---------|
+| 账户生命周期 | `/api/v1/admin/users` | `routers/admin_users.py:59`（GET）、`:67`（PATCH `/{user_id}`） | 全部 `require_admin_user`；role 必须在 `assignable_role_names()` 里（否则 **422**，因为未知 role 会让 principal 掉回 `default_role`）；降级最后一个 admin / 禁用最后一个**活跃** admin 都是 **409**；两个字段各走一个**串行化**写（最后 admin 计数与写在同一个事务里，两次并发降级不可能都通过）；`disabled` 的**执行**在每个认证面（密码登录、JWT 会话、PAT、OAuth 供给）而不在这里 |
+| Capability Center | `/api/capabilities` | `routers/capabilities.py:26`/`:31`/`:36`；适配器注册表 `app/gateway/capabilities.py:218` | `registry`（`:234-238`）注册 `mcp`/`business`/`lark`/`skills` 四个适配器；未知 adapter → **422**「This capability only has a setup guide; no installation adapter is available」；`scope=deployment` 安装非 admin **403**，`scope=user` 只允许 `mcp`/`business` 适配器（其它仍要 admin）；`can_manage = scope == "user" or is_admin_user(...)`；**不新建凭据/配置存储**，全部经既有 integrations/mcp/skills 服务 |
+| 知识检索目录 | `/api/knowledge` | `routers/knowledge.py:72`/`:86`/`:100` | 全部 `threads:read`；`/capabilities` 报每个 assistant 的检索能力，另两个是只读检索目录（datasets / datasets/{id}/documents）；**资源授权与映射由 provider 适配器拥有**，路由只做准入 |
+| 托管模型 | `/api/managed-models` | `routers/managed_models.py:68`/`:74`/`:114`/`:156` | 全部 admin；`route_class=RedactedModelRoute` 使响应中的密钥脱敏；带 revision 的 GET/PUT；`POST /test` 是**流式**测试且强制关掉 DeepSeek thinking；客户端/存储调用一律 off-loop；YAML 里的名字保留 |
+| Personal MCP | `/api/mcp/personal/config` | `routers/personal_mcp.py:113`/`:133`/`:138`/`:143`/`:148` | **owner-only**（平台级 `/api/mcp/config*` 仍是 admin-only）；`personal_mcp_access.py:23 personal_mcp_authority()` 把「是否 admin」的判定绑到 Gateway 的**当前**账户记录（auth 关闭时 `AUTH_DISABLED_USER_ID` 即 admin）；同步工具发现跑在装配 worker 自己的 loop 上时，用 `run_coroutine_threadsafe` 把数据库访问交回 Gateway 的所属 loop（共享连接池不能被跨 loop 用） |
+| 全栈插件 | `/api/plugins` | `routers/plugins.py:46`/`:68`/`:101`/`:112`/`:135` | `diagnostics` admin-only 且只回**有界**的入口标识/已知 level/固定摘要（原始消息留日志，绝不清空 sink、绝不扩 PAT 权限）；`modules/{module}/{revision}.mjs` 用**内容哈希**做 revision（不匹配 404）；assets 走 `immutable` + `Vary: Cookie, Authorization` + `CSP: sandbox`（SVG 可当文档打开）；action：`x-deerflow-plugin-viewer` 与当前 principal 不符 → **409**，插件被管理员禁用 → **403**，输入 > 256 KiB → **413**，非 JSON object → **422**，30s 超时 → **504**，其它 → **502**（日志只记异常类型）；`ActionContext.interaction="session"` **只**从认证的 session provenance 推出，绝不从 payload 取 |
+| Skill 变更操作 | `/api/skill-mutations` | `routers/skill_mutations.py:31`/`:39`/`:44`/`:49` | 全部 admin；worker 不可用 **503** UNAVAILABLE；列出操作在 `has_more=false` 时返回 `next_cursor: null`（含给了 `after_id` 的空页），只有确实还有下一页时游标才是最后一条返回的操作 |
+| Thread 活动流 | `/api/thread-activity` | `routers/thread_activity.py:70` | 基于 `runs.change_seq` 的**每用户**增量 feed；无游标时种入；游标格式 `"seq:run_id"`，非法游标 **422** `invalid_cursor`；`_MAX_CHANGE_SEQ = 2**63-1`；limit 1–500（默认 200）；只列调用方**服务器发起**的 run 所在 thread，交互式行透传；配套 `read_version`；**只用 SQL**，无持久化时 **503**「Thread activity is not available」 |
+| IM 通知偏好 | `/api/channels/notification-preferences` | `routers/im_notification_preferences.py:40`/`:46` | 两个方法都要求 `X-Expected-User-Id` 头；与当前登录账号不符 → **409**「The signed-in account changed; reload this page」；无 session factory → **503** |
+| 行为开关 | `/api/features` | `routers/features.py:98` | 载荷从 5 组扩到 **8** 组：新增 `knowledge_base.scope_selection_enabled`、`scheduled_tasks`（`available`/`running`/`tool_enabled`/`min_interval_seconds`/`group_notifications`）、`thread_activity.available`；`subagent_batches` 保留 `enabled` 作为 `worker_running` 的兼容别名，同时独立暴露 `repository_available`（worker 停了不隐藏历史/导出）与 `max_running` |
+
+### 持久化写统一排空（`persistent_writes.py`）
+
+`app/gateway/persistent_writes.py:19 run_drained_write(action, func, expected_errors, ...)` 现在是所有持久化写路由的**唯一**排空实现（此前 `routers/agents.py` 的 `_drained_write`、`routers/subagents.py` 的 `_run_store_mutation`、managed-models 的保存各有一份）：
+
+- 为什么必须排空：客户端中途断连会 cancel handler task，而裸 `asyncio.to_thread` 要么取消一个还在排队的 worker（写**静默地**没发生），要么与已在跑的 worker 脱钩（handler 的 `except` 再也不跑，失败被丢掉）。`await_drained` 先让 worker 跑完
+- `expected_errors` 命中的领域错误**不记日志**直接重抛（handler 还能把连接上的 4xx 映射出去），其余异常只记**异常类型**——文本可能携带用户内容
+- 新增 Agent 包（`routers/agents.py` 的导出/导入）共用 `_persist_new_agent`，所以取消的请求仍会排空它所属的持久化 worker
+
+### Run origin 与 SSE 响应头
+
+- **`run_origin.py:27 resolve_request_origin(request, body_metadata)`**（`app/gateway/run_origin.py`）：只有两个可信来源可以在 run 上写 `deerflow_origin`——① 服务端启动器在**自己构造的请求对象**上设 `request.state.run_origin`（scheduler、MCP 通知、extension handle；HTTP 输入永远到不了 `request.state`）；② 持内部 token 的内部 HTTP 调用方（IM channel manager）在 `body.metadata` 里声明。其它调用方一律 `None`，run admission（`services.start_run`）会**剥掉**客户端塞进来的该键
+- **`sse_headers.py:17 sse_response_headers(*, content_location=None)`**：所有 SSE 端点共用 `Cache-Control: no-cache, no-transform`、`Connection: keep-alive`、`X-Accel-Buffering: no`。`no-transform` 阻止压缩代理（`pnpm start` 的 Next.js rewrite）缓冲 SSE 后成块下发；`X-Accel-Buffering: no` 对 nginx 做同样的事。`Content-Location` 只有**创建 run** 的路由才带（LangGraph SDK 只从该头读 run id）
+
+### 知识 scope 准入（`knowledge_scope_admission.py`）
+
+- `KNOWLEDGE_SCOPE_KEY`、`canonicalize_knowledge_scope()`、`execution_scope()`、`validate_scope_capabilities()`、`get_knowledge_capabilities()` 构成「每条消息可带一个检索 scope」的准入链
+- `assistant_supports_knowledge_scope()` 先看该 assistant 是否支持；`admit_message_knowledge_scope()` 把非法/不支持的选择拒成 **422** 并在 `details` 里说明（前端据此把选择器回退），而不是静默丢掉 scope
+- `/api/features` 的 `knowledge_base.scope_selection_enabled` 是前端门控的唯一判据
+
+### 定时任务的编码错误契约（`scheduled_task_errors.py`）
+
+`/api/scheduled-tasks*` 的**所有**错误改成 `HTTPException(status, detail={"code", "message", "params"})`（`params` 为空时省略），由 `scheduler_error(status, code, message, **params)` 构造：
+
+- code 分两张表：`SCHEDULER_UI_ERROR_CODES`（UI 必须翻译的 33 个，如 `task_running`/`run_queued`/`task_changed`/`task_finished`/`task_quota_exceeded`/`scheduler_not_running`/`limits_exhausted`/`interval_too_short`）与 `SCHEDULER_AGENT_ERROR_CODES`（只有 agent 看得到的 15 个，如 `scheduler_tools_disabled`/`authority_expired`/`note_not_verbatim`/`no_stop_authority`）；权威清单在 `contracts/scheduled_task_errors_contract.json`
+- 消息保持英文（API 客户端与 agent 用），Web UI 按 `code` 翻译
+- `repository_error(exc)` 是仓储异常的中央映射：`ActiveScheduledTaskMutationConflict` → 409 `run_queued`/`task_running`；`ScheduledTaskQuotaExceeded` → 409 `task_quota_exceeded`（`limit=20`）；`ScheduledTaskLimitsExhausted` → 409 `limits_exhausted`（`limit=end_at|max_runs`）；`fresh_thread_per_run` → 422 `goal_requires_fresh_thread`；`Goal objective` → 422 `invalid_goal`；`at most 10 standing notes` → 422 `note_limit_reached`
+- `POST /api/scheduled-tasks` 在校验**之后**才检查本进程 poller 是否在跑：没跑 → **409** `scheduler_not_running`（否则新任务会静默地永不执行）；坏请求仍先报「该改什么」
+- `GET /api/threads/{thread_id}/scheduled-task-events`（`routers/scheduled_tasks.py:505`）返回该会话里调用方任务的生命周期事件（一行一条：「Paused by agent」/「Auto-paused」/「Finished」），**带标题快照**所以任务删了行仍在
+
+### MCP / Skills 的可见性与排空细节（README 级不变量）
+
+- `GET /api/skills`、`/api/skills/custom`、`/api/skills/{name}` 对**所有登录用户**开放；`authorization.enabled` 时经 `provider.filter_resources(resource_type="skill")` 过滤（fail-closed → 空列表 / 详情 404；fail-open → 全量）。管理端点（`install`/`upload`/`reload`/custom-skill CRUD）仍是 `require_admin_user`
+- 自定义 skill 的 edit/delete/rollback 会同时持**属主 root 的进程互斥**与 `.custom.mutation.lock` sidecar（覆盖「读前驱 → 改存储 → 追加历史」整个临界区），使共享同一 root 的多个 Gateway 进程保持历史顺序
+- MCP 配置提交后的**对账**失败由 `fail_mcp_reconciliation` 只记一次（仅异常类型）；`_run_drained_mcp_apply` 把 `_McpCommittedReconciliationError` 作为 expected error 传给 `run_drained_write`，避免重复诊断，且仍在配置锁**之外**排空退役连接池清理
+- `mcp_oauth_tokens.py:29 mcp_oauth_token_persistence()` 在 LangGraph runtime **之前**进入、之后退出：runtime 退出时会 drain active run，drain 过程中的 token 刷新仍必须能写进数据库，否则轮换后的 refresh token 会随进程消失
+
+### 未变的横切面（核对后确认 v2.2.0 仍成立）
+
+- 中间件执行顺序（外 → 内）：`TraceMiddleware → CORSMiddleware(可选) → CSRFMiddleware → AuthMiddleware → router`（`app.py:1187` Auth、`:1259` CSRF、`:1270` 扩展中间件、`:1283` Trace）。「CSRF 在 Auth 之前」的推论不变：无 session、无 `X-CSRF-Token` 的 `POST` 先撞 **403**
+- 公开面清单不变：`_PUBLIC_PATH_PREFIXES`（`auth_middleware.py:37`）= `/health`、`/docs`、`/redoc`、`/openapi.json`、`/api/v1/auth/oauth/`、`/api/v1/auth/callback/`、`/api/webhooks/`；`_PUBLIC_EXACT_PATHS`（`:51`）= login/local、register、logout、setup-status、initialize、providers
+- CSRF 豁免不变：`_CSRF_EXEMPT_EXACT_PATHS = {"/api/v1/auth/me"}`、`/api/webhooks/` 前缀、`DEER_FLOW_AUTH_DISABLED=1` 跳过
+- `artifact_archive.py` 与 `skill_export.py` **没有被删除**（v2.2.0 仍存在）；变化只在状态码：归档的并发槽位满 → **429**、构建超时 → **503**（`artifact_archive.py:65`），见 [01-api-reference.md](01-api-reference.md) §2.13/§2.16

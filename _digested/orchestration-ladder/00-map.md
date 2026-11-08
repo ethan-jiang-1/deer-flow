@@ -46,7 +46,7 @@ DeerFlow 给使用者的编排原语不是一棵中心调度树，而是一组**
 | 「完成」到底分几个时刻？accepted / model-visible / 静止 / 处置各由什么证明？崩溃窗口在哪、哪些重复投递是允许的？ | [01](01-完成语义与崩溃窗口-接受可见静止处置.md)（已答：五时刻 × 七原语证据表、run 终态十步持久化顺序、九行崩溃窗口表、at-least-once 清单、"成功却报错"合法路径） |
 | 哪些是持久事实、派生投影、内存 authority？重启 Gateway 后各会发生什么？ | [02](02-状态三分法-持久事实派生投影与内存权限.md)（已答：25 行主表 + 八节深挖 + 六条危险点；核心结论——恢复姿态是"标错对账/静默丢失"而非断点续传，唯一可续跑的是 checkpoint 链） |
 | 一个请求会被多少层预算卡住？限制如何叠加、公平性如何？ | [03](03-资源预算与公平性-并发深度总量与容量边界.md)（已答：六层闸门叠加链、clamp 关系、超限三态、默认无限制三处） |
-| LangGraph 已依赖但 DeerFlow 未使用的能力面（interrupt() / Send / fork）还能榨出什么？ | [04](04-LangGraph能力面榨取-未用原语与接入设计.md)（已答：七条榨取设计 + 优先级表——interrupt()→挂起式工具审批最高优先且与 delta 封锁正交；update_state(task_id)→服务端补答；显式 Send→图内秒级小 fan；Command.PARENT/NodeInterrupt/astream_events 明确不做；**venv 实装 1.1.9 vs lock 1.2.9 依赖漂移**） |
+| LangGraph 已依赖但 DeerFlow 未使用的能力面（interrupt() / Send / fork）还能榨出什么？ | [04](04-LangGraph能力面榨取-未用原语与接入设计.md)（已答：七条榨取设计 + 优先级表——interrupt()→挂起式工具审批最高优先且与 delta 封锁正交；update_state(task_id)→服务端补答；显式 Send→图内秒级小 fan；Command.PARENT/NodeInterrupt/astream_events 明确不做；**venv 已对齐 1.2.9，旧记的 1.1.9 漂移已消解**） |
 | 组合模式与收尾纪律（DSH 08 的对应物） | [05](05-组合模式与收尾纪律-跨原语协同.md)（已答：组合形态清单 + 冲突矩阵——结构性禁止集中在 HITL 与委派再入，其余靠预算；stop_reason 两套聚合纪律——lead 后写者胜 vs 子代理 consume_stop_reason 先到者胜；goal 无 wrapup，收尾=stand_down_reason+预算+CAS 清空且对 delegations 零引用；通知三通道——scheduler 专属 push 钩子（deps.py:766）/ IM END 哨兵链式排空 / MCP 轮询，各有兜底） |
 | Session/run/execution 谱系与冷恢复（DSH 12 的对应物） | [06](06-Session谱系与冷恢复-线程运行与所有权.md)（已答：六层身份谱系与引用方式——子代理双轨 id"关联键≠所有权键"；lease 心跳双向围栏；冷恢复时序"先对账后心跳"；多 worker 边界表；四类谱系断点。**父侧亲写**——子代理逾期未交付后接管） |
 | 对照外部叙事（DSH 09 的对应物）：流传的 DeerFlow 叙事逐条源码核对 | [07](07-对照外部叙事-v1v2混淆与逐条核对.md)（已答：六条叙事——最常见误传是 v1/v2 版本混淆：v1 九节点 deep research 图（planner/research_team/reporter）对 v2 不成立，v2 是两节点 react 元图；"有 task DAG"对 v2 不成立） |

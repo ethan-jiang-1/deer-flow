@@ -26,7 +26,7 @@ topics: [graph, dag, architecture, tradeoff]
 |--------|---------|
 | task_dag 数据结构 | 重规划不可审计——"重新规划"发生在对话里，没有 diff 可看、没有版本可回滚 |
 | 拓扑级断点 | checkpoint 恢复的是对话线程；任务执行位（哪些完成/冻结/待重试）无状态可恢复 |
-| 结构化失败信封 | error ToolMessage 是弱契约——失败分类、建议动作、依赖缺口全靠模型从报错文本里猜 |
+| 重规划语义 | **注意别读错**：失败**信封**本身不弱（`subagent_status` 五值 + `stop_reason` 四值 + receipts + acceptance 都在结构化字段里，见 [01](01-support-map.md) 地图第 8 行）；缺的是信封之上的**分类学与动作建议**——没有 `failure_classification`、没有 `suggested_replanning_action`，所以模型读到"失败了"之后怎么重排，全靠对话上下文里的自发判断，不可审计、无预算 |
 
 ## 3. 对研究层的反例价值
 
@@ -41,9 +41,12 @@ topics: [graph, dag, architecture, tradeoff]
 
 **修正后的样本定位**：DeerFlow 2.0 实证的是"固定元图（极小形态）+ 物理沙箱 + 渐进装配 + 涌现式工具级 fan-out"；它**不是**"固定元图 + 动态任务 DAG"完整范式的实证。
 
+**v2.2.0 复查（2026-11-04，`58fc5bd5b`）**：这个判定在 1,239 个 commit、1,068 个 PR 之后**没有被推翻**。逐项复验：`Send(` 在 `packages/harness/deerflow/` 仍是 **0 处调用**（`langchain/agents/factory.py:1881` 内部按 tool_call 逐个 `Send("tools", ...)` 仍然是唯一用法）；直接 `StateGraph(` 构造点仍只有两处（`runtime/checkpoint_state.py:63` 的单 no-op 变异图 builder、`agents/factory.py`）；`grep -ri "\bdag\b\|topolog\|replan"` 仍然只命中注释。**这反而是更强的证据**——一个跑了一千多个 commit 的生产仓库，在新增了 29 份 AGENTS.md、扩展族、knowledge 平台、多实例租约之后，依然没有长出任务 DAG。如果 DAG 是这类系统的自然收敛点，这个窗口本该是它冒出来的时机。
+
 > 研究层侧的对应校准：议题 [08](/Users/bowhead/ai_dev_sdlc_aidc/02_research/01_agent_engineering/graph_engineering/digested/08-superagent-harness-deerflow-langgraph.md)、[09](/Users/bowhead/ai_dev_sdlc_aidc/02_research/01_agent_engineering/graph_engineering/digested/09-meta-graph-vs-dynamic-task-dag.md) 末尾的"源码校准注记"（2026-10-01），以及 `result/landscape.md` §6.1、`CURRENT.md` 缺口第 3 条。
 
 ## 4. 对本知识库的含义
 
 - `_digested/` 不铺 graph engineering 实现维度的决定成立：无实现可消化，本目录判定的是**能力边界**；
-- 若未来源码长出数据图半边，从 [01](01-support-map.md) 的 #6/#7/#11 三行开始升级——那是缺口地图，也是扩展路线（[04](04-extension-path.md)）。
+- 若未来源码长出数据图半边，从 [01](01-support-map.md) 的 #6/#7/#11 三行开始升级——那是缺口地图，也是扩展路线（[04](04-extension-path.md)）；
+- v2.2.0 窗口提供了一个**反向信号**：他们确实在给"编排"加东西，但加的方向是**原语的耐久性**（durable batch、run 幂等 `0036_run_idempotency_request`、`0048_extension_execution_leases`、多实例 leader lease），不是**图的表达力**。这印证了取舍是一条稳定的路线，而不是"还没排到"。

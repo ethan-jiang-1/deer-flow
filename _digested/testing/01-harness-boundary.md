@@ -63,7 +63,7 @@ def test_harness_does_not_import_app():
 
 ### 运行时检测（Blockbuster）
 
-`tests/support/detectors/blocking_io_runtime.py` — 使用 `blockbuster` 库在运行时拦截同步阻塞 IO：
+`backend/tests/support/detectors/blocking_io_runtime.py` — 使用 `blockbuster` 库在运行时拦截同步阻塞 IO：
 
 ```python
 _SCANNED_MODULES = ("app", "deerflow")
@@ -80,11 +80,11 @@ def detect_blocking_io_strict() -> Iterator[BlockBuster]:
 
 - **`scanned_modules=("app", "deerflow")`** — 只在业务代码栈中检测，pytest/langchain/第三方库不在范围内
 - **范围精确** — 仅当调用栈经过 `app.*` 或 `deerflow.*` 时 `BlockingError` 才会触发
-- **用于回归测试** — `tests/blocking_io/` 目录下的每个测试都被 blockbuster context 包裹
+- **用于回归测试** — `backend/tests/blocking_io/` 目录下的每个测试都被 blockbuster context 包裹
 
 ### 静态检测（AST 扫描）
 
-`tests/support/detectors/blocking_io_static.py` — AST 级别的阻塞 IO 候选扫描，不需要执行代码：
+`backend/tests/support/detectors/blocking_io_static.py` — AST 级别的阻塞 IO 候选扫描，不需要执行代码：
 
 - 扫描 `Path` 方法调用（`open`、`read_text`、`write_bytes`、`mkdir`、`stat`、`unlink` 等 22 个方法）
 - 扫描 `os.*` 阻塞调用（`listdir`、`makedirs`、`remove` 等）
@@ -98,14 +98,16 @@ def detect_blocking_io_strict() -> Iterator[BlockBuster]:
 
 ## Blocking IO 回归锚点
 
-`tests/blocking_io/` 目录锁定了两个已知问题的回归：
+`backend/tests/blocking_io/` 目录（**89 个文件**，v2.1.0 为 47）锁定的已知问题回归：
 
 | 测试 | 锁定的修复 | 关联 issue |
 |------|-----------|-----------|
 | `test_skills_load.py` | `LocalSkillStorage.load_skills` 必须通过 `asyncio.to_thread` 卸载 | #1917 |
 | `test_sqlite_lifespan.py` | SQLite 路径解析 + `ensure_sqlite_parent_dir` 不能在 event loop 上执行 | #1912 |
 
-### 元测试：gate smoke test
+**v2.2.0 的 89 个文件已不是"两个已知问题"，而是一份模块清单**：agents / artifacts / auth / channels（buzz、dingtalk、discord、feishu、qq、wechat）/ extensions / knowledge（management + platform 两个扩展）/ mcp（router + oauth token store）/ persistence（bootstrap、sqlite engine、run journal callback）/ projects（documents、promotion、trash）/ sandbox（authorization、release、aio get）/ skills（8 个）/ subagent / uploads / web tools（URL 校验、search async ×3）。**解释**：这是本域最能说明"门禁如何从事件驱动长成制度"的证据——#1912 / #1917 之后的做法不是"修完就好"，而是每新增一个会碰磁盘或网络的模块，就顺手在 `blocking_io/` 里加一条**从真实调用点出发**的锚点。
+
+### 元测试：gate smoke test（`backend/tests/blocking_io/test_gate_smoke.py`，4 个测试）
 
 ```python
 async def test_gate_catches_unoffloaded_blocking_io_in_deerflow_module(tmp_path):
@@ -116,7 +118,23 @@ async def test_gate_catches_unoffloaded_blocking_io_in_deerflow_module(tmp_path)
         ensure_sqlite_parent_dir(str(db_file))  # 没有 asyncio.to_thread 包装
 ```
 
-这个测试验证 gate 本身是工作的 — 如果它不再抛 `BlockingError`，说明 gate 配置出了问题（`scanned_modules` 配置错误、blockbuster 依赖被意外移除、conftest hookwrapper 失效）。它保护所有其他 blocking IO 测试免于静默失效。
+这个测试（`:27`）验证 gate 本身是工作的 — 如果它不再抛 `BlockingError`，说明 gate 配置出了问题（`scanned_modules` 配置错误、blockbuster 依赖被意外移除、conftest hookwrapper 失效）。它保护所有其他 blocking IO 测试免于静默失效。
+
+🆕 **v2.2.0 新增第二条**（`:36`）——`test_gate_catches_hostname_resolution_on_the_loop`：Blockbuster 的默认规则集**包了 `socket.socket` 的方法，但没包模块级的 `socket.getaddrinfo`**，而 `deerflow.community.url_safety` 的 SSRF 守卫恰恰在 event loop 上调它解析主机名。项目因此自带一条规则（`backend/tests/support/detectors/blocking_io_runtime.py:27`）：
+
+```python
+_PROJECT_BLOCKING_RULES = (
+    ("socket.getaddrinfo", BlockBusterFunction(None, "socket.getaddrinfo", scanned_modules=list(_SCANNED_MODULES))),
+)
+
+def _install_project_rules(bb: BlockBuster) -> None:   # :31
+    for name, rule in _PROJECT_BLOCKING_RULES:
+        bb.functions[name] = rule
+```
+
+这条测试钉住的是**"项目补的那条规则还生效"**，而不是上游库的行为——如果哪天有人重写 `detect_blocking_io_strict()` 时漏了 `_install_project_rules`，DNS 阻塞就会悄悄回到 event loop 上，而其他所有 blocking_io 测试照样绿。
+
+另外两条：`:45` `test_gate_restores_blockbuster_patches_after_exceptions`（异常路径下 blockbuster 必须把 `os.stat` 等猴子补丁**还原**，否则一次失败会污染后续所有测试）、`:56` `test_allow_blocking_io_marker_opts_out_of_gate`（opt-out 真的生效）。**四条合起来才是完整的元测试**：抓得住 → 抓得住项目补的规则 → 退出后不污染 → 逃生门有效。
 
 ### 退出机制
 
@@ -141,7 +159,7 @@ async def test_allow_blocking_io_marker_opts_out_of_gate(tmp_path):
 - run: make test-blocking-io
 ```
 
-- `make test-shard` = `uv run pytest -m "not live" --ignore=tests/blocking_io ... tests/`，所以 `tests/test_harness_boundary.py` 是**分片单测的一部分**，没有专门的 "Check harness boundary" step。
-- `make test-blocking-io` = `uv run pytest tests/blocking_io -q --tb=short`。
-- 触发面：unit tests 是 `push`（`main`/`*-dev`）+ 所有 PR；blocking IO 额外用 `paths: backend/**` 过滤（**只有后端改动才跑**）。
+- `make test-shard` = `uv run pytest -m "not live" --ignore=tests/blocking_io ... tests/`，所以 `backend/tests/test_harness_boundary.py` 是**分片单测的一部分**，没有专门的 "Check harness boundary" step。
+- `make test-blocking-io` = `uv run pytest tests/blocking_io -q --tb=short`（`backend/Makefile:35`）。
+- 触发面：unit tests 是 `push`（`main`/`*-dev`）+ 所有 PR；blocking IO 额外用 `paths: backend/**` + `.github/workflows/backend-blocking-io-tests.yml` 自身过滤（**只有后端或该 workflow 自身改动才跑**），并有 `timeout-minutes: 10` 与 `if: ... draft == false`（草稿 PR 不跑）。
 - `detect-blocking-io` 是 `make detect-blocking-io` 的信息性命令，**不在 CI 中运行**（仅用于开发时手动审查）。

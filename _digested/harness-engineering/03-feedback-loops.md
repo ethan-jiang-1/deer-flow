@@ -19,7 +19,7 @@ topics: [feedback, error-handling, persistence, governance, memory]
 - **护栏只富化，不改语义**：token 预算（warn 0.7 / hard 1.0）、turn/recursion 预算（按组装链深度缩放）、循环检测三轴到限时不抛错——strip 掉本轮 tool_calls、强制 `finish_reason="stop"` 让 run 自然收尾，原因走 **additive 的 `stop_reason` 字段**（`token_capped|turn_capped|loop_capped`）而不是新增状态枚举，旧前端与 ledger 无感（跨语言契约 `contracts/subagent_status_contract.json` v2，被 `test_status_values_match_contract` 等钉住）。
 - **验收只报证据，不裁决主张**：`acceptance_checks.py` 对可判定的叶子（`file:<path> exists`、`tests_passed:<command>`）跑确定性代码检查——但任何证据不足（截断、来源不可识别、路径逃逸、shell 结构不可证明）一律 **degrade to UNVERIFIED，never silently passed**；"Layer 2 is execution evidence only, claim correctness belongs to the judge"是仓库自己写下的边界（`subagents/AGENTS.md` acceptance 节、`TestKnownBoundaries`）。
 
-`[推断]` 这一环的诚实边界：receipt（Layer 1）+ 确定性叶子检查（Layer 2）已让模型自报受代码证据约束，但**主张正确性的独立裁决（judge / RFC 的 re-execution）仍未落地**——验收证明的是"执行发生过"，不是"主张正确"。
+`[推断]` 这一环的诚实边界：receipt（Layer 1）+ 确定性叶子检查（Layer 2）已让模型自报受代码证据约束，但**主张正确性的独立裁决（judge / RFC 的 re-execution）仍未落地**——验收证明的是"执行发生过"，不是"主张正确"。v2.2.0 在这个方向上只走了一小步：`runtime/goal.py` 的 goal evaluator 是主图外的独立模型调用，只依据可见对话证据判定 satisfaction（`:491` 的"using ONLY the visible conversation evidence"），但它判的是"目标是否达成"，仍然**不是工具论断的真伪裁决器**。
 
 ## 会话环：先落账，再投影；恢复是重放 + 定影
 
@@ -35,9 +35,10 @@ topics: [feedback, error-handling, persistence, governance, memory]
 
 - 1289 行巨型 `backend/AGENTS.md` 文档失控 → `#4799` 拆成 ~20 个 per-directory 文件 **并上线 `check_agent_guidance.py` 预算 CI**——把"文档不许膨胀"从劝告变成红灯；
 - 文档示例与真实签名漂移 → `#4945` `test_middleware_documentation.py` 把文档示例放进测试夹具——文档本身进了测试矩阵；
-- 状态枚举破坏 v1 消费者 → 契约测试（`test_status_values_match_contract`）+ additive 字段纪律——一次 API 演进事故变成跨语言契约门。
+- 状态枚举破坏 v1 消费者 → 契约测试（`test_status_values_match_contract`）+ additive 字段纪律——一次 API 演进事故变成跨语言契约门。v2.2.0 里 additive 纪律的教科书写法可以看 `contracts/subagent_status_contract.json`：`version: 2` 只新增 `valid_stop_reason_values`（`token_capped|turn_capped|loop_capped|model_length_capped`），描述里明写"it is ignored by older consumers that only read `subagent_status`"——**新字段的兼容性承诺写在契约文件里**，不是靠 reviewer 记性；
+- **错误码被拆成"给人看的"和"给模型看的"两个清单** → `contracts/scheduled_task_errors_contract.json`（v2.2.0 新增）把 `detail.code` 分成 `ui_codes`（33 个，前端 `frontend/src/core/scheduled-tasks/errors.ts` 负责翻译）与 `agent_only_codes`（15 个，**只到模型**，不出现给用户）。这是一次"同一条错误对两个读者要说不同的话"的失败反思：early 版本里模型拿到的 `task_id_required`/`authority_expired` 这类话如果直出给用户，用户会看到内部术语，于是他们把读者维度显式建模进契约。
 
-加上"Pinned by tests/…" 双向锚点与 `docs/testing/` 的五台阶检查单，DeerFlow 元环的形态是：**AGENTS.md 治理 + 契约测试 + 预算 CI**——回写本身有红灯。
+加上"Pinned by tests/…" 双向锚点与 `docs/testing/` 的五台阶检查单，DeerFlow 元环的形态是：**AGENTS.md 治理 + 契约测试 + 预算 CI**——回写本身有红灯。v2.2.0 又给这套元环补了两个可量化的样本：`#6759`（middlewares 祖先链 98,441 > 98,304 越线）与 `#7522`（runtime 链 99,004 → 80,817）——**两次都是被自己的 `AG002` 打红之后改文档、不调阈值**，这是"回写有红灯"最直接的自证。
 
 ## 两条学习通道：产品记忆与工程学习必须分开治理
 

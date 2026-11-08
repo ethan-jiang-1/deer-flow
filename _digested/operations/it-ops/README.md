@@ -19,14 +19,16 @@ IT 部门负责人关心的不是 "middleware 怎么写的"，而是 "这东西�
 | **00-overview.md** | IT 治理全景：Agent 时代的 12 个 IT 管理维度，DeerFlow 能力映射，成熟度评估 |
 | **01-access-control.md** | 访问控制：认证、用户隔离、凭证管理、no-auth 模式风险 |
 | **02-sandbox-governance.md** | 沙箱治理：三种模式安全画像、6 层路径防穿透、资源限制、per-thread 隔离 |
-| **03-policy-enforcement.md** | 策略执行：Guardrails 体系、SandboxAudit、循环检测、subagent 并发限制、bounded autonomy |
-| **04-audit-observability.md** | 审计与可观测：审计日志、Tracing、token 用量追踪、StreamBridge SSE 事件、成本归属 |
-| **05-compliance-lifecycle.md** | 合规与生命周期：数据隔离/GDPR、路径脱敏、文件上传安全、配置生命周期、Agent 蔓延风险 |
+| **03-policy-enforcement.md** | 策略执行：Guardrails 体系（🆕 三道工具级风险门）、SandboxAudit、循环检测、subagent 并发限制、bounded autonomy |
+| **04-audit-observability.md** | 审计与可观测：审计日志、Tracing、token 用量追踪、StreamBridge SSE 事件、成本归属、🆕 guardrail 决策入 RunJournal / completed-run evidence |
+| **05-compliance-lifecycle.md** | 合规与生命周期：数据隔离/GDPR、路径脱敏、文件上传安全、配置生命周期、Agent 蔓延风险、🆕 插件变更控制与 skill mutation 发布闸门 |
 
 ## 关键问题（IT 管理者关心的）
 
 - 一个 prompt 能搞出 `rm -rf /` 吗？→ `02-sandbox-governance.md` 6 层防线
 - 怎么限制 agent 只能调某些 tool？→ `03-policy-enforcement.md` Guardrails
+- 🆕 名单门不够用，想要模型判定的风险门？→ `03-policy-enforcement.md` 三个内置门
+- 🆕 插件能拿到什么权限、怎么收回？→ `05-compliance-lifecycle.md` 扩展与插件的变更控制
 - 用户之间数据隔离吗？→ `01-access-control.md` per-user isolation
 - agent 干了什么能审计到吗？→ `04-audit-observability.md` 审计链路
 - 有没有防死循环/无限制消费？→ `03-policy-enforcement.md` LoopDetection + TokenUsage

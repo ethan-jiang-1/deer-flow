@@ -46,9 +46,9 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 
 **每一步发生的事情：**
 
-| 阶段 | Hook 点 | 参与 middleware（共 37 个中的代表） |
+| 阶段 | Hook 点 | 参与 middleware（共 39 个条目位中的代表） |
 |------|--------|----------|
-| 调用 LLM 前 | `wrap_model_call` | InputSanitization, ToolOutputBudget, ToolResultSanitization, DynamicContext, SkillActivation, DurableContext, ViewImage, McpRouting, DeferredToolFilter, SystemMessageCoalescing 等（v2.2.0 起 `SkillToolPolicyMiddleware` 已删除，`allowed-tools` 降级为兼容元数据） |
+| 调用 LLM 前 | `wrap_model_call` | InputSanitization, KnowledgeScope, ToolOutputBudget, ToolResultSanitization, PII（可选）, DynamicContext, SkillActivation, DurableContext, ViewImage, McpRouting, DeferredToolFilter, SystemMessageCoalescing 等（v2.2.0 起 `SkillToolPolicyMiddleware` 已删除，`allowed-tools` 降级为兼容元数据，`backend/packages/harness/deerflow/agents/middlewares/AGENTS.md:148` 明确 activation 不过滤、不授予、不拒绝任何工具） |
 | 调用 LLM | — | `model.invoke(messages)` → AIMessage (text 或 tool_calls) |
 | LLM 返回后 | `after_model` | SubagentLimit, LoopDetection, TokenBudget, TerminalResponse, SafetyFinishReason 等 5 个 MW |
 | Tool 执行前 | `wrap_tool_call` | Guardrail, SandboxAudit, ReadBeforeWrite 等 3 个 MW |
@@ -56,7 +56,7 @@ LangGraph 层面，这是一个条件边（conditional edge）——每个 LLM s
 | Step 开始 | `before_agent` | ThreadData, Uploads, Sandbox, DanglingToolCall, LLMErrorHandling 等 5 个 MW |
 | Step 结束 | `after_agent` | Summarization, TodoList, TokenUsage, Title, Memory, Clarification 等 6 个 MW |
 
-> 完整 37 个 middleware 的 hook 分配见 [middleware/03-catalog.md](../internals/middleware/03-catalog.md)。
+> 完整 39 个条目位（含 "custom middlewares" 与 "configured extension middlewares" 两个可变槽位）的 hook 分配见 [middleware/03-catalog.md](../internals/middleware/03-catalog.md)；权威清单是 `backend/packages/harness/deerflow/agents/middlewares/AGENTS.md:60`-`176` 的编号表（v2.1.0 为 36 条，v2.2.0 新增 KnowledgeScope、PiiRedaction、ArtifactResolution、ArtifactCapture、ModelContentCompatibility 并删掉 skill tool policy 条目）。
 
 **ThreadState** 是贯穿全程的状态对象：`messages` (对话历史)、`sandbox` (沙箱实例)、`artifacts` (产物)、`todos` (计划)、`viewed_images` (图片缓存)。
 
@@ -108,7 +108,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 | 组件 | 作用 | 挂入核心的方式 |
 |------|------|---------------|
 | **RunManager** | `create_or_reject()` 创建 RunRecord，`cancel()` 取消，`set_status()` 更新 | 通过 `asyncio.Task(run_agent)` 启动 Agent Loop |
-| **make_lead_agent()** | 7 步工厂：解析 config → 创建 model → 装配 tools → 生成 system prompt → 构建 middleware → create_agent() → 返回 CompiledStateGraph | **直接创建** Agent Loop 的 StateGraph |
+| **make_lead_agent()** | 7 步工厂：解析 config → 创建 model → 装配 tools → 生成 system prompt → 构建 middleware → create_agent() → 返回 CompiledStateGraph（v2.2.0 起另有 `assemble_lead_agent()` 返回 `LeadAgentAssembly`，把编译好的图与装配描述一起交出，Gateway worker 不再靠 LangGraph 私有 runtime key 反推，`backend/packages/harness/deerflow/agents/lead_agent/agent.py:839`） | **直接创建** Agent Loop 的 StateGraph |
 | **StreamBridge** | Agent Loop 产出的 chunk → 转发到 SSE/Memory queue | 挂入 graph.astream() 的 for loop |
 | **Model Factory** | 通过 reflection 加载 ChatModel（8+ providers），应用 thinking 覆盖 | `create_chat_model()` → 传给 `make_lead_agent` |
 
@@ -119,7 +119,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 2. 调用 `create_chat_model()` 创建 LLM 实例
 3. 调用 `get_available_tools()` 装配 tool 列表（config + MCP + builtins + ACP agents）
 4. 调用 `apply_prompt_template()` 生成 system prompt（注入 skills、memory、日期、subagent 指令）
-5. 调用 `build_middlewares()` 构建 37 个 middleware
+5. 调用 `build_middlewares()` 构建 middleware 链（运行时基底由 `build_lead_runtime_middlewares()` 组装，`backend/packages/harness/deerflow/agents/lead_agent/agent.py:567`；文档化条目位 39 个，其中若干按配置可选）
 6. 调用 `create_agent(model, tools, middleware, state_schema, checkpointer)` 返回 CompiledStateGraph
 
 **`make_lead_agent` 是唯一对外暴露的 graph factory**，在 `langgraph.json` 中注册为 `"lead_agent"`。
@@ -132,7 +132,7 @@ Agent Loop 每一步直接依赖的 6 个服务。不涉及 HTTP，纯 Python as
 |------|------|-------------------|
 | **FastAPI** | HTTP 服务 :8001，~20 个 Routers | `POST /threads/{id}/runs/stream` → `RunManager.create_or_reject()` |
 | **Auth** | JWT/OAuth/CSRF/Internal Auth | FastAPI Deps() 注入 → thread_runs 路由获取 user_id |
-| **IM Channels** | 7 个平台的消息接收/发送 | 平台 webhook → message_bus → langgraph-sdk → Gateway API |
+| **IM Channels** | 10 个平台适配器：buzz / dingtalk / discord / feishu / github / qq / slack / telegram / wechat / wecom（v2.1.0 为 7 个，v2.2.0 新增 github / qq / wechat 并加 buzz；权威表 `backend/app/channels/capabilities.py:19`-`30` 的 `CHANNEL_CAPABILITIES`） | 平台 webhook → message_bus → langgraph-sdk → Gateway API |
 
 #### 挂入关系
 
@@ -195,13 +195,16 @@ Gateway 是核心进程 — 不依赖独立 LangGraph Server，Runtime 内嵌在
   "auth": {
     "path": "./app/gateway/langgraph_auth.py:auth"
   },
+  "http": {
+    "app": "./app/gateway/langgraph_studio.py:langgraph_app"
+  },
   "checkpointer": {
     "path": "./packages/harness/deerflow/runtime/checkpointer/async_provider.py:make_checkpointer"
   }
 }
 ```
 
-三件事：**graph 注册**（唯一图 `lead_agent`）、**auth**（复用 Gateway 用户体系）、**checkpointer**（memory/sqlite/postgres）。
+四件事：**graph 注册**（唯一图 `lead_agent`）、**auth**（复用 Gateway 用户体系）、**checkpointer**（memory/sqlite/postgres）、**http**（`langgraph_studio.py:langgraph_app`，LangGraph Studio / 外部 Server 的 ASGI 入口；`langgraph.json` 在 v2.1.0→v2.2.0 未改动）。
 
 ## 目录结构映射
 
@@ -221,15 +224,15 @@ deer-flow/
 │   │   ├── models/       模型工厂
 │   │   ├── mcp/          MCP 集成
 │   │   ├── skills/       Skill 加载
-│   │   ├── config/       配置系统 (29 文件)
+│   │   ├── config/       配置系统 (65 个 .py)
 │   │   ├── community/    Tavily/Jina/DDG/AioSandbox
 │   │   ├── persistence/  ORM + DB 引擎
 │   │   ├── guardrails/   工具鉴权
 │   │   ├── tracing/      LangSmith + Langfuse
 │   │   └── client.py     DeerFlowClient (SDK 入口)
 │   └── app/              ← Ring 3
-│       ├── gateway/      FastAPI + 15 routers + auth
-│       └── channels/     7 个 IM 平台
+│       ├── gateway/      FastAPI + 40 routers + auth
+│       └── channels/     10 个 IM 平台
 └── frontend/             ← Ring 4 (Browser/SSE)
     └── src/              Next.js + React 19 + Tailwind
 ```

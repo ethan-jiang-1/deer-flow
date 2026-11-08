@@ -37,6 +37,23 @@ status: verified（本篇为父侧亲写：子代理未按期交付后接管，�
 - **续租失败围栏**：`_mark_ownership_lost` 把"成功无法持久确认"的本地 run 围栏成 error（`manager.py:1021`-`1026`，[01] 已核验）；心跳循环里发现 `owner_worker_id` 变了就地停本地任务（`:2203`-`2213`）。
 - **store 侧原子性**：`claim` 重查 status+lease 过期是原子的，扫描与恢复写之间插入的心跳续约不会误杀活 run（`runs/store/base.py:387`-`392`）。
 
+### 2.1 v2.2.0 新增的第四个租约平面：IM provider 的 leader lease
+
+到 v2.1.0 为止，DeerFlow 有三个租约平面（run lease / scheduler launch lease / batch item lease），全部以 **run 或任务**为对象。v2.2.0 加了第四个，对象是**平台连接本身**——`channel_leases` 表，一 provider 一行（`persistence/channel_leases/model.py:1`-`16`）：
+
+| 字段 | 语义 |
+|---|---|
+| `provider` | 主键。一行一个 IM provider（`telegram`、`discord`…） |
+| `owner_id` | 持有该平台连接的 Gateway 实例；**复用 `runs.owner_worker_id` 的格式**（`hostname:uuid`），长度上限都是 128——两个平面共用同一套身份词汇 |
+| `epoch` | 每次获取 +1。**带旧 epoch 的续租或释放动不了新持有者的租约**——这就是双向围栏在这层的形态 |
+| `lease_expires_at` / `updated_at` | 两者都是**数据库时钟**的 epoch 秒，绝不读实例自己的挂钟 |
+
+**这一层最有价值的设计决定是把"谁当 leader"的判定压进单条 SQL**：所有决定"谁能连平台"的比较都在一条语句里、对同一个时钟完成（`model.py:9`-`13` 的模块 docstring 明说："so skew between hosts cannot hand the same provider to two instances"）。这不是性能考虑——是**正确性考虑**：跨主机比较两个挂钟必然有偏差，只要有一次比较发生在应用层，就可能把同一个 provider 交给两个实例。
+
+**fail-closed 的落点在应用侧**：`ChannelLeadership.holds(provider)` 的判据是 `now + renew_interval < deadline`（`app/channels/leadership.py:109`-`112`）——**在截止前整整一个续约间隔就返回 False**，不管数据库有没有回话。续租被数据库**拒绝**（换主或 epoch 更新）= 立即失去，立刻停 transport；续租**报错或超时** = 只是"未确认"，截止照常走。所有仓储调用被 `operation_timeout`（半个续约间隔）兜住，所以卡死的数据库不能把续约拖过它自己保护的那个截止。
+
+**边界（这层不解决什么）**：租约只保证"同一 provider 只有一个实例连平台"，**不保证消息不丢**。holder 崩溃后要等 `lease_seconds + grace_seconds` 再加一个续约间隔才有同伴接管（默认 30 + 10 秒这个量级）；干净停机才是下一个心跳就换手。GitHub webhook 是例外——每个实例都接，不走租约。
+
 ## 3. 冷恢复时序：lifespan 里先对账、后心跳
 
 Gateway 启动（`app/gateway/deps.py:603`-`626`）的顺序是**结构性的**：
@@ -45,6 +62,8 @@ Gateway 启动（`app/gateway/deps.py:603`-`626`）的顺序是**结构性的**�
 2. `_terminalize_recovered_runs`（`:613`）——给被回收 run 的流发布 END 并排清理（订阅者不能挂着）。
 3. `_mark_latest_startup_recovered_threads_error`（`:619`）——thread error 投影**只在启动期做**（周期性恢复刻意不做这个非原子投影）。
 4. `start_heartbeat`（`:626`）——**对账完成后**才启动本 worker 心跳，避免心跳给已判死的 run 续命。
+
+**v2.2.0 给这条冷恢复序列又加了一个前置门**：`_enforce_postgres_for_multi_worker`（`app/gateway/deps.py:135`-`175`）在**持久化启动之前**就跑完 8 条拒绝判定，其中第 8 条正是 `channels.leader_lease.enabled must not be false while an IM channel other than GitHub is enabled`——因为那种配置下每个实例都会用同一套 bot 凭证抢同一个平台连接（Telegram 第二个 poller 直接 409，Discord 每条消息答两遍）。也就是说：**多实例的冷恢复顺序里，"谁会连平台"这件事在连数据库之前就已经被判定了**。
 
 配套的恢复面：scheduler 侧启动清扫 `mark_stale_active_runs` / `cancel_stuck_once_tasks`（`app/scheduler/service.py:567`-`582`，[01] 已核验）+ 过期 launch claim 退回 queued（`service.py:63`）；memory 检索索引重建在后台线程跑、**不阻塞就绪**（`app/gateway/app.py:185`-`195`）。
 
@@ -57,6 +76,7 @@ Gateway 启动（`app/gateway/deps.py:603`-`626`）的顺序是**结构性的**�
 | 同 thread 活跃唯一 | — | DB 部分唯一索引 `uq_runs_thread_active` | （[01]/[03] 已核验） |
 | 幂等键 `scheduled-task:{task_run_id}` | — | DB（崩溃后复用同一 run） | `app/gateway/services.py:1847`-`1861`（[01] 已核验） |
 | peer run 的本地视图 | `store_only` 复用行**不注册**进 `_runs`（peer 永不 finalize/cleanup 别人的 run） | runs 行 | `manager.py:446`、`:1347` |
+| **IM provider leader lease**（v2.2.0） | ✓（`owner_id` = 本机 RunManager worker id） | `channel_leases` 行 + `epoch` 围栏 | `persistence/channel_leases/model.py:1`-`47`；`app/channels/leadership.py:109`-`112` |
 
 scheduler 多实例（`multi_instance=true`）额外要求共享 Postgres + `run_ownership.heartbeat_enabled` + `run_events.backend=db`，否则启动拒绝——三个平面（调度、所有权、事件）必须同时升级到共享存储才允许跨 Pod。
 

@@ -15,8 +15,8 @@ type: index
 | `02-configuration.md` | 配置访问：怎么读、怎么写 |
 | `03-python-sdk.md` | DeerFlowClient 嵌入式 SDK |
 | `04-local-dev.md` | 本地开发模式：`make dev` 进程拓扑 |
-| `05-environment.md` | 完整环境变量参考 |
-| `06-tui.md` | 🆕 `deerflow` 终端工作台：安装、四种启动模式、命令全集、键位、持久化、CI 集成 |
+| `05-environment.md` | 完整环境变量参考（含 🆕 `DEER_FLOW_ENV_FILE` dotenv 选择器、`DEER_FLOW_MULTI_INSTANCE`、`DEER_FLOW_CREDENTIALS_KEY`） |
+| `06-tui.md` | `deerflow` 终端工作台：安装、四种启动模式 + 🆕 透明背景、18 条 slash 命令、键位、daemon 线程流式管线、滚动/中断语义、持久化 |
 
 ## 补充
 

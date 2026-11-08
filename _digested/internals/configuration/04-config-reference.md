@@ -18,13 +18,18 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 | `config.yaml` | 主配置（模板 `config.example.yaml` = **3680 行**） | `make config` 从 `config.example.yaml` 生成（**不**生成 `extensions_config.json`；Docker 路径由 `scripts/docker.sh:388-395` 补建） |
 | `extensions_config.json` | 扩展配置 | 从 `extensions_config.example.json` 复制 |
 
-配置解析优先级：
-1. 显式代码传参
-2. 环境变量 `DEER_FLOW_CONFIG_PATH` / `DEER_FLOW_EXTENSIONS_CONFIG_PATH`
-3. 当前目录 `./config.yaml`
-4. 父目录 `../config.yaml`（项目根，**推荐**）
+配置解析优先级（真值 `AppConfig.resolve_config_path()`，`config/app_config.py:448`）：
 
-环境变量替换：配置值中以 `$` 开头的会被解析为环境变量，如 `api_key: $OPENAI_API_KEY`。
+1. 显式代码传参 `config_path`
+2. 环境变量 `DEER_FLOW_CONFIG_PATH`（**设了但文件不存在 → `FileNotFoundError`，不回落搜索**）
+3. `project_root()/config.yaml`（最常用）；`project_root()` = `DEER_FLOW_PROJECT_ROOT`（必须是存在的目录，否则 `ValueError`）否则 `cwd`（`config/runtime_paths.py:7-16`）
+4. legacy 探测：`backend/config.yaml` → `repo_root/config.yaml`（`_legacy_config_candidates`，`config/app_config.py:193-197`）
+
+> 旧版本文里"当前目录 → 父目录"的两级说法**已删除**——现在的语义是"一个 `project_root()` + 两个 legacy 候选"，与 `extensions_config.json` 的搜索路径不是同一条链。
+
+环境变量替换：配置值中以 `$` 开头的会被解析为环境变量，如 `api_key: $OPENAI_API_KEY`；缺失时 AppConfig **报错**、ExtensionsConfig 存空串。
+
+🆕 **`.env` 的加载由 `DEER_FLOW_ENV_FILE` 决定**（`deerflow/env.py:10` 的 `load_selected_env_file()`）：设了该变量就只读那一个文件（且与 `PYTHON_DOTENV_DISABLED` 同时设置会直接 `ValueError`），没设则回落 `load_dotenv()` 的自动发现。它在这三处被调用：`config/app_config.py:67-70`、`app/gateway/auth/config.py:58-64`、`backend/debug.py:23`。
 
 ---
 
@@ -33,10 +38,14 @@ DeerFlow 有两个配置文件，都放在项目根目录。
 ## 配置版本
 
 ```yaml
-config_version: 45
+config_version: 63     # config.example.yaml:23
 ```
 
-用于检测配置过期。改 schema 时上游会升这个数字。`make config-upgrade` 把新字段合并到已有 `config.yaml`。
+用于检测配置过期。改 schema 时上游会升这个数字（v2.1.0 是 45，v2.2.0 是 63）。
+
+- 不匹配时 `AppConfig._check_config_version()`（`config/app_config.py:599`）发 **warning**（`config/app_config.py:636-640`）而**不是**错误：DeerFlow 仍会启动，缺失的新字段取默认值。
+- `make config-upgrade` 把新字段合并到已有 `config.yaml`。
+- 🆕 v46 起带**语义迁移**：`knowledge_base.enabled` 按旧字段的存在与否回填，使老配置升级后保持原来的工具可见性。
 
 ## Logging
 
@@ -821,9 +830,129 @@ input_polish:
 
 ---
 
+## 🆕 blob_storage（内容寻址对象存储）
+
+```yaml
+blob_storage:                  # config.example.yaml:2563
+  enabled: false               # 总开关；producer 迁移未完成前是惰性的
+  backend: local_fs            # storage/backends/<name>/ 目录名，或 BlobStore 子类的点分导入路径
+  backend_config: {}           # 原样交给后端；local_fs 读 `root`，空则 {runtime_home}/blobs
+```
+
+**为什么是内容寻址**：内容按 `sha256` 寻址，所以写入天然幂等、相同字节自动去重成一个对象、读取时校验摘要。这是 `tool_artifacts` 之类"同一份大产物被多次引用"场景的地基。
+
+- 后端解析与 memory 后端**同构**：`backend` 名字匹配 `storage/backends/<name>/` 下暴露 `STORE_CLASS` 的目录（如 `local_fs`），或给一个点分导入路径。工厂在 `get_blob_store()` 时解析并**快速失败**——blob 是持久状态，一个拼错的后端名绝不能悄悄把存储位置换掉。
+- 多实例部署要把 `backend_config.root` 指向共享卷（NFS / EFS / ReadWriteMany PVC）。
+- **自愈**：`get_blob_storage_config()`（`config/blob_storage_config.py:61`）发现 `_app_config` 已被设置时会主动调 `get_app_config()` 重新取，避免"配置对象已建但 blob 单例还是空"的窗口。
+- 单例注入在 `_apply_singleton_configs()`（`config/app_config.py:548`，blob_storage 分支在 `:556`）里随每次 reload 一起刷新。
+- 契约与两个已登记 producer、迁移顺序见 `backend/docs/blob-storage.md`。
+
+## 🆕 knowledge_base（知识库能力门控）
+
+```yaml
+knowledge_base:                # config.example.yaml:824
+  enabled: false               # knowledge 组的整组开关
+  scope_selection_enabled: false
+```
+
+```python
+class KnowledgeBaseConfig(BaseModel):        # config/knowledge_base_config.py
+    model_config = ConfigDict(validate_default=True)
+    enabled: bool = False
+    scope_selection_enabled: bool = False
+```
+
+两个字段的分工是刻意分开的：
+
+- `enabled` 控制 `group: knowledge` 的**工具是否出现在 agent 的工具表里**。`get_available_tools()` 在 `knowledge_base.enabled` 为假时把整组过滤掉（`tools/tools.py:155-157`）。provider 的连接与检索参数**不在**这一段，它们留在各自 `tools[]` 条目上（例如 `use: deerflow.community.ragflow.tools:knowledge_search_tool` 的 `base_url` / `datasets` / `page_size`）。
+- `scope_selection_enabled` 只影响**自定义 agent 聊天**：它决定要不要显示知识范围选择器，且**仅当**实际生效的 `knowledge_search` provider 是内置 RAGFlow 工具时才生效（`/api/features` 的 `knowledge_base` 字段由 `app/gateway/routers/features.py` 的 `_knowledge_scope_selection_enabled` 计算）。
+
+`enabled` 是热加载字段：tool 列表每次装配都重读，改完不用重启。config_version 升到 45 时这条语义被回填迁移，见"配置版本"一节。
+
+## 🆕 typesafe（Jev 客户端默认值）
+
+```yaml
+typesafe:                      # config.example.yaml:3347
+  api_key_env: TYPESAFE_API_KEY   # 默认；存 key 的环境变量名
+  # api_key: <explicit key>       # 与 api_key_env 二选一（同层内 api_key 优先）
+  base_url: https://api.typesafe.ai   # 默认；只允许 http(s)，不得带 query/fragment/内嵌凭据
+  model: jev-latest               # 默认；生产建议钉死版本
+  timeout: 5.0                    # 单请求超时（秒）
+  deadline_seconds: 10.0          # 整次评估预算（秒）
+  max_attempts: 2                 # 含首次；只对 429/529 与传输错误重试
+  retry_backoff: 0.5              # 指数退避的基准秒数
+```
+
+这是 TypeSafe 所有消费者的**共享默认层**：guardrail 风险闸（`guardrails.provider.config`）以及将来的 memory 预筛与信号分类。优先级恒为 **消费者自己的 `config` > `typesafe` 块 > 内置默认**。
+
+刻意**不**放在这里的东西：失败策略（闸门出错即拒，memory 路径继续跑）、缓存设置、阈值、问题内容——那些属于各消费者自己，两个阈值不同的消费者仍可共享一次请求，各自发布自己的策略身份。
+
+校验时机是**构建消费者时**，不是首次调用时：
+
+| 情况 | 结果 |
+|------|------|
+| `base_url` 非 http(s) / 带 query / 带 fragment / 内嵌凭据 | 配置错误 |
+| key 前后有空白（典型：从文件挂载的 secret 带换行） | 配置错误 |
+| key 含不可打印字符 | 配置错误 |
+| 数值写成 `true` 之类（严格校验） | 报错而不是静默读成 `1` |
+
+`TYPESAFE_API_KEY` 这个默认变量名定义在 `typesafe/connection.py` 的 `DEFAULT_API_KEY_ENV`，单例读取走 `config/typesafe_config.py` 的 `get_typesafe_config()`（`:55`），注入点在 `_apply_singleton_configs()` 的 `:561`。
+
+## 🆕 deployment（多实例拓扑声明）
+
+```yaml
+deployment:                    # config.example.yaml:2923
+  multi_instance: false        # restart required；每个实例必须一致
+```
+
+**为什么需要显式声明**：`GATEWAY_WORKERS` / `WEB_CONCURRENCY` 只数**一个进程树内**的 uvicorn worker。Kubernetes  Deployment `replicas: 3`（每 Pod 一个 worker）对启动安全闸门**完全不可见**——每个 Pod 都能通过全部检查，然后它的启动期孤儿回收会在每次滚动更新时把别的 Pod 的**无租约 run 全部写成 crashed**。
+
+`multi_instance: true`（或环境变量 `DEER_FLOW_MULTI_INSTANCE=1`，值集合 `{"", "0", "false", "no", "off"}` 视为假，判定在 `config/deployment_config.py:26` 附近）时，启动闸门**要求**：
+
+| 必需 | 说明 |
+|------|------|
+| `database.backend: postgres` | 共享库 |
+| `run_events.backend: db` | 事件必须落库 |
+| `run_ownership.heartbeat_enabled: true` | 要有租约心跳 |
+| Redis stream bridge | 跨 worker 的事件桥 |
+
+并**拒绝**：显式 `sandbox.ownership.type: memory`、进程内 browser 工具、`scheduler.enabled: true` 而 `scheduler.multi_instance` 未开、以及除 GitHub 外有 IM 通道启用时 `channels.leader_lease.enabled: false`。
+
+这段被登记为 `startup-only`（`config/reload_boundary.py` 的 `deployment` 条目）：`langgraph_runtime()` 只在启动时评估一次，声明或撤回多实例拓扑要在**每个实例**上重启。
+
+## 🆕 pii_redaction / tool_artifacts
+
+```yaml
+pii_redaction: ...             # config.example.yaml:1537 —— 出站 PII 脱敏规则
+tool_artifacts: ...            # config.example.yaml:1461 —— 大工具产物外置成 artifact 引用
+```
+
+`tool_artifacts` 把超出内联预算的工具结果搬到 artifact 存储里，模型看到的是引用而不是正文；它与 `blob_storage` 同属"内容外置"这一条线。`pii_redaction` 是独立的一层，在模型调用**之前**按规则脱敏。两者都是热加载字段（每次装配/每次调用重读），完整字段见 `config.example.yaml` 对应行段的注释与 `backend/docs/CONFIGURATION.md`。
+
+## 🆕 agents_api / lead_prompt_overlay
+
+```yaml
+agents_api:                    # config.example.yaml:2580
+  enabled: false               # 自定义 Agent 的 SOUL/USER.md 管理 API
+```
+
+`agents_api.enabled` 控制 HTTP Gateway 是否暴露自定义 agent 的 SOUL / USER.md 管理端点。**除非 Gateway 位于可信的已认证管理员边界之后，否则保持关闭**——这些端点改写的是 agent 的人格定义。
+
+`lead_prompt_overlay` 是**运营方字面量**的 lead-agent system prompt 前后缀（`config.example.yaml:26`）：
+
+```yaml
+lead_prompt_overlay:
+  prepend: "Apply our organization-wide writing conventions."
+  append: "End reports with a concise decision summary."
+```
+
+`PromptOverlay`（`config/prompt_overlay.py:6`）是 `extra="forbid"`、两个字段都 `strict=True` 的模型，`apply()` 用空行把 `prepend` / 原 prompt / `append` 串起来，空串会被跳过。同一机制的另外两个落点写在同一处注释里：`subagents.agents.<name>.prompt_overlay.{prepend,append}` 与 DeerMem 的 `memory.backend_config.{prompt_prepend,prompt_append}`。它不改引擎的 system prompt 常量，只在装配时包裹，因此**每次构建 agent 都重读 → 热生效**。
+
+---
+
 ## 配置热加载备忘
 
-**真值来源是代码**：`config/reload_boundary.py::STARTUP_ONLY_FIELDS`（18 条）是热加载边界的**单一来源**，且被 `test_reload_boundary` 双向钉住——注册过的字段在 schema 里必须带 `startup-only:` 前缀，带该前缀的字段必须在注册表里。下面这张表是它的可读镜像（字段级理由见 [../harness-hooks/02-singleton-propagation.md](../harness-hooks/02-singleton-propagation.md)）：
+**真值来源是代码**：`config/reload_boundary.py::STARTUP_ONLY_FIELDS`（`config/reload_boundary.py:45`，共 **27** 条）是热加载边界的**单一来源**，且被 `test_reload_boundary` 双向钉住——注册过的字段在 schema 里必须带 `startup-only:` 前缀，带该前缀的字段必须在注册表里。下面这张表是它的可读镜像（字段级理由见 [../harness-hooks/02-singleton-propagation.md](../harness-hooks/02-singleton-propagation.md)）：
 
 | 需重启（`STARTUP_ONLY_FIELDS`） | 无需重启（`get_app_config()` 每次请求重读） |
 |--------------------------------|------------------------------------------|
@@ -834,14 +963,19 @@ input_polish:
 | `log_level` · `logging`（`configure_logging()` 只在 startup 跑） | `loop_detection` · `token_budget` · `token_usage` · `circuit_breaker` |
 | `channels` · `channel_connections` | system prompt（每次构建 agent 重新生成） |
 | `scheduler`（`recursion_limit` **除外**，每次 dispatch 重读） | `projects` · `suggestions` · `input_polish` · `title` 等 per-run 字段 |
-| `mcp_tasks` · `subagent_batches` · `run_ownership` · `dedupe_storage` | `skills.*`（**除** `container_path`）· `auth.local` 限流（逐次登录 live-read） |
+| `mcp_tasks` · `subagent_batches` · `run_ownership` · `dedupe_storage` | `skills.*`（**除** `container_path`）· `auth.local.max_login_attempts` / `lockout_seconds`（逐次登录 live-read） |
+| 🆕 `channels.leader_lease`（多进程启动闸门 + `ChannelService` 构造时捕获） | 🆕 `knowledge_base.enabled`（每次装配 tool 列表时读） |
+| 🆕 `deployment`（`langgraph_runtime()` 的多进程安全闸门只评一次） | 🆕 `tool_artifacts` · `pii_redaction` · `agents_api` · `skill_evolution` |
+| 🆕 `auth.local.throttle_storage`（登录限流存储启动时解析一次） | 🆕 `blob_storage`（`_apply_singleton_configs` + 自愈） |
+| 🆕 `projects.summaries_enabled` / `summary_max_bytes` / `summary_model_name` / `summary_concurrency` / `summary_queue_size` / `summary_timeout_seconds` | `projects` 其余字段（工作区路径 / 开关） |
 | `agent_storage`（与 `database.backend` 的匹配在 startup 校验一次） | `database.checkpoint_graph_cache.accessor_graph_max` · `database.checkpoint_cache.*`（delta 缓存两处刻意可热改） |
 | `llm_call.max_concurrent_calls`（首次 LLM run 冻结；该字段**不在**注册表里，靠自身 schema 文档声明） | `llm_call.*` 其余字段（重试/退避）· `extensions.middlewares`（下次 agent 构建） |
 
-**两个反直觉点**：
+**三个反直觉点**：
 
 1. `database` 整段被登记为 restart-required（理由是 engine/连接池），但 `database.checkpoint_graph_cache.accessor_graph_max` 与 `database.checkpoint_cache.*` 是**刻意的例外**——前者在每次淘汰检查时从新 `AppConfig` 重读，后者是纯性能、跨进程都可不同、从不被冻结。
-2. `checkpointer.*` 变化时 `_apply_singleton_configs()` 会 `reset_checkpointer()` + `reset_store()`，但这**不是完整热重载**：已开始的 run 在 run 起点拿到 checkpointer/store，感知不到中途 reset；只有新 run 用新的。
+2. `checkpointer.*` 变化时 `_apply_singleton_configs()`（`config/app_config.py:548`）会 `reset_checkpointer()` + `reset_store()`，但这**不是完整热重载**：已开始的 run 在 run 起点拿到 checkpointer/store，感知不到中途 reset；只有新 run 用新的。
+3. 🆕 `scheduler` 整段要重启，**唯独 `scheduler.recursion_limit` 例外**——`launch_scheduled_thread_run` 每次 dispatch 都从 `get_app_config()` 重读，改 YAML 下一次定时运行就生效（注册表理由文本写死在 `config/reload_boundary.py:81-83`）。同理 `auth.local.throttle_storage` 要重启，但 `auth.local.max_login_attempts` / `lockout_seconds` 仍逐次 live-read。
 
 ---
 

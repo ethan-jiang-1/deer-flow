@@ -8,7 +8,11 @@ topics: [graph, dag, langgraph, orchestration, subagent]
 
 > 这个目录回答两个问题:① **以研究层 [`graph_engineering`](/Users/bowhead/ai_dev_sdlc_aidc/02_research/01_agent_engineering/graph_engineering/README.md) 的框架为标尺,DeerFlow 对图工程支持到哪儿?**(01-06) ② **今后要用 DeerFlow 编排 workflow,手上有哪些旋钮、从哪儿注入、缺口怎么补?**(07-09)
 >
-> 2026-10-01 判定 / 2026-10-02 深挖修订,依据源码(`ethan` 分支 = **锚点 #7 / v2.1.0**,2026-09-24;rc0→v2.1.0 的 10 个 release commit 已逐一核对:图元图、沙箱、子代理、检查点、factory 等主锚点均未触及,仅 `runtime/events/store/*` 与 `runs/store/memory.py` 有事件/运行存储改动——[06 §4](06-langgraph-capability-surface.md) 的 run 单位行据此仍是同构契约(存储后端内部实现变化,不改运行单位的状态/隔离/身份/恢复语义))+ `_faq_on_digested/07-09` + 逐文件回源。不做理想化叙事——支持多大多写多大,缺席就写缺席。
+> 2026-10-01 判定 / 2026-10-02 深挖修订 / **2026-11-08 对 v2.2.0 全量复查**。依据源码(`ethan` 分支 = **锚点 #8 / v2.2.0 `58fc5bd5b`**,2026-11-04;相对 v2.1.0 `345f08be` 有 1,239 commits / 1,235 个带 PR 号的提交)+ `_faq_on_digested/07-09` + 逐文件回源。不做理想化叙事——支持多大多写多大,缺席就写缺席。
+>
+> **v2.2.0 复查结论:12 项地图的档位判定一条都没改。** 逐项复验的关键事实:① `Send(` 在 `packages/harness/deerflow/` 仍是 **0 处调用**;② 直接 `StateGraph(` 构造点仍只有两处(`runtime/checkpoint_state.py:63` 的单 no-op 变异图、`agents/factory.py`);③ `grep -ri "\bdag\b\|topolog\|replan"` 仍只命中注释;④ 中间件条目位 37→**39**,但新增的三条(`KnowledgeScope`/`PiiRedaction`/`ArtifactCapture`)全是治理与工件层,**没有一条和拓扑相关**。这一千多个 commit 里他们加的是**原语的耐久性**(run 幂等、扩展执行租约、多实例 leader lease),不是**图的表达力**——取舍是稳定路线,不是"还没排到"。
+>
+> 复查中还改了三处口径:06 §1 的 venv 依赖版本(旧记 1.2.15/1.0.11,实测 langchain 1.3.14 / prebuilt 1.1.0)、06/08 里 `factory.py:201-203` 的上游限制引用(实测在 `:216`-`225`)、以及 **04/06 新增的 `jump_to` 生长点**——它是 `Command(goto)` 在上游被封死后官方指定的替代品,DeerFlow 已把它算进 turn 预算模型却尚无消费者。
 
 | 文件 | 内容 |
 |------|------|

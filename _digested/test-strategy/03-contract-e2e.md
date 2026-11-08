@@ -14,23 +14,31 @@ topics: [testing, contracts, e2e, replay]
 
 ## 1. 跨语言契约 JSON：一份文档，两端各钉一次
 
-`contracts/` 目录放三种跨栈契约，每种都有**后端 pytest 与前端 rstest 各一个测试读取同一份 JSON**：
+`contracts/` 目录在 v2.2.0 放 **9 个根级 JSON**（v2.1.0 为 3 个）+ `contracts/skill_review/` 下的 4 个 JSON Schema。绝大多数都有**后端 pytest 与前端 rstest 各一个测试读取同一份 JSON**：
 
 | 契约 | 后端钉住 | 前端钉住 |
 |------|---------|---------|
 | `contracts/slash_skill_contract.json`（保留 /skill 名 + 命名语法） | `backend/tests/test_slash_skill_contract.py` | `frontend/tests/unit/core/skills/slash-contract.test.ts` |
 | `contracts/subagent_status_contract.json`（status/stop_reason 词汇表、metadata 键与上限） | `backend/tests/test_subagent_status_contract.py` | `frontend/tests/unit/core/tasks/subtask-result.test.ts` |
 | `contracts/run_event_stream_contract.json`（run 事件流定义） | `backend/tests/test_run_event_stream_contract.py` | 事件序列由 replay golden 层覆盖 |
+| 🆕 `contracts/thread_goal_contract.json` | `backend/tests/test_thread_goal_contract.py` | `frontend/tests/unit/components/workspace/thread-goal-contract.test.ts` |
+| 🆕 `contracts/thread_origin_contract.json` | `backend/tests/test_run_origin.py` | `frontend/tests/unit/core/threads/origin.test.ts` |
+| 🆕 `contracts/ui_locales.v1.json` | `backend/tests/test_ui_language_preference.py` | `frontend/tests/unit/core/i18n/locale-contract.test.ts` |
+| 🆕 `contracts/knowledge_sources.v1.json` | `backend/tests/test_knowledge_contract.py`（另有 live 版 `test_knowledge_contract_live.py`） | `frontend/tests/unit/core/citations/knowledge-sources.test.ts` |
+| 🆕 `contracts/scheduled_goal_notes_contract.json` / `scheduled_task_errors_contract.json` | `backend/tests/test_scheduled_goal_notes_contract.py` / `test_scheduled_task_errors_contract.py` | 由 `mock-api.ts` 与 scheduled-task 页面单测消费（无独立契约测试） |
+| 🆕 `contracts/skill_review/*.v1.schema.json`（`package_snapshot` / `review_facts` / `review_report` / `waiver_manifest`） | `backend/tests/test_extension_api_contracts.py` 一族 + `scripts/review_changed_public_skills.py` | —（工具产物，前端不消费） |
+
+**解释（为什么 2.2 从 3 个长到 9 个）**：新增的六个全部对应「2.2 期间新增的跨端语义」——thread goal、thread origin（一个 thread 是怎么来的）、UI 语言偏好、知识来源引用、定时任务的 goal notes 与错误码。它们都是**同一类东西**：后端算出来、前端必须逐字段照读的枚举与词汇表。这个目录的扩张节奏，精确地对应了 2.2 功能面的扩张节奏；它没有变成一个「什么 JSON 都往里放」的杂物间——每一项都配了大写双向测试。
 
 前端测试读同一文件并把正则经 `new RegExp(...)` 规范化，**防止 Python 与 JS 的转义差异自己变成漂移源**。同族做法还有权限清单两处钉：`frontend/tests/e2e-real-backend/auth-disabled-contract.spec.ts` 与 `backend/tests/test_auth_me_permissions.py` 共同钉完整路由权限表（`frontend/AGENTS.md` 明文要求"update both when adding registered permissions"）。
 
 ## 2. Gateway 一致性：用对方的 Pydantic 模型解析自己的 dict
 
-`backend/tests/test_client.py:3540` 的 `TestGatewayConformance` 验证 SDK 路径与 Gateway 路径的输出格式一致。手法经济：不同时跑两条路径，而是**把 `DeerFlowClient` 返回的 dict 交给 Gateway 对应的 Pydantic response model 解析**——字段缺失或类型不符即 `ValidationError`，CI 抓 drift。覆盖消息格式、tool call 参数、流式 chunk 序列、token usage 传递。
+`backend/tests/test_client.py:4256` 的 `TestGatewayConformance`（v2.1.0 页面写的 `:3540` 已因文件扩写而下移；该类在 2.2 新增了一条 `test_goal_methods`，`backend/tests/test_client.py:4418`）验证 SDK 路径与 Gateway 路径的输出格式一致。手法经济：不同时跑两条路径，而是**把 `DeerFlowClient` 返回的 dict 交给 Gateway 对应的 Pydantic response model 解析**——字段缺失或类型不符即 `ValidationError`，CI 抓 drift。覆盖消息格式、tool call 参数、流式 chunk 序列、token usage 传递。
 
 ## 3. 真 SDK payload 钉住：mock 抓不到的漂移类别
 
-比"格式不一致"更隐蔽的是**对上游 SDK 行为的错误假设**。`backend/app/gateway/AGENTS.md:143` 记录了一个真实案例：`langgraph_sdk` 只丢弃 `None`，所以 `stream_resumable=False` 会出现在每个请求里且含义是"不可恢复"——按直觉拒绝它的 422 会打断所有 IM channel run（#4466）。教训成文为：
+比"格式不一致"更隐蔽的是**对上游 SDK 行为的错误假设**。`backend/app/gateway/AGENTS.md:201` 记录了一个真实案例（v2.1.0 页面写的 `:143` 已因文件扩写而下移）：`langgraph_sdk` 只丢弃 `None`，所以 `stream_resumable=False` 会出现在每个请求里且含义是"不可恢复"——按直觉拒绝它的 422 会打断所有 IM channel run（#4466）。教训成文为：
 
 > "`tests/test_run_request_validation.py::test_gateway_accepts_langgraph_sdk_default_payload` pins the real SDK payload against this boundary; **channel tests mock the SDK client and cannot catch this class of drift**."
 
@@ -41,7 +49,7 @@ topics: [testing, contracts, e2e, replay]
 `02-deterministic-llm.md` 已拆解 replay 机制本身；这里看它作为**跨栈契约层**的用法与不可替代性。
 
 - **Layer 1**（后端 SSE golden）：进程内真 Gateway + replay 模型，断言事件形状序列 = 提交的 golden。
-- **Layer 2**（`frontend/tests/e2e-real-backend/`）：Playwright 同时拉起真 Next.js 与真 replay gateway，DOM 断言是门（CI 的 `replay-e2e.yml` 在契约任一侧变更时触发：`frontend/**`、`backend/app/gateway/**`、`backend/packages/harness/**`）。
+- **Layer 2**（`frontend/tests/e2e-real-backend/`，**4 个 spec / 4 个 test**，v2.1.0 与 2.2 一致）：Playwright 同时拉起真 Next.js 与真 replay gateway，DOM 断言是门（CI 的 `replay-e2e.yml` 在契约任一侧变更时触发：`frontend/**`、`backend/app/gateway/**`、`backend/packages/harness/**`）。这一层在 2.1→2.2 期间**一个 spec 都没加**，不是被遗忘，而是它的成本结构决定了它只该承载"两侧单测都绿但真栈坏"的那一类病；2.2 新增的跨端语义全部先在 `contracts/` + 双向单测上解决，只有确实需要真前端渲染路径验证时才升上来。
 
 ### #3352 案例：为什么必须有 Layer 2
 
@@ -49,7 +57,7 @@ topics: [testing, contracts, e2e, replay]
 
 ## Mock E2E 的位置：快而宽，自认边界
 
-跨栈层解决契约漂移，但不取代 mock E2E（`frontend/tests/e2e/`，45 个 spec）。后者用一个 2000 余行的共享工具 `frontend/tests/e2e/utils/mock-api.ts` 注册约 59 个 `page.route()` 处理器，几乎覆盖整个 Gateway 面；SSE 由 `handleRunStream` 手工拼帧（`event:`/`data:` 行 + `text/event-stream`），需要"流挂住不放"来测中间态时（如 reasoning 与 answer 的渲染顺序），`frontend/tests/e2e/streaming-reasoning-order.spec.ts` 甚至起一个真 `node:http` 服务器写帧不收尾。**解释**：mock E2E 的价值是 UI 交互流程的宽度与速度；它的盲区（后端契约漂移）由 replay 层显式接手——两层各自声明边界，互不越界。四条 Playwright 车道的全景、mock 层工程化细节与断言风格，见 `06-frontend-and-tui.md`。
+跨栈层解决契约漂移，但不取代 mock E2E（`frontend/tests/e2e/`，**85** 个 spec / 369 个 `test(`；v2.1.0 为 45 / 214）。后者用一个 **2829 行**的共享工具 `frontend/tests/e2e/utils/mock-api.ts` 注册约 **70** 个 `page.route()` 处理器，几乎覆盖整个 Gateway 面；SSE 由 `handleRunStream` 手工拼帧（`event:`/`data:` 行 + `text/event-stream`），需要"流挂住不放"来测中间态时（如 reasoning 与 answer 的渲染顺序），`frontend/tests/e2e/streaming-reasoning-order.spec.ts` 甚至起一个真 `node:http` 服务器写帧不收尾。**解释**：mock E2E 的价值是 UI 交互流程的宽度与速度；它的盲区（后端契约漂移）由 replay 层显式接手——两层各自声明边界，互不越界。四条 Playwright 车道的全景、mock 层工程化细节与断言风格，见 `06-frontend-and-tui.md`。
 
 ## 替身哲学的边界：什么时候拒绝 fake
 

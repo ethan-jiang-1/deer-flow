@@ -18,7 +18,7 @@ DeerFlow 作为一个 Agent 框架，不是完整的 IT 管理平台。但它内
 |---|------|---------|-------------|------|
 | 1 | **Identity & Access** | Agent 用谁的身份跑？ | JWT + CSRF + internal gateway token + per-user isolation | 无 Agent 独立身份（NHI），agent 继承用户权限 |
 | 2 | **Sandbox Isolation** | Agent 能碰到系统文件吗？ | 3 种沙箱模式 + 6 层路径防穿透 + per-thread 隔离 | Local 模式共享 host 内核 |
-| 3 | **Tool Authorization** | 谁能决定 agent 调什么 tool？ | GuardrailMiddleware（可插拔 provider）+ AllowlistProvider | 无 per-thread 策略、无 subagent 区分 |
+| 3 | **Tool Authorization** | 谁能决定 agent 调什么 tool？ | GuardrailMiddleware（可插拔 provider）+ 三道门：`AllowlistProvider`（名单）、🆕 `TypeSafeGuardrailProvider`（Jev 风险概率）、🆕 `OpenAIDecisionsGuardrailProvider`（同一门走 `/v1/decisions`）；🆕 插件 action/管理面另有两类 RBAC resource | 无 per-thread 策略、无 subagent 区分；🆕 风险门只覆盖 `tools` 列出的工具，未探测的工具/MCP/subagent 是绕过路径 |
 | 4 | **Command Audit** | bash 里能写危险命令吗？ | SandboxAuditMiddleware（高危 block + 中危 warn） | 规则硬编码，不可配置 |
 | 5 | **Execution Limits** | Agent 能无限跑下去吗？ | LoopDetection（循环检测）+ SubagentLimit（并发≤3）+ timeout（15min） | 无 per-run 预算上限 |
 | 6 | **Content Safety** | Agent 输出有害内容怎么办？ | SafetyFinishReasonMiddleware（被动清除被污染的 tool_calls） | 无主动输出扫描；无独立 input guardrail |
@@ -27,7 +27,7 @@ DeerFlow 作为一个 Agent 框架，不是完整的 IT 管理平台。但它内
 | 9 | **Observability** | Agent 现在在干什么？ | StreamBridge SSE events + heartbeat + tracing spans | 无 agent 行为异常检测；无 fleet dashboard |
 | 10 | **Data Governance** | 用户数据隔离吗？PII 安全吗？ | Per-user 存储 + 虚拟路径 + host 路径脱敏 + 文件上传安全 | 无 PII 主动扫描；无数据分类标签 |
 | 11 | **Reliability** | Agent 挂了怎么恢复？ | LLMErrorHandlingMiddleware (retry + circuit breaker) + ToolErrorHandlingMiddleware + 熔断 | 无 agent 级 SLO；无 error budget；无 chaos engineering |
-| 12 | **Lifecycle** | Agent 怎么上线、回滚、下架？ | Config hot-reload + skills 生命周期 + agent config 热更新 | 无 agent 版本管理；无灰度发布；无 kill switch |
+| 12 | **Lifecycle** | Agent 怎么上线、回滚、下架？ | Config hot-reload + skills 生命周期 + agent config 热更新 + 🆕 插件 grant 重启绑定、🆕 skill mutation 七步流（stage→check→commit→revert，全带乐观版本） | 无 agent 版本管理；无灰度发布；无 kill switch；🆕 无 force-overwrite 逃生门（提案 TTL 1 天，过期即重来） |
 
 ## 行业对标：DeerFlow 处于哪个成熟度？
 
@@ -36,7 +36,7 @@ DeerFlow 作为一个 Agent 框架，不是完整的 IT 管理平台。但它内
 | Level 1: Reactive | 事后人工审核，无自动控制 | — |
 | Level 2: Partial | 输出过滤，全局策略，无决策级审计 | — |
 | **Level 3: Structured** | 多策略分层，但人工审核不规模化 | **← DeerFlow 大致在这里** |
-| Level 4: Designed-In | 实时强制执行，决策级审计，per-agent 域隔离，按需合规报告 | 部分达到（Guardrail 实时 deny，SandboxAudit 实时 block） |
+| Level 4: Designed-In | 实时强制执行，决策级审计，per-agent 域隔离，按需合规报告 | 部分达到（Guardrail 实时 deny，SandboxAudit 实时 block；🆕 2.2.0 增加插件/扩展能力授予面与 completed-run evidence 只读投影） |
 
 DeerFlow 在 **tool 执行时拦截**的能力较强（Level 4），但在 **审计可追溯**和 **合规自动化**方面偏弱（Level 2-3）。整体处于 3 级偏上。
 

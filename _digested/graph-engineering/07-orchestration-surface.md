@@ -14,6 +14,8 @@ topics: [orchestration, api, batch, recipes, workflow]
 
 ![组合配方地图:R1-R11 按能力域 × 即时/durable 双路径](figures/recipe-map.svg)
 
+> 图注基于 R1–R11;v2.2.0 又补了一条 R12(`context.client` 客户端环境注入),图尚未重绘。
+
 ## 1. Run 控制 — RunCreateRequest 全字段(编排者的旋钮箱)
 
 `app/gateway/run_models.py::RunCreateRequest`(`extra="forbid"`,HTTP 与内部启动共用):
@@ -29,6 +31,8 @@ topics: [orchestration, api, batch, recipes, workflow]
 | `stream_mode` / `stream_subgraphs` | 流模式与子图帧(命名空间帧 `values|<ns>`) |
 | `conversation_references` | **跨线程读授权**(≤3 个 thread id/URL,只在本 run 内有效,供 `read_conversation` 工具;SDK 客户端可从 `context.` 提升) |
 | `context` | DeerFlow 运行时覆盖:`model_name`、`thinking_enabled`、`is_plan_mode`、`subagent_enabled`、`max_concurrent_subagents`、`max_total_subagents` 等 |
+| `context.client` | **v2.2.0 新增**(#7051)。调用方声明的客户端能力/环境信息,经 `runtime/client_context.py` 白名单清洗后由 `DynamicContextMiddleware` 渲染成模型可见块。**硬约束**:键名须匹配 `^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$`、至多 32 项、名 ≤80 字符、值 ≤200 字符、整数 ≤2^53−1;清洗后写进 `config['context']['client']` 而**永不进 `configurable`**(`services.py:1029`-`1048` 会主动 `pop` 掉调用方伪造的 `configurable.client`)。走的是不可信文本框架(`frame_untrusted_text`),所以它是**上下文提示,不是授权** |
+| `stream_resumable` | **v2.2.0 新增的兼容占位**:类型是 `Literal[False]` 或 `None`,只接受 SDK 的非可恢复默认值——**不支持可恢复流**,传 `true` 直接被 `extra="forbid"` 拦下 |
 | `assistant_id` | 选择 agent(Custom Agent) |
 | 占位拒绝 | `webhook`/`on_completion`/`after_seconds`/`feedback_keys` 均为兼容占位——**完成回调不支持**,编排者必须轮询或持流 |
 
@@ -60,8 +64,9 @@ topics: [orchestration, api, batch, recipes, workflow]
 | R6 | **HITL(原语级)** | `interrupt_before: ["model"]`(或 `["*"]`)→ run 挂起 → `command: {resume: ...}` 恢复 | **原语齐备、无产品消费**;自定义客户端可用;resume 重进对话循环而非任务位置 |
 | R7 | **run 事务** | `cancel`(带回滚恢复 pre-run 快照);`regenerate`/`edit-regenerate`(带血缘校验的分支重放);`multitask_strategy: rollback` | delta 模式禁 fork:resume 被线性化(§5);full 模式保留分支 |
 | R8 | **长程目标** | `set_goal(objective, max_continuations≤8)` → JSON 评估器(`satisfied`/`reason`/`evidence_summary`/`blocker`)自动续跑,双上限(总续跑 + 无进展续跑) | 评估器是模型判定;satisfied=false 且无 blocker 进展 → 停 |
-| R9 | **定时** | scheduled-tasks API(cron 预览/CRUD/trigger);occurrence 队列 + lease + 恢复;非交互上下文 | 单实例默认;multi-instance 需共享 PG + 心跳 + db 事件后端 |
+| R9 | **定时** | scheduled-tasks API(cron 预览/CRUD/trigger);occurrence 队列 + lease + 恢复;非交互上下文。**v2.2.0 补强**:错误走结构化信封 `detail.code`(`contracts/scheduled_task_errors_contract.json`,33 个 `ui_codes` + 15 个 `agent_only_codes`);`max_concurrent_runs_per_user` 默认 2(`scheduler_config.py:13`-`19`,有效上限 = min(它, `max_concurrent_runs`),0 表示不设 per-owner 上限);本地时间在时区里**不存在**(DST 跳过)时校验直接报错,文案是 "does not exist in timezone …; choose a valid local time or an explicit instant with a UTC offset"(`scheduled_task_validation.py:69`),不是静默顺延 | 单实例默认;multi-instance 需共享 PG + 心跳 + db 事件后端 + `scheduler.multi_instance`(否则启动门拒绝) |
 | R10 | **跨线程组合** | `conversation_references` 授予本 run 只读 ≤3 个线程 | 仅读;显式授权,run 结束失效 |
+| R12 | **客户端环境注入** | `context.client` 声明客户端能力/环境,被清洗后渲染进模型可见上下文 | 纯提示,不进 `configurable`,不构成任何授权;超限项被丢弃而非报错 |
 | R11 | **状态手术** | `POST /threads/{id}/compact`(压缩);手工 state 更新走 `reserve_checkpoint_write` + 变异图——**middleware 贡献的通道可写**(Overwrite 替换式),回滚/压缩均保留 | 未知通道静默丢弃;必须用有效 schema |
 
 ## 4. 观测面(编排者的传感器)
@@ -81,5 +86,7 @@ topics: [orchestration, api, batch, recipes, workflow]
 4. **verdict 不驱动任何东西**:验收判定只是证据;分支逻辑得自己写(09 §门层)。
 5. **完成回调不存在**:占位字段显式拒绝;用 `/wait`、SSE 持流或轮询 events。
 6. **预算/状态字段单写者纪律**:并行写无 reducer 通道是 last-value 竞态——注入设计必须遵守(09 §预算层)。
+7. **`context.client` 不是可信通道**:它经 `configurable` 的兄弟字段传递并被主动清洗,但**语义上仍是调用方自我介绍**——编排时不要拿它做准入判断(要准入就用 `authorization` 或 `conversation_references`)。
+8. **多实例下 R9 会拒绝启动**:`deployment.multi_instance: true`(或 `DEER_FLOW_MULTI_INSTANCE=1`)时,若调度器开着却没设 `scheduler.multi_instance`、或 `run_ownership.heartbeat_enabled` 不是 true,启动门直接退出——不是警告(见 [overview/07 §9](../overview/07-design-philosophy-evidence.md))。
 
 > 配方的缺口(依赖拓扑/Gate/重规划)如何在全部契约内补上 → [09-task-dag-injection-design.md](09-task-dag-injection-design.md);往哪个入口注入 → [08-orchestration-extension-points.md](08-orchestration-extension-points.md)。
