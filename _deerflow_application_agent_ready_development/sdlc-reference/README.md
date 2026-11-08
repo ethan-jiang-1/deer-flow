@@ -21,4 +21,4 @@
 
 ## 图文分工
 
-正文拥有条款与例外，图只辅助表达。一张 SVG 说明变更主线与每阶段的门禁等级；由本卷自己的[图示清单](./figures/README.md)管理，不依赖相邻卷的图。本目录独立依据 DeerFlow v2.1.0 一手来源；[应用开发模型](../application-development-model/README.md)提供关系综合，[Development Harness](../repo-harness/README.md)说明仓库怎样帮助 coding agent 参与自身，都不是本卷的阅读前提。
+正文拥有条款与例外，图只辅助表达。一张 SVG 说明变更主线与每阶段的门禁等级；由本卷自己的[图示清单](./figures/README.md)管理，不依赖相邻卷的图。本目录独立依据 DeerFlow v2.2.0 一手来源；[应用开发模型](../application-development-model/README.md)提供关系综合，[Development Harness](../repo-harness/README.md)说明仓库怎样帮助 coding agent 参与自身，都不是本卷的阅读前提。

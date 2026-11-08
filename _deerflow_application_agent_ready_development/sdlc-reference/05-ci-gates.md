@@ -2,7 +2,7 @@
 
 ## 什么时候读这里
 
-判断"这条规则是真的会被机器挡住，还是只写在指南里"：逐个 workflow 数 DeerFlow 主仓 v2.1.0 实际执行的门禁、触发条件与例外。应用仓抄 CI 前先抄这张表的**结构**——门禁要写清触发路径与跳过条件，不能只写"有 CI"。
+判断"这条规则是真的会被机器挡住，还是只写在指南里"：逐个 workflow 数 DeerFlow 主仓 v2.2.0 实际执行的门禁、触发条件与例外。应用仓抄 CI 前先抄这张表的**结构**——门禁要写清触发路径与跳过条件，不能只写"有 CI"。
 
 ## 主仓机制（全部为机器门禁，对 workflow 源核验）
 
@@ -17,19 +17,25 @@
 | replay E2E | 前后端契约两层回放：backend golden SSE 序列 + 真前端渲染回放 | **契约两侧任一变更触发**（frontend / Gateway / harness / 回放夹具） | draft 跳过 |
 | skill 审查 | SkillScan 确定性审查 + 豁免清单校验（`skill-review-ci.yml`） | 仅技能与审查工具相关路径变更（`skills/public/`、评审代码与契约、豁免清单、依赖清单） | draft 跳过 |
 | chart 校验 | helm lint + 模板渲染 + sandbox Service 门控 + skill 上传 ingress 策略 + `config_version` 漂移检查 | 仅 chart/示例配置相关路径变更的 PR（`deploy/helm/`、`config.example.yaml`）与 `v*` tag | **不跳 draft**（无 draft 条件） |
+| 示例扩展打包 | 对 `examples/deerflow-extension-*/` 逐个跑 `scripts/check_extension.py`，再对自带 `tests/` 的包各起隔离 venv（装本 checkout 的 extension-api + `.[dev]`）跑 pytest/ruff check/ruff format check（`extension-package-check.yml`，v2.2.0 新增） | 示例目录、checker 脚本、extension-api、harness `extensions/`、backend 依赖清单变更 | draft 跳过 |
+| Jev 插件独立安装 | 单独构建 `jev-context` 的 wheel、装进宿主 venv 的独立目录，用 `verify_package.py` 验证"装好之后的入口点仍能被宿主解析"（`jev-plugin-package.yml`，v2.2.0 新增） | `examples/deerflow-extension-jev-context/`、extension-api、harness `extensions/` 变更 | draft 跳过 |
+| Windows live 策略 | 在 `windows-latest` 上跑一组指定的离线策略测试（live 测试收集策略、workspace 文本缓存字节级往返等只在原生 Windows 上回归的用例）（`backend-windows-live-policy.yml`，v2.2.0 新增） | 周一定时（`17 6 * * 1`）、手动触发、及命中 `workspace_changes/` 与相关测试文件的 PR | draft 跳过 |
 | 版本门 | tag 上校验版本五源一致，失败跳过全部发布 | 仅 `v*` tag | 见[发版与版本门](./07-release-and-version-gate.md) |
 
-来源：[lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/lint-check.yml)、[backend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-unit-tests.yml)、[frontend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/frontend-unit-tests.yml)、[backend-blocking-io-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/backend-blocking-io-tests.yml)、[e2e-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/e2e-tests.yml)、[replay-e2e.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/replay-e2e.yml)、[skill-review-ci.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/skill-review-ci.yml)、[chart.yaml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/chart.yaml)；版本门的 [verify-versions.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/verify-versions.yml) 与 [container.yaml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/container.yaml) 见[发版与版本门](./07-release-and-version-gate.md)。
+来源：[lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/lint-check.yml)、[backend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/backend-unit-tests.yml)、[frontend-unit-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/frontend-unit-tests.yml)、[backend-blocking-io-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/backend-blocking-io-tests.yml)、[e2e-tests.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/e2e-tests.yml)、[replay-e2e.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/replay-e2e.yml)、[skill-review-ci.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/skill-review-ci.yml)、[chart.yaml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/chart.yaml)；版本门的 [verify-versions.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/verify-versions.yml) 与 [container.yaml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/container.yaml) 见[发版与版本门](./07-release-and-version-gate.md)。
+
+（`lint-check.yml` 在 v2.2.0 还多了一个 `label-declarations` job 做标签声明校验，属元数据门禁，未单列成行。）
 
 **容易被忽略的设计**：
 
 1. **replay E2E 的双端触发**——workflow 头注释写明动机："Triggered by changes on EITHER side of the contract so a backend change can no longer pass without the frontend-facing checks running."契约的门禁必须让契约的**双方**都触发它。
 2. **分片按真实时长**——用 `.test_durations` 基线平衡分片，每个测试恰好跑一次；fail-fast 关掉，失败分片报告自己的测试而不连坐同伴。
 3. **最小安装收集 job**——证明"按文档装依赖"的路径不坏，防止 optional 依赖悄悄变成必需。
+4. **契约双向的隔离安装**——`extension-package-check.yml` 与 `jev-plugin-package.yml` 都是"用一个隔离环境装本 checkout 的 `deerflow-extension-api` 再跑"，所以**契约包的改动会连带触发全部示例包的测试**；后者更进一步，验证的是"装进宿主后入口点仍可解析"，比包内测试更接近分发物。这是 v2.2.0 把"示例即契约用例"落成机器门禁的一步。
 
-**门禁有仓库内的配套文档**：blocking-I/O 套件配 [BLOCKING_IO_DETECTION](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/BLOCKING_IO_DETECTION.md)（静态探测器找候选阻塞调用点 + 运行时检测互补，目标收敛为 async 事件循环安全）；replay E2E 配 [REPLAY_E2E](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/REPLAY_E2E.md)（记录/回放两层、key-free，动机直说 mock 前端 e2e 手写 JSON/SSE 会 "fake green"）。门禁的"为什么"与失效模式在这层文档里，不在 workflow 文件里。
+**门禁有仓库内的配套文档**：blocking-I/O 套件配 [BLOCKING_IO_DETECTION](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/docs/BLOCKING_IO_DETECTION.md)（静态探测器找候选阻塞调用点 + 运行时检测互补，目标收敛为 async 事件循环安全）；replay E2E 配 [REPLAY_E2E](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/docs/REPLAY_E2E.md)（记录/回放两层、key-free，动机直说 mock 前端 e2e 手写 JSON/SSE 会 "fake green"）。门禁的"为什么"与失效模式在这层文档里，不在 workflow 文件里。
 
-**边界（诚实读法）**：① "每 PR 跑全部门"不成立——多个门按路径分流，跨边界改动是否触发对应门禁要评审者自行判断；② draft PR 跳过测试 job（lint 与 chart 校验不设 draft 条件），标 ready 时才补跑；③ `make test-live` 从不进 CI；④ 分支保护把哪些 workflow 设为 required 在仓库文件里**不可见**——本表只回答"什么会跑"，不回答"什么挡住合并"；⑤ 本表只列**变更主线**上的门禁——v2.1.0 的 workflows 目录里还有其余文件不属于此列：nightly 定时发布（见[发版与版本门](./07-release-and-version-gate.md)）、triage/label-sync（只写 PR/issue 标签元数据，不检出不执行 PR 代码）、sandbox 镜像 smoke 与 sandbox 网络代理镜像（路径触发的镜像专项校验与发布）、lark-cli 镜像发布（跟随上游 `lark-cli-v*` tag，不接 DeerFlow `v*` 发版链）。
+**边界（诚实读法）**：① "每 PR 跑全部门"不成立——多个门按路径分流，跨边界改动是否触发对应门禁要评审者自行判断；② draft PR 跳过测试 job（lint 与 chart 校验不设 draft 条件），标 ready 时才补跑；③ `make test-live` 从不进 CI；④ 分支保护把哪些 workflow 设为 required 在仓库文件里**不可见**——本表只回答"什么会跑"，不回答"什么挡住合并"；⑤ 本表只列**变更主线**上的门禁——v2.2.0 的 `.github/workflows/` 共 **19 个**文件（v2.1.0 为 16 个），除上表所列外还有：nightly 定时发布（见[发版与版本门](./07-release-and-version-gate.md)）、triage/label-sync（只写 PR/issue 标签元数据，不检出不执行 PR 代码）、sandbox 镜像 smoke 与 sandbox 网络代理镜像（路径触发的镜像专项校验与发布）、lark-cli 镜像发布（跟随上游 `lark-cli-v*` tag，不接 DeerFlow `v*` 发版链）。
 
 ## 应用仓适用边界
 
@@ -37,4 +43,4 @@
 
 ## 证据入口
 
-上表与来源行共十个 workflow 文件（全部钉 v2.1.0），另有门禁配套文档 [BLOCKING_IO_DETECTION.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/BLOCKING_IO_DETECTION.md) 与 [REPLAY_E2E.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/docs/REPLAY_E2E.md)。CONTRIBUTING 的 PR Regression Checks 节只文档化其中三个（后端单测、前端单测、前端 E2E，且只注明前端 E2E 的路径触发），是不完整的文档面——完整清单以 workflow 文件为准。
+上表与来源行共十二个 workflow（全部钉 v2.2.0；即来源行八个加 [extension-package-check.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/extension-package-check.yml)、[jev-plugin-package.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/jev-plugin-package.yml)、[backend-windows-live-policy.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/backend-windows-live-policy.yml)），另有门禁配套文档 [BLOCKING_IO_DETECTION.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/docs/BLOCKING_IO_DETECTION.md) 与 [REPLAY_E2E.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/docs/REPLAY_E2E.md)。CONTRIBUTING 的 PR Regression Checks 节只文档化其中三个（后端单测、前端单测、前端 E2E，且只注明前端 E2E 的路径触发），是不完整的文档面——完整清单以 workflow 文件为准。

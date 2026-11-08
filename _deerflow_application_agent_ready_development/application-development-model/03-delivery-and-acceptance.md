@@ -2,7 +2,7 @@
 
 ## 这页解决什么问题
 
-代码写完不等于交付。本页承接[总览页](./00-index.md)闭环的后四步：一个 slice 怎样才算完整、v2.1.0 的测试证据分几层、安装形态怎么验证、交付记录里写什么。前两步（用户可观察的结果、选择接入形态与确认事实归属）见[新仓起步](./01-new-application-repository.md)与[术语表](./02-terms.md)。
+代码写完不等于交付。本页承接[总览页](./00-index.md)闭环的后四步：一个 slice 怎样才算完整、v2.2.0 的测试证据分几层、安装形态怎么验证、交付记录里写什么。前两步（用户可观察的结果、选择接入形态与确认事实归属）见[新仓起步](./01-new-application-repository.md)与[术语表](./02-terms.md)。
 
 ## 1. 完整的 slice 交付
 
@@ -18,7 +18,7 @@
 
 **应用仓建议**：slice 宁小勿缺件——"代码 + 绿测试"不是一个 slice，缺用户文档的贡献装不进别人的部署，缺配置样例的贡献装进去了也不知道自己开了什么。
 
-## 2. 证据分层：v2.1.0 的三层证据
+## 2. 证据分层：v2.2.0 的三层证据
 
 ![四件不同的事与三层证据：每一层由什么证明](./figures/acceptance-evidence.svg)
 
@@ -28,7 +28,7 @@
 
 > The tests use only the public contract plus this package's declared dependencies; the DeerFlow harness and Gateway application are not imported.
 >
-> — [示例扩展 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)
+> — [示例扩展 README](https://github.com/bytedance/deer-flow/blob/v2.2.0/examples/deerflow-extension-example/README.md)
 
 它证明契约用法正确、包内逻辑成立；**不证明**宿主组合成立——harness 与 Gateway 根本不在测试进程里。
 
@@ -42,14 +42,16 @@ curl -s http://localhost:2026/api/extension-example/stats
 
 该路由走 Gateway 的常规认证中间件，认证开启时要用已认证的浏览器会话（示例 README 的提醒）。它证明贡献真的在宿主里工作了；**不证明**所有调用路径与边界条件——那是包测试与评审的事。
 
-**边界（v2.1.0 的空缺）**：真实装载组合没有随包交付的现成测试模式，这三层是当前版本能写下的完整证据链；更深的组合证据（如回放式端到端）需要应用仓自建。
+**第三层的一个通用抓手（运行时事实，v2.2.0 新增）**：如果你的扩展要观察"运行结束后发生了什么"，别自己接钩子——[extensions/run-evidence 手册](https://github.com/bytedance/deer-flow/blob/v2.2.0/frontend/src/content/en/harness/extensions/run-evidence.mdx) 给了只读的 `RunEvidenceReader`，两种取得方式：服务里用 `deps.run_evidence_reader`（**全局**可见，能看所有用户的 run，手册明确警告"绝不把它返回给调用方"），请求里用 `resolve_run_evidence_reader(request)` / `require_run_evidence_reader(request)`（只绑定当前认证调用者的 `user_id`，需要 `runs:read` 权限；`PermissionError` 映射 403，`None` / `NotImplementedError` 映射 503，且**永不回退**到服务 reader）。宿主不提供 reader 时返回 `None`——手册要求当成"不支持"，而**不是**"没有 run"。这既是应用仓写审计/导出类能力的最短路径，也是"宿主证据面"存在与否的自检点。
+
+**边界（v2.2.0 的空缺）**：真实装载组合没有随包交付的现成测试模式，这三层是当前版本能写下的完整证据链；更深的组合证据（如回放式端到端）需要应用仓自建。v2.2.0 补上的是**打包层**（`scripts/check_extension.py` 与 `extension-package-check.yml` 对 14 个示例逐个打包加隔离安装测试），那仍是第一层之前的事，不构成第四层。
 
 ## 3. 安装形态验证
 
-**分发自包含**。示例包刻意让 Docker 构建包含本地快照，本地 `make dev`、Docker dev 与生产 Gateway 镜像消费**同一份 `backend/uv.lock`**；构建好的生产容器不在网络上解析或安装扩展（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)）。验证清单：
+**分发自包含**。示例包刻意让 Docker 构建包含本地快照，本地 `make dev`、Docker dev 与生产 Gateway 镜像消费**同一份 `backend/uv.lock`**；构建好的生产容器不在网络上解析或安装扩展（[示例 README](https://github.com/bytedance/deer-flow/blob/v2.2.0/examples/deerflow-extension-example/README.md)）。验证清单：
 
 1. 干净 checkout 上 `make extension-install SOURCE=<你的包>`；
-2. 重启后 `make extension-list` 确认条目与 `enabled: true`；
+2. 重启后 `make extension-list` 确认条目与 `enabled: true`；需要机器可读的记录时用 CLI 的 `deerflow extensions list --json`（把 `list_configured()` 的清单序列化成有序 JSON，便于贴进交付记录）；
 3. 观察一个宿主侧行为（第三层证据）；
 4. 声明了多版本兼容时，记录**实际验证过的**契约/宿主版本范围——契约区间（如 `>=0.2,<0.3`）是声明，不是验证。
 
@@ -74,6 +76,8 @@ curl -s http://localhost:2026/api/extension-example/stats
 
 ## 证据入口
 
-- [示例扩展 README](https://github.com/bytedance/deer-flow/blob/v2.1.0/examples/deerflow-extension-example/README.md)（测试口径、安装事务、自包含分发、路由观察）
-- [extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.1.0/frontend/src/content/en/harness/extensions/quick-start.mdx)（包结构与入口点）
-- 交付记录格式参照 [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md)（用户视角/影响面/验证/披露四节）
+- [示例扩展 README](https://github.com/bytedance/deer-flow/blob/v2.2.0/examples/deerflow-extension-example/README.md)（测试口径、安装事务、自包含分发、路由观察）
+- [extensions quick-start](https://github.com/bytedance/deer-flow/blob/v2.2.0/frontend/src/content/en/harness/extensions/quick-start.mdx)（包结构与入口点）
+- [extensions/run-evidence](https://github.com/bytedance/deer-flow/blob/v2.2.0/frontend/src/content/en/harness/extensions/run-evidence.mdx)（只读证据读者的两种作用域、权限与错误映射）
+- [scripts/check_extension.py](https://github.com/bytedance/deer-flow/blob/v2.2.0/scripts/check_extension.py)（打包层检查的覆盖面与"不 import 扩展"的边界）
+- 交付记录格式参照 [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md)（用户视角/影响面/验证/披露四节）

@@ -22,7 +22,35 @@ type: index
 | **安全网** | 分支 `ethan-backup-2026-11-08` = tag `pre-2.2.0-ethan` = `785295559`（旧 160 commits 全量） |
 | **校验** | `git diff v2.2.0 ethan` 三目录之外 0 文件；`v2.2.0..ethan` = 1 commit；三目录与备份逐目录 0 差异 |
 | **2.2.0 会打穿 digest 的 breaking changes** | ① 本地 dev 绑 loopback（`BIND_HOST`）；② 凭据静态加密 `DEER_FLOW_CREDENTIALS_KEY`（Fernet，逗号分隔可轮换）+ IM 凭据迁入 `channel_runtime_configs` 表（降级需重录 UI 机器人）；③ 多进程门更严（`GATEWAY_WORKERS>1`/`multi_instance`/`WEB_CONCURRENCY` 必须 Redis stream bridge；`channels.leader_lease`）；④ scheduler 错误改结构化信封 `{code,message,params}` + `max_concurrent_runs_per_user`（默认 2）+ DST 跳过的 `once` 返回 422；⑤ 线程删除级联删 runs/events/feedback；⑥ `tool_output.elide_superseded_writes` 改默认 false、skill `allowed-tools` 降为兼容元数据；⑦ 工具授权覆盖 middleware 工具；⑧ fail-closed 安全默认（委派 `web_fetch`/`web_capture` 后端拒 loopback、SSRF 拒 CGNAT `100.64.0.0/10`、IM `allowed_users` 解析失败即全拒、外部 `system`/`developer` 消息 400、`USER.md` 按用户隔离）；⑨ 上传/路径更严（Windows 保留名、同名 `_N` 后缀、`skipped_files`、`success` 语义、缺时间戳的 outline/preview 拒绝）；⑩ 斜杠菜单只剩 `/goal`+`/compact`（技能改用 `@` 引用）；⑪ API 形状收紧（run body 422/400、`wait` 错误信封、空 `event_types` 匹配无、keyed resume 503、MCP 连接按用户、SQLite `file:` URI 拒绝、`gpt-6` 系列默认 Responses API、`--print/--json` 失败退出 1）；⑫ `frontend` 面大量改动；⑬ 新增 extensions 全家桶（bookmarks / agent-teams / workflows / knowledge-management / knowledge-platform） |
-| **后续（未做）** | 两遍扫描：`345f08be..58fc5bd5b` 的 diff → 逐域核对 + `tools/check_digest.py` + 113 个带 `file:line` 断言的 digest 反向核对（1,239 commits 后行号几乎全漂）；新建 `UPDATE_PLAN_8.md`；推送 `origin` 待用户确认（强推） |
+| **两遍扫描（已完成）** | 见下方「#8 消化执行记录」 |
+| **待办** | 推送 `origin` 待用户确认（`main` 与 `ethan` 都需强推） |
+
+### #8 消化执行记录（2026-11-08）
+
+七个阶段全绿。**铁律自检：`git diff v2.2.0 ethan` 三目录之外 0 文件。**
+
+| 阶段 | 内容 | 结果 |
+|------|------|------|
+| **P0 测绘** | 生成 2.2.0 变更地图（66 处机械问题、5 个新子包、删除清单、27→50 迁移、各域密度） | 写入 `UPDATE_PLAN_8.md` |
+| **P1 机械层归零** | 批量修正 67 处行数断言（保留 10 处「基线标注」增量写法）；`env.py` 路径消歧；`allowed-tools` 语义重写；清除 `deerflow.testing` 假引用 | `check_digest.py` **exit 0** |
+| **P2 第一遍扫描** | 14 域分两批（6+8 个并行 agent）逐域核对 `345f08be..58fc5bd5b` 的 diff | 123 个文件改动 |
+| **P3 建页** | 五个 v2.2.0 新子系统：`capabilities`(4) / `knowledge`(4) / `typesafe`(3) / `storage`(4) / `openai-decisions`(4) | 16 篇新页 |
+| **P4 第二遍扫描** | 源码→digest 反查：780 个新公开符号里 330 个未在 digest 出现，据此补写两个**完全空白**的子系统 | `managed-models.md`(410 行) + `03-agent-package.md`(249 行) |
+| **P5 FAQ 同步** | `_faq_on_digested` 52 篇，5 个并行分片 | 44 个文件改动 |
+| **P6 应用语料同步** | `_deerflow_application_agent_ready_development` 31 篇：197 处 v2.1.0 → v2.2.0、`verify.mjs` 锚点升级、语义核对 | `node verify.mjs` **exit 0** |
+| **P7 收尾** | 不变式自检、三处文档更新 | 见「校验」行 |
+
+**本批最有价值的发现（旧结论被推翻）**
+
+1. **`allowed-tools` 不再是工具过滤器**（#6935 `0d73798be`）：`skills/tool_policy.py`（65 行）与 `skill_tool_policy_middleware.py`（529 行）整体删除，降级为兼容元数据；权限上限的唯一所有者变成「agent 组装 + 执行授权」（Layer 1 `AuthorizationProvider` / Layer 2 `GuardrailAuthorizationAdapter`）。影响 13 个 digest 页面 + 10 篇 FAQ。
+2. **`deerflow.testing` 是我们 fork 自制的内容，上游从不存在**：`docs/testing/` 目录同样不存在。凡以它论证「机制是发布的包」的页面（`_faq_on_digested/13`、`harness-engineering/03`）都已降级为历史记录。
+3. **`jump_to` 已有真实消费者**：`TodoMiddleware.after_model` 声明 `can_jump_to=["model"]`（`todo_middleware.py:313`）并在 `:372` 返回 `{"jump_to": "model"}`。2.1 时代「识别进成本模型但无消费者」的结论已过期。
+4. **`subagents.enabled` 配置键已不存在**；`tool_search` 段只剩 `enabled` + `auto_promote_top_k`。
+5. **`ThreadState` 字段 12 → 17**（新增 `goal_outcome` / `tool_artifacts` / `tool_artifact_processed`），且 delta 模式下 `normalize_middleware_state_schemas` 会把每个 middleware 的 `state_schema` **换成另一个类对象**——`isinstance` 比对必然失配。
+
+**工具改进（本批新增）**
+
+`check_digest.py` 增加了 `DELETED_SOURCE_PATHS` 规则：已从源码树删除的路径允许作为**历史引用**出现，但同一行必须带删除标记（「已删除」「移除」「~~」等），否则报错并指出删除版本。这把「怎么描述已删除机制」从口头约定变成了机械约束，符合 `tools/README.md` 的「例外要收敛成规则」纪律。
 
 ---
 

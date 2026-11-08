@@ -4,9 +4,9 @@
 
 给 agent 的指南文档有两个特有病症：**过长挤占上下文并稀释指令密度**，以及**过期比没有更糟**（agent 会信）。DeerFlow 主仓给两个病各上了一个机器门禁。与[卷二·架构契约页](../sdlc-reference/06-architecture-docs-contracts.md)互补：那里列门禁清单，这里讲这两道门禁对应用仓自己的指南意味着什么。
 
-## 机制（运行时事实 + 机器门禁，对 v2.1.0 核验）
+## 机制（运行时事实 + 机器门禁，对 v2.2.0 核验）
 
-**尺寸预算分级**。[check_agent_guidance.py](https://github.com/bytedance/deer-flow/blob/v2.1.0/scripts/check_agent_guidance.py) 的常量按目录深度分四档（KiB）：
+**尺寸预算分级**。[check_agent_guidance.py](https://github.com/bytedance/deer-flow/blob/v2.2.0/scripts/check_agent_guidance.py) 的常量按目录深度分四档（KiB）：
 
 | 层级 | 软线 / 硬线 |
 |---|---|
@@ -15,9 +15,11 @@
 | 子系统层 | 40 / 48 |
 | 完整祖先链累计 | 80 / 96 |
 
-检查在 [lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/lint-check.yml) 的 `agent-guidance` job 执行：超硬线是 error；且只在本次 diff 触及的文件上生效——门禁咬的是"正在变长的指南"，不是存量。
+检查在 [lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/lint-check.yml) 的 `agent-guidance` job 执行：超硬线是 error；且只在本次 diff 触及的文件上生效——门禁咬的是"正在变长的指南"，不是存量。job 分两个 step 覆盖两种触发：PR 上比较 base/head（`--base-ref`/`--head-ref`），push 上比较 before/after（`--before`/`--after`），两者都带 `--github-annotations` 把超限标到 diff 行上。v2.2.0 的 `lint-check.yml` 另新增 `label-declarations` job（见[卷二·CI 门禁](../sdlc-reference/05-ci-gates.md)）。
 
-**文档示例进测试**。[test_middleware_documentation.py](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/tests/test_middleware_documentation.py) 把文档里的自定义 middleware 示例直接 `exec()`，断言 API 未过期、链顺序与 guard 清单一致。指南中的代码不是插图，是被测试直接执行的。
+**文档示例进测试**。[test_middleware_documentation.py](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/tests/test_middleware_documentation.py) 把文档里的自定义 middleware 示例直接 `exec()`，断言 API 未过期、链顺序与 guard 清单一致。被检的文档是 `backend/CONTRIBUTING.md` 与 `harness/customization.mdx`、`harness/middlewares.mdx` 的 en/zh 五个文件（`MIDDLEWARE_GUIDES` 常量，v2.1.0 → v2.2.0 未变）；10 个测试函数的数量也没变，但其中 3 个在 v2.2.0 被改写以跟住中间件链的变化：链尾断言里的 `SkillToolPolicyMiddleware` 换成 `SkillActivationMiddleware`（策略中间件**已删除**，见[术语页](../application-development-model/02-terms.md)），子代理链路补上"模型长度防护"，"子代理没有这一阶段"的清单删去 model-length。指南中的代码不是插图，是被测试直接执行的。
+
+**存量尺寸（对 tag 实测）**：根 `AGENTS.md` 249 行 / 14167 字节，安全地在 16 KiB 软线内；`backend/AGENTS.md` 24599 字节、`frontend/AGENTS.md` 32406 字节、`scripts/AGENTS.md` 32760 字节——三份都已接近（`scripts/` 与 `frontend/` 甚至只差约 300 字节到）32 KiB 硬线。这解释了为什么 v2.2.0 的根指南把大量细节挪到子系统层：模块指南的预算已经用满。
 
 **语义边界（诚实读法）**：预算钉**尺寸**，示例测试钉**可执行性**——两者都不证明指南的**内容正确**（编号、条目归属这类漂移仍在门禁之外）。这两道门禁把最坏的两类失效（膨胀、示例过期）挡住了，没有也不声称挡住全部。
 
@@ -27,5 +29,5 @@
 
 ## 证据入口
 
-- [check_agent_guidance.py](https://github.com/bytedance/deer-flow/blob/v2.1.0/scripts/check_agent_guidance.py)（分档常量，tag 与宿主分支一致）与 [lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/lint-check.yml)（agent-guidance job）
-- [test_middleware_documentation.py](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/tests/test_middleware_documentation.py)
+- [check_agent_guidance.py](https://github.com/bytedance/deer-flow/blob/v2.2.0/scripts/check_agent_guidance.py)（分档常量，内容对 tag 核验）与 [lint-check.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/lint-check.yml)（agent-guidance job）
+- [test_middleware_documentation.py](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/tests/test_middleware_documentation.py)

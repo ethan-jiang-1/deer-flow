@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="920" height="470" viewBox="0 0 920 470" role="img" aria-labelledby="t d">
   <title id="t">DeerFlow 主仓变更主线与每阶段的门禁等级</title>
-  <desc id="d">两行图：上行是变更主线的八个阶段（意图对齐、spec 与 plan、实现、PR、CI、发版、数据迁移、运维反馈）；下行标注每个阶段的门禁等级——成文标准、自我声明、机器门禁或文化惯性，其中发版的版本门最强、运维反馈的失败回写无门禁仅靠文化惯性。图例解释这四个等级，另注"仓库外不可核实"一类（不在阶段行中）。依据 bytedance/deer-flow v2.1.0 一手证据绘制。</desc>
+  <desc id="d">两行图：上行是变更主线的八个阶段（意图对齐、spec 与 plan、实现、PR、CI、发版、数据迁移、运维反馈）；下行标注每个阶段的门禁等级——成文标准、自我声明、机器门禁或文化惯性，其中发版的版本门最强、运维反馈的失败回写无门禁仅靠文化惯性。图例解释这四个等级，另注"仓库外不可核实"一类（不在阶段行中）。依据 bytedance/deer-flow v2.2.0 一手证据绘制。</desc>
   <defs>
     <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#9ca3af"/>
@@ -68,5 +68,5 @@
   <text x="20" y="366" font-family="sans-serif" font-size="12" fill="#6b7280">注：仓库外不可核实——分支保护、required checks、人工批准——不在阶段行中，各页单独标注。</text>
 
   <text x="460" y="390" text-anchor="middle" font-family="sans-serif" font-size="12" fill="#b91c1c">读任何一条规则先问它在哪一层——把指南要求当作已被 CI 强制，是读主仓制度最易犯的过度概括。</text>
-  <text x="460" y="455" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">依据 bytedance/deer-flow v2.1.0 的 PR 模板与 CI workflows 绘制 · 逐阶段条款见 sdlc-reference/01–10 各页</text>
+  <text x="460" y="455" text-anchor="middle" font-family="sans-serif" font-size="11" fill="#6b7280">依据 bytedance/deer-flow v2.2.0 的 PR 模板与 CI workflows 绘制 · 逐阶段条款见 sdlc-reference/01–10 各页</text>
 </svg>

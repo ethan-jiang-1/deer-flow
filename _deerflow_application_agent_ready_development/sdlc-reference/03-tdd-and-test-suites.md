@@ -11,18 +11,18 @@
 > ### Test-Driven Development (TDD) — MANDATORY
 > **Every new feature or bug fix MUST be accompanied by unit tests. No exceptions.**
 >
-> — [backend/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/AGENTS.md)
+> — [backend/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/AGENTS.md)
 
-配套要求：测试放 `backend/tests/` 按 `test_<feature>.py` 命名；改动前后都跑 `make test` 与 `make test-blocking-io`；测试通过才算 feature 完成。根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md) 把"features and bug fixes ship with tests"提升为跨模块约定。
+配套要求：测试放 `backend/tests/` 按 `test_<feature>.py` 命名；改动前后都跑 `make test` 与 `make test-blocking-io`；测试通过才算 feature 完成。根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/AGENTS.md) 把"features and bug fixes ship with tests"提升为跨模块约定。
 
-**测试套件三分（成文标准 + 机器门禁）**。`make test` 是默认离线套件（排除 live 与 blocking-I/O）；`make test-blocking-io` 是独立的严格阻塞检测套件；`make test-live` 显式 opt-in、调用真实外部 API、可能产生费用与本地副作用，且"never run by the default backend test command or CI"，直跑 live 测试文件必须设 `DEER_FLOW_RUN_LIVE_TESTS=1`（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md)）。
+**测试套件三分（成文标准 + 机器门禁）**。`make test` 是默认离线套件（排除 live 与 blocking-I/O）；`make test-blocking-io` 是独立的严格阻塞检测套件；`make test-live` 显式 opt-in、调用真实外部 API、可能产生费用与本地副作用，且"never run by the default backend test command or CI"，直跑 live 测试文件必须设 `DEER_FLOW_RUN_LIVE_TESTS=1`（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/CONTRIBUTING.md)）。
 
 **red-green 靠自报（成文标准 + 自我声明）**。PR 模板的 bug fix 节要求把 bug 编码为失败测试并自答：
 
 > Bugs should be encoded as a failing test that goes red before the fix.
 > - Did it go red on `main` and green on this branch? (yes / no)
 >
-> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md)
+> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md)
 
 写不起 red test 时要解释替代方案。
 
@@ -38,6 +38,6 @@
 
 ## 证据入口
 
-- [backend/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/AGENTS.md)（TDD MANDATORY 节，tag 内容已核验）与根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/AGENTS.md)
-- [CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md) Testing 节（三个套件命令与 live 门）
-- [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md) Bug fix verification 节
+- [backend/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/AGENTS.md)（TDD MANDATORY 节，tag 内容已核验）与根 [AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/AGENTS.md)
+- [CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/CONTRIBUTING.md) Testing 节（三个套件命令与 live 门）
+- [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md) Bug fix verification 节

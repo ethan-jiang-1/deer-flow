@@ -6,15 +6,17 @@
 
 ## 主仓机制
 
-**tag 驱动，无一键发版脚本（成文标准）**。发版流程是：维护者改版本源、更新 changelog、commit、打 `v*` tag、推送——推送 tag 触发发布 workflow；没有"跑一个脚本就自动 bump 并发版"的路径，RELEASING 的原话是 "There is no separate release script that bumps versions"（[RELEASING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/RELEASING.md)）。注意区分：`scripts/bump_version.sh` 这样的 helper 存在，但只负责把版本源改齐，改不改、何时改仍是维护者的显式决定。
+**tag 驱动，无一键发版脚本（成文标准）**。发版流程是：维护者改版本源、更新 changelog、commit、打 `v*` tag、推送——推送 tag 触发发布 workflow；没有"跑一个脚本就自动 bump 并发版"的路径，RELEASING 的原话是 "There is no separate release script that bumps versions"（[RELEASING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/RELEASING.md)）。注意区分：`scripts/bump_version.sh` 这样的 helper 存在，但只负责把版本源改齐，改不改、何时改仍是维护者的显式决定。
 
-**版本五源一致（机器门禁，发布链的第一道强制门）**。一个发布版本必须**完全一致**地出现在：backend `pyproject.toml`、frontend `package.json`、Helm `Chart.yaml` 的 `version` 与 `appVersion`，加上 git tag 本身——共五源。container 与 chart 的发布 job 显式依赖版本校验：
+**版本五源一致 + lock 校验（机器门禁，发布链的第一道强制门）**。一个发布版本必须**完全一致**地出现在**五处**：backend `pyproject.toml`、**`backend/packages/harness/pyproject.toml`（v2.2.0 新增的第五源）**、frontend `package.json`、Helm `Chart.yaml` 的 `version` 与 `appVersion`，再加上 git tag 本身；外加 `backend/uv.lock` 里两条根包记录（`deer-flow` 与 `deerflow-harness`）必须匹配，用 `uv lock --check` 而不是字符串比对来判（uv 会把版本规范成 PEP 440 形式）。container 与 chart 的发布 job 显式依赖版本校验：
 
-> Gate the release: every version source must match the v* tag. A forgotten bump in Chart.yaml, pyproject.toml, or package.json fails here and skips all image builds.
+> Gate the release: every version source must match the v* tag. A forgotten bump in Chart.yaml, pyproject.toml, or package.json, or a stale backend/uv.lock, fails here and skips all image builds.
 >
-> — [container.yaml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/container.yaml)
+> — [container.yaml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/container.yaml)
 
-校验逻辑在 [verify-versions.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/verify-versions.yml)，可本地等价运行（`scripts/verify_versions.sh`），帮助脚本 `bump_version.sh` 一次改齐四源。
+校验逻辑在 [verify-versions.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/verify-versions.yml)（注释里写明校验源为 Chart.yaml 的 `version`+`appVersion`、backend `pyproject.toml`、frontend `package.json` 与 `backend/uv.lock`），可本地等价运行（`scripts/verify_versions.sh`）。帮助脚本 `bump_version.sh` 一次改齐五源并刷新 `backend/uv.lock`，且**需要 `uv` 在 `PATH` 上**（缺 `uv` 时脚本在改动任何文件之前就失败）——`verify_versions.sh` 同样要跑 `uv lock --check`，也需要 `uv`。
+
+**为什么 lock 也进版本门（workflow 注释里的失效模式）**：lock 落后一个版本时，字符串比对能通过，chart 与其他镜像已经发布，最后才在 backend 镜像的 `uv sync --locked` 上失败——但那时代码已经出去了。把 lock 纳入第一道 job，是为了让失败发生在**任何东西发布之前**。
 
 **nightly 刻意不走版本门（成文标准）**。nightly 构建从 `main` 定时发布三镜像加 chart，**不**过版本校验（没有 `v*` tag）、**不**碰 `latest` 标签（`latest` 钉在最后一个正式 release 上）。nightly 的 chart 版本带日期与 short SHA 保证唯一。
 
@@ -26,9 +28,9 @@
 
 ## 应用仓适用边界
 
-**可移用**：tag 驱动 + 版本门 + "本地等价命令"。应用仓的"五源"清单不同——典型是：包版本文件、changelog、（若有）容器镜像 tag、git tag——但**多源一致 + 发布链首个 job 校验 + 本地可等价运行**这个三件套结构原样适用。**需要自定**：你是否需要 nightly（取决于下游是否消费不稳定版）；若要 nightly，学主仓"不碰 latest、版本带不可变后缀"的克制。**应用仓建议**：extension 包仓最低配置是两源（`pyproject.toml` 版本 + git tag）一命令（发版前本地校验脚本），成本极低。
+**可移用**：tag 驱动 + 版本门 + "本地等价命令"。应用仓的"五源"清单不同——典型是：包版本文件、changelog、（若有）容器镜像 tag、git tag——但**多源一致 + 发布链首个 job 校验 + 本地可等价运行**这个三件套结构原样适用；v2.2.0 还补上了第四件：**锁文件也是版本源**（语言生态把版本写进 lock 的，就该在版本门里查它，并且用工具自己的 `--check` 而不是字符串比对）。**需要自定**：你是否需要 nightly（取决于下游是否消费不稳定版）；若要 nightly，学主仓"不碰 latest、版本带不可变后缀"的克制。**应用仓建议**：extension 包仓最低配置是两源（`pyproject.toml` 版本 + git tag）一命令（发版前本地校验脚本），成本极低；如果你也维护 lock（`uv.lock` / `pnpm-lock.yaml`），把 `uv lock --check` 这类命令加进同一个门禁脚本。
 
 ## 证据入口
 
-- [RELEASING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/RELEASING.md)（Version sources / Release procedure / Nightly builds）
-- [verify-versions.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/verify-versions.yml) 与 [container.yaml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/workflows/container.yaml)（`needs: verify-versions` 依赖链）
+- [RELEASING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/RELEASING.md)（Version sources 五源表 / Helper scripts / Release procedure / Nightly builds）
+- [verify-versions.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/verify-versions.yml) 与 [container.yaml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/workflows/container.yaml)（`needs: verify-versions` 依赖链）

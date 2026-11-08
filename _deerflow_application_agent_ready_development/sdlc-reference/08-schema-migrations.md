@@ -10,17 +10,17 @@
 
 > every ORM model change (new column, new table, new index) MUST ship as an alembic revision under `migrations/versions/`.
 >
-> — [migrations/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/persistence/migrations/AGENTS.md)
+> — [migrations/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/packages/harness/deerflow/persistence/migrations/AGENTS.md)
 
 **启动即升级，不设手工命令（成文标准 + 运行时事实）**。Gateway 启动时自动 `alembic upgrade head`，常规生产升级不需要手工 Alembic 命令——仓库**刻意不提供** `make migrate` / `make migrate-stamp` 目标，防止"部署时忘了跑迁移"这类人为失误存在于流程中：
 
 > There is no `make migrate` / `make migrate-stamp` target on purpose — routine upgrades execute at Gateway startup.
 >
-> — [migrations/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/persistence/migrations/AGENTS.md)
+> — [migrations/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/packages/harness/deerflow/persistence/migrations/AGENTS.md)
 
-**只追加的修订链（成文标准，事故回写）**。新 revision 只能接在当前 head 之后，**不许插到已发布 revision 之前**——alembic 只从已 stamp 的版本向前走，插队的 revision 会被既有数据库当作已执行的祖先而永远不跑。这条规则后面跟着真实事故：`0023_run_change_seq` 插队导致既有库缺 schema，靠 `0025_repair_run_change_seq` 修复——事故本身已回写为修复 migration 与回归测试。
+**只追加的修订链（成文标准，事故回写）**。新 revision 只能接在当前 head 之后，**不许插到已发布 revision 之前**——alembic 只从已 stamp 的版本向前走，插队的 revision 会被既有数据库当作已执行的祖先而永远不跑。这条规则后面跟着真实事故：`0023_run_change_seq` 插队导致既有库缺 schema，靠 `0025_repair_run_change_seq` 修复（原文点名 #5516）——事故本身已回写为 repair migration 与回归测试。**v2.2.0 的链长度**：迁移指南列出的当前 head 是 `0048_extension_execution_leases`（v2.1.0 的链到 `0025_repair_run_change_seq` 为止），2.2 周期内新增的链接有 `0033_batch_result_artifact` 到 `0048_extension_execution_leases` 一段，尾部三个是 `0046_skill_mutations`、`0047_mcp_oauth_tokens`、`0048_extension_execution_leases`。
 
-**未知状态拒绝启动（运行时事实）**。bootstrap 对数据库状态分类处理：空库建表并 stamp head；遗留库回填基线后升级；**未知 revision、空版本表或多版本行一律 fail-closed 拒绝启动**。确实需要离线修复的罕见情形，恢复文档要求停掉所有写入者、先备份、逐步核验确切 schema 形态再操作，且该恢复路径有回归测试钉住（[database-forward-revision-recovery.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/docs/database-forward-revision-recovery.md)）。
+**未知状态拒绝启动（运行时事实）**。bootstrap 对数据库状态分类处理：空库建表并 stamp head；遗留库回填基线后升级；**未知 revision、空版本表或多版本行一律 fail-closed 拒绝启动**；另有一类被单独处理的状态——库里已经是 `0019_thread_incarnations` 且当前 ORM 的表/列齐全时，**告警并跳过迁移**；缺表或缺列则拒绝启动、要求走离线恢复。确实需要离线修复的罕见情形，恢复文档要求停掉所有写入者、先备份、逐步核验确切 schema 形态再操作，且该恢复路径有回归测试钉住（[database-forward-revision-recovery.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/docs/database-forward-revision-recovery.md)）。
 
 **机器门禁**：迁移测试随单测套件执行（无独立 migration workflow）。**边界**：迁移正确性的完整证明依赖部署启动成功——"fail-closed"保证不会带病运行，但升级失败的恢复仍是 operator 责任。
 
@@ -30,5 +30,5 @@
 
 ## 证据入口
 
-- [migrations/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/backend/packages/harness/deerflow/persistence/migrations/AGENTS.md)（Convention / Hybrid bootstrap / Authoring / Extension-owned tables 各节）
-- [database-forward-revision-recovery.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/docs/database-forward-revision-recovery.md)（离线恢复的审计流程）
+- [migrations/AGENTS.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/backend/packages/harness/deerflow/persistence/migrations/AGENTS.md)（Convention / Hybrid bootstrap / Authoring / Extension-owned tables 各节）
+- [database-forward-revision-recovery.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/docs/database-forward-revision-recovery.md)（离线恢复的审计流程）

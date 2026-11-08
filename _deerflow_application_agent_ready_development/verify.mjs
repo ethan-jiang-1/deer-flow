@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // _deerflow_application_agent_ready_development 结构验证器
 // 规则：严格 UTF-8、单个结尾换行、无 CR、Markdown 相对链接与锚点有效、
-// 目录 README 必备、外链只允许钉定 v2.1.0 的 bytedance/deer-flow 地址、
+// 目录 README 必备、外链只允许钉定 v2.2.0 的 bytedance/deer-flow 地址、
 // 相对链接不得逃出语料根、SVG 结构约束。
 // 只使用 Node 内置模块；按本文件位置定位语料根，不按 cwd 猜路径。
 
@@ -12,7 +12,7 @@ import { fileURLToPath } from 'node:url';
 export const CORPUS_ROOT = fileURLToPath(new URL('.', import.meta.url));
 
 const PINNED_HOST = 'https://github.com/bytedance/deer-flow/';
-const PINNED_TAG = 'v2.1.0';
+const PINNED_TAG = 'v2.2.0';
 const TAG = PINNED_TAG.replace(/\./g, '\\.');
 const ALLOWED_EXTERNAL = [
   new RegExp(`^${PINNED_HOST}blob/${TAG}/.+$`),

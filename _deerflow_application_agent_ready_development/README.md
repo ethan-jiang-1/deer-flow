@@ -6,13 +6,13 @@
 
 目标读者是在独立仓库中构建 DeerFlow 应用的维护者与 coding agent。"应用"取完整口径，覆盖五种接入形态：
 
-1. **Python extension 包**——通过 `deerflow.extensions` 入口点贡献 middleware、生命周期观察者、Gateway 服务与路由；
+1. **Python extension 包**——通过 `deerflow.extensions` 入口点注册到九种贡献类型（middleware、生命周期观察者、Gateway 服务与路由，以及 v2.2.0 新增的实验性全栈插件与只读知识提供者）；
 2. **Skill**——`SKILL.md` 及其资源的能力模块，走发现/激活/审查机制；
 3. **MCP server**——外部工具经 `extensions_config.json` 接入；
 4. **内嵌 harness**——进程内直接使用 harness 能力（`create_deerflow_agent()` 或 `DeerFlowClient`）的应用；
 5. **custom agent 定义**——`config.yaml` 的 `subagents.custom_agents`、Settings 托管定义与 `acp_agents:` 外部进程 agent，不写代码扩展 task 委派目录。
 
-读者应能从 DeerFlow 自带的应用文档（docs 站 harness 手册、extension 示例、extension-api 契约）找到可运行的最小入口，再逐步为自己的仓库建立源码、配置、测试预期、可重复验证与交付记录。
+读者应能从 DeerFlow 自带的应用文档（docs 站 harness 手册、`examples/` 下的 14 个 extension 示例、extension-api 契约与 `contracts/`）找到可运行的最小入口，再逐步为自己的仓库建立源码、配置、测试预期、可重复验证与交付记录。
 
 **适用边界**：应用仓可以采用 DeerFlow 的 extension 装载与事务、skill 发现与审查、custom agent 与 ACP 的委派目录配置、配置组合、嵌入式 client 与契约测试模式。DeerFlow 主仓库的 SDLC 制度（spec/plan 纪律、CI 门禁矩阵、发版版本门、迁移链治理）属于主仓治理，不会因为使用 DeerFlow 就自动适用于应用仓。应用仓应为自己的公开接口、用户可见行为、升级兼容与发布方式确定权威归属与验证路径。
 
@@ -20,7 +20,7 @@
 
 正文区分四类陈述，防止最常见的误读——把上游的内部治理当成随依赖继承的义务：
 
-- **运行时事实**：DeerFlow v2.1.0 的接口、实际行为与仓库内容（文档、指南、workflow 等可对钉定 tag 核验的事实）；
+- **运行时事实**：DeerFlow v2.2.0 的接口、实际行为与仓库内容（文档、指南、workflow 等可对钉定 tag 核验的事实）；
 - **主仓要求**：DeerFlow 主仓库自身的贡献、测试与发布规则，仅约束向主仓提交的变更；
 - **应用仓建议**：本语料归纳出的开发做法，不是 DeerFlow 官方规定；
 - **仓库自定**：应用仓自己的组织、审批与发布选择。
@@ -43,7 +43,7 @@
 
 ## DeerFlow 在这里扮演什么角色，理解从哪里来
 
-本语料对 DeerFlow 的全部理解都只从 GitHub 仓库 `bytedance/deer-flow` 的固定 release tag `v2.1.0` 挖出：源码、`AGENTS.md` 指南、docs 站 harness 手册、extension-api 契约、示例扩展、CI workflows、测试与 git 历史。语料不使用任何二手转述；宿主仓库的研究笔记不参与本语料的证据链。
+本语料对 DeerFlow 的全部理解都只从 GitHub 仓库 `bytedance/deer-flow` 的固定 release tag `v2.2.0` 挖出：源码、`AGENTS.md` 指南、docs 站 harness 手册、extension-api 契约、示例扩展、CI workflows、测试与 git 历史。语料不使用任何二手转述；宿主仓库的研究笔记不参与本语料的证据链。
 
 结论在正文里讲清楚，关键规则以 Markdown blockquote 摘录仓库原文，并给出钉定 tag 的可核对链接。仓库没有声明的制度（例如它从未宣布一套面向下游应用仓的开发方法论）一律表述为"可观察机制的综合"，而不是官方方法名。钉定基线、证据范围与重审触发由[维护页](_coverage/00-corpus-maintenance.md)拥有。
 

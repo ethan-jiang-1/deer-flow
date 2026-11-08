@@ -10,11 +10,11 @@
 
 > For non-trivial features, please open an issue/discussion first to align on scope before writing code.
 >
-> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md)
+> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md)
 
-**成文标准（issue 表单）**。意图入口的表单面在仓库内：[bug-report.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/ISSUE_TEMPLATE/bug-report.yml) 要求先勾选"搜索过已有 issue"（必填）与"可在最新 main 复现"，复现步骤与日志为必填；[feature-request.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/ISSUE_TEMPLATE/feature-request.yml) 的导语与 PR 模板同一立场——非平凡 feature 先开 Discussion 对齐范围再写代码；[config.yml](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/ISSUE_TEMPLATE/config.yml) 关闭空白 issue，并把三类流量各导各的入口：使用问题→Discussions Q&A、半成形想法→Discussions ideas、安全漏洞→security policy（不开公开 issue）。
+**成文标准（issue 表单）**。意图入口的表单面在仓库内：[bug-report.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/ISSUE_TEMPLATE/bug-report.yml) 要求先勾选"搜索过已有 issue"（必填）与"可在最新 main 复现"，复现步骤与日志为必填；[feature-request.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/ISSUE_TEMPLATE/feature-request.yml) 的导语与 PR 模板同一立场——非平凡 feature 先开 Discussion 对齐范围再写代码；[config.yml](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/ISSUE_TEMPLATE/config.yml) 关闭空白 issue，并把三类流量各导各的入口：使用问题→Discussions Q&A、半成形想法→Discussions ideas、安全漏洞→security policy（不开公开 issue）。
 
-**成文标准（贡献指南）**。CONTRIBUTING 给出常规序列：建 feature 分支 → 改动 → 格式化 → 测试 → 提交 → PR（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md)）。
+**成文标准（贡献指南）**。CONTRIBUTING 给出常规序列：建 feature 分支 → 改动 → 格式化 → 测试 → 提交 → PR（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/CONTRIBUTING.md)）。
 
 **机器门禁**：无。没有 CI 检查 PR 是否挂了 issue、是否先经过讨论——这一层靠模板引导与评审把关。
 
@@ -30,5 +30,5 @@
 
 ## 证据入口
 
-- [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md)（tag 与宿主分支一致）
-- [CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md) Development Workflow 节
+- [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md)（内容对 tag 核验；工作树 HEAD 是 tag 之后的分支提交，引用一律以 tag 为准）
+- [CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/CONTRIBUTING.md) Development Workflow 节

@@ -10,7 +10,7 @@
 
 > Describe the change from a user's / caller's perspective, not as a code diff.
 >
-> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md)
+> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md)
 
 **Surface area 勾选（成文标准）**。逐项勾选改动面（前端 UI / 后端 API / Agents·LangGraph / Sandbox / Skills / 依赖 / 默认行为变化 / 仅文档测试 CI），评审者据此划评审范围。勾到 Agents/LangGraph 时附带一条 prompt 信任自检：新 prompt 文本里每个数据源的信任级别是什么、该走哪个通道——模型可影响的值必须走 untrusted、经清洗的数据通道，**不许插值进框架持有的 system 文本**。
 
@@ -20,9 +20,9 @@
 
 > I've read and understand every line of this change and take responsibility for it — it's not unreviewed AI output.
 >
-> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md)
+> — [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md)
 
-CONTRIBUTING 补充执行方式：披露帮**评审者校准阅读强度**；忽略这一节的 PR "may be asked to fill it in before review"（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md)）。
+CONTRIBUTING 补充执行方式：披露帮**评审者校准阅读强度**；忽略这一节的 PR "may be asked to fill it in before review"（[CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/CONTRIBUTING.md)）。
 
 **机器门禁**：无——PR 表单是 GitHub 模板，不填也能开 PR；约束靠评审拒绝。**仓库外不可核实**：模板要求与实际评审执行之间的差距无法从文件判定。
 
@@ -32,5 +32,5 @@ CONTRIBUTING 补充执行方式：披露帮**评审者校准阅读强度**；忽
 
 ## 证据入口
 
-- [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/.github/pull_request_template.md)（Why / Surface area / Bug fix verification / Validation / AI assistance 各节）
-- [CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.1.0/CONTRIBUTING.md) AI assistance disclosure 节
+- [pull_request_template.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/.github/pull_request_template.md)（Why / Surface area / Bug fix verification / Validation / AI assistance 各节）
+- [CONTRIBUTING.md](https://github.com/bytedance/deer-flow/blob/v2.2.0/CONTRIBUTING.md) AI assistance disclosure 节
